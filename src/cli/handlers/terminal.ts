@@ -68,6 +68,14 @@ const terminalFocusHandler: CommandHandler = async ({ flags, client, cwd, json }
 }
 
 export const TERMINAL_HANDLERS: Record<string, CommandHandler> = {
+  // RA: use the same authoritative host mutation as RPC callers.
+  'terminal set-parent': async ({ flags, client, json }) => {
+    const result = await client.call<{ terminal: string; parent: string }>('terminal.setParent', {
+      terminal: getRequiredStringFlag(flags, 'terminal'),
+      parent: getRequiredStringFlag(flags, 'parent')
+    })
+    printResult(result, json, (value) => `${value.terminal} -> ${value.parent}`)
+  },
   'terminal list': async ({ flags, client, cwd, json }) => {
     const result = await client.call<WithAnnotatedHostScope<RuntimeTerminalListResult>>(
       'terminal.list',

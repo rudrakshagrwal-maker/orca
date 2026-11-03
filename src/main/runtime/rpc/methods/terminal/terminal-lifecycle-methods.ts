@@ -16,11 +16,25 @@ import {
   TerminalHandle,
   TerminalReveal,
   TerminalSplit,
+  TerminalSetParent, // RA: explicit post-launch attachment.
   TerminalWait
 } from '../../../../../shared/rpc-contract/terminal-unary-params'
 import { TerminalResizeForClient } from '../../../../../shared/rpc-contract/terminal-stream-params'
+import { setAgentLaunchParent } from '../../../runtime-agent-launch-parents'
 
 export const TERMINAL_LIFECYCLE_METHODS = [
+  // RA: publish attachment through the existing session stream for desktop and remote clients.
+  defineMethod({
+    name: 'terminal.setParent',
+    permission: 'workspace',
+    params: TerminalSetParent,
+    handler: async (params, { runtime }) => {
+      setAgentLaunchParent(runtime, params.terminal, params.parent)
+      const worktreeId = runtime.getTerminalWorktreeIdForHandle(params.terminal)
+      if (worktreeId) { runtime.touchMobileSessionTabsForWorktree(worktreeId) }
+      return { terminal: params.terminal, parent: params.parent }
+    }
+  }),
   defineMethod({
     name: 'terminal.wait',
     permission: 'workspace',

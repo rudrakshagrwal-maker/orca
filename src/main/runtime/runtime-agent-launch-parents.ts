@@ -2,12 +2,15 @@ import type { AgentLaunchOutcome } from '../../shared/agent-launch-intent'
 import type { RuntimeStore } from './runtime-store-contract'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import { reconcileTerminalLaunchParents } from '../../shared/terminal-launch-lineage'
+import type { AgentStatusOrchestrationContext } from '../../shared/agent-status-types'
 
 export type AgentLaunchParent = {
   parentTerminalHandle: string
   sessionId?: string
   childPaneKey?: string
   parentPaneKey?: string
+  // RA: closed parent labels are independent of process-local handles.
+  parentTitle?: string
 }
 
 type ParentStore = Pick<
@@ -53,7 +56,8 @@ export function getAgentLaunchParents(runtime: object) {
           parents.set(child, {
             parentTerminalHandle: parent ?? '',
             childPaneKey,
-            parentPaneKey
+            parentPaneKey,
+            parentTitle: reconciled.terminalOrchestratorTitlesByPaneKey?.[parentPaneKey]
           })
         }
       }
@@ -73,7 +77,9 @@ export function getAgentLaunchParents(runtime: object) {
 export function recordAgentLaunchParent(
   runtime: object,
   child: AgentLaunchOutcome,
-  parentTerminalHandle: string | undefined
+  parentTerminalHandle: string | undefined,
+  // RA: explicit attachment may replace a launch parent; ordinary launch replays may not.
+  replace = false
 ): void {
   if (!parentTerminalHandle || child.handle === parentTerminalHandle) {
     return
@@ -84,7 +90,7 @@ export function recordAgentLaunchParent(
     parentsByRuntime.set(runtime, parents)
   }
   // A replay or a reused terminal keeps its original launching parent.
-  if (!parents.has(child.handle)) {
+  if (replace || !parents.has(child.handle)) {
     parents.set(child.handle, {
       parentTerminalHandle,
       ...(child.kind === 'structured' ? { sessionId: child.sessionId } : {})
@@ -102,21 +108,66 @@ export function recordAgentLaunchParent(
     const candidate = reconcileTerminalLaunchParents({
       ...session,
       terminalLaunchParentsByPaneKey: {
-        [childPaneKey]: parentPaneKey,
-        ...session.terminalLaunchParentsByPaneKey
+        ...session.terminalLaunchParentsByPaneKey,
+        [childPaneKey]: replace
+          ? parentPaneKey
+          : (session.terminalLaunchParentsByPaneKey?.[childPaneKey] ?? parentPaneKey)
       }
     })
     if (candidate.terminalLaunchParentsByPaneKey?.[childPaneKey]) {
       // RA: the first creator wins, including create-then-send and launch replays.
-      if (!session.terminalLaunchParentsByPaneKey?.[childPaneKey]) {
+      if (replace || !session.terminalLaunchParentsByPaneKey?.[childPaneKey]) {
         store.setWorkspaceSession?.(candidate, hostId)
       }
       parents.set(child.handle, {
         ...parents.get(child.handle)!,
         childPaneKey,
-        parentPaneKey: candidate.terminalLaunchParentsByPaneKey[childPaneKey]
+        parentPaneKey: candidate.terminalLaunchParentsByPaneKey[childPaneKey],
+        parentTitle: candidate.terminalOrchestratorTitlesByPaneKey?.[parentPaneKey]
       })
       break
     }
   }
+}
+
+// RA: publish lifetime crowns even after the last helper has closed.
+export function getAgentOrchestratorContexts(runtime: object): Record<string, AgentStatusOrchestrationContext> {
+  const store = persistenceByRuntime.get(runtime)?.getStore()
+  const contexts: Record<string, AgentStatusOrchestrationContext> = {}
+  for (const host of store?.getWorkspaceSessionHostIds?.() ?? [LOCAL_EXECUTION_HOST_ID]) {
+    const session = store?.getWorkspaceSession(host)
+    for (const paneKey of Object.keys(session?.terminalOrchestratorTitlesByPaneKey ?? {})) {
+      contexts[paneKey] = { ...contexts[paneKey], hasLaunchedHelpers: true }
+    }
+    for (const [child, parent] of Object.entries(session?.terminalLaunchParentsByPaneKey ?? {})) {
+      contexts[child] = { ...contexts[child], parentPaneKey: parent,
+        parentTitle: session?.terminalOrchestratorTitlesByPaneKey?.[parent] }
+    }
+  }
+  return contexts
+}
+
+// RA: explicit attachment validates both pane identities and refuses ancestry cycles.
+export function setAgentLaunchParent(runtime: object, child: string, parent: string): void {
+  const persistence = persistenceByRuntime.get(runtime)
+  const childPaneKey = persistence?.getPaneKey(child)
+  const parentPaneKey = persistence?.getPaneKey(parent)
+  if (!childPaneKey || !parentPaneKey || childPaneKey === parentPaneKey) {
+    throw Object.assign(new Error('Choose two different live terminal panes.'), { code: 'invalid_argument' })
+  }
+  const links = new Map<string, string>()
+  const store = persistence?.getStore()
+  for (const host of store?.getWorkspaceSessionHostIds?.() ?? [LOCAL_EXECUTION_HOST_ID]) {
+    for (const [pane, ancestor] of Object.entries(store?.getWorkspaceSession(host).terminalLaunchParentsByPaneKey ?? {})) {
+      links.set(pane, ancestor)
+    }
+  }
+  const visited = new Set([childPaneKey])
+  for (let pane: string | undefined = parentPaneKey; pane; pane = links.get(pane)) {
+    if (visited.has(pane)) {
+      throw Object.assign(new Error('Parent assignment would create an ancestry cycle.'), { code: 'invalid_argument' })
+    }
+    visited.add(pane)
+  }
+  recordAgentLaunchParent(runtime, { kind: 'terminal', handle: child }, parent, true)
 }

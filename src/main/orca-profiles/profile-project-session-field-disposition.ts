@@ -37,6 +37,11 @@ export const WORKSPACE_SESSION_FIELD_DISPOSITION = {
     onRepoRemoval: 'prunedByBespokeRule',
     onTransfer: 'copiedByBespokeRule'
   },
+  // RA: runtime lineage is reconciled against the surviving terminal topology.
+  terminalOrchestratorTitlesByPaneKey: {
+    onRepoRemoval: 'prunedByBespokeRule',
+    onTransfer: 'notTransferred'
+  },
   localOnlyScrollbackByTabId: {
     onRepoRemoval: 'prunedByBespokeRule',
     onTransfer: 'copiedByBespokeRule'

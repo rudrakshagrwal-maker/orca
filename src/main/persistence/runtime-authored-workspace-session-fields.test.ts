@@ -15,8 +15,8 @@ const row = {
 }
 
 describe('preserving runtime-authored workspace session fields', () => {
-  // RA: a renderer save cannot erase terminal provenance or retain closed endpoints.
-  it('preserves omitted launch parents and retires a link when its parent pane closes', () => {
+  // RA: a renderer save cannot erase terminal provenance, even after the parent closes.
+  it('preserves omitted launch parents and retains a link when its parent pane closes', () => {
     const parentLeaf = '11111111-1111-4111-8111-111111111111'
     const childLeaf = '22222222-2222-4222-8222-222222222222'
     const prior: WorkspaceSessionState = {
@@ -32,7 +32,7 @@ describe('preserving runtime-authored workspace session fields', () => {
       .toEqual(prior.terminalLaunchParentsByPaneKey)
     const closed = { ...renderer, terminalLayoutsByTabId: { child: prior.terminalLayoutsByTabId.child } }
     expect(preserveRuntimeAuthoredWorkspaceSessionFields(closed, prior).terminalLaunchParentsByPaneKey)
-      .toEqual({})
+      .toEqual(prior.terminalLaunchParentsByPaneKey)
   })
 
   it('carries the rows across a write that never mentions them', () => {

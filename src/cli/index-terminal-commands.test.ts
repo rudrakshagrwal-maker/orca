@@ -64,6 +64,16 @@ describe('orca cli worktree awareness', () => {
     process.exitCode = originalExitCode
   })
 
+  // RA: the public CLI forwards explicit parent attachment through its registered RPC.
+  it('attaches an existing terminal to an orchestrator', async () => {
+    queueFixtures(callMock, okFixture('req_attach', { terminal: 'term_child', parent: 'term_parent' }))
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await main(['terminal', 'set-parent', '--terminal', 'term_child', '--parent', 'term_parent', '--json'], '/tmp/repo')
+    expect(callMock).toHaveBeenCalledWith('terminal.setParent', {
+      terminal: 'term_child', parent: 'term_parent'
+    })
+  })
+
   // RA: the actual caller owns lineage, even when it creates a shell or splits another pane.
   it.each(['create', 'split'] as const)('passes the calling shell through terminal %s', async (action) => {
     process.env.ORCA_TERMINAL_HANDLE = 'term_creator'

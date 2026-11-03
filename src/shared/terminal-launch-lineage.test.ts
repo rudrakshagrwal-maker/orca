@@ -30,10 +30,36 @@ describe('terminal launch lineage session state', () => {
     expect(parsed.value.terminalLaunchParentsByPaneKey).toEqual({ [CHILD]: PARENT })
   })
 
-  it.each(['parent', 'child'])('drops links when the %s pane closes', (tab) => {
+  // RA: closing a child retires its link; closing its parent preserves a dim ancestor row.
+  it('drops a closed child but retains its live parent crown', () => {
+    const value = reconcileTerminalLaunchParents(session())
+    delete value.terminalLayoutsByTabId.child
+    const result = reconcileTerminalLaunchParents(value)
+    expect(result.terminalLaunchParentsByPaneKey).toEqual({})
+    expect(result.terminalOrchestratorTitlesByPaneKey).toEqual({ [PARENT]: 'Agent' })
+  })
+
+  it('keeps the closed parent identity while its child survives', () => {
     const value = session()
-    delete value.terminalLayoutsByTabId[tab]
-    expect(reconcileTerminalLaunchParents(value).terminalLaunchParentsByPaneKey).toEqual({})
+    delete value.terminalLayoutsByTabId.parent
+    expect(reconcileTerminalLaunchParents(value).terminalLaunchParentsByPaneKey).toEqual({ [CHILD]: PARENT })
+  })
+
+  it('retains closed intermediate ancestors and prunes them after the last descendant closes', () => {
+    const value = session()
+    const grandchild = 'grandchild:33333333-3333-4333-8333-333333333333'
+    value.terminalLaunchParentsByPaneKey![grandchild] = CHILD
+    value.terminalLayoutsByTabId.grandchild = {
+      root: { type: 'leaf', leafId: grandchild.split(':')[1] },
+      activeLeafId: grandchild.split(':')[1], expandedLeafId: null
+    }
+    delete value.terminalLayoutsByTabId.parent
+    delete value.terminalLayoutsByTabId.child
+    const kept = reconcileTerminalLaunchParents(value)
+    expect(kept.terminalLaunchParentsByPaneKey).toEqual({ [CHILD]: PARENT, [grandchild]: CHILD })
+    delete kept.terminalLayoutsByTabId.grandchild
+    expect(reconcileTerminalLaunchParents(kept).terminalLaunchParentsByPaneKey).toEqual({})
+    expect(reconcileTerminalLaunchParents(kept).terminalOrchestratorTitlesByPaneKey).toEqual({})
   })
 
   it('keeps relationships when either pane moves to a new tab', () => {

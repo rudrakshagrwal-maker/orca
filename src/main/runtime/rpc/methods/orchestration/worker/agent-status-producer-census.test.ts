@@ -235,6 +235,11 @@ describe('agent status identity across every producer and consumer path', () => 
     }) as never)
     const window = {
       isDestroyed: () => false,
+      // RA: status forwarding also registers the taskbar alert's focus handler.
+      isFocused: () => false,
+      on: vi.fn(),
+      removeListener: vi.fn(),
+      flashFrame: vi.fn(),
       webContents: {
         send: (channel: string, payload: AgentStatusIpcPayload) => sent.push({ channel, payload })
       }

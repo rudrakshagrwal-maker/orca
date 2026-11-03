@@ -6,7 +6,9 @@ import type { ExecutionHostId } from '../../shared/execution-host'
 import {
   configureAgentLaunchParentPersistence,
   getAgentLaunchParents,
-  recordAgentLaunchParent
+  recordAgentLaunchParent,
+  setAgentLaunchParent,
+  getAgentOrchestratorContexts
 } from './runtime-agent-launch-parents'
 
 const PARENT = 'tab-parent:11111111-1111-4111-8111-111111111111'
@@ -70,13 +72,36 @@ describe('durable terminal launch parents', () => {
     expect(f.store.setWorkspaceSession).toHaveBeenCalledTimes(1)
   })
 
-  it.each(['tab-parent', 'tab-child'])('drops the durable and live link when %s closes', (tab) => {
+  // RA: a closed parent survives as a durable ancestor; a closed child retires its edge.
+  it('keeps a parent after closure and restart', () => {
     const f = fixture()
     const runtime = f.attach('one')
     recordAgentLaunchParent(runtime, { kind: 'terminal', handle: 'child-one' }, 'parent-one')
-    f.close(tab)
+    f.close('tab-parent')
+    f.reload()
+    expect(getAgentLaunchParents(f.attach('new'))?.get('child-new')?.parentPaneKey).toBe(PARENT)
+    expect(getAgentOrchestratorContexts(runtime)[CHILD]).toMatchObject({ parentPaneKey: PARENT })
+  })
+
+  it('drops a closed child link while keeping the parent crown after restart', () => {
+    const f = fixture()
+    const runtime = f.attach('one')
+    recordAgentLaunchParent(runtime, { kind: 'terminal', handle: 'child-one' }, 'parent-one')
+    f.close('tab-child')
     expect(getAgentLaunchParents(runtime)?.size).toBe(0)
     expect(f.session().terminalLaunchParentsByPaneKey).toEqual({})
+    f.reload()
+    expect(getAgentOrchestratorContexts(f.attach('new'))[PARENT]).toEqual({ hasLaunchedHelpers: true })
+  })
+
+  it('attaches existing terminals and rejects self-parenting and cycles', () => {
+    const f = fixture()
+    const runtime = f.attach('one')
+    setAgentLaunchParent(runtime, 'child-one', 'parent-one')
+    expect(f.session().terminalLaunchParentsByPaneKey).toEqual({ [CHILD]: PARENT })
+    expect(() => setAgentLaunchParent(runtime, 'parent-one', 'child-one')).toThrow('cycle')
+    expect(() => setAgentLaunchParent(runtime, 'parent-one', 'parent-one')).toThrow('different')
+    expect(() => setAgentLaunchParent(runtime, 'missing', 'parent-one')).toThrow('live')
   })
 
   it('does not invent lineage for external callers or self launches', () => {

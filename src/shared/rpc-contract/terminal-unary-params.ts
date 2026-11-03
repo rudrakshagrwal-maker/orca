@@ -66,6 +66,11 @@ export const TerminalFocus = TerminalHandle.extend({
   navigation: z.enum(['caller', 'host']).optional()
 })
 
+// RA: attach an existing pane to its orchestrator without changing either agent's config.
+export const TerminalSetParent = TerminalHandle.extend({
+  parent: requiredString('Missing parent terminal handle')
+})
+
 export const TerminalViewClaudeAgent = TerminalHandle.extend({
   sessionId: z.string().min(1).max(256),
   agentId: z.string().min(1).max(256).optional(),

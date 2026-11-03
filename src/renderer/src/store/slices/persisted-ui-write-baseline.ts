@@ -3,6 +3,7 @@ import type { PersistedUIState } from '../../../../shared/persisted-ui-state-typ
 /** Capture hydrated baseline and persist only locally changed fields: shared desktop/web/mobile UI snapshots otherwise overwrite peers’ disjoint updates (STA-5781). */
 export type PersistedUIWriteBaseline = {
   sidebarWidth: number
+  sidebarAgentsHeight?: number | null // RA: optional for older snapshots.
   sidebarOpen: boolean
   rightSidebarOpen: boolean
   rightSidebarTab: PersistedUIState['rightSidebarTab']
@@ -33,6 +34,7 @@ export type PersistedUIWriteBaseline = {
 // Require exhaustive Record coverage; keyof arrays validate members but silently omit new fields, losing persistence (ui-state-schema-parity.ts).
 const PERSISTED_UI_WRITE_BASELINE_FIELD_SET = {
   sidebarWidth: true,
+  sidebarAgentsHeight: true, // RA: persist only locally changed splitter positions.
   sidebarOpen: true,
   rightSidebarOpen: true,
   rightSidebarTab: true,

@@ -25,6 +25,9 @@ import type { PersistedUIWriteBaseline } from '../persisted-ui-write-baseline'
 import type { UISliceCore } from './ui-slice-contract-core'
 
 export type UISlicePreferences = {
+  // RA: Agents section splitter persists with existing UI preferences.
+  sidebarAgentsHeight: number | null
+  setSidebarAgentsHeight: (height: number | null) => void
   /** Which list the sidebar body shows. Navigator-only; does not change the active view. */
   sidebarBody: 'workspaces' | 'agents'
   setSidebarBody: (body: UISlicePreferences['sidebarBody']) => void

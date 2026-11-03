@@ -78,6 +78,7 @@ export const UI_STATE_DISPOSITIONS = {
 export const UI_STATE_GLOBAL_FIELDS = [
   'activeView',
   'sidebarWidth',
+  'sidebarAgentsHeight', // RA: window-local layout preference.
   'sidebarOpen',
   'rightSidebarOpen',
   'rightSidebarTab',

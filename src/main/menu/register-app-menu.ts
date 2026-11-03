@@ -49,8 +49,6 @@ type RegisterAppMenuOptions = AppMenuQuitHandlers & {
 function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
   const {
     onOpenSettings,
-    onOpenSetupGuide,
-    onOpenFeatureTour,
     onOpenCrashReport,
     onBeforeReload,
     onZoomIn,
@@ -88,15 +86,7 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
     click: () => onOpenSettings()
   }
 
-  const featureTourItem: Electron.MenuItemConstructorOptions = {
-    label: translateMain('menu.exploreOrca', 'Explore Orca'),
-    click: (_menuItem, window) => onOpenFeatureTour(window)
-  }
-
-  const setupGuideItem: Electron.MenuItemConstructorOptions = {
-    label: translateMain('menu.gettingStarted', 'Getting Started with Orca'),
-    click: (_menuItem, window) => onOpenSetupGuide(window)
-  }
+  // RA: retired tours/onboarding have no menu entry points on any platform.
 
   const crashReportItem: Electron.MenuItemConstructorOptions = {
     label: translateMain('menu.reportCrash', 'Report Crash...'),
@@ -251,9 +241,7 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
     label: translateMain('menu.help', 'Help'),
     submenu: [
       crashReportItem,
-      { type: 'separator' },
-      featureTourItem,
-      setupGuideItem,
+      // RA: no empty separator left behind by retired tour/onboarding entries.
       ...(isMac
         ? []
         : ([

@@ -5,6 +5,10 @@ import { getDashboardPopoutWindow } from '../window/dashboard-popout-window'
 import { stopSyntheticTitleSpinnerTimer } from './synthetic-title-runtime'
 import { mainProcessState as state } from './main-process-state'
 import { pickHostTurnEnd } from '../../shared/agent-status-types'
+import { createAgentPermissionTaskbarAlert } from '../window/agent-permission-taskbar-alert'
+
+// RA: the status listener owns the focus handler for exactly one window lifetime.
+let taskbarAlert: ReturnType<typeof createAgentPermissionTaskbarAlert> | undefined
 
 export type MainWindowAgentStatusOptions = {
   window: BrowserWindow
@@ -12,6 +16,8 @@ export type MainWindowAgentStatusOptions = {
 }
 
 export function installMainWindowAgentStatusListeners(options: MainWindowAgentStatusOptions): void {
+  taskbarAlert?.dispose()
+  taskbarAlert = createAgentPermissionTaskbarAlert(options.window)
   agentHookServer.setListener(
     ({
       paneKey,
@@ -64,6 +70,8 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
         return
       }
       const runtime = state.runtime
+      // RA: replay/progress publications cannot repeatedly flash the taskbar.
+      taskbarAlert?.observe(paneKey, programStatus, isReplay === true)
       const orchestration = runtime?.getAgentStatusOrchestrationContextForPaneKey(paneKey)
       const terminalHandle = runtime?.getAgentStatusTerminalHandleForPaneKey(paneKey)
       const statusEvent = {
@@ -102,6 +110,7 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
     }
   )
   agentHookServer.setPaneStatusClearListener((clear) => {
+    if ('paneKey' in clear) { taskbarAlert?.clear(clear.paneKey) } // RA: SSH batch clears have no pane key.
     if (state.mainWindow?.isDestroyed()) {
       return
     }
@@ -123,6 +132,8 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
 }
 
 export function clearMainWindowAgentStatusListeners(): void {
+  taskbarAlert?.dispose()
+  taskbarAlert = undefined
   // Detach window listeners before destroyed WebContents; only deliberate window recreation replays.
   agentHookServer.setListener(null)
   agentHookServer.setPaneStatusClearListener(null)

@@ -121,6 +121,9 @@ export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Par
             s.combinedDiffFileTreeWidth
           ),
           sidebarOpen: typeof ui.sidebarOpen === 'boolean' ? ui.sidebarOpen : true,
+          // RA: viewport bounds are applied by the splitter, including after window resize.
+          sidebarAgentsHeight: typeof ui.sidebarAgentsHeight === 'number' && Number.isFinite(ui.sidebarAgentsHeight)
+            ? Math.max(90, ui.sidebarAgentsHeight) : null,
           rightSidebarOpen: typeof ui.rightSidebarOpen === 'boolean' ? ui.rightSidebarOpen : true,
           ...normalizeRightSidebarRoute(ui.rightSidebarTab, ui.rightSidebarExplorerView),
           groupBy: (ui.groupBy as UISlice['groupBy'] | 'parent') === 'parent' ? 'repo' : ui.groupBy,

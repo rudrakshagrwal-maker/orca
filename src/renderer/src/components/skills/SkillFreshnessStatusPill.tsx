@@ -15,6 +15,7 @@ import {
   type SkillFreshnessDisplayStatus
 } from '@/lib/skill-freshness-display-status'
 import { requestSkillFreshnessUpdateDialog } from './skill-freshness-update-dialog'
+import { preserveGlobalAgentConfiguration } from '../../../../shared/fork-background-policy'
 
 function statusPill(status: SkillFreshnessDisplayStatus): React.JSX.Element {
   if (status === 'update-available') {
@@ -52,7 +53,7 @@ function statusPill(status: SkillFreshnessDisplayStatus): React.JSX.Element {
 }
 
 // Presence alone cannot imply freshness; copies the updater cannot reach need attention instead of green.
-export function SkillFreshnessStatusPill({ skillName }: { skillName: string }): React.JSX.Element {
+function SkillFreshnessStatusPillBody({ skillName }: { skillName: string }): React.JSX.Element {
   const { plan, unsupported, loading, error } = useSkillFreshness(
     useActiveProjectSkillRuntime().bundledSkillTarget
   )
@@ -74,6 +75,11 @@ export function SkillFreshnessStatusPill({ skillName }: { skillName: string }): 
     )
   }
   return <SkillPlanStatusPill plan={plan} skillName={skillName} />
+}
+
+// RA: disabled at the entry point so settings and orchestration dialogs never scan or nag.
+export function SkillFreshnessStatusPill(props: { skillName: string }): React.JSX.Element | null {
+  return preserveGlobalAgentConfiguration() ? null : <SkillFreshnessStatusPillBody {...props} />
 }
 
 export function SkillUnsupportedStatusPill({
@@ -104,7 +110,11 @@ export function SkillPlanStatusPill({
   plan: BundledSkillPlan | null
   skillName: string
   target?: BundledSkillTarget | null
-}): React.JSX.Element {
+}): React.JSX.Element | null {
+  // RA: direct Settings callers must not bypass the disabled freshness entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return null
+  }
   const status = getSkillFreshnessDisplayStatus(plan, skillName)
   const entry = plan?.skills.find((skill) => skill.name === skillName)
   const needsAttention =

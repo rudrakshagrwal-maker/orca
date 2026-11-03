@@ -151,11 +151,14 @@ describe('RuntimeAgentOrchestrationProjection launch lineage', () => {
     expect(second.projection.buildByPaneKey()).toBeUndefined()
   })
 
-  it('evicts lineage when either terminal closes', () => {
+  // RA: only the child closing retires ancestry; a closed parent remains a dim row.
+  it('retains a closed parent and evicts lineage when the child closes', () => {
     const { runtime, projection, panes, launch } = setup()
     launch('term_child', 'term_parent')
     panes.delete('term_parent')
-    expect(projection.buildByPaneKey()).toBeUndefined()
+    expect(projection.buildByPaneKey()).toEqual({
+      'tab-child:leaf-child': { parentTerminalHandle: 'term_parent' }
+    })
     panes.delete('term_child')
     expect(projection.buildByPaneKey()).toBeUndefined()
     expect(getAgentLaunchParents(runtime)?.size).toBe(0)

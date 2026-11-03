@@ -13,8 +13,10 @@ export function entryWithRuntimeOrchestration(
   const sameDispatch =
     entry.orchestration &&
     runtimeOrchestration &&
-    entry.orchestration.taskId === runtimeOrchestration.taskId &&
-    entry.orchestration.dispatchId === runtimeOrchestration.dispatchId
+    // RA: launch ancestry/crowns have no dispatch and remain authoritative across turns.
+    ((!runtimeOrchestration.taskId && !runtimeOrchestration.dispatchId) ||
+      (entry.orchestration.taskId === runtimeOrchestration.taskId &&
+        entry.orchestration.dispatchId === runtimeOrchestration.dispatchId))
   if (entry.orchestration && runtimeOrchestration && !sameDispatch) {
     return entry
   }

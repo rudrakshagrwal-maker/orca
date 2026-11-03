@@ -1,4 +1,5 @@
 export const FLAG_HELP_TEXT: Record<string, string> = {
+  parent: '--parent <handle>      Parent agent terminal handle', // RA: explicit attachment.
   'external-worktree-visibility':
     '--external-worktree-visibility show|hide|inherit  Override or inherit non-Orca worktree visibility',
   agent: '--agent <id>          Launch a known TUI agent in the first terminal',

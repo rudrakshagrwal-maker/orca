@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { TerminalCreateParams, TerminalSplit } from './terminal-unary-params'
+import { TerminalCreateParams, TerminalSplit, TerminalSetParent } from './terminal-unary-params'
 import { WorktreeCreate } from './worktree-create-params'
 import { WorkerStartParams } from './orchestration-worker-start-params'
 import { CreateTerminalTab } from './session-tabs-schemas-params'
 import { FederationAttachStartParams } from './orchestration-federation-start-params'
+
+// RA: attachment requires explicit, nonempty identities on both sides.
+it('validates terminal.setParent identities', () => {
+  expect(TerminalSetParent.parse({ terminal: 'term_child', parent: 'term_parent' }))
+    .toEqual({ terminal: 'term_child', parent: 'term_parent' })
+  expect(TerminalSetParent.safeParse({ terminal: 'term_child', parent: '' }).success).toBe(false)
+  expect(TerminalSetParent.safeParse({ terminal: 'term_child' }).success).toBe(false)
+})
 
 // RA: every independent terminal-creation RPC must retain the CLI's optional parent.
 describe.each([

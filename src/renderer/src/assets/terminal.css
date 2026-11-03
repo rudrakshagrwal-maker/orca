@@ -14,6 +14,28 @@
   height: 100% !important;
 }
 
+/* RA: each terminal leaf clips its canvas inside the owner's 8px card, including inner splits. */
+.pane-manager-root .pane.ra-terminal-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--background);
+  box-sizing: border-box;
+}
+
+/* RA: retain a black gap without consuming extra flex space or moving divider hit targets. */
+.pane-manager-root .pane-divider {
+  background: var(--background) !important;
+}
+
+/* RA: five-pixel card gaps remain draggable on both split axes. */
+.pane-manager-root .pane-divider.is-vertical {
+  width: 5px !important;
+}
+.pane-manager-root .pane-divider.is-horizontal {
+  height: 5px !important;
+}
+
 .pane-manager-root *,
 .pane-manager-root *::before,
 .pane-manager-root *::after {

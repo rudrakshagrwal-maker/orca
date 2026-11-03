@@ -274,6 +274,14 @@ export const CORE_COMMAND_SPECS: CommandSpec[] = [
     ]
   },
   TERMINAL_SET_PANE_TITLE_COMMAND_SPEC,
+  // RA: link independently opened lanes to their orchestrator.
+  {
+    path: ['terminal', 'set-parent'],
+    summary: 'Attach a terminal beneath its parent agent',
+    usage: 'orca terminal set-parent --terminal <handle> --parent <handle> [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'terminal', 'parent'],
+    examples: ['orca terminal set-parent --terminal term_child --parent term_parent --json']
+  },
   {
     path: ['terminal', 'split'],
     summary: 'Split an existing terminal pane',

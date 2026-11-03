@@ -11,3 +11,12 @@ export function stripLeadingAgentTitleDecoration(title: string): string {
   // Retain glyph-only titles rather than producing blank tab labels.
   return stripped.length > 0 ? stripped : title
 }
+
+// RA: agent-owned OSC titles stay trimmed, without inherited branch/path prefixes.
+export function agentTerminalTitle(title: string): string {
+  const parts = stripLeadingAgentTitleDecoration(title.trim()).split(/\s+(?:\u00c2?\u00b7|\u2014)\s+/)
+  while (parts.length > 1 && /^(?:master|main)$|[\\/]/i.test(parts[0])) {
+    parts.shift()
+  }
+  return parts.join(' · ').trim()
+}

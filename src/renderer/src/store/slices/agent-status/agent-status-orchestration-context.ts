@@ -13,6 +13,9 @@ export function orchestrationContextsEqual(
     a.displayName === b.displayName &&
     a.parentTerminalHandle === b.parentTerminalHandle &&
     a.parentPaneKey === b.parentPaneKey &&
+    // RA: title/crown-only publications must reach the sidebar.
+    a.parentTitle === b.parentTitle &&
+    a.hasLaunchedHelpers === b.hasLaunchedHelpers &&
     a.coordinatorHandle === b.coordinatorHandle &&
     a.orchestrationRunId === b.orchestrationRunId &&
     orchestrationFleetAttentionEqual(a.attention, b.attention)

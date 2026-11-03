@@ -65,6 +65,9 @@ export type AgentStatusOrchestrationContext = {
   displayName?: string
   parentTerminalHandle?: string
   parentPaneKey?: string
+  // RA: durable sidebar lineage includes closed parent labels and lifetime crowns.
+  parentTitle?: string
+  hasLaunchedHelpers?: boolean
   coordinatorHandle?: string
   orchestrationRunId?: string
   /** Durable orchestration categories combined with the current push-fed status observation. */

@@ -32,7 +32,8 @@ export function createPaneDOM(
   onMouseEnter: (id: number, event: MouseEvent) => void
 ): ManagedPaneInternal {
   const container = document.createElement('div')
-  container.className = 'pane'
+  // RA: every leaf, including nested splits and restored panes, owns its rounded card.
+  container.className = 'pane ra-terminal-card'
   container.dataset.paneId = String(id)
   container.dataset.leafId = leafId
 
