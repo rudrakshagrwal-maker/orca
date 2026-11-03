@@ -67,7 +67,8 @@ export function buildDefaultSettings(args: {
     primarySelectionMiddleClickPasteDefaultedForLinux: args.primarySelectionDefaultedForLinux,
     primarySelectionMiddleClickPasteDefaultedForTerminalDefaults:
       args.primarySelectionMiddleClickPaste,
-    terminalFontSize: 14,
+    // RA: Use the denser terminal font default for fresh profiles.
+    terminalFontSize: 13,
     terminalFontFamily: args.terminalFontFamily,
     terminalFontWeight: DEFAULT_TERMINAL_FONT_WEIGHT,
     terminalFontWeightBold: DEFAULT_TERMINAL_FONT_WEIGHT_BOLD,

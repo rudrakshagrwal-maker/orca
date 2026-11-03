@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react'
+import { Crown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { opensClaudeParentConversation, viewClaudeAgentFromRow } from '@/lib/claude-agent-row-view'
 import { useClaudeAgentRowView } from './use-claude-agent-row-view'
@@ -94,6 +95,9 @@ type Props = {
   sendTargetStatus?: 'eligible' | 'disabled' | 'sending'
   sendTargetDisabledReason?: string
   onSendTargetClick?: (paneKey: string) => void
+  // RA: reuse agent navigation and presentation in the global sidebar tree.
+  sidebarTreeRow?: boolean
+  sidebarWorkspaceName?: string
 }
 
 const DashboardAgentRow = React.memo(function DashboardAgentRow({
@@ -114,7 +118,9 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   hideLineageConnectors = false,
   sendTargetStatus,
   sendTargetDisabledReason,
-  onSendTargetClick
+  onSendTargetClick,
+  sidebarTreeRow = false,
+  sidebarWorkspaceName
 }: Props) {
   useUiLanguageRevision()
   const view = useClaudeAgentRowView(agent)
@@ -229,6 +235,67 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   }
 
   const titleParts = sendTargetDisabledReason ? [sendTargetDisabledReason, ...tsParts] : tsParts
+
+  // RA: the global tree keeps one compact line and the status-change clock.
+  if (sidebarTreeRow) {
+    const title =
+      agent.entry.orchestration?.displayName?.trim() ||
+      agent.entry.orchestration?.taskTitle?.trim() ||
+      (agent.rowSource === 'subagent'
+        ? displayLabel
+        : conversationName || agent.tab.customTitle || agent.tab.title || displayLabel)
+    const elapsed = Math.max(0, now - agent.entry.stateStartedAt)
+    const elapsedLabel = elapsed < 60_000 ? '<1m' : formatCompactDuration(elapsed)
+    const needsYou = dotState === 'blocked' || dotState === 'waiting' || dotState === 'permission'
+    return (
+      <button
+        type="button"
+        onClick={handleActivate}
+        data-current={highlighted ? 'true' : undefined}
+        className={cn(
+          'flex h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-2 text-left text-[13px] text-worktree-sidebar-foreground',
+          'hover:bg-worktree-sidebar-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring',
+          highlighted && 'bg-worktree-sidebar-accent',
+          isUnvisited && 'font-semibold'
+        )}
+        title={sidebarWorkspaceName ? `${sidebarWorkspaceName} · ${title}` : title}
+      >
+        <AgentTypeIcon agentType={agent.agentType} size={14} />
+        {(childAgentCount ?? 0) > 0 ? (
+          <Crown
+            className="size-3.5 shrink-0 text-[#e5b53a]"
+            aria-label={translate('ra.sidebar.orchestrator', 'Orchestrator')}
+          />
+        ) : null}
+        <span className="min-w-0 flex-1 truncate">
+          {sidebarWorkspaceName ? (
+            <>
+              {sidebarWorkspaceName}
+              <span className="text-muted-foreground"> · </span>
+            </>
+          ) : null}
+          {title}
+        </span>
+        <span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
+          {elapsedLabel}
+        </span>
+        {needsYou ? (
+          <span
+            className="w-3 shrink-0 text-center font-semibold text-destructive"
+            aria-label={dotTooltipLabel}
+          >
+            !
+          </span>
+        ) : (
+          <AgentStateDot
+            state={dotState === 'done' && !isUnvisited ? 'idle' : dotState}
+            size="md"
+            title={dotTooltipLabel}
+          />
+        )}
+      </button>
+    )
+  }
 
   return (
     // Why: no role="button" — nested interactive children (buttons, tooltip triggers) would violate ARIA nesting rules.

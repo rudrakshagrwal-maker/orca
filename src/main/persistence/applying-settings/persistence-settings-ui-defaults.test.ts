@@ -81,7 +81,8 @@ describe('Store', () => {
     expect(settings.appFontFamily).toBe('Geist')
     expect(settings.editorAutoSave).toBe(false)
     expect(settings.editorAutoSaveDelayMs).toBe(1000)
-    expect(settings.terminalFontSize).toBe(14)
+    // RA: Match the fresh-profile terminal font default.
+    expect(settings.terminalFontSize).toBe(13)
     expect(settings.terminalFontWeight).toBe(500)
     expect(settings.terminalFontWeightBold).toBe(700)
     expect(settings.terminalScrollSensitivity).toBe(1.15)

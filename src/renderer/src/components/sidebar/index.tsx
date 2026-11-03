@@ -23,6 +23,7 @@ import { LocalGitToolchainScanBanner } from './LocalGitToolchainScanBanner'
 import { SeveredTerminalDaemonBanner } from './SeveredTerminalDaemonBanner'
 import { StalledTerminalDaemonBanner } from './StalledTerminalDaemonBanner'
 import { StartupWorktreeRefreshStatus } from './StartupWorktreeRefreshStatus'
+import SidebarAgentSection from './SidebarAgentSection'
 
 // Keep the Agents activity pipeline out of the workspace view’s initial bundle.
 const SidebarAgentsList = lazyWithRetry(() => import('./SidebarAgentsList'))
@@ -197,6 +198,8 @@ function Sidebar({
                   onWorkspaceBoardDragPreviewCancel={cancelWorkspaceBoardDragPreview}
                 />
                 <WslMovedProjectsSection />
+                {/* RA: global agent trees stay below the workspace list. */}
+                <SidebarAgentSection />
               </>
             )}
 

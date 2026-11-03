@@ -141,7 +141,8 @@ export function AppWorkspaceShell(props: {
         'The app is still running. Retry the shell or use the menu to report the crash details.'
       )}
     >
-      <div className="flex flex-row flex-1 min-h-0 overflow-hidden">
+      {/* RA: Bound the workspace row so split-pane content cannot widen the window layout. */}
+      <div className="flex flex-row flex-1 min-w-0 max-w-full min-h-0 overflow-hidden">
         {/* Keep the non-workspace titlebar from spanning the right sidebar. */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
           {/* Workspace tab groups reach the top; other pages retain the titlebar. */}

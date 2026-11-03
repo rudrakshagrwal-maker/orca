@@ -292,8 +292,7 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
           sendTargetStatus={sendTarget?.status}
           sendTargetDisabledReason={sendTarget?.disabledReason}
           onSendTargetClick={isAgentSendTargetModeActive ? handleSendTargetClick : undefined}
-          // Chevron/indent already show hierarchy; fixed-offset connectors misalign into floating fragments.
-          hideLineageConnectors
+          // RA: show the existing parent/child connector lines.
         />
         {hasChildAgents && expanded ? (
           <div className="worktree-agent-lineage-children">
