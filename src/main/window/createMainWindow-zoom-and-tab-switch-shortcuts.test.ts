@@ -85,7 +85,7 @@ describe('createMainWindow', () => {
         // RA: Windows no longer owns the duplicate numpad zoom binding.
         const removedWindowsAlias =
           platform === 'win32' &&
-          (input.key === 'Subtract' || input.code === 'NumpadSubtract')
+          (input.key === 'Subtract' || ('code' in input && input.code === 'NumpadSubtract'))
         expect(preventDefault).toHaveBeenCalledTimes(removedWindowsAlias ? 0 : 1)
       }
 
