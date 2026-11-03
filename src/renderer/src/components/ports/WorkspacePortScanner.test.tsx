@@ -253,7 +253,7 @@ describe('WorkspacePortScanner', () => {
       })
       expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(2)
       await act(async () => {
-        vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock.calls.at(-1)?.[0]()
+        vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock.calls.at(-1)?.[0]({} as never)
         await flushPromises()
       })
       expect(localScan).toHaveBeenCalled()

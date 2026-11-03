@@ -36,7 +36,7 @@ export function PortsStatusSegment({ iconOnly }: PortsStatusSegmentProps): React
   const [open, setOpen] = useState(false)
   // RA: closing or unmounting releases this visible consumer's scan demand.
   useEffect(() => {
-    if (open) return acquireWorkspacePortScanDemand()
+    return open ? acquireWorkspacePortScanDemand() : undefined
   }, [open])
   const [externalOpen, setExternalOpen] = useState(false)
   const runtimeTarget = useWorktreeRuntimeTarget(activeWorktreeId)
