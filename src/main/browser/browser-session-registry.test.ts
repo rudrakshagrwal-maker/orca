@@ -2,6 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+// RA: this suite exercises upstream eager session setup; lazy boot has separate coverage.
+vi.mock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
 
 const {
   sessionFromPartitionMock,

@@ -131,7 +131,8 @@ export class HostTerminalPolicy {
           : Math.min(Math.ceil(systemPtyLimit / 2), MAX_CONFIGURED_TERMINALS)
       await awaitDaemonValueWithinCallerDeadline(this.refresh(), Date.now() + 250)
       if (!this.disposed && this.path && this.environment === null) {
-        this.timer = setInterval(() => void this.refresh(), 3_000)
+        // RA: idle policy refresh must not wake the terminal host faster than five seconds.
+        this.timer = setInterval(() => void this.refresh(), 5_000)
         this.timer.unref?.()
       }
     }))

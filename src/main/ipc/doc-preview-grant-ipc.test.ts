@@ -21,6 +21,9 @@ vi.mock('electron', () => ({
 vi.mock('./browser-renderer-trust', () => ({
   isTrustedBrowserRenderer: mocks.isTrustedBrowserRenderer
 }))
+vi.mock('../browser/doc-preview-protocol', () => ({
+  installDocPreviewProtocolHandler: vi.fn()
+}))
 vi.mock('../browser/doc-preview-guest-policy', () => ({
   reportDocPreviewLinkClick: mocks.reportDocPreviewLinkClick
 }))

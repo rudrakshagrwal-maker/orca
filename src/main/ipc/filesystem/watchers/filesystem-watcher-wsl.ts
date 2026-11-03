@@ -30,7 +30,8 @@ export type WslWatcherDeps = {
   onUnexpectedStop?: (root: WatchedRoot, distro: string) => void
 }
 
-const POLL_INTERVAL_SECONDS = 2
+// RA: preserve WSL fallback watching without a two-second idle shell poll.
+const POLL_INTERVAL_SECONDS = 5
 const STARTUP_TIMEOUT_MS = 10_000
 const [SNAPSHOT_START, SNAPSHOT_END] = ['\0\x1e\0', '\0\x1f\0']
 const MAX_STREAM_BUFFER_CHARS = 10 * 1024 * 1024

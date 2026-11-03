@@ -42,10 +42,36 @@ type XtermWebglAddonInternals = {
   _renderer?: {
     _gl?: ReleasableWebglContext
     _canvas?: HTMLCanvasElement
+    _deviceMaxTextureSize?: number
+    _refreshCharAtlas?: () => void
+    _charAtlas?: {
+      constructor: { maxAtlasPages?: number; maxTextureSize?: number }
+    }
   }
 }
 
 const panesAwaitingWebglAddon = new Set<ManagedPaneInternal>()
+
+function capWebglTextureAtlas(addon: WebglAddon): void {
+  const renderer = (addon as unknown as XtermWebglAddonInternals)._renderer
+  const atlasClass = renderer?._charAtlas?.constructor
+  // RA: bound atlas growth to four 2048px pages, retaining xterm's native cache eviction.
+  if (atlasClass) {
+    atlasClass.maxAtlasPages = Math.min(atlasClass.maxAtlasPages ?? 4, 4)
+    atlasClass.maxTextureSize = Math.min(atlasClass.maxTextureSize ?? 2048, 2048)
+  }
+  // RA: oversized glyph pages otherwise allocate a square at the hardware's full texture limit.
+  if (
+    renderer &&
+    typeof renderer._deviceMaxTextureSize === 'number' &&
+    renderer._deviceMaxTextureSize > 2048 &&
+    renderer._refreshCharAtlas
+  ) {
+    renderer._deviceMaxTextureSize = 2048
+    renderer._refreshCharAtlas()
+    addon.clearTextureAtlas()
+  }
+}
 
 setTerminalWebglAddonLoadHandlers({
   onLoaded: () => {
@@ -254,6 +280,8 @@ export function attachWebgl(pane: ManagedPaneInternal): void {
   try {
     webglAddon = new WebglAddonConstructor()
     const addon = webglAddon
+    // RA: late attachment/DPR changes acquire their atlas after construction; cap before the next paint.
+    addon.onChangeTextureAtlas?.(() => queueMicrotask(() => capWebglTextureAtlas(addon)))
     addon.onContextLoss(() => {
       console.warn(
         '[terminal] WebGL context lost for pane',
@@ -274,13 +302,14 @@ export function attachWebgl(pane: ManagedPaneInternal): void {
       disposeWebgl(pane, { refreshDimensions: true })
     })
     pane.terminal.loadAddon(addon)
+    capWebglTextureAtlas(addon)
     pane.webglAddon = addon
     const canvas = getXtermWebglCanvas(addon)
     if (canvas) {
-      // Why: panes of a hidden worktree surface keep their backing so switching worktrees never pays a reallocation.
+      // RA: release backing stores even when the containing worktree is hidden.
       releaseWebglCanvasBackingWhileHidden(
         canvas,
-        () => pane.container.closest('[data-worktree-surface-hidden]') === null,
+        () => true,
         (devicePixelSize) => restoreReleasedPaneWebglCanvas(pane, devicePixelSize)
       )
     }

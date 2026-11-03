@@ -1,4 +1,5 @@
 import { app, session } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { ORCA_BROWSER_PARTITION } from '../../shared/constants'
@@ -136,10 +137,28 @@ class BrowserSessionRegistry {
 
     // Hydration skips the default profile, so install its policies separately.
     const defaultProfile = this.getDefaultProfile()
-    void installBrowserSessionPartitionPolicies(defaultProfile).catch(() => {
-      console.warn('[proxy] Failed to apply proxy to browser partition', defaultProfile.partition)
-    })
-    this.attachExtensions(defaultProfile, meta.enabledExtensionIdsByProfileId.default ?? [])
+    // RA: restore metadata at boot; Chromium partitions open only when a page needs them.
+    if (!backgroundJobsDisabled()) {
+      void installBrowserSessionPartitionPolicies(defaultProfile).catch(() => {
+        console.warn('[proxy] Failed to apply proxy to browser partition', defaultProfile.partition)
+      })
+      this.attachExtensions(defaultProfile, meta.enabledExtensionIdsByProfileId.default ?? [])
+    }
+  }
+
+  async prepareProfileSession(profileId: string | null | undefined): Promise<void> {
+    const profile = this.profiles.get(profileId ?? 'default') ?? this.getDefaultProfile()
+    // RA: install permission/proxy guards before the first guest navigation, including serve pages.
+    await installBrowserSessionPartitionPolicies(profile)
+    this.attachExtensions(profile)
+  }
+
+  preparePartitionSession(partition: string): Promise<void> {
+    const profile = [...this.profiles.values()].find((entry) => entry.partition === partition)
+    if (!profile) {
+      throw new Error('browser_profile_partition_unavailable')
+    }
+    return this.prepareProfileSession(profile.id)
   }
 
   // Why here and not in the partition installer: that installer also serves route, SSH and
@@ -333,7 +352,7 @@ class BrowserSessionRegistry {
         continue
       }
       this.profiles.set(profile.id, profile)
-      if (profile.partition !== this.defaultPartition) {
+      if (profile.partition !== this.defaultPartition && !backgroundJobsDisabled()) {
         void installBrowserSessionPartitionPolicies(profile).catch(() => {
           console.warn('[proxy] Failed to apply proxy to browser partition', profile.partition)
         })

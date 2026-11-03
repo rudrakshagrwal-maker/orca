@@ -1,4 +1,5 @@
 import { homedir } from 'node:os'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import type { AgentSessionRecordStore } from '../runtime/agent-session/records/agent-session-record-store'
 import type { ClaudeCliFlagSupport } from './claude-cli-flag-support'
@@ -17,6 +18,10 @@ export async function prewarmClaudeCliFlags(
     store: Pick<AgentSessionRecordStore, 'listVisibleSessionIds' | 'getRecord'>
   }
 ): Promise<void> {
+  // RA: let the requested Claude launch probe flags instead of launching background CLIs.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   try {
     const sources = await resolveClaudeChildEnvSources(deps)
     const folders = new Set([homedir()])

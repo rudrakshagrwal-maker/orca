@@ -108,11 +108,14 @@ export class AutomationService {
     this.rendererReady = false
   }
 
-  setRendererReady(): void {
+  setRendererReady(options: { evaluate?: boolean } = {}): void {
     this.rendererReady = true
     // Pane lookup becomes authoritative after the renderer publishes its window graph.
     this.completionWatcher?.markTerminalSurfaceReady()
-    void this.evaluateDueRuns()
+    // RA: global renderer readiness must not activate unopened schedules.
+    if (options.evaluate !== false || this.timer) {
+      void this.evaluateDueRuns()
+    }
   }
 
   start(): void {

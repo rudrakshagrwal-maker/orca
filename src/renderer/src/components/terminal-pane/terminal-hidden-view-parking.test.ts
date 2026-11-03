@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+// RA: retain coverage of configurable hot-retention policies independently of fork defaults.
+vi.mock('../../../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
 import {
   clearTerminalProviderSnapshotCapabilities,
   synchronizeTerminalProviderSnapshotCapabilities

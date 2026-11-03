@@ -1,18 +1,20 @@
 import { isRemoteRuntimePtyId } from '../../../../shared/remote-runtime/remote-runtime-pty-id'
+import { backgroundJobsDisabled } from '../../../../shared/fork-background-policy'
 import { isRemoteExecutionHostPtyId } from '../../../../shared/remote-execution-host-pty-id'
 import { getRemoteRuntimePtyEnvironmentId } from '@/runtime/runtime-terminal-stream'
 import { PTY_SESSION_ID_SEPARATOR } from '../../../../shared/pty-session-id-format'
 import { parseAppSshPtyId } from '../../../../shared/ssh-pty-id'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 
-// Hysteresis avoids quick-switch remounts; bounded hot-retain keeps recent worktrees warm. Reducing remount frequency matters more than replay size.
-export const TERMINAL_WORKTREE_COLD_PARK_DELAY_MS = 30_000
+// RA: retain live PTYs, but release snapshot-backed hidden renderer trees after five seconds.
+const retainWarmTerminals = !backgroundJobsDisabled()
+export const TERMINAL_WORKTREE_COLD_PARK_DELAY_MS = retainWarmTerminals ? 30_000 : 5_000
 export const TERMINAL_WORKTREE_HOT_RETAIN_MS = 5 * 60_000
-export const TERMINAL_WORKTREE_HOT_RETAIN_LIMIT = 4
+export const TERMINAL_WORKTREE_HOT_RETAIN_LIMIT = retainWarmTerminals ? 4 : 0
 export const TERMINAL_WORKTREE_PARK_DELAY_MS = TERMINAL_WORKTREE_COLD_PARK_DELAY_MS
-export const TERMINAL_TAB_COLD_PARK_DELAY_MS = 30_000
+export const TERMINAL_TAB_COLD_PARK_DELAY_MS = retainWarmTerminals ? 30_000 : 5_000
 export const TERMINAL_TAB_HOT_RETAIN_MS = 5 * 60_000
-export const TERMINAL_TAB_HOT_RETAIN_LIMIT = 6
+export const TERMINAL_TAB_HOT_RETAIN_LIMIT = retainWarmTerminals ? 6 : 0
 
 // Pass test overrides explicitly to shorten hysteresis without module-level environment reads.
 export type TerminalColdParkPolicyOverrides = {
@@ -212,7 +214,11 @@ export function selectIdsBeyondHotRetain(
   candidates: ColdParkRetainCandidate[],
   args: { nowMs: number; hotRetainMs: number; hotRetainLimit: number }
 ): Set<string> {
-  const lastActiveId = selectLastActiveRetainedId(candidates)
+  // RA: a zero warm budget also parks the most recently hidden view.
+  const lastActiveId =
+    backgroundJobsDisabled() && args.hotRetainLimit === 0
+      ? null
+      : selectLastActiveRetainedId(candidates)
   const coldParkedIds = new Set<string>()
   const retainedCandidates: ColdParkRetainCandidate[] = []
   for (const candidate of candidates) {

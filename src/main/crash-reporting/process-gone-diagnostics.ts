@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import {
   sanitizeCrashReportDetails,
   type CrashReportDetailValue
@@ -210,6 +211,10 @@ export function startPreGoneCrashSampling(
   intervalMs: number = PROCESS_METRICS_PRE_GONE_SAMPLE_INTERVAL_MS,
   systemMemoryIntervalMs: number = PRE_GONE_SYSTEM_MEMORY_SAMPLE_INTERVAL_MS
 ): void {
+  // RA: collect crash evidence on failure, without continuous process/memory enumeration.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   if (preGoneSampleTimer) {
     return
   }

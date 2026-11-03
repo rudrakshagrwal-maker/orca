@@ -78,6 +78,8 @@ export class RuntimeAutomationController {
     if (!this.store?.listAutomationsForScope) {
       throw new Error('runtime_unavailable')
     }
+    // RA: opening Automations (or its explicit CLI list) activates the scheduler on demand.
+    this.service?.start()
     return this.store.listAutomationsForScope(params)
   }
 

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { backgroundJobsDisabled } from '../../../../shared/fork-background-policy'
 import { useAppStore } from '@/store'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { hasRegisteredRuntimeTerminalTab } from '../../runtime/mounted-terminal-tab-registry'
@@ -47,6 +48,10 @@ export function useTerminalWorktreePrewarm(controller: TerminalColdActivationCon
   })
 
   useEffect(() => {
+    // RA: only mount terminals when selected; hover/neighbors must not allocate hidden trees.
+    if (backgroundJobsDisabled()) {
+      return
+    }
     const leases = new Map<string, PrewarmLease>()
     const narrowingUndo = createDeferredNarrowingUndo({
       // Outlast the tab cold-park cool-down that ending this lease's measurement starts.

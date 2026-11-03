@@ -69,7 +69,8 @@ export type WorktreeBasePollerOptions = {
 }
 
 // Shallow polling avoids recursive FSEvents churn; two-second discovery complements immediate Orca mutation notifications.
-export const WORKTREE_BASE_POLL_INTERVAL_MS = 2_000
+// RA: Git/worktree discovery keeps native events and a five-second polling backstop.
+export const WORKTREE_BASE_POLL_INTERVAL_MS = 5_000
 
 /** Resolve after the shallow baseline snapshot or native subscription is established. */
 export async function startWorktreeBaseDirectoryPoller(

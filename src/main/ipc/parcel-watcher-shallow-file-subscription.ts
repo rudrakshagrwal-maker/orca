@@ -7,7 +7,8 @@ import { watchFileAcrossReplacement, type RebindingFileWatch } from './rebinding
 // Rebind missed replacements; Git metadata polling provides the shorter staleness backstop.
 const REBIND_SWEEP_INTERVAL_MS = 30_000
 // Newly created files may have no sibling event; check only missing paths at the Git poll cadence.
-export const MISSING_FILE_SWEEP_INTERVAL_MS = 2_000
+// RA: native events handle edits; missing-file recovery is only a five-second backstop.
+export const MISSING_FILE_SWEEP_INTERVAL_MS = 5_000
 
 /** Watch files individually on macOS to avoid recursive .git object/ref/worktree churn. */
 export function startShallowFileWatcher(

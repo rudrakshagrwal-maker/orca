@@ -115,6 +115,18 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
       return
     }
 
+    // RA: restored webviews carry partitions directly; install lazy guards before attaching them.
+    if (isProfilePartition) {
+      try {
+        void browserSessionRegistry.preparePartitionSession(partition).catch((error: unknown) => {
+          console.warn('[browser] Failed to prepare guest session:', error)
+        })
+      } catch {
+        event.preventDefault()
+        return
+      }
+    }
+
     delete params.preload
     // Install main-world close policy before inline scripts can call window.close.
     webPreferences.preload = isDocPreviewAttach ? docPreviewLinkPreload : browserWindowClosePreload

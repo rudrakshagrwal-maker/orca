@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+// RA: these tests exercise the opt-in sampler, not idle desktop policy.
+vi.mock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
 import {
   buildProcessGoneCrashDetails,
   collectProcessGoneMetricDetails,

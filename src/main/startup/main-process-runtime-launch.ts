@@ -1,4 +1,5 @@
 import { app, type BrowserWindow } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { placeUnshownLiveTerminalsBestEffort } from '../runtime/terminal/adoption/unshown-live-terminal-placement'
 import {
@@ -92,7 +93,8 @@ function installRuntimeRpc(
     runtime,
     // Pairing must use pre-setName canonical userData or restarts can lose devices.
     userDataPath: getCanonicalUserDataPath(),
-    enableWebSocket: true,
+    // RA: desktop CLI uses the named pipe/socket; no mobile WS/HTTP server at idle.
+    enableWebSocket: !backgroundJobsDisabled() || serveOptions !== null,
     // STA-2370: desktop stays loopback until pairing; serve explicitly opts into remote access and E2E needs harness-wide bind.
     exposeNetworkByDefault: Boolean(serveOptions) || isE2E,
     // orcad reaches its browser sidecar only over the Unix socket / named pipe; keep its WS off the network (#31895).
@@ -107,7 +109,7 @@ function installRuntimeRpc(
           requirePinnedWsPort: true
         }
       : {}),
-    webClientRoot: getBundledWebClientRoot()
+    webClientRoot: backgroundJobsDisabled() && !serveOptions ? undefined : getBundledWebClientRoot()
   })
   state.runtimeRpc = runtimeRpc
   runtime.setAgentSenderPeerKey(() => runtimeRpc.getE2EEPublicKey())
@@ -192,6 +194,7 @@ async function launchServeMode(
   installServeQuitHandling()
   await registerCliForHeadlessServe()
   // Headless automation cannot wait for a renderer that never opens.
+  // RA: an explicit headless serve may run schedules; the desktop remains demand-driven.
   state.automations?.start()
   // Arm history-removal GC without a window so interrupted serve deletions do not leak until desktop launch.
   void scheduleAllPendingHistoryTreeRemovals()

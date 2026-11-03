@@ -42,6 +42,8 @@ export function installModuleMocks(
   copyFailures = new Set<string>(),
   failIdentityWrite = false
 ): BrowserSessionRegistryMocks {
+  // RA: persistence suites exercise eager upstream session-policy installation explicitly.
+  vi.doMock('../../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
   const sessionFromPartitionMock: ReturnType<typeof vi.fn> = vi.fn((partition: string) => ({
     partition,
     setUserAgent: vi.fn(),

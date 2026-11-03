@@ -1,4 +1,5 @@
 import { app, type BrowserWindow } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { relaunchApp } from './quit/app-relaunch'
 import { destroySystemTray } from '../tray/system-tray'
 import { applyGpuFallbackCommandLineSwitches } from './gpu-fallback-switches'
@@ -243,7 +244,10 @@ export async function handleGpuChildCrash(
 export function registerGpuLifecycleHandlers(): void {
   app.on('gpu-info-update', () => {
     state.gpuFeatureStatus = app.getGPUFeatureStatus()
-    state.gpuCrashDiagnostics?.warm()
+    // RA: query full driver diagnostics only after a crash, never to keep a utility process warm.
+    if (!backgroundJobsDisabled()) {
+      state.gpuCrashDiagnostics?.warm()
+    }
     if (app.isReady()) {
       updateGpuAccelerationAboutPanel()
     }

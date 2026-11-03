@@ -101,6 +101,11 @@ describe('main window launch reconnect opt-outs', () => {
     expect(holdLaunchReconnectOptOutsMock.mock.invocationCallOrder[0]).toBeLessThan(
       registerCoreHandlersMock.mock.invocationCallOrder[0]
     )
+    // RA: opening the terminal shell must not start unopened feature services.
+    expect(state.automations.start).not.toHaveBeenCalled()
+    expect(state.rateLimits.attach).not.toHaveBeenCalled()
+    expect(state.rateLimits.start).not.toHaveBeenCalled()
+    expect(initTccPromptNoticeMock).not.toHaveBeenCalled()
   })
 })
 

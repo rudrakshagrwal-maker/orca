@@ -16,6 +16,22 @@ describe('browser profile startup metadata reads', () => {
     vi.restoreAllMocks()
   })
 
+  it('keeps Chromium partitions unopened at boot and prepares a requested profile on demand', async () => {
+    const fsState = createFsState()
+    seedMeta(fsState, { profiles: [] })
+    const mocks = installModuleMocks(fsState)
+    vi.doMock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => true }))
+    const { browserSessionRegistry } = await import('./browser-session-registry')
+
+    browserSessionRegistry.initializeBrowserSessionsFromPersistedState()
+    expect(mocks.sessionFromPartitionMock).not.toHaveBeenCalled()
+
+    await browserSessionRegistry.prepareProfileSession(null)
+    expect(mocks.sessionFromPartitionMock).toHaveBeenCalledWith(
+      browserSessionRegistry.getDefaultProfile().partition
+    )
+  })
+
   it.each([10, 100])(
     'reads one snapshot when restoring %i profiles and keeps extension assignments current',
     async (count) => {

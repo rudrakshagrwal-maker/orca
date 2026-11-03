@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { BrowserWindow } from 'electron'
-import { ORCA_BROWSER_PARTITION } from '../../shared/constants'
 import { ORCA_BROWSER_GUEST_WEB_PREFERENCES } from '../../shared/browser-guest-web-preferences'
 import { mapSettledWithConcurrency } from '../../shared/map-with-concurrency'
 import type { BrowserBackend, BrowserBackendCreateTab } from './browser-backend'
@@ -44,7 +43,19 @@ export class OffscreenBrowserBackend implements BrowserBackend {
     const profile = params.profileId
       ? browserSessionRegistry.getProfile(params.profileId)
       : browserSessionRegistry.getDefaultProfile()
-    const partition = profile?.partition ?? ORCA_BROWSER_PARTITION
+    if (!profile) {
+      throw new Error('browser_profile_unavailable')
+    }
+    const partition = profile.partition
+
+    // RA: hidden windows exist only for requested pages; prepare their lazy session first.
+    await browserSessionRegistry.prepareProfileSession(profile.id)
+    if (this.shutdownStarted) {
+      throw new Error('Offscreen browser backend is shutting down')
+    }
+    if (this.windowsByPageId.has(browserPageId)) {
+      throw new Error(`Browser page ${browserPageId} already exists`)
+    }
 
     const win = new BrowserWindow({
       show: false,

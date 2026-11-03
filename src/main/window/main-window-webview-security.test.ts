@@ -16,7 +16,10 @@ vi.mock('../browser/browser-manager', () => ({
   browserManager: { attachGuestPolicies: mocks.attachGuestPolicies }
 }))
 vi.mock('../browser/browser-session-registry', () => ({
-  browserSessionRegistry: { isAllowedPartition: mocks.isAllowedPartition }
+  browserSessionRegistry: {
+    isAllowedPartition: mocks.isAllowedPartition,
+    preparePartitionSession: vi.fn(async () => {})
+  }
 }))
 vi.mock('./host-frame-navigation-guard', () => ({
   registerHostFrameNavigationGuard: mocks.registerPluginGuard

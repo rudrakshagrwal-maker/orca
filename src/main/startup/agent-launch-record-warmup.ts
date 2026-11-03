@@ -1,4 +1,5 @@
 import type { BrowserWindow } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { mainProcessState as state } from './main-process-state'
 
 // Defer synchronous disk work (95-280ms measured under load) past first-load renderer startup.
@@ -15,6 +16,10 @@ function warmLater(): void {
 
 /** Defer until after first load to protect startup and first paint. */
 export function scheduleAgentLaunchRecordWarmup(window: BrowserWindow | null): void {
+  // RA: the launch ledger opens on the first actual agent launch.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   if (!window || window.isDestroyed() || !window.webContents.isLoading()) {
     warmLater()
     return

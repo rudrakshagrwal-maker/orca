@@ -15,6 +15,7 @@ import {
   type DocPreviewOwner
 } from '../browser/doc-preview-grant-registry'
 import { isTrustedBrowserRenderer } from './browser-renderer-trust'
+import { installDocPreviewProtocolHandler } from '../browser/doc-preview-protocol'
 
 export type DocPreviewGrantRequest = {
   owner: DocPreviewOwner
@@ -63,6 +64,8 @@ export function registerDocPreviewGrantHandlers(): void {
       if (browserManager.getGuestWebContentsId(request.browserPageId) !== null) {
         throw new Error('Document preview grant names a browsing page')
       }
+      // RA: allocate the isolated preview session only for an opened document.
+      installDocPreviewProtocolHandler()
       const grant = mintDocPreviewGrant({
         owner: request.owner,
         requestBase: request.requestBase,

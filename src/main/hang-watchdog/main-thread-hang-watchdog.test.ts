@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { join } from 'node:path'
+// RA: exercise the optional upstream watchdog separately from the disabled desktop policy.
+vi.mock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
 
 const { workerState, appMock } = vi.hoisted(() => ({
   workerState: {

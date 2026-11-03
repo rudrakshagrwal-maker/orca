@@ -1,4 +1,5 @@
 import { Worker } from 'node:worker_threads'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { app } from 'electron'
 import { hangDetectionMarkerPath } from './hang-detection-marker'
 import { resolveHangWatchdogWorkerPath } from './hang-watchdog-worker-path'
@@ -24,6 +25,10 @@ function positiveTiming(value: string | undefined, fallback: number): number {
 export function installMainThreadHangWatchdog(options: {
   userDataPath: string
 }): MainThreadHangWatchdogHandle | null {
+  // RA: no permanent diagnostic worker or heartbeat timer.
+  if (backgroundJobsDisabled()) {
+    return null
+  }
   if (process.platform !== 'darwin') {
     return null
   }

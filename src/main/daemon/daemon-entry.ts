@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { startDaemon, type DaemonHandle } from './daemon-main'
 import { createPtySubprocess } from './pty-subprocess'
 import { warmWindowsConptyOnce } from './windows-conpty-warmup'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { warmPwshAvailabilityCache } from '../pwsh'
 import { createDaemonFileLog, createNoopDaemonFileLog } from './daemon-file-log'
 import { PROTOCOL_VERSION } from './types'
@@ -134,7 +135,10 @@ async function main(): Promise<void> {
     daemonLog.log(event, details)
   const processCeiling = initializeTerminalScopes(daemonScope, log)
   startDaemonScopeDeathWatch({ daemonScope, log })
-  void warmPwshAvailabilityCache()
+  // RA: resolve PowerShell only when a terminal requests it.
+  if (!backgroundJobsDisabled()) {
+    void warmPwshAvailabilityCache()
+  }
 
   // Detached stderr is unavailable; retain TCC preflight failures in diagnostic logs.
   const runMacosLoginPreflight = async (): Promise<void> => {
@@ -309,7 +313,10 @@ async function main(): Promise<void> {
   }
   daemonLog.log('ready')
 
-  warmWindowsConptyOnce()
+  // RA: no throwaway ConPTY shell at daemon startup.
+  if (!backgroundJobsDisabled()) {
+    warmWindowsConptyOnce()
+  }
   // Log native-addon availability without stderr and pay dlopen cost before the first teardown.
   if (process.platform === 'win32') {
     daemonLog.log('windows-process-table', { native: isWindowsProcessTableAvailable() })

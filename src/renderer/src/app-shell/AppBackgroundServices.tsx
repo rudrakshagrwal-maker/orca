@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { AgentHibernationGate } from '../components/AgentHibernationGate'
-import { AiVaultTabTitleSyncGate } from '../components/AiVaultTabTitleSyncGate'
 import RetainedAgentsSyncGate from '../components/dashboard/RetainedAgentsSyncGate'
 import { WorkspacePortScanner } from '../components/ports/WorkspacePortScanner'
 import { SavedHostScopeWidenGate } from '../components/sidebar/SavedHostScopeWidenGate'
@@ -16,19 +15,21 @@ const DashboardPopoutBridge = lazy(() => import('../components/dashboard/Dashboa
 /** Isolate high-churn subscriptions from App rendering; services outlive their consuming surfaces. */
 export function AppBackgroundServices(): React.JSX.Element {
   const workspaceSessionReady = useAppStore((s) => s.workspaceSessionReady)
+  const portsVisible = useAppStore((s) => s.rightSidebarOpen && s.rightSidebarTab === 'ports')
   const dashboardPopoutEnabled = useAppStore(
     (s) => s.settings?.experimentalAgentDashboardPopout === true
   )
 
   return (
     <>
-      <WorkspacePortScanner enabled={workspaceSessionReady} />
+      {/* RA: process/port scans run only while the Ports panel is open. */}
+      <WorkspacePortScanner enabled={workspaceSessionReady && portsVisible} />
       <ActiveWorkspaceSyncGate />
       {/* Keep permission notices available across app surfaces. */}
       <MacosTccPromptNoticeHost />
       {/* Keep agent-status retention subscriptions out of the App render tree. */}
       <RetainedAgentsSyncGate />
-      <AiVaultTabTitleSyncGate />
+      {/* RA: no background AI Vault session scans for tab titles. */}
       <SavedHostScopeWidenGate />
       {dashboardPopoutEnabled ? (
         <Suspense fallback={null}>

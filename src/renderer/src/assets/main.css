@@ -987,12 +987,16 @@ body[data-modal-overlay-open]
 :root[data-reduce-effects] {
   --floating-surface: var(--popover);
   --dialog-surface: var(--background);
+  /* RA: remove floating elevation rasters while retaining control focus rings. */
+  --shadow-floating: none;
 }
 
 :root[data-reduce-effects] *,
 :root[data-reduce-effects] *::before,
 :root[data-reduce-effects] *::after {
   backdrop-filter: none !important;
+  /* RA: avoid decorative animated compositor layers in app chrome. */
+  animation: none !important;
 }
 
 /* Why: native windows have a stable content box and need no wake-time viewport reflow. */

@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { totalmem } from 'node:os'
 
 const RENDERER_HEAP_ENV_VAR = 'ORCA_RENDERER_HEAP_MB'
@@ -65,6 +66,10 @@ export function enableRendererHeapHeadroom(
 ): void {
   const totalMemoryBytes = options.totalMemoryBytes ?? totalmem()
   const envOverride = (options.env ?? process.env)[RENDERER_HEAP_ENV_VAR]
+  // RA: leave Chromium's heap policy alone unless the operator explicitly overrides it.
+  if (backgroundJobsDisabled() && typeof parseRendererHeapOverrideMb(envOverride) !== 'number') {
+    return
+  }
   const ceilingMb = computeRendererHeapCeilingMb(totalMemoryBytes, envOverride)
   if (ceilingMb === null) {
     return

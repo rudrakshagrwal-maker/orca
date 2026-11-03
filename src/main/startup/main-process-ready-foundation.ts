@@ -1,4 +1,5 @@
 import { app, session } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { applyBackgroundActivationPolicy } from '../window/foreground-activation-policy'
 import { applyElectronProxySettings } from '../network/proxy-settings'
 import { installElectronProxyRequestGuard } from '../network/electron-proxy-request-guard'
@@ -173,7 +174,8 @@ export async function initializeReadyFoundation(): Promise<void> {
   const store = profileState.store
   state.store = store
   // SSH users keep ssh2 loaded before interactive use, as before #35731; others load it on first connect.
-  if (store.getSshTargets().length > 0) {
+  // RA: saved SSH targets do not justify loading ssh2 before a connection.
+  if (!backgroundJobsDisabled() && store.getSshTargets().length > 0) {
     preloadSsh2()
   }
   setNodeDistMirrorSettingReader(() => store.getSettings().nodeDistMirrorUrl)
@@ -266,7 +268,10 @@ export async function initializeReadyFoundation(): Promise<void> {
       }
     }
     if ('experimentalBrowserExtensions' in updates) {
-      void switchBrowserExtensionSupport(settings.experimentalBrowserExtensions === true)
+      // RA: browser extensions must not re-enable background workers through saved settings.
+      void switchBrowserExtensionSupport(
+        !backgroundJobsDisabled() && settings.experimentalBrowserExtensions === true
+      )
     }
     if ('showMenuBarIcon' in updates) {
       // Store owns settings mutations; sync every menu-bar toggle through this listener.
@@ -291,11 +296,14 @@ export async function initializeReadyFoundation(): Promise<void> {
   // Protocol-scoped preview handlers must exist before webview attachment.
   installMediaPreviewProtocolHandler()
   installJiraImageProtocolHandler()
-  installDocPreviewProtocolHandler()
+  // RA: the preview session is installed by the first document-preview grant.
+  if (!backgroundJobsDisabled()) {
+    installDocPreviewProtocolHandler()
+  }
   registerDocPreviewGrantHandlers()
   // Session setup needs the extension support decision before loading profiles.
   initializeBrowserExtensionSupport({
-    enabled: store.getSettings().experimentalBrowserExtensions === true,
+    enabled: !backgroundJobsDisabled() && store.getSettings().experimentalBrowserExtensions === true,
     savedBrowserTabs: store
   })
   // Desktop webviews and runtime commands share sessions; initialize without waiting for renderer IPC.
@@ -314,12 +322,14 @@ export async function initializeReadyFoundation(): Promise<void> {
   })
   browserSiteDisplayController.followZoomSettings(store)
   browserManager.setSiteDisplayController(browserSiteDisplayController)
-  try {
-    // Await proxy writes so first guest navigation cannot race them.
-    await awaitBrowserSessionProxies(browserSessionRegistry.listProfiles())
-  } catch {
-    console.warn('[proxy] Failed to apply network proxy settings to browser sessions')
+  if (!backgroundJobsDisabled()) {
+    try {
+      // Await proxy writes so first guest navigation cannot race them.
+      await awaitBrowserSessionProxies(browserSessionRegistry.listProfiles())
+    } catch {
+      console.warn('[proxy] Failed to apply network proxy settings to browser sessions')
+    }
+    // Why bounded: restored tabs should get content scripts, but a slow extension never blocks launch.
+    await whenBrowserExtensionSessionsLoaded(3_000)
   }
-  // Why bounded: restored tabs should get content scripts, but a slow extension never blocks launch.
-  await whenBrowserExtensionSessionsLoaded(3_000)
 }

@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { join } from 'node:path'
 import type { NodeRuntimeTarget } from '../../shared/node-runtime-pin'
 import type { GlobalSettings } from '../../shared/global-settings-types'
@@ -68,6 +69,10 @@ export type WslNodeRuntimePrefetchWiring = WslNodeRuntimePrefetchOptions & {
 
 /** Starts the prefetch once the WSL hosts flag is open and the setting is on, now or when it turns on. */
 export function wireWslNodeRuntimePrefetch(wiring: WslNodeRuntimePrefetchWiring): void {
+  // RA: install/download the WSL Node runtime only on an actual connection.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   const gateOpen = wiring.gateOpen ?? wslHostsGateOpen
   const schedule = wiring.schedule ?? scheduleAfterStartup
   let scheduled = false

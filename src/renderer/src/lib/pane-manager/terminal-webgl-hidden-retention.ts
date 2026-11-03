@@ -1,8 +1,8 @@
 import type { ManagedPaneInternal } from './pane-manager-types'
 import { disposeWebgl } from './pane-webgl-renderer'
 
-// Even with Blink’s context ceiling raised to 128, cap hidden retention at six to bound GPU memory as mounted worktrees accumulate.
-const MAX_RETAINED_HIDDEN_WEBGL_CONTEXTS = 6
+// RA: hidden terminals restore on reveal instead of retaining GPU contexts and atlases.
+const MAX_RETAINED_HIDDEN_WEBGL_CONTEXTS = 0
 
 /** Identity of the surface whose hidden panes are retained; compared by reference only. */
 export type HiddenWebglRetentionOwner = WeakKey

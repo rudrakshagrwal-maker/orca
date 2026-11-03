@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+// RA: retain coverage of optional serve/activation warmup wiring.
+vi.mock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
 
 const electronApp = vi.hoisted(() => ({
   isPackaged: false,

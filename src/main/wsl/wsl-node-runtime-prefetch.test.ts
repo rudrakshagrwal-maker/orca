@@ -2,6 +2,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+// RA: the optional upstream prefetch remains testable while desktop startup disables it.
+vi.mock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
 import { orcadNodeRuntimeInstallOptions } from '../ssh/orcad-node-runtime-install-options'
 import {
   prefetchWslNodeRuntime,

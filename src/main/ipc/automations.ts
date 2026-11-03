@@ -1,4 +1,5 @@
 import { parseExecutionHostId } from '../../shared/execution-host'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { hostWorktreeTarget } from '../../shared/worktree/host-qualified-identity'
 import { ipcMain } from 'electron'
 import type { Store } from '../persistence/loading-store/store'
@@ -110,6 +111,7 @@ export function registerAutomationHandlers(store: Store, service: AutomationServ
     }
   )
   ipcMain.handle('automations:rendererReady', (): void => {
-    service.setRendererReady()
+    // RA: record readiness without evaluating schedules until Automations is opened.
+    service.setRendererReady({ evaluate: !backgroundJobsDisabled() })
   })
 }

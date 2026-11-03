@@ -3,17 +3,13 @@ import type { ManagedPaneInternal } from './pane-manager-types'
 import { resumePaneRendering, suspendPaneRendering } from './pane-rendering-control'
 import {
   resetHiddenWebglRetentionForTest,
-  retainedHiddenWebglOwnerCountForTest,
-  type HiddenWebglRetentionOwner
+  retainedHiddenWebglOwnerCountForTest
 } from './terminal-webgl-hidden-retention'
 
-function createPane(withAddon = true): ManagedPaneInternal {
+function createPane(): ManagedPaneInternal {
   return {
-    // options mirrors the real Terminal: suspend parks cursorBlink here.
     terminal: { blur: vi.fn(), options: { cursorBlink: true } },
-    webglAddon: withAddon
-      ? ({ dispose: vi.fn() } as unknown as ManagedPaneInternal['webglAddon'])
-      : null,
+    webglAddon: { dispose: vi.fn() },
     webglAttachmentDeferred: false,
     webglDisabledAfterContextLoss: false,
     webglAttachFailedSinceRecovery: false,
@@ -22,93 +18,37 @@ function createPane(withAddon = true): ManagedPaneInternal {
   } as unknown as ManagedPaneInternal
 }
 
-function retentionFor(owner: HiddenWebglRetentionOwner, panes: ManagedPaneInternal[]) {
-  return { owner, livePanes: () => panes }
-}
-
+// RA: hidden terminals release GPU resources regardless of recent workspace/tab history.
 describe('terminal-webgl-hidden-retention', () => {
   beforeEach(() => {
     resetHiddenWebglRetentionForTest()
   })
 
-  it('evicts the least-recently-hidden owner over the context cap', () => {
-    const ownerA = {}
-    const panesA = [createPane(), createPane(), createPane()]
-    const addonsA = panesA.map((pane) => pane.webglAddon)
-    suspendPaneRendering(panesA, retentionFor(ownerA, panesA))
+  it('disposes hidden contexts across successive workspaces without retaining owners', () => {
+    for (let index = 0; index < 8; index += 1) {
+      const panes = [createPane(), createPane()]
+      const addons = panes.map((pane) => pane.webglAddon)
+      suspendPaneRendering(panes, { owner: {}, livePanes: () => panes })
 
-    const ownerB = {}
-    const panesB = [createPane(), createPane(), createPane()]
-    suspendPaneRendering(panesB, retentionFor(ownerB, panesB))
-
-    // A(3) + B(3) fits the cap of 6; C(2) forces A out.
-    const ownerC = {}
-    const panesC = [createPane(), createPane()]
-    suspendPaneRendering(panesC, retentionFor(ownerC, panesC))
-
-    expect(panesA.every((pane) => pane.webglAddon === null)).toBe(true)
-    for (const addon of addonsA) {
-      expect(addon?.dispose).toHaveBeenCalled()
-    }
-    expect(panesB.every((pane) => pane.webglAddon != null)).toBe(true)
-    expect(panesC.every((pane) => pane.webglAddon != null)).toBe(true)
-    expect(retainedHiddenWebglOwnerCountForTest()).toBe(2)
-  })
-
-  it('re-suspending an owner refreshes its LRU position', () => {
-    const ownerA = {}
-    const panesA = [createPane(), createPane(), createPane()]
-    suspendPaneRendering(panesA, retentionFor(ownerA, panesA))
-    const ownerB = {}
-    const panesB = [createPane(), createPane(), createPane()]
-    suspendPaneRendering(panesB, retentionFor(ownerB, panesB))
-
-    suspendPaneRendering(panesA, retentionFor(ownerA, panesA))
-    const ownerC = {}
-    const panesC = [createPane()]
-    suspendPaneRendering(panesC, retentionFor(ownerC, panesC))
-
-    expect(panesB.every((pane) => pane.webglAddon === null)).toBe(true)
-    expect(panesA.every((pane) => pane.webglAddon != null)).toBe(true)
-  })
-
-  it('does not retain a single owner wider than the whole cap', () => {
-    const owner = {}
-    const panes = Array.from({ length: 7 }, () => createPane())
-    const addons = panes.map((pane) => pane.webglAddon)
-    suspendPaneRendering(panes, retentionFor(owner, panes))
-    expect(retainedHiddenWebglOwnerCountForTest()).toBe(0)
-    for (const addon of addons) {
-      expect(addon?.dispose).toHaveBeenCalled()
+      expect(retainedHiddenWebglOwnerCountForTest()).toBe(0)
+      for (const [paneIndex, pane] of panes.entries()) {
+        expect(addons[paneIndex]?.dispose).toHaveBeenCalledOnce()
+        expect(pane.webglAddon).toBeNull()
+        expect(pane.webglAttachmentDeferred).toBe(true)
+        expect(pane.terminal.options.cursorBlink).toBe(false)
+      }
     }
   })
 
-  it('resume releases retention bookkeeping and keeps the live addon', () => {
+  it('restores rendering eligibility and cursor state on reveal', () => {
     const owner = {}
     const panes = [createPane()]
-    suspendPaneRendering(panes, retentionFor(owner, panes))
+    suspendPaneRendering(panes, { owner, livePanes: () => panes })
     resumePaneRendering(panes, owner)
-    expect(retainedHiddenWebglOwnerCountForTest()).toBe(0)
-    expect(panes[0].webglAddon).not.toBeNull()
-    expect(panes[0].webglAttachmentDeferred).toBe(false)
-    const others = [{}, {}]
-    for (const other of others) {
-      const otherPanes = [createPane(), createPane(), createPane()]
-      suspendPaneRendering(otherPanes, retentionFor(other, otherPanes))
-      expect(otherPanes.every((pane) => pane.webglAddon != null)).toBe(true)
-    }
-  })
 
-  it('eviction accounting survives addons disposed after retention (GPU toggle off)', () => {
-    const ownerA = {}
-    const panesA = [createPane(), createPane(), createPane(), createPane()]
-    suspendPaneRendering(panesA, retentionFor(ownerA, panesA))
-    for (const pane of panesA) {
-      pane.webglAddon = null
-    }
-    const ownerB = {}
-    const panesB = Array.from({ length: 6 }, () => createPane())
-    suspendPaneRendering(panesB, retentionFor(ownerB, panesB))
-    expect(panesB.every((pane) => pane.webglAddon != null)).toBe(true)
+    expect(retainedHiddenWebglOwnerCountForTest()).toBe(0)
+    expect(panes[0].webglAttachmentDeferred).toBe(false)
+    expect(panes[0].gpuRenderingEnabled).toBe(true)
+    expect(panes[0].terminal.options.cursorBlink).toBe(true)
   })
 })

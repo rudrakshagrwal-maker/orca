@@ -1,4 +1,5 @@
 import type { BrowserWindow } from 'electron'
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { registerCoreHandlers } from '../ipc/register-core-handlers/register-core-handlers'
 import { attachMainWindowServices } from '../window/attach-main-window-services'
 import { initTccPromptNotice } from '../macos-permissions/macos-tcc-prompt-notice'
@@ -131,7 +132,10 @@ export function attachMainWindowCoreServices(
       : undefined
   )
   automations.setWebContents(window.webContents)
-  automations.start()
+  // RA: schedules start only when the user opens Automations.
+  if (!backgroundJobsDisabled()) {
+    automations.start()
+  }
   attachMainWindowServices(
     window,
     store,
@@ -158,9 +162,10 @@ export function attachMainWindowCoreServices(
       onWorktreeLifecycle: emitPluginWorktreeLifecycle
     }
   )
-  // Attach durable diagnostic pulls now, defer process launch past first paint.
-  initTccPromptNotice(window, { deferWatchUntilReadyToShow: true })
-  rateLimits.attach(window)
-  // Quota probes spawn CLIs/use network; defer to show/focus refresh so they do not compete with first paint.
-  rateLimits.start({ fetchImmediately: false })
+  // RA: no permission-log helper or quota probes on startup, focus, show or restore.
+  if (!backgroundJobsDisabled()) {
+    initTccPromptNotice(window, { deferWatchUntilReadyToShow: true })
+    rateLimits.attach(window)
+    rateLimits.start({ fetchImmediately: false })
+  }
 }
