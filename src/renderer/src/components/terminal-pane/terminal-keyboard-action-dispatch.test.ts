@@ -30,7 +30,7 @@ function prepare() {
     const container = document.createElement('div')
     vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(new DOMRect(x, y, width, height))
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Focus dispatch reads only id and container.
-    return { id, container } as ManagedPane
+    return { id, container } as unknown as ManagedPane
   })
   let active = panes[0]
   const manager = {
