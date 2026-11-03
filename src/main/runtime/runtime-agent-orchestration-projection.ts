@@ -30,6 +30,8 @@ export type RuntimeAgentOrchestrationDependencies = {
   getHandleForPaneKey(paneKey: string): string | null
   getPaneKey(handle: string): string | null
   getLaunchParents?(): Map<string, AgentLaunchParent> | undefined
+  // RA: lifetime crowns use the same main-owned session as launch ancestry.
+  getOrchestratorContexts?(): Record<string, AgentStatusOrchestrationContext>
   getDispatchAuthority(handle: string): OrchestrationCompatibilityTerminalAuthority | null
   getAgentStatusSnapshot(): readonly FleetAgentStatusEvidence[]
   getSessionRecords(): AgentSessionRecordReader | null
@@ -147,11 +149,7 @@ export class RuntimeAgentOrchestrationProjection {
   ): Record<string, AgentStatusOrchestrationContext> | undefined {
     const parents = this.deps.getLaunchParents?.()
     for (const [handle, parent] of parents ?? []) {
-      // RA: a closed parent retires ephemeral links too; saved, unrestored panes retain theirs.
-      if (!parent.parentPaneKey && this.deps.getWorktreeId(parent.parentTerminalHandle) === null) {
-        parents?.delete(handle)
-        continue
-      }
+      // RA: even unsaved ancestry retains a closed parent handle for its dim sidebar row.
       let paneKey = this.deps.getPaneKey(handle)
       if (parent.sessionId) {
         scope ??= createOrchestrationProjectionScope(null, this.deps)
@@ -172,6 +170,10 @@ export class RuntimeAgentOrchestrationProjection {
         }
       }
     }
+    // RA: a parent keeps its crown after all helpers finish or close.
+    for (const [paneKey, saved] of Object.entries(this.deps.getOrchestratorContexts?.() ?? {})) {
+      contexts[paneKey] = { ...contexts[paneKey], ...saved }
+    }
     return Object.keys(contexts).length > 0 ? contexts : undefined
   }
 
@@ -185,7 +187,9 @@ export class RuntimeAgentOrchestrationProjection {
     const parentPaneKey = parent.parentPaneKey ?? this.deps.getPaneKey(parent.parentTerminalHandle)
     return {
       parentTerminalHandle: parent.parentTerminalHandle,
-      ...(parentPaneKey ? { parentPaneKey } : {})
+      ...(parentPaneKey ? { parentPaneKey } : {}),
+      // RA: preserve a useful label when the parent tab is closed.
+      ...(parent.parentTitle ? { parentTitle: parent.parentTitle } : {})
     }
   }
 

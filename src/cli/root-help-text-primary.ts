@@ -128,6 +128,7 @@ export const ROOT_HELP_TEXT_PRIMARY = [
   '  terminal rename           Set or clear the title of a terminal tab',
   '  terminal set-pane-title   Set or clear the title of one terminal pane',
   '  terminal split            Split an existing terminal pane',
+  '  terminal set-parent       Attach a terminal beneath its parent agent', // RA: discoverable lineage.
   '  terminal switch           Bring a terminal tab to the foreground',
   '  terminal focus            Alias for terminal switch',
   '  terminal close            Close one terminal, its whole tab with --tab, or all in a worktree',

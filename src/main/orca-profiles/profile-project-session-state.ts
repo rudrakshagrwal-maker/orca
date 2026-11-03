@@ -212,9 +212,11 @@ export function removeRepoFromWorkspaceSession(
       })
     )
   }
-  // RA: repo removal closes both incoming and outgoing terminal ancestry edges.
-  if (next.terminalLaunchParentsByPaneKey) {
-    next.terminalLaunchParentsByPaneKey = reconcileTerminalLaunchParents(next).terminalLaunchParentsByPaneKey
+  // RA: surviving children retain their closed-parent row after repo removal.
+  if (next.terminalLaunchParentsByPaneKey || next.terminalOrchestratorTitlesByPaneKey) {
+    const reconciled = reconcileTerminalLaunchParents(next)
+    next.terminalLaunchParentsByPaneKey = reconciled.terminalLaunchParentsByPaneKey
+    next.terminalOrchestratorTitlesByPaneKey = reconciled.terminalOrchestratorTitlesByPaneKey
   }
   if (next.activeWorktreeId && isRepoWorktreeId(repoId, next.activeWorktreeId)) {
     next.activeWorktreeId = null

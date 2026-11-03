@@ -16,7 +16,14 @@ concurrency:
 jobs:
   unit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # RA: keep independent Vitest shards below the old one-hour ceiling.
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      ORCA_BACKGROUND_LAUNCH: '1'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,4 +37,5 @@ jobs:
           node-version-file: package.json
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: pnpm typecheck:ci
+      - run: pnpm test --shard=${{ matrix.shard }}/4 --maxWorkers=2

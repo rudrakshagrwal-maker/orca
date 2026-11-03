@@ -3,6 +3,7 @@ import type { DashboardAgentRow as DashboardAgentRowData } from '@/components/da
 import { formatAgentTypeLabel } from '@/lib/agent-status'
 import { agentRowDisplayDotState } from '@/lib/agent-row-dot-state'
 import { translate } from '@/i18n/i18n'
+import { resolveRowProgramStatus } from '@/lib/program-status/agent-row-presentation'
 
 export type SummaryAgentGroup = {
   state: AgentDotState
@@ -10,6 +11,7 @@ export type SummaryAgentGroup = {
 }
 
 export const SUMMARY_STATE_ORDER: readonly AgentDotState[] = [
+  'permission', // RA: OSC permission prompts outrank other descendant activity.
   'waiting',
   'blocked',
   // Failures outrank live work, but pending questions come first.
@@ -26,7 +28,8 @@ export const SUMMARY_STATE_ORDER: readonly AgentDotState[] = [
 ]
 
 export function getAgentDotState(agent: DashboardAgentRowData): AgentDotState {
-  return agentRowDisplayDotState(agent)
+  // RA: orchestration summaries must include OSC-only needs-you reports too.
+  return resolveRowProgramStatus(agent).dotStateOverride ?? agentRowDisplayDotState(agent)
 }
 
 export function formatSummaryStateLabel(state: AgentDotState): string {

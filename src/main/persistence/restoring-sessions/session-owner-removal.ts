@@ -22,9 +22,11 @@ export function deleteScannedSessionFieldsForOwners(
   removedTabIds: ReadonlySet<string>,
   isRemovedOwner: (worktreeId: string) => boolean
 ): void {
-  // RA: removing a workspace closes either endpoint of its launch relationships.
-  if (next.terminalLaunchParentsByPaneKey) {
-    next.terminalLaunchParentsByPaneKey = reconcileTerminalLaunchParents(next).terminalLaunchParentsByPaneKey
+  // RA: surviving children keep closed-parent placeholders when a workspace is removed.
+  if (next.terminalLaunchParentsByPaneKey || next.terminalOrchestratorTitlesByPaneKey) {
+    const reconciled = reconcileTerminalLaunchParents(next)
+    next.terminalLaunchParentsByPaneKey = reconciled.terminalLaunchParentsByPaneKey
+    next.terminalOrchestratorTitlesByPaneKey = reconciled.terminalOrchestratorTitlesByPaneKey
   }
   if (next.terminalPtyIncarnationsByPaneKey) {
     next.terminalPtyIncarnationsByPaneKey = Object.fromEntries(

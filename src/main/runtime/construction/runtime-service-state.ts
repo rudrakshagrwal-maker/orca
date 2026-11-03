@@ -28,7 +28,8 @@ import { createRuntimeAgentProjections } from './runtime-agent-projections'
 import type { RuntimeAgentOrchestrationDependencies } from '../runtime-agent-orchestration-projection'
 import {
   configureAgentLaunchParentPersistence,
-  getAgentLaunchParents
+  getAgentLaunchParents,
+  getAgentOrchestratorContexts
 } from '../runtime-agent-launch-parents'
 import { RuntimeTerminalList } from '../runtime-terminal-list'
 import { RuntimeManagedWorktreeQueries } from '../runtime-managed-worktree-queries'
@@ -140,6 +141,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
       getPaneKey: (handle) => this.getPaneKeyForTerminalHandle(handle),
       // RA: Launch lineage is shared with captured and live projections.
       getLaunchParents: () => getAgentLaunchParents(this),
+      getOrchestratorContexts: () => getAgentOrchestratorContexts(this), // RA: durable crowns and closed ancestors.
       getDispatchAuthority: (handle) => this.getOrchestrationDispatchAuthority(handle),
       getAgentStatusSnapshot: () => this.getOrchestrationFleetAgentStatusSnapshot(),
       getSessionRecords: () => readAgentOrchestrationProjectionRecords(),

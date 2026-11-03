@@ -19,6 +19,7 @@ export const SESSION_FIELD_OWNERS = {
   tabsByWorktree: 'layout',
   terminalLayoutsByTabId: 'layout',
   terminalLaunchParentsByPaneKey: 'carried', // RA: main preserves lineage beside layout edits.
+  terminalOrchestratorTitlesByPaneKey: 'carried', // RA: retain lifetime crowns on layout saves.
   localOnlyScrollbackByTabId: 'fact',
   activeWorktreeIdsOnShutdown: 'carried',
   openFilesByWorktree: 'layout',

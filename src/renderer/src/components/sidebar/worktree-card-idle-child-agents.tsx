@@ -31,7 +31,8 @@ const SUMMARY_STATE_RANK = new Map(SUMMARY_STATE_ORDER.map((state, rank) => [sta
 
 /** Each parent's most urgent non-quiet descendant state, so a collapsed parent still signals live sub-agent work. */
 export function buildCollapsedChildAgentSignalStates(
-  childrenByParentPaneKey: ReadonlyMap<string, readonly DashboardAgentRowData[]>
+  childrenByParentPaneKey: ReadonlyMap<string, readonly DashboardAgentRowData[]>,
+  includeQuiet = false // RA: the global tree aggregates every state, including completed helpers.
 ): ReadonlyMap<string, AgentDotState> {
   // One bottom-up pass; per-parent subtree walks were quadratic on deep chains.
   const bestRankByPaneKey = new Map<string, number>()
@@ -58,7 +59,7 @@ export function buildCollapsedChildAgentSignalStates(
   const signalStates = new Map<string, AgentDotState>()
   for (const parentPaneKey of childrenByParentPaneKey.keys()) {
     const top = SUMMARY_STATE_ORDER[bestDescendantRank(parentPaneKey)]
-    if (top && !QUIET_CHILD_STATES.has(top)) {
+    if (top && (includeQuiet || !QUIET_CHILD_STATES.has(top))) {
       signalStates.set(parentPaneKey, top)
     }
   }

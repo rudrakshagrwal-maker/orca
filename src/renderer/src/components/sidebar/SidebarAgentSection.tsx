@@ -30,6 +30,9 @@ import { activateWorktreeAgentPane } from './use-worktree-agent-activation'
 import { activateRetainedAgentRow } from './activate-retained-agent-row'
 import { buildSidebarAgentTree } from './sidebar-agent-tree'
 import { getFocusedAgentPaneKeyForWorktree } from './focused-agent-row-highlight'
+import { useSidebarAgentSectionResize, SIDEBAR_AGENTS_MIN_HEIGHT } from './use-sidebar-agent-section-resize'
+import { AgentStateDot } from '@/components/AgentStateDot'
+import { selectVisibleAgentOrchestration } from '@/runtime/visible-agent-orchestration'
 
 const COLLAPSE_KEY = 'ra:sidebar-agents'
 
@@ -38,12 +41,25 @@ export default function SidebarAgentSection(): React.JSX.Element {
   useUiLanguageRevision()
   const open = useAppStore((s) => !s.collapsedGroups.has(COLLAPSE_KEY))
   const toggleCollapsedGroup = useAppStore((s) => s.toggleCollapsedGroup)
+  const resize = useSidebarAgentSectionResize() // RA: persisted vertical splitter.
   return (
     <Collapsible
+      ref={resize.sectionRef}
       open={open}
       onOpenChange={() => toggleCollapsedGroup(COLLAPSE_KEY)}
-      className="flex max-h-[45%] min-h-0 shrink-0 flex-col border-t border-worktree-sidebar-border"
+      className="flex min-h-0 shrink-0 flex-col"
+      style={{ height: open ? resize.height : undefined, maxHeight: open ? resize.maxHeight : undefined,
+        minHeight: open ? SIDEBAR_AGENTS_MIN_HEIGHT : undefined }}
     >
+      {/* RA: a six-pixel splitter with a one-pixel hairline leaves Projects reachable. */}
+      <div role="separator" aria-orientation="horizontal" tabIndex={0}
+        aria-label={translate('ra.sidebar.resizeAgents', 'Resize Agents section')}
+        aria-valuemin={SIDEBAR_AGENTS_MIN_HEIGHT} aria-valuemax={resize.maxHeight}
+        aria-valuenow={resize.height ?? SIDEBAR_AGENTS_MIN_HEIGHT}
+        className="group flex h-1.5 shrink-0 cursor-row-resize touch-none items-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"
+        {...resize.handleProps}>
+        <div className="h-px w-full bg-worktree-sidebar-border group-hover:bg-worktree-sidebar-foreground/40" />
+      </div>
       <CollapsibleTrigger className="flex h-7 shrink-0 items-center gap-1 px-3 text-left text-[13px] font-medium text-worktree-sidebar-foreground hover:bg-worktree-sidebar-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring">
         <ChevronRight className={cn('size-3.5', open && 'rotate-90')} aria-hidden />
         {translate('ra.sidebar.agents', 'Agents')}
@@ -56,6 +72,9 @@ export default function SidebarAgentSection(): React.JSX.Element {
 }
 
 function SidebarAgentSectionBody(): React.JSX.Element {
+  // RA: each orchestrator folds independently, including orchestrators below another parent.
+  const collapsedGroups = useAppStore((s) => s.collapsedGroups)
+  const toggleCollapsedGroup = useAppStore((s) => s.toggleCollapsedGroup)
   const languageRevision = useUiLanguageRevision()
   const cacheRef = useRef<ReturnType<typeof createWorktreeAgentRowsCache>>(undefined!)
   cacheRef.current ??= createWorktreeAgentRowsCache()
@@ -67,6 +86,7 @@ function SidebarAgentSectionBody(): React.JSX.Element {
       tabsByWorktree: s.tabsByWorktree,
       unifiedTabsByWorktree: s.unifiedTabsByWorktree,
       orchestrationByWorktree: selectWorktreeAgentOrchestrationIndex(s),
+      runtimeAgentOrchestrationByPaneKey: selectVisibleAgentOrchestration(s), // RA: retain closed ancestors and remote aliases.
       terminalLayoutsByTabId: s.terminalLayoutsByTabId,
       ptyIdsByTabId: s.ptyIdsByTabId,
       runtimePaneTitlesByTabId: s.runtimePaneTitlesByTabId,
@@ -112,7 +132,8 @@ function SidebarAgentSectionBody(): React.JSX.Element {
   }, [inputs])
   const now = useNow(30_000, rows.length > 0)
   const tree = useMemo(
-    () => buildSidebarAgentTree(rows, { ...inputs, acknowledgedAgentsByPaneKey }),
+    () => buildSidebarAgentTree(rows, { ...inputs, acknowledgedAgentsByPaneKey },
+      inputs.runtimeAgentOrchestrationByPaneKey),
     [rows, inputs, acknowledgedAgentsByPaneKey]
   )
   const workspaceNames = useMemo(() => {
@@ -140,6 +161,8 @@ function SidebarAgentSectionBody(): React.JSX.Element {
       return null
     }
     const children = tree.childrenByParentPaneKey.get(agent.paneKey) ?? []
+    const collapseKey = `ra:sidebar-agent:${agent.paneKey}`
+    const expanded = !collapsedGroups.has(collapseKey)
     const nextAncestors = new Set(ancestors)
     nextAncestors.add(agent.paneKey)
     const worktreeId = agent.tab.worktreeId
@@ -167,20 +190,34 @@ function SidebarAgentSectionBody(): React.JSX.Element {
             />
           </>
         ) : null}
-        <DashboardAgentRow
+        {/* RA: closed parents stay dim and cannot activate a surviving child's tab by accident. */}
+        {tree.closedParentPaneKeys.has(agent.paneKey) ? (
+          <div className="flex h-7 items-center gap-1.5 px-2 text-[13px] text-muted-foreground">
+            <button type="button" aria-expanded={expanded} onClick={() => toggleCollapsedGroup(collapseKey)}
+              aria-label={translate('ra.sidebar.toggleHelpers', 'Toggle helpers')}>
+              <ChevronRight className={cn('size-3.5', expanded && 'rotate-90')} aria-hidden />
+            </button>
+            <span className="min-w-0 flex-1 truncate">{translate('ra.sidebar.closedParent', 'closed: {{title}}', { title: agent.tab.title })}</span>
+            {!expanded ? <span>+{children.length}</span> : null}
+            <AgentStateDot state={tree.descendantStates.get(agent.paneKey) ?? 'idle'} size="md" />
+          </div>
+        ) : <DashboardAgentRow
           agent={agent}
           sidebarTreeRow
           sidebarWorkspaceName={
             ancestors.size === 0 ? (workspaceNames.get(worktreeId) ?? worktreeId) : undefined
           }
           childAgentCount={children.length}
+          childAgentsExpanded={expanded}
+          collapsedChildAgentsState={tree.descendantStates.get(agent.paneKey)}
+          onToggleChildAgents={() => toggleCollapsedGroup(collapseKey)}
           onDismiss={useAppStore.getState().dropAgentStatus}
           onActivate={activate}
           isUnvisited={tree.unvisitedPaneKeys.has(agent.paneKey)}
           isFocusedPane={agent.paneKey === focusedPaneKey}
           now={now}
-        />
-        {children.length > 0 ? (
+        />}
+        {children.length > 0 && expanded ? (
           <ul className="ml-3 list-none pl-2">
             {children.map((child, index) =>
               renderBranch(child, nextAncestors, index === children.length - 1)

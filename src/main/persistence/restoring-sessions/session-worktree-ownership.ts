@@ -28,6 +28,7 @@ export const WORKSPACE_SESSION_WORKTREE_REFERENCE_KIND = {
   tabsByWorktree: 'owner-keyed-row-arrays',
   terminalLayoutsByTabId: 'none',
   terminalLaunchParentsByPaneKey: 'none', // RA: pane identities, not workspace IDs.
+  terminalOrchestratorTitlesByPaneKey: 'none', // RA: pane-keyed lifetime crowns.
   localOnlyScrollbackByTabId: 'none',
   activeWorktreeIdsOnShutdown: 'worktree-id-array',
   openFilesByWorktree: 'owner-keyed-row-arrays',

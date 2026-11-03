@@ -53,7 +53,7 @@ export function preserveRuntimeAuthoredWorkspaceSessionFields(
   prior: WorkspaceSessionState | null | undefined
 ): WorkspaceSessionState {
   let result = next
-  // RA: renderer snapshots cannot erase main's lineage; closing either pane retires the link.
+  // RA: renderer snapshots cannot erase main's lineage or lifetime crowns.
   if (
     prior?.terminalLaunchParentsByPaneKey &&
     prior.terminalLaunchParentsByPaneKey !== next.terminalLaunchParentsByPaneKey
@@ -61,8 +61,17 @@ export function preserveRuntimeAuthoredWorkspaceSessionFields(
     result = {
       ...result,
       terminalLaunchParentsByPaneKey: {
-        ...next.terminalLaunchParentsByPaneKey,
-        ...prior.terminalLaunchParentsByPaneKey
+        ...prior.terminalLaunchParentsByPaneKey,
+        ...next.terminalLaunchParentsByPaneKey
+      }
+    }
+  }
+  if (prior?.terminalOrchestratorTitlesByPaneKey) {
+    result = {
+      ...result,
+      terminalOrchestratorTitlesByPaneKey: {
+        ...prior.terminalOrchestratorTitlesByPaneKey,
+        ...next.terminalOrchestratorTitlesByPaneKey
       }
     }
   }

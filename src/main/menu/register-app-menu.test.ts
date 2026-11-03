@@ -416,14 +416,11 @@ describe('registerAppMenu', () => {
     expect(fileLabels).toEqual(expect.arrayContaining(['Settings', 'Exit']))
 
     const helpLabels = getSubmenu(template, 'Help').map((item) => item.label)
-    expect(helpLabels).toEqual(
-      expect.arrayContaining([
-        'Report Crash...',
-        'Getting Started with Orca',
-        'Explore Orca',
-        'Check for Updates...'
-      ])
-    )
+    // RA: upstream onboarding and updater entries are deliberately absent.
+    expect(helpLabels).toContain('Report Crash...')
+    expect(helpLabels).not.toContain('Getting Started with Orca')
+    expect(helpLabels).not.toContain('Explore Orca')
+    expect(helpLabels).not.toContain('Check for Updates...')
   })
 
   it.runIf(isMac)('keeps the macOS app-named menu with Settings and quit roles', () => {
@@ -432,47 +429,34 @@ describe('registerAppMenu', () => {
     const template = getTemplate()
     const appSubmenu = getSubmenu(template, 'Orca')
     const appLabels = appSubmenu.map((item) => item.label)
-    expect(appLabels).toEqual(expect.arrayContaining(['Check for Updates...', 'Settings']))
+    expect(appLabels).toContain('Settings')
+    expect(appLabels).not.toContain('Check for Updates...') // RA: no updater entry.
     expect(template.find((item) => item.label === 'File')).toBeUndefined()
     const helpLabels = getSubmenu(template, 'Help').map((item) => item.label)
-    expect(helpLabels).toEqual([
-      'Report Crash...',
-      undefined,
-      'Explore Orca',
-      'Getting Started with Orca'
-    ])
+    expect(helpLabels).toEqual(['Report Crash...'])
   })
 
-  it('routes Getting Started with Orca through its callback', () => {
+  // RA: callback plumbing may remain upstream-compatible, but has no clickable entry point.
+  it('does not offer Getting Started with Orca', () => {
     const options = buildMenuOptions()
     registerAppMenu(options)
 
     const setupGuideItem = getSubmenu(getTemplate(), 'Help').find(
       (entry) => entry.label === 'Getting Started with Orca'
     )
-    expect(setupGuideItem?.accelerator).toBeUndefined()
-
-    const targetWindow = {} as Electron.BaseWindow
-    setupGuideItem?.click?.({} as never, targetWindow, {} as Electron.KeyboardEvent)
-
-    expect(options.onOpenSetupGuide).toHaveBeenCalledTimes(1)
-    expect(options.onOpenSetupGuide).toHaveBeenCalledWith(targetWindow)
+    expect(setupGuideItem).toBeUndefined()
+    expect(options.onOpenSetupGuide).not.toHaveBeenCalled()
   })
 
-  it('routes Feature tour through its callback', () => {
+  it('does not offer Feature tour', () => {
     const options = buildMenuOptions()
     registerAppMenu(options)
 
     const featureTourItem = getSubmenu(getTemplate(), 'Help').find(
       (entry) => entry.label === 'Explore Orca'
     )
-    expect(featureTourItem?.accelerator).toBeUndefined()
-
-    const targetWindow = {} as Electron.BaseWindow
-    featureTourItem?.click?.({} as never, targetWindow, {} as Electron.KeyboardEvent)
-
-    expect(options.onOpenFeatureTour).toHaveBeenCalledTimes(1)
-    expect(options.onOpenFeatureTour).toHaveBeenCalledWith(targetWindow)
+    expect(featureTourItem).toBeUndefined()
+    expect(options.onOpenFeatureTour).not.toHaveBeenCalled()
   })
 
   it('routes Report Crash through its callback', () => {

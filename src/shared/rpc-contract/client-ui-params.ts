@@ -126,6 +126,7 @@ export const UiUpdateFields = z
     // Why: sync hydration ignores this persisted startup view, so paired windows stay put.
     activeView: TopLevelViewSchema.optional(),
     sidebarWidth: z.number().finite().optional(),
+    sidebarAgentsHeight: z.number().finite().nullable().optional(), // RA: persisted splitter.
     sidebarOpen: z.boolean().optional(),
     rightSidebarOpen: z.boolean().optional(),
     rightSidebarTab: RightSidebarTabParam.optional(),

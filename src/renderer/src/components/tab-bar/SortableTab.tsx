@@ -2,7 +2,8 @@ import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { useCallback, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { X, Minimize2 } from 'lucide-react'
-import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
+import { agentTerminalTitle } from '../../../../shared/agent-title-decoration'
+import { resolveRuntimePaneTitleForLeaf } from '../../../../shared/runtime-pane-title-leaf-id'
 import { getAgentLabel } from '@/lib/agent-catalog'
 import { basename } from '@/lib/path'
 import { Input } from '@/components/ui/input'
@@ -130,8 +131,17 @@ export default function SortableTab({
   const shellForIcon = tab.shellOverride
 
   // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
-  const displayTitle =
-    tab.customTitle ?? (tabAgent ? stripLeadingAgentTitleDecoration(tab.title) : tab.title)
+  // RA: use the focused pane's OSC title before generated labels, including manually started agents.
+  const liveAgentTitle = useAppStore((s) => {
+    if (!tabAgent) { return '' }
+    const layout = s.terminalLayoutsByTabId?.[tab.id]
+    const title = layout?.activeLeafId
+      ? resolveRuntimePaneTitleForLeaf(layout, s.runtimePaneTitlesByTabId?.[tab.id], layout.activeLeafId)
+      : null
+    return title?.trim() || s.tabsByWorktree?.[tab.worktreeId]?.find((item) => item.id === tab.id)?.title || ''
+  })
+  const displayTitle = tab.customTitle?.trim() || (tabAgent
+    ? agentTerminalTitle(liveAgentTitle || tab.title) : tab.title)
 
   const { attributes, listeners, setNodeRef } = useSortable({
     id: tab.id,

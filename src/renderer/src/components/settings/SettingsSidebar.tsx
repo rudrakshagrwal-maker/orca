@@ -99,9 +99,10 @@ type VisibleInstallStatus = Extract<
 >
 
 function isVisibleInstallStatus(
-  status: SettingsNavInstallStatus | undefined
-): status is VisibleInstallStatus {
-  return status === 'update-available' || status === 'needs-attention'
+  _status: SettingsNavInstallStatus | undefined
+): _status is VisibleInstallStatus {
+  // RA: keep navigation quiet while the fork's skill updater is disabled.
+  return false
 }
 
 type SettingsSetupGuideRowProps = {
@@ -158,12 +159,11 @@ export function SettingsSidebar({
   onBack,
   onSelectSection
 }: SettingsSidebarProps): React.JSX.Element {
-  const setupGuideProgress = useSettingsSetupGuideProgress(true)
+  const setupGuideProgress = useSettingsSetupGuideProgress(false) // RA: retired onboarding does no work.
   const leftSidebarStyle = useMemo(() => resolveLeftSidebarStyleVariables(settings), [settings])
   const setupActive = activeSectionId === 'setup-guide'
-  // Hiding the app-sidebar prompt must not remove Settings’ stable checklist entry.
-  const showSetupGuideTopRow =
-    setupGuideProgress.ready && setupGuideProgress.doneCount < setupGuideProgress.total
+  // RA: Settings must not reopen the removed onboarding checklist.
+  const showSetupGuideTopRow = false
   const navItemClassName = (isActive: boolean): string =>
     cn(
       'flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-worktree-sidebar-ring/50',
@@ -241,6 +241,7 @@ export function SettingsSidebar({
                       >
                         <Icon className="size-4 shrink-0" />
                         <span className="truncate">{section.title}</span>
+                        {/* RA: no skill-out-of-date notices in the Settings navigation. */}
                         {isVisibleInstallStatus(section.installStatus) ? (
                           <span className={installStatusClassName}>
                             {installStatusLabel(section.installStatus)}

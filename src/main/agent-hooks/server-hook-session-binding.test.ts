@@ -72,8 +72,9 @@ afterEach(() => {
 async function restart() {
   await server.start({ env: 'production', userDataPath: dir })
   installMainWindowAgentStatusListeners({
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: Only mocked WebContents is used; window is an unused option.
-    window: {} as BrowserWindow,
+    // RA: the status bridge now owns a silent taskbar/focus listener too.
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only the alert's window methods are used.
+    window: { on: vi.fn(), removeListener: vi.fn(), isDestroyed: () => false, isFocused: () => false, flashFrame: vi.fn() } as unknown as BrowserWindow,
     onRecordAgentState: () => {}
   })
 }

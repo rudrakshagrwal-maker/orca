@@ -40,6 +40,7 @@ export type PersistedUIState = {
   /** Active top-level view at save time, restored on relaunch; sanitized to 'terminal' if unknown or now-gated. */
   activeView: TopLevelView
   sidebarWidth: number
+  sidebarAgentsHeight?: number | null // RA: null restores the content-sized section.
   sidebarOpen?: boolean
   rightSidebarOpen: boolean
   rightSidebarTab: RightSidebarTab

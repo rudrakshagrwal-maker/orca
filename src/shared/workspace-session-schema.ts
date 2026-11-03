@@ -145,6 +145,11 @@ export const workspaceSessionStateSchema: z.ZodType<WorkspaceSessionState> = z.o
     'terminalLaunchParentsByPaneKey',
     salvagingRecord(z.string(), z.string().min(1))
   ),
+  // RA: preserve each orchestrator's last title across restarts.
+  terminalOrchestratorTitlesByPaneKey: salvagedOptional(
+    'terminalOrchestratorTitlesByPaneKey',
+    salvagingRecord(z.string(), z.string())
+  ),
   activeRepoId: salvagedField('activeRepoId', z.string().nullable(), () => null),
   activeWorkspaceKey: salvagedOptional('activeWorkspaceKey', workspaceKeySchema.nullable()),
   activeWorkspaceExecutionHostId: salvagedOptional(

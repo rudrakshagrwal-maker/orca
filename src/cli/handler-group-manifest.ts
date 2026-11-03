@@ -115,6 +115,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
       'terminal stop',
       'terminal rename',
       'terminal set-pane-title',
+      'terminal set-parent', // RA: post-launch lineage attachment.
       'terminal create',
       'terminal switch',
       'terminal close',

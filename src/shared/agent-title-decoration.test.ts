@@ -1,10 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
   stripLeadingAgentTitleDecoration,
-  stripLeadingAgentTitleDecorationOrEmpty
+  stripLeadingAgentTitleDecorationOrEmpty,
+  agentTerminalTitle // RA: keep terminal-owned labels clean across both surfaces.
 } from './agent-title-decoration'
 
 describe('stripLeadingAgentTitleDecoration', () => {
+  // RA: generated labels must not prepend branch/path context to an agent's own title.
+  it.each([
+    ['  master · Fix permission prompt  ', 'Fix permission prompt'],
+    [' main · C:\\work\\orca · Fix splits ', 'Fix splits'],
+    [' /work/orca · Review UI ', 'Review UI'],
+    [' ✳ Claude Code ', 'Claude Code'],
+    ['Review · terminal focus', 'Review · terminal focus']
+  ])('cleans %s to %s', (title, expected) => {
+    expect(agentTerminalTitle(title)).toBe(expected)
+  })
   it('strips Qoder permission decoration without stripping triangles inside a title', () => {
     expect(stripLeadingAgentTitleDecoration('▲ Qoder CLI')).toBe('Qoder CLI')
     expect(stripLeadingAgentTitleDecoration('deploy ▲ complete')).toBe('deploy ▲ complete')

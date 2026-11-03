@@ -39,6 +39,9 @@ import { createHostWorkspaceStatusActions } from './ui-slice-host-workspace-stat
 /** Builds preference defaults and setters for the UI slice, leaving durable writes to the persistence layer. */
 export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Partial<UISlice> {
   return {
+    // RA: null resets the Agents section to its content-sized default.
+    sidebarAgentsHeight: null,
+    setSidebarAgentsHeight: (height) => set({ sidebarAgentsHeight: height }),
     sidebarBody: 'workspaces',
     setSidebarBody: (body) => set({ sidebarBody: body }),
 
@@ -46,9 +49,7 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
     // Why: group keys are mode-specific, so clear collapsed state on mode switch — stale keys are meaningless and accumulate.
     setGroupBy: (g) => {
       // RA: the global Agents disclosure is independent of workspace grouping.
-      const collapsedGroups = get().collapsedGroups.has('ra:sidebar-agents')
-        ? ['ra:sidebar-agents']
-        : []
+      const collapsedGroups = [...get().collapsedGroups].filter((key) => key.startsWith('ra:sidebar-agent'))
       window.api.ui.set({ groupBy: g, collapsedGroups }).catch(console.error)
       set({ groupBy: g, collapsedGroups: new Set(collapsedGroups) })
     },
