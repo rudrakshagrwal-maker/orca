@@ -18,6 +18,8 @@ import type { RuntimeNavigationTarget } from '../../shared/runtime-navigation'
 import type { RuntimeRepoSelector } from './runtime-repo-selector'
 
 export type RuntimeManagedWorktreeCreateArgs = {
+  // RA: independent of workspace lineage, including --no-parent worktrees.
+  parentTerminalHandle?: string
   /** A create someone asked for (UI, CLI, agent or paired client): its terminals may start a stopped WSL distro. */
   wslUserAct?: true
   repoSelector: RuntimeRepoSelector

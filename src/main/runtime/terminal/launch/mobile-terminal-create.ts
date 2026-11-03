@@ -19,9 +19,12 @@ import {
 } from '../../../../shared/runtime-navigation'
 import { MOBILE_TERMINAL_CREATE_RESULT_TTL_MS } from '../../orca-runtime-core'
 import { seedResumeLaunchIdentity } from '../../../ipc/pty/pane/resume-launch-identity'
+import { recordAgentLaunchParent } from '../../runtime-agent-launch-parents'
 
 /** A paired client's terminal create request. */
 export type MobileTerminalCreateOptions = {
+  // RA: optional caller ancestry for the session-tab creation RPC.
+  parentTerminalHandle?: string
   terminalImageViewerSupported?: boolean
   afterTabId?: string
   sourceChatFork?: { sessionId: string }
@@ -95,6 +98,7 @@ export abstract class OrcaRuntimeWithCreateMobileSessionTerminal extends OrcaRun
   async createMobileSessionTerminal(
     worktreeSelector: string,
     opts: {
+      parentTerminalHandle?: string
       afterTabId?: string
       sourceChatFork?: { sessionId: string }
       targetGroupId?: string
@@ -131,6 +135,14 @@ export abstract class OrcaRuntimeWithCreateMobileSessionTerminal extends OrcaRun
     const mutationId = opts.clientMutationId
     const startRun = async (): Promise<RuntimeMobileSessionCreateTerminalResult> => {
       const created = await this.runCreateMobileSessionTerminal(worktreeSelector, runOpts)
+      // RA: covers both main-owned and renderer-backed session-tab creation paths.
+      if (created.tab.terminal) {
+        recordAgentLaunchParent(
+          this,
+          { kind: 'terminal', handle: created.tab.terminal },
+          opts.parentTerminalHandle
+        )
+      }
       this.seedMobileResumeIdentity(created, opts)
       return created
     }

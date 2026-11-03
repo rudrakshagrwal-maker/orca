@@ -10,6 +10,8 @@ export const OptionalWorkerLaunchPreference = z
 
 export const WorkerStartParams = z
   .object({
+    // RA: caller identity for terminal creation; dispatch authority still uses from.
+    parentTerminalHandle: z.string().min(1).optional(),
     task: OptionalString,
     spec: OptionalString,
     taskTitle: OptionalString,

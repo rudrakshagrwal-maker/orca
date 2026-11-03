@@ -104,6 +104,8 @@ export type RuntimeEnsureAgentSessionRequest =
     }
   | {
       kind: 'explicit'
+      // RA: creator lineage for a resumed agent in a newly created terminal.
+      parentTerminalHandle?: string
       resumeOrigin?: 'saved'
       worktree: string
       agent: ResumableTuiAgent
@@ -126,6 +128,8 @@ export type RuntimeEnsureAgentSessionResult = {
 }
 
 export type RuntimeCreateAgentSessionRequest = {
+  // RA: independent of the replay/agent-session identity.
+  parentTerminalHandle?: string
   clientOperationId: string
   terminalKittyKeyboardProtocol?: boolean
   worktree: string

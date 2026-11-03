@@ -173,6 +173,8 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
       }
       try {
         terminal = await this.createTerminal(`id:${workspace.id}`, {
+          // RA: new session terminals share the same central creation provenance.
+          ...(request.parentTerminalHandle ? { parentTerminalHandle: request.parentTerminalHandle } : {}),
           // Only the agent-session RPC reaches here: the caller's own act.
           wslUserAct: true,
           // No requested surface: the host-planned launch uses unknown.

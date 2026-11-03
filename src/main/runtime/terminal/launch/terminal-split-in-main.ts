@@ -11,10 +11,13 @@ import { isTerminalLeafId, makePaneKey } from '../../../../shared/stable-pane-id
 import { randomUUID } from 'node:crypto'
 import { paneStartFailure } from '../../pane-start-statuses'
 import { collectLeafIds } from '../../../../shared/terminal-pane-layout-tree'
+import { recordAgentLaunchParent } from '../../runtime-agent-launch-parents'
 
 export type SplitPaneSource = { worktreeId: string; tabId: string; leafId: string }
 
 export type SplitPaneInMainOptions = {
+  // RA: pane-named callers can identify a creator other than their split target.
+  parentTerminalHandle?: string
   direction: 'horizontal' | 'vertical'
   /** The caller's id for the new pane; main refuses one another pane holds. */
   newLeafId?: string
@@ -80,7 +83,13 @@ export abstract class OrcaRuntimeWithSplitPaneInMain extends OrcaRuntimeWithSpli
       // The window then splits it as before (a paired server's tab, or the window-owned build).
       throw new Error('host_not_owned')
     }
-    return this.splitPaneInMain(source, opts)
+    const parent = opts.parentTerminalHandle ?? this.getTerminalHandleForPaneKey(
+      makePaneKey(source.tabId, source.leafId)
+    )
+    const split = await this.splitPaneInMain(source, opts)
+    // RA: record before a later terminal.send can turn this shell into an agent.
+    recordAgentLaunchParent(this, { kind: 'terminal', handle: split.handle }, parent ?? undefined)
+    return split
   }
 
   protected async splitPaneInMain(

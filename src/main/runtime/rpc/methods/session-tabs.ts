@@ -69,6 +69,8 @@ export const SESSION_TAB_METHODS = [
         )
       }
       return runtime.createMobileSessionTerminal(params.worktree, {
+        // RA: carry lineage through the mobile/paired terminal factory too.
+        ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
         ...(params.sourceChatFork ? { sourceChatFork: params.sourceChatFork } : {}),
         terminalImageViewerSupported: terminalImageViewerSupported(context),
         afterTabId: params.afterTabId,

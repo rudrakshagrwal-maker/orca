@@ -17,6 +17,7 @@ import { WORKER_START_VOCABULARY } from '../../orchestration-worker-start-mode'
 import { structuredWorkerIdentities } from '../../../../structured-worker-identity'
 import type { WorkerEffect } from './worker-topology'
 import { WorkerStartParams } from '../../../../../../shared/rpc-contract/orchestration-worker-start-params'
+import { getAgentLaunchParents } from '../../../../runtime-agent-launch-parents'
 
 const sessionCreate = vi.hoisted((): { refusal: { code: string } | null } => ({ refusal: null }))
 
@@ -141,6 +142,19 @@ beforeEach(() => {
 })
 
 describe('a fresh worker through the launch executor', () => {
+  // RA: exercise both worker placement factories without relying on a dispatch projection.
+  it.each([true, false])('records the worker creator for existing=%s placement', async (existing) => {
+    const f = fakes()
+    const placed = await place(f, { mode: TERMINAL, existing })
+    expect(getAgentLaunchParents(f.runtime)?.get(placed.terminalHandle)?.parentTerminalHandle)
+      .toBe('term_coord')
+    if (!existing) {
+      expect(f.runtime.createManagedWorktree).toHaveBeenCalledWith(expect.objectContaining({
+        parentTerminalHandle: 'term_coord'
+      }))
+    }
+  })
+
   it('fails a refused structured worker in an existing worktree instead of starting a terminal', async () => {
     const f = fakes()
     sessionCreate.refusal = { code: 'structured_agent_session_unsupported' }
@@ -159,7 +173,9 @@ describe('a fresh worker through the launch executor', () => {
     await expect(place(f, { mode: STRUCTURED })).rejects.toMatchObject({
       code: 'agent_unconfigured'
     })
-    expect(f.runtime.createTerminal).toHaveBeenCalledWith('id:wt_new', { surfaceOwner: false })
+    expect(f.runtime.createTerminal).toHaveBeenCalledWith('id:wt_new', {
+      surfaceOwner: false, parentTerminalHandle: 'term_coord'
+    })
     expect(f.failedStages).toEqual(['worktree_create', 'terminal_create', 'terminal_create'])
   })
 

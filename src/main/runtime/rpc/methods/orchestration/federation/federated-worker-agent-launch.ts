@@ -15,6 +15,7 @@ import {
   type FederationEffect
 } from './federation-effects'
 import type { FederationAttachStartInput } from './federation-start-schema'
+import { recordAgentLaunchParent } from '../../../../runtime-agent-launch-parents'
 
 const TERMINAL_ONLY_MESSAGE = 'A federated worker starts a terminal agent only.'
 
@@ -47,6 +48,10 @@ export async function launchFederatedWorkerAgent(args: {
   let created: { id: string } | undefined
   let terminalCreation: RuntimeTerminalCreate | undefined
   const launched = await executeAgentLaunch({
+    // RA: both existing-workspace and agent-first remote factories retain the creator.
+    onSurfacePublished: (surface) => recordAgentLaunchParent(
+      runtime, surface.outcome, params.parentTerminalHandle
+    ),
     runtime,
     intent: {
       agent,
@@ -77,6 +82,7 @@ export async function launchFederatedWorkerAgent(args: {
         })
         const setupDecision = params.setup ?? 'run'
         const result = await runtime.createManagedWorktree({
+          ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
           onStartupTerminalCreated: (terminal) => {
             terminalCreation = terminal
           },
@@ -138,6 +144,7 @@ export async function launchFederatedWorkerAgent(args: {
       },
       createTerminalAgent: async ({ worktreeId }) => {
         const terminal = await runtime.createTerminal(`id:${worktreeId}`, {
+          ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
           // Resolve agent ids through TUI config: cursor is the desktop app, its CLI is cursor-agent.
           startupAgent: agent,
           launchSource: 'orchestration',

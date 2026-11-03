@@ -125,12 +125,25 @@ describe('a split of a pane the window draws, in a layout-owner build', () => {
     ).toMatchObject({ parentTerminalHandle: handle })
   })
 
+  it('retains a plain terminal create parent before an agent is sent to it', async () => {
+    const { runtime, handle } = setup()
+    const child = await runtime.createTerminal(`id:${TEST_WORKTREE_ID}`, {
+      parentTerminalHandle: handle,
+      surfaceOwner: false
+    })
+    expect(runtime.getAgentStatusOrchestrationContextForPaneKey(child.paneKey!))
+      .toMatchObject({ parentTerminalHandle: handle })
+  })
+
   it('lists the new pane to phones and session.tabs with no window report', async () => {
     const { runtime, handle } = setup()
     // A phone already lists the tab, so the new pane must be published, not just hydrated.
     await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)
 
     const split = await runtime.splitTerminal(handle, { direction: 'vertical' })
+    // RA: no command is needed; a later send must retain the originating terminal.
+    expect(runtime.getAgentStatusOrchestrationContextForPaneKey(makePaneKey(TAB_ID, split.leafId ?? '')))
+      .toMatchObject({ parentTerminalHandle: handle })
 
     const listed = await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)
     expect(

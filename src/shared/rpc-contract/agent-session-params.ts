@@ -130,6 +130,8 @@ export const AutomaticEnsure = z
 
 export const ExplicitEnsure = z
   .object({
+    // RA: RPC callers can retain their spawning shell's lineage.
+    parentTerminalHandle: z.string().min(1).optional(),
     kind: z.literal('explicit'),
     resumeOrigin: z.literal('saved').optional(),
     worktree: WorktreeSelector,
@@ -168,6 +170,8 @@ export const EnsureAgentSessionParams: z.ZodType<RuntimeEnsureAgentSessionReques
 
 export const CreateAgentSessionParams: z.ZodType<RuntimeCreateAgentSessionRequest> = z
   .object({
+    // RA: creation ancestry is optional for existing clients.
+    parentTerminalHandle: z.string().min(1).optional(),
     terminalKittyKeyboardProtocol: z.boolean().optional(),
     clientOperationId: z
       .string()

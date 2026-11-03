@@ -140,6 +140,11 @@ const tabGroupLayoutNodeSchema: z.ZodType<TabGroupLayoutNode> = z.lazy(() =>
 const worktreeIdSchema = z.string()
 
 export const workspaceSessionStateSchema: z.ZodType<WorkspaceSessionState> = z.object({
+  // RA: salvage independent lineage entries alongside ordinary tab/session state.
+  terminalLaunchParentsByPaneKey: salvagedOptional(
+    'terminalLaunchParentsByPaneKey',
+    salvagingRecord(z.string(), z.string().min(1))
+  ),
   activeRepoId: salvagedField('activeRepoId', z.string().nullable(), () => null),
   activeWorkspaceKey: salvagedOptional('activeWorkspaceKey', workspaceKeySchema.nullable()),
   activeWorkspaceExecutionHostId: salvagedOptional(

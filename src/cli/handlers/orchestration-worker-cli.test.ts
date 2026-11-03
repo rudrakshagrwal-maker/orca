@@ -119,6 +119,8 @@ describe('orchestration worker-start CLI contract', () => {
         timeoutMs: 90_000,
         run: 'run_1',
         from: 'term_coord',
+        // RA: the calling shell travels independently of dispatch authority.
+        parentTerminalHandle: 'term_coord',
         devMode: false
       },
       { orchestrationRequestId: '44444444-4444-4444-8444-444444444444' }

@@ -81,6 +81,8 @@ export async function createWorkerWorktree(args: {
   requestedWorktree: string
   target: WorkerWorktreeCreationTarget
   params: {
+    // RA: terminal creator can differ from orchestration --from.
+    parentTerminalHandle?: string
     name?: string
     baseBranch?: string
     displayName?: string
@@ -106,6 +108,7 @@ export async function createWorkerWorktree(args: {
   let terminalCreation: RuntimeTerminalCreate | undefined
   db.recordWorkerStage({ dispatchId, stage: 'worktree_creating', effects })
   const created = await runtime.createManagedWorktree({
+    parentTerminalHandle: params.parentTerminalHandle ?? params.from,
     onStartupTerminalCreated: (terminal) => {
       terminalCreation = terminal
     },

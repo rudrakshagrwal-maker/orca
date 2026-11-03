@@ -7,6 +7,7 @@ import type { PersistedState } from '../../../shared/persisted-state-types'
 import type { WorkspaceSessionState } from '../../../shared/workspace-session-state-types'
 import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import { layoutContainsLeafId } from '../restoring-sessions/terminal-layout-normalization'
+import { reconcileTerminalLaunchParents } from '../../../shared/terminal-launch-lineage'
 
 export function advanceTerminalTopologyRevision(
   session: WorkspaceSessionState,
@@ -68,6 +69,8 @@ export function assignWorkspaceSessionPartition(
   hostId: ExecutionHostId,
   session: WorkspaceSessionState
 ): 'workspaceSession' | 'workspaceSessionsByHostId' {
+  // RA: topology commits include pane/tab close and detach, without a renderer save.
+  session = reconcileTerminalLaunchParents(session)
   // Local belongs only in workspaceSession, never the host-partition map.
   if (hostId === LOCAL_EXECUTION_HOST_ID) {
     state.workspaceSession = session

@@ -7,6 +7,7 @@ import type { WorkerSetupReceipt } from '../worker/worker-topology'
 import { launchFederatedWorkerAgent } from './federated-worker-agent-launch'
 import type { FederationEffect } from './federation-effects'
 import { FederationAttachStartParams } from './federation-start-schema'
+import { getAgentLaunchParents } from '../../../../runtime-agent-launch-parents'
 
 function fakes(created: { startupTerminal?: { handle: string } } = {}) {
   const terminalCreation: RuntimeTerminalCreate = {
@@ -68,7 +69,7 @@ const PARAMS = FederationAttachStartParams.parse({
   agent: 'claude'
 })
 
-function launch(f: ReturnType<typeof fakes>, worktree?: { id: string }) {
+function launch(f: ReturnType<typeof fakes>, worktree?: { id: string }, parentTerminalHandle?: string) {
   const effects: FederationEffect[] = []
   const setups: WorkerSetupReceipt[] = []
   const stagesSeen: string[] = []
@@ -77,7 +78,7 @@ function launch(f: ReturnType<typeof fakes>, worktree?: { id: string }) {
     runtime: f.runtime as unknown as OrcaRuntimeService,
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the launch records only attachment stages.
     db: f.db as unknown as OrchestrationDb,
-    params: PARAMS,
+    params: { ...PARAMS, ...(parentTerminalHandle ? { parentTerminalHandle } : {}) },
     agent: 'claude',
     launchPreferences: { model: 'opus' },
     ...(worktree ? { worktree } : {}),
@@ -90,6 +91,15 @@ function launch(f: ReturnType<typeof fakes>, worktree?: { id: string }) {
 }
 
 describe('a federated worker through the launch executor', () => {
+  // RA: remote attachment retains parent identity for both terminal placement routes.
+  it.each([true, false])('records remote creator for existing=%s', async (existing) => {
+    const f = fakes({ startupTerminal: { handle: 'term_agent' } })
+    const run = launch(f, existing ? { id: 'repo::remote-wt' } : undefined, 'term_creator')
+    const result = await run.done
+    expect(getAgentLaunchParents(f.runtime)?.get(result.terminalHandle)?.parentTerminalHandle)
+      .toBe('term_creator')
+  })
+
   it('reports the created worktree’s setup before failing on a missing agent terminal', async () => {
     const f = fakes({})
     const run = launch(f)

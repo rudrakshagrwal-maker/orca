@@ -64,6 +64,21 @@ describe('orca cli worktree awareness', () => {
     process.exitCode = originalExitCode
   })
 
+  // RA: the actual caller owns lineage, even when it creates a shell or splits another pane.
+  it.each(['create', 'split'] as const)('passes the calling shell through terminal %s', async (action) => {
+    process.env.ORCA_TERMINAL_HANDLE = 'term_creator'
+    queueFixtures(callMock, okFixture('req_parent', action === 'create'
+      ? { terminal: { handle: 'term_child', worktreeId: 'repo-1::/tmp/repo', title: null } }
+      : { split: { handle: 'term_child', tabId: 'child', paneRuntimeId: 1, leafId: 'leaf' } }))
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await main(['terminal', action,
+      ...(action === 'create' ? ['--worktree', 'path:/tmp/repo'] : ['--terminal', 'term_target']),
+      '--json'], '/tmp/repo')
+    expect(callMock).toHaveBeenCalledWith(`terminal.${action}`, expect.objectContaining({
+      parentTerminalHandle: 'term_creator'
+    }))
+  })
+
   it.each([
     [
       'passes explicit focus through terminal.create',

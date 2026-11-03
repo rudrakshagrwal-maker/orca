@@ -1,6 +1,7 @@
 import { getDefaultWorkspaceSession } from '../../shared/constants'
 import type { ExecutionHostId } from '../../shared/execution-host'
 import type { WorkspaceSessionState } from '../../shared/workspace-session-state-types'
+import { reconcileTerminalLaunchParents } from '../../shared/terminal-launch-lineage'
 import { parseWorkspaceKey } from '../../shared/workspace-scope'
 import { SESSION_FIELDS_PRUNED_BY_OWNER_KEY } from './profile-project-session-field-disposition'
 import { markdownFileIdCandidates } from './profile-session-markdown-transfer'
@@ -210,6 +211,10 @@ export function removeRepoFromWorkspaceSession(
         return separator < 1 || !removedTerminalTabIds.has(paneKey.slice(0, separator))
       })
     )
+  }
+  // RA: repo removal closes both incoming and outgoing terminal ancestry edges.
+  if (next.terminalLaunchParentsByPaneKey) {
+    next.terminalLaunchParentsByPaneKey = reconcileTerminalLaunchParents(next).terminalLaunchParentsByPaneKey
   }
   if (next.activeWorktreeId && isRepoWorktreeId(repoId, next.activeWorktreeId)) {
     next.activeWorktreeId = null

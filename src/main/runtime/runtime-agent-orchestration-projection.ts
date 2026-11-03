@@ -147,6 +147,11 @@ export class RuntimeAgentOrchestrationProjection {
   ): Record<string, AgentStatusOrchestrationContext> | undefined {
     const parents = this.deps.getLaunchParents?.()
     for (const [handle, parent] of parents ?? []) {
+      // RA: a closed parent retires ephemeral links too; saved, unrestored panes retain theirs.
+      if (!parent.parentPaneKey && this.deps.getWorktreeId(parent.parentTerminalHandle) === null) {
+        parents?.delete(handle)
+        continue
+      }
       let paneKey = this.deps.getPaneKey(handle)
       if (parent.sessionId) {
         scope ??= createOrchestrationProjectionScope(null, this.deps)
@@ -161,7 +166,7 @@ export class RuntimeAgentOrchestrationProjection {
       }
       const context = contexts[paneKey]
       if (!context?.parentTerminalHandle && !context?.parentPaneKey) {
-        const launchParent = this.launchParentContext(handle)
+        const launchParent = this.launchParentContext(handle, parent)
         if (launchParent && launchParent.parentPaneKey !== paneKey) {
           contexts[paneKey] = { ...context, ...launchParent }
         }
@@ -170,12 +175,14 @@ export class RuntimeAgentOrchestrationProjection {
     return Object.keys(contexts).length > 0 ? contexts : undefined
   }
 
-  private launchParentContext(handle: string): AgentStatusOrchestrationContext | undefined {
-    const parent = this.deps.getLaunchParents?.()?.get(handle)
+  private launchParentContext(
+    handle: string,
+    parent = this.deps.getLaunchParents?.()?.get(handle)
+  ): AgentStatusOrchestrationContext | undefined {
     if (!parent) {
       return undefined
     }
-    const parentPaneKey = this.deps.getPaneKey(parent.parentTerminalHandle)
+    const parentPaneKey = parent.parentPaneKey ?? this.deps.getPaneKey(parent.parentTerminalHandle)
     return {
       parentTerminalHandle: parent.parentTerminalHandle,
       ...(parentPaneKey ? { parentPaneKey } : {})

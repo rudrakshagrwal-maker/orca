@@ -45,38 +45,46 @@ function tree(rows: DashboardAgentRow[], acknowledgedAgentsByPaneKey = {}) {
   })
 }
 
-// RA: exercise fleet urgency across workspace boundaries and acknowledgement changes.
+// RA: status and acknowledgement changes cannot regroup or reorder the hierarchy.
 describe('sidebar agent tree', () => {
-  it('moves an entire multilevel tree to Needs you without repeating its children', () => {
+  it('nests a multilevel tree across workspace boundaries without repeating children', () => {
     const parent = agent('parent', 'done')
     const child = agent('child', 'working', 'parent')
     const grandchild = agent('grandchild', 'blocked', 'child')
     const result = tree([child, grandchild, parent])
 
-    expect(result.groups.get('attention')).toEqual([parent])
     expect(result.rootRows).toEqual([parent])
     expect(result.childrenByParentPaneKey.get(parent.paneKey)).toEqual([child])
     expect(result.childrenByParentPaneKey.get(child.paneKey)).toEqual([grandchild])
-    expect(result.groups.get('working')).toEqual([])
-    expect(result.groups.get('done')).toEqual([])
+    expect(result).not.toHaveProperty('groups')
   })
 
-  it('groups a question as Needs you and working children ahead of completed parents', () => {
+  it('orders roots and siblings by session start, independent of input and status', () => {
     const question = agent('question', 'waiting')
     const parent = agent('parent', 'done')
     const child = agent('child', 'working', 'parent')
-    const result = tree([parent, child, question])
+    const olderChild = agent('older-child', 'done', 'parent')
+    parent.startedAt = 100
+    question.startedAt = 200
+    olderChild.startedAt = 300
+    child.startedAt = 400
+    const rows = [child, question, olderChild, parent]
+    const result = tree(rows)
 
-    expect(result.groups.get('attention')).toEqual([question])
-    expect(result.groups.get('working')).toEqual([parent])
+    expect(result.rootRows).toEqual([parent, question])
+    expect(result.childrenByParentPaneKey.get(parent.paneKey)).toEqual([olderChild, child])
+    child.entry.state = child.state = 'blocked'
+    child.entry.stateStartedAt = 90_000
+    parent.entry.state = parent.state = 'working'
+    expect(tree([...rows].reverse()).rootRows).toEqual([parent, question])
+    expect(tree(rows).childrenByParentPaneKey.get(parent.paneKey)).toEqual([olderChild, child])
   })
 
-  it('moves a completion from Done to Idle once its turn is acknowledged', () => {
+  it('keeps acknowledged completions in place and clears only their unread emphasis', () => {
     const done = agent('done', 'done')
-    expect(tree([done]).groups.get('done')).toEqual([done])
+    expect(tree([done]).rootRows).toEqual([done])
     const visited = tree([done], { [done.paneKey]: done.entry.stateStartedAt })
-    expect(visited.groups.get('done')).toEqual([])
-    expect(visited.groups.get('idle')).toEqual([done])
+    expect(visited.rootRows).toEqual([done])
     expect(visited.unvisitedPaneKeys.size).toBe(0)
   })
 
@@ -86,7 +94,6 @@ describe('sidebar agent tree', () => {
     const second = agent('second', 'working', 'first')
     const result = tree([orphan, first, second])
     expect(result.rootRows).toEqual([orphan, first, second])
-    expect(result.groups.get('attention')).toEqual([first])
-    expect(result.groups.get('working')).toEqual([orphan, second])
+    expect(result.childrenByParentPaneKey.size).toBe(0)
   })
 })

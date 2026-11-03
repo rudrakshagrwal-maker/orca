@@ -243,6 +243,8 @@ export class Coordinator {
       // Create at most one terminal per tick to avoid a spawn burst.
       try {
         const created = await this.runtime.createTerminal(this.opts.worktree, {
+          // RA: automatic dispatch shells belong to their coordinator from creation.
+          parentTerminalHandle: this.opts.coordinatorHandle,
           title: `Worker: ${readyTasks[0].spec.slice(0, 40)}`
         })
         terminals.push(created.handle)

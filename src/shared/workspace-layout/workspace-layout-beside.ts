@@ -18,6 +18,7 @@ export const SESSION_FIELD_OWNERS = {
   activeTabId: 'view',
   tabsByWorktree: 'layout',
   terminalLayoutsByTabId: 'layout',
+  terminalLaunchParentsByPaneKey: 'carried', // RA: main preserves lineage beside layout edits.
   localOnlyScrollbackByTabId: 'fact',
   activeWorktreeIdsOnShutdown: 'carried',
   openFilesByWorktree: 'layout',

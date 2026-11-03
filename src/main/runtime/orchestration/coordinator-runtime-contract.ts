@@ -22,7 +22,7 @@ export type CoordinatorRuntime = {
   }>
   createTerminal(
     worktreeSelector?: string,
-    opts?: { command?: string; title?: string }
+    opts?: { command?: string; title?: string; parentTerminalHandle?: string }
   ): Promise<{ handle: string; worktreeId: string }>
   waitForTerminal(
     handle: string,
