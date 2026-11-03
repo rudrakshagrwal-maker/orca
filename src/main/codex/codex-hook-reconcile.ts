@@ -45,14 +45,14 @@ export function startCodexHooks({
   startAfter = Promise.resolve(),
   ...appConfig
 }: ReconcileConfig & {
-  // RA: preserve agent configuration and disable unsolicited background work.
-  if (preserveGlobalAgentConfiguration()) {
-    return
-  }
   pathReady: Promise<unknown>
   /** orcad passes its readiness so this PATH scan stays off it; launches never wait on it. */
   startAfter?: Promise<unknown>
 }): void {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const pathReady = hydrating.catch(() => {})
   startCodexHookHashLookup(pathReady)
   config = appConfig
