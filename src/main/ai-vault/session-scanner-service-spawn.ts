@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { localAiVaultScanRoots } from './cached-session-list'
 import type { SessionSearchHostScope } from '../ai-vault-search/session-search-service'
 import { fork, type ChildProcess } from 'node:child_process'
@@ -35,6 +36,10 @@ import {
 } from './ai-vault-local-scan-progress'
 
 export function spawnAiVaultServiceProcess(): ChildProcess {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (backgroundJobsDisabled()) {
+    throw new Error('AI Vault scanning is disabled in this fork')
+  }
   const entryPath = getAiVaultServiceEntryPath()
   if (!existsSync(entryPath)) {
     throw new Error(`AI Vault service entry not found: ${entryPath}`)
@@ -77,6 +82,10 @@ export function scanAiVaultSessionsInService(
   signal?: AbortSignal,
   progress?: LocalAiVaultScanProgressHandle
 ): Promise<AiVaultListResult> {
+  // RA: a disabled local scan is empty and does not spawn a retrying child.
+  if (backgroundJobsDisabled()) {
+    return Promise.resolve({ sessions: [], issues: [], scannedAt: new Date().toISOString() })
+  }
   return withSpan('aiVault.scan.service', async (span) => {
     const value = await requestLocalAiVaultScan(
       (listener) =>

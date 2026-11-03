@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getDefaultOnboardingState } from '../../../../shared/onboarding-defaults'
+// RA: retained wizard scenarios explicitly begin unfinished.
+import {
+  createUnfinishedOnboardingState as getDefaultOnboardingState
+} from '../../../../shared/onboarding-state-test-fixture'
 import type { Repo } from '../../../../shared/repo-types'
 import type {
   DetectedWorktree,

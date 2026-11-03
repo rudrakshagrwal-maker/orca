@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { win32 as pathWin32 } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
@@ -51,6 +52,10 @@ function launchPrepKey(
 
 export class CodexHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getManagedScriptPath(), getManagedScript())
   }
 
@@ -72,6 +77,10 @@ export class CodexHookService {
     runtimeHomePath: string | null | undefined,
     target?: CodexWslRuntimeHookTarget
   ): Promise<AgentHookInstallStatus | null> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const generation = this.supersedeWslReconciliation(runtimeHomePath)
     let installedTrustConfigPath: string | null = null
     let installSucceeded = false
@@ -162,6 +171,10 @@ export class CodexHookService {
     runtimeHomePath: string | null | undefined,
     target?: CodexWslRuntimeHookTarget
   ): Promise<AgentHookInstallStatus | null> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return Promise.resolve(this.getStatus())
+    }
     if (!runtimeHomePath) {
       return Promise.resolve(null)
     }
@@ -179,6 +192,10 @@ export class CodexHookService {
     isHooksEnabled: () => boolean,
     launchesCodex: boolean
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     if (isHooksEnabled()) {
       // Install hooks into the managed account's launch home, where its Codex reads trust.
       const wslStatus = await this.installForRuntimeHomeSerialized(runtimeHomePath, target)
@@ -205,6 +222,10 @@ export class CodexHookService {
     runtimeHomePath: string | null | undefined,
     target?: CodexWslRuntimeHookTarget
   ): AgentHookInstallStatus | null {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return null
+    }
     this.supersedeWslReconciliation(runtimeHomePath)
     const wslPlan = createCodexWslRuntimeHookInstallPlan(runtimeHomePath, target)
     return wslPlan ? refreshWslRuntimeUserHooks(wslPlan) : null
@@ -216,6 +237,10 @@ export class CodexHookService {
 
   /** App start and explicit enablement may convert older builds' real-home entries. */
   async reconcileHooks(): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     try {
       writeManagedScript(getManagedScriptPath(), getManagedScript())
     } catch (error) {
@@ -232,6 +257,10 @@ export class CodexHookService {
     launchesCodex = true,
     isHooksEnabled: () => boolean = () => true
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const answer =
       (await resolveCodexHookAnswerForLaunch(launchesCodex ? CODEX_HOOK_LAUNCH_WAIT_MS : 0)) ??
       CODEX_ANSWER_AWAITED
@@ -262,6 +291,10 @@ export class CodexHookService {
     launchesCodex: boolean,
     isHooksEnabled: () => boolean
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return Promise.resolve(this.getStatus())
+    }
     const homePath = runtimeHomePath ?? getOrcaManagedCodexHomePath()
     return dedupeInFlightRun(
       this.launchPrepInFlight,
@@ -271,6 +304,10 @@ export class CodexHookService {
   }
 
   refreshRuntimeUserHooksForLaunchPrep(runtimeHomePath?: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return Promise.resolve(this.getStatus())
+    }
     const homePath = runtimeHomePath ?? getOrcaManagedCodexHomePath()
     return dedupeInFlightRun(this.launchPrepInFlight, launchPrepKey('refresh', homePath), () =>
       this.refreshRuntimeUserHooks(homePath)
@@ -282,12 +319,20 @@ export class CodexHookService {
     remoteHome: string,
     options?: { codexHomeDir?: string; deferTrustUntilConfigToml?: boolean }
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return Promise.resolve(this.getStatus())
+    }
     return installCodexHooksRemote(sftp, remoteHome, options)
   }
 
   refreshRuntimeUserHooks(
     runtimeHomePath: string = getOrcaManagedCodexHomePath()
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return Promise.resolve(this.getStatus())
+    }
     return runExclusivelyForRuntimeAndSystemTrustConfig(runtimeHomePath, () =>
       this.refreshRuntimeUserHooksExclusively(runtimeHomePath)
     )
@@ -302,6 +347,10 @@ export class CodexHookService {
   }
 
   remove(): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return Promise.resolve(this.getStatus())
+    }
     return runExclusivelyForRuntimeAndSystemTrustConfig(getOrcaManagedCodexHomePath(), () =>
       this.removeExclusively()
     )

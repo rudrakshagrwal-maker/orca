@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import {
   lstat,
@@ -18,6 +19,10 @@ export async function writeHooksJsonAsync(
   config: Record<string, unknown>,
   options?: { serialized?: string }
 ): Promise<void> {
+  // RA: never publish managed hooks into local or remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const link = await lstat(configPath).catch((error: unknown) => {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       return null

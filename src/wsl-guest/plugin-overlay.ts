@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../shared/fork-background-policy'
 import type { PluginSources, MaterializePiResult } from './plugin-sources'
 export type { PluginSources, MaterializePiResult } from './plugin-sources'
 import { RelayClaudeAgentViewPlugin } from './claude-agent-view-plugin'
@@ -103,6 +104,10 @@ export class PluginOverlayManager {
   }
   // Refresh cached source for future PTYs; running agents retain the source they loaded at startup.
   setSources(sources: PluginSources): void {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     this.claudeAgentView.setSource(sources.claudeAgentViewSource)
     if (typeof sources.opencodeStartupPromptSource === 'string') {
       this.opencodeStartupPromptSource = sources.opencodeStartupPromptSource
@@ -152,6 +157,10 @@ export class PluginOverlayManager {
     existingConfigDir?: string,
     agent: 'opencode' | 'opencode2' = 'opencode'
   ): string | null {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return null
+    }
     const source = agent === 'opencode2' ? this.opencode2PluginSource : this.opencodePluginSource
     if ((!source && !this.opencodeStartupPromptSource) || !isUsableId(id)) {
       return null
@@ -188,6 +197,10 @@ export class PluginOverlayManager {
     environment: NodeJS.ProcessEnv | Record<string, string>,
     configDir?: string
   ): boolean {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return false
+    }
     if (!this.opencodeStartupPromptSource) {
       return false
     }
@@ -216,6 +229,10 @@ export class PluginOverlayManager {
     agent: OpenCodeAgent,
     environment: NodeJS.ProcessEnv | Record<string, string>
   ): boolean {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return false
+    }
     const source = agent === 'opencode2' ? this.opencode2PluginSource : this.opencodePluginSource
     return source
       ? installOpenCodePluginInCanonicalConfig(source, agent, environment, this.homeDir)
@@ -245,6 +262,10 @@ export class PluginOverlayManager {
   }
 
   materializeOmpFreshConfig(): string {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return ''
+    }
     return materializeOmpFreshConfig(
       join(this.homeDir, RELAY_HOOKS_DIR, OMP_MANAGED_STATUS_EXTENSION_DIR)
     )
@@ -257,6 +278,10 @@ export class PluginOverlayManager {
     kind: PiAgentKind = 'pi',
     options?: { materializeDefaultHome?: boolean; configDirName?: string }
   ): MaterializePiResult | null {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return null
+    }
     const extensionSource = this.getPiExtensionSource(kind)
     if (!extensionSource || !isUsableId(id)) {
       return null
@@ -297,6 +322,10 @@ export class PluginOverlayManager {
   }
 
   clearOverlay(id: string): void {
+    // RA: no relay plugin or extension materialization.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     if (!isUsableId(id)) {
       return
     }

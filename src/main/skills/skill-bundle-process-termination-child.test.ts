@@ -1,6 +1,12 @@
+// RA: retained mutation internals are tested only under an explicitly unblocked policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { open, mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { describe, it } from 'vitest'
+import { describe, it, vi } from 'vitest'
 import { createSkillBundleArchive } from './skill-bundle-creation'
 import { installSkillBundle } from './skill-bundle-install-service'
 

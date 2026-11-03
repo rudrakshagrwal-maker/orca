@@ -167,7 +167,8 @@ export function buildDefaultSettings(args: {
     orchestrationWorkerAutoReleaseEnabled: true,
     showArtifactsButton: false,
     showSkillsButton: false,
-    showMobileButton: true,
+    // RA: phone pairing has no relay in this fork.
+    showMobileButton: false,
     showPinnedWorktreesInGroups: false,
     ctrlTabOrderMode: 'mru',
     // Why: Orca-first keeps core shortcuts working from a focused terminal; TUI-ownership users opt in.
@@ -240,7 +241,8 @@ export function buildDefaultSettings(args: {
     agentYoloDefaultsMigrated: true,
     agentPermissionDefault: 'full-access',
     agentPermissionOverrides: {},
-    agentStatusHooksEnabled: true,
+    // RA: terminal OSC 7501 reports provide status without hooks.
+    agentStatusHooksEnabled: false,
     claudeSubagentNavigationEnabled: true,
     agentWorkspaceTrustEnabled: true,
     codexTerminalServerIsolation: true,

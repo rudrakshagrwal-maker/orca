@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { existsSync, readFileSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -33,6 +34,10 @@ function getLegacyCodexProfileTomlPath(): string {
 }
 
 export function cleanupLegacySystemManagedHooks(): Promise<void> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    return Promise.resolve()
+  }
   // Serialize with reconciliation: both write real-home hooks and trust.
   return runExclusivelyForCodexTrustConfig(
     getSystemCodexConfigTomlPath(),
@@ -154,6 +159,10 @@ function cleanupLegacyCodexProfileHooks(): void {
 }
 
 export async function cleanupLegacyManagedHookRepresentations(): Promise<void> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   try {
     await cleanupLegacySystemManagedHooks()
     cleanupLegacyCodexProfileHooks()

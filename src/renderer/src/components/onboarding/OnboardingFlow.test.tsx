@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getDefaultSettings } from '../../../../shared/constants'
-import { getDefaultOnboardingState } from '../../../../shared/onboarding-defaults'
+// RA: retained wizard scenarios explicitly begin unfinished.
+import {
+  createUnfinishedOnboardingState as getDefaultOnboardingState
+} from '../../../../shared/onboarding-state-test-fixture'
 import { useAppStore } from '@/store'
 import OnboardingFlow from './OnboardingFlow'
 

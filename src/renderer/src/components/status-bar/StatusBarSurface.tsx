@@ -14,15 +14,7 @@ import {
   STATUS_BAR_CONTEXT_MENU_EXEMPT_PROPS,
   shouldOpenStatusBarContextMenu
 } from './status-bar-context-menu-policy'
-import { StatusBarUsageEmptyCta } from './StatusBarUsageEmptyCta'
-import { StatusBarUsageChangeNotices } from './StatusBarUsageChangeNotices'
-import { UpdateStatusSegment } from './UpdateStatusSegment'
-import { SkillUpdateStatusSegment } from './SkillUpdateStatusSegment'
-import { NativeChatResumeStatusSegment } from './NativeChatResumeStatusSegment'
 import { CaffeinateStatusSegment } from './CaffeinateStatusSegment'
-import { PluginsStatusSegment } from './PluginsStatusSegment'
-import { PluginStatusBarItems } from './PluginStatusBarItems'
-import { RemoteServerUpdateStatusSegment } from './RemoteServerUpdateStatusSegment'
 import { TOGGLE_FLOATING_TERMINAL_EVENT } from '@/lib/floating-terminal'
 import { FloatingTerminalIconContextMenu } from '@/components/floating-terminal/FloatingTerminalIconContextMenu'
 import { ClaudeSwitcherMenu } from './ClaudeSwitcherMenu'
@@ -88,14 +80,12 @@ export function StatusBarSurface({
     isRefreshing,
     overflowing,
     petEnabled,
-    remoteOwner,
     rosterProviders,
     segmentsIconOnly,
     segmentsRef,
     setMenuOpen,
     setMenuPoint,
     setStatusBarUsageMode,
-    showEmptyUsageCta,
     showFloatingTerminalToggle,
     showFloatingWorkspaceAttentionDot,
     showPorts,
@@ -135,131 +125,126 @@ export function StatusBarSurface({
         data-overflowing={overflowing}
       >
         <div ref={usageRef} className="flex shrink-0 items-center gap-3">
-          {isEmptyUsageState ? (
-            showEmptyUsageCta ? (
-              <StatusBarUsageEmptyCta remoteOwner={remoteOwner} />
-            ) : null
-          ) : hasVisibleUsageMeters ? (
-            <StatusBarUsageChangeNotices hasVisibleUsageMeters={hasVisibleUsageMeters}>
-              <DropdownMenu
-                open={usageMenuOpen}
-                onOpenChange={handleUsageMenuOpenChange}
-                modal={false}
-              >
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-3 rounded px-1 py-0.5 hover:bg-accent/70"
-                    aria-label={translate(
-                      'auto.components.status.bar.UsageRosterPanel.title',
-                      'Usage'
-                    )}
-                  >
-                    {unitLabelState !== 'absent' ? (
-                      <UsageUnitLabel
-                        collapsed={unitLabelState === 'collapsed'}
-                        display={usagePercentageDisplay}
-                      />
-                    ) : null}
-                    {rosterProviders.map((p) => (
-                      // Why: collapsed chips leave the row but stay measurable, so the density hook can bring them back.
-                      <span
-                        key={p.provider}
-                        data-usage-chip={p.provider}
-                        data-usage-urgent={getUsageTone(p) === 'urgent'}
-                        data-usage-percentage={usageChipShowsPercentage(p, usageMode)}
-                        data-usage-collapsed={collapsedUsageProviders.includes(p.provider)}
-                        aria-hidden={collapsedUsageProviders.includes(p.provider)}
-                        className="inline-flex data-[usage-collapsed=true]:invisible data-[usage-collapsed=true]:absolute"
-                      >
-                        <ProviderSegment
-                          p={p}
-                          compact={compact}
-                          display={usagePercentageDisplay}
-                          mode={usageMode}
-                        />
-                      </span>
-                    ))}
-                    {collapseUsage ? (
-                      <UsageOverflowChip
-                        providerCount={rosterProviders.length}
-                        hidden={rosterProviders.filter((p) =>
-                          collapsedUsageProviders.includes(p.provider)
-                        )}
-                        display={usagePercentageDisplay}
-                      />
-                    ) : null}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  {...STATUS_BAR_CONTEXT_MENU_EXEMPT_PROPS}
-                  side="top"
-                  align="start"
-                  sideOffset={8}
-                  // Reserve footer height so the popover and drill-in submenus stay above the status bar.
-                  collisionPadding={{ top: 8, bottom: 32, left: 8, right: 8 }}
-                  className="w-[360px] p-0"
-                  onPointerDownOutside={usageMenuFocusHandoff.onPointerDownOutside}
-                  onCloseAutoFocus={usageMenuFocusHandoff.onCloseAutoFocus}
+          {/* RA: no usage-setup CTA, change-notice coachmark or automatic update nags. */}
+          {!isEmptyUsageState && hasVisibleUsageMeters ? (
+            <DropdownMenu
+              open={usageMenuOpen}
+              onOpenChange={handleUsageMenuOpenChange}
+              modal={false}
+            >
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-3 rounded px-1 py-0.5 hover:bg-accent/70"
+                  aria-label={translate(
+                    'auto.components.status.bar.UsageRosterPanel.title',
+                    'Usage'
+                  )}
                 >
-                  <UsageRosterPanel
-                    providers={rosterProviders}
-                    display={usagePercentageDisplay}
-                    statusBarUsageMode={statusBarUsageMode}
-                    onStatusBarUsageModeChange={setStatusBarUsageMode}
-                    isRefreshing={isRefreshing || anyFetching}
-                    onRefresh={handleRefresh}
-                    onOpenProvider={handleOpenProviderAccounts}
-                    onSignIn={handleOpenProviderAccounts}
-                    canSignIn={canSignInFromUsageRow}
-                    onManageAccounts={handleManageAccounts}
-                    onUsageDetails={handleUsageDetails}
-                    renderRow={(p, rowNode) => {
-                      // Why: a placeholder has nothing to drill into; its row opens the host's accounts.
-                      if (isOwnerNotSetUpPlaceholder(p)) {
-                        return null
-                      }
-                      // Claude/Codex detail panels also expose account switching and runtime controls.
-                      if (p.provider === 'claude') {
-                        return (
-                          <ClaudeSwitcherMenu
-                            claude={p}
-                            compact={compact}
-                            iconOnly={false}
-                            asSubmenu
-                            triggerContent={rowNode}
-                          />
-                        )
-                      }
-                      if (p.provider === 'codex') {
-                        return (
-                          <CodexSwitcherMenu
-                            codex={p}
-                            compact={compact}
-                            iconOnly={false}
-                            asSubmenu
-                            triggerContent={rowNode}
-                          />
-                        )
-                      }
+                  {unitLabelState !== 'absent' ? (
+                    <UsageUnitLabel
+                      collapsed={unitLabelState === 'collapsed'}
+                      display={usagePercentageDisplay}
+                    />
+                  ) : null}
+                  {rosterProviders.map((p) => (
+                    // Why: collapsed chips leave the row but stay measurable, so the density hook can bring them back.
+                    <span
+                      key={p.provider}
+                      data-usage-chip={p.provider}
+                      data-usage-urgent={getUsageTone(p) === 'urgent'}
+                      data-usage-percentage={usageChipShowsPercentage(p, usageMode)}
+                      data-usage-collapsed={collapsedUsageProviders.includes(p.provider)}
+                      aria-hidden={collapsedUsageProviders.includes(p.provider)}
+                      className="inline-flex data-[usage-collapsed=true]:invisible data-[usage-collapsed=true]:absolute"
+                    >
+                      <ProviderSegment
+                        p={p}
+                        compact={compact}
+                        display={usagePercentageDisplay}
+                        mode={usageMode}
+                      />
+                    </span>
+                  ))}
+                  {collapseUsage ? (
+                    <UsageOverflowChip
+                      providerCount={rosterProviders.length}
+                      hidden={rosterProviders.filter((p) =>
+                        collapsedUsageProviders.includes(p.provider)
+                      )}
+                      display={usagePercentageDisplay}
+                    />
+                  ) : null}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                {...STATUS_BAR_CONTEXT_MENU_EXEMPT_PROPS}
+                side="top"
+                align="start"
+                sideOffset={8}
+                // Reserve footer height so the popover and drill-in submenus stay above the status bar.
+                collisionPadding={{ top: 8, bottom: 32, left: 8, right: 8 }}
+                className="w-[360px] p-0"
+                onPointerDownOutside={usageMenuFocusHandoff.onPointerDownOutside}
+                onCloseAutoFocus={usageMenuFocusHandoff.onCloseAutoFocus}
+              >
+                <UsageRosterPanel
+                  providers={rosterProviders}
+                  display={usagePercentageDisplay}
+                  statusBarUsageMode={statusBarUsageMode}
+                  onStatusBarUsageModeChange={setStatusBarUsageMode}
+                  isRefreshing={isRefreshing || anyFetching}
+                  onRefresh={handleRefresh}
+                  onOpenProvider={handleOpenProviderAccounts}
+                  onSignIn={handleOpenProviderAccounts}
+                  canSignIn={canSignInFromUsageRow}
+                  onManageAccounts={handleManageAccounts}
+                  onUsageDetails={handleUsageDetails}
+                  renderRow={(p, rowNode) => {
+                    // Why: a placeholder has nothing to drill into; its row opens the host's accounts.
+                    if (isOwnerNotSetUpPlaceholder(p)) {
+                      return null
+                    }
+                    // Claude/Codex detail panels also expose account switching and runtime controls.
+                    if (p.provider === 'claude') {
                       return (
-                        <ProviderDetailsMenu
-                          provider={p}
+                        <ClaudeSwitcherMenu
+                          claude={p}
                           compact={compact}
                           iconOnly={false}
                           asSubmenu
                           triggerContent={rowNode}
-                          ariaLabel={translate(
-                            'auto.components.status.bar.UsageRosterPanel.openDetails',
-                            'Open usage details'
-                          )}
                         />
                       )
-                    }}
-                  />
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </StatusBarUsageChangeNotices>
+                    }
+                    if (p.provider === 'codex') {
+                      return (
+                        <CodexSwitcherMenu
+                          codex={p}
+                          compact={compact}
+                          iconOnly={false}
+                          asSubmenu
+                          triggerContent={rowNode}
+                        />
+                      )
+                    }
+                    return (
+                      <ProviderDetailsMenu
+                        provider={p}
+                        compact={compact}
+                        iconOnly={false}
+                        asSubmenu
+                        triggerContent={rowNode}
+                        ariaLabel={translate(
+                          'auto.components.status.bar.UsageRosterPanel.openDetails',
+                          'Open usage details'
+                        )}
+                      />
+                    )
+                  }}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
           {anyVisible && !isEmptyUsageState && (
             <Tooltip>
@@ -294,16 +279,8 @@ export function StatusBarSurface({
       >
         <div ref={segmentsRef} className="flex w-max items-center gap-3">
           {!isPairedWebClientWindow() ? (
-            <>
-              <PluginsStatusSegment />
-              <PluginStatusBarItems iconOnly={segmentsIconOnly} />
-              <CaffeinateStatusSegment iconOnly={segmentsIconOnly} />
-            </>
+            <CaffeinateStatusSegment iconOnly={segmentsIconOnly} />
           ) : null}
-          <RemoteServerUpdateStatusSegment iconOnly={segmentsIconOnly} />
-          <SkillUpdateStatusSegment iconOnly={segmentsIconOnly} />
-          <NativeChatResumeStatusSegment iconOnly={segmentsIconOnly} />
-          <UpdateStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
           <React.Suspense fallback={null}>
             {petEnabled ? <PetStatusSegment /> : null}
             {showResourceUsage ? (

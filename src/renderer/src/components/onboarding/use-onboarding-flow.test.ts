@@ -4,7 +4,10 @@ import {
   prepareSkippedOnboardingPreferences,
   remapOpenOnboardingLastCompletedStep
 } from './onboarding-flow-state'
-import { getDefaultOnboardingState } from '../../../../shared/onboarding-defaults'
+// RA: retained wizard scenarios explicitly begin unfinished.
+import {
+  createUnfinishedOnboardingState as getDefaultOnboardingState
+} from '../../../../shared/onboarding-state-test-fixture'
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() }

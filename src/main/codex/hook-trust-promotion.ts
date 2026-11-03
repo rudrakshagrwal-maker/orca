@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isDefinitiveAbsence } from '../../shared/definitive-filesystem-absence'
@@ -120,6 +121,10 @@ export function snapshotCodexRuntimeHookTrustProvenance(
 export function promoteCodexRuntimeHookApprovalsToSystem(
   runtimeHomePath: string = getOrcaManagedCodexHomePath()
 ): void {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   try {
     promoteCodexRuntimeHookApprovalsToSystemUnsafe(runtimeHomePath)
   } catch (error) {

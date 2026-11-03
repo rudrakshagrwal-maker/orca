@@ -1,3 +1,9 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import type { getReleaseDownloadUrl } from './releases/updater-release-readiness'
 /**
  * #34813 end to end in-process: the real updater install path against a real move run of the WSL

@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from './fork-background-policy'
 import type { GlobalSettings } from './global-settings-types'
 import type { TuiAgent } from './tui-agent'
 import { isTuiAgentEnabled } from './tui-agent-selection'
@@ -11,6 +12,10 @@ export type AgentStatusHooksSettings =
 export function isAgentStatusHooksEnabled(
   settings: Partial<Pick<GlobalSettings, 'agentStatusHooksEnabled'>> | null | undefined
 ): boolean {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return false
+  }
   return settings?.agentStatusHooksEnabled !== false
 }
 

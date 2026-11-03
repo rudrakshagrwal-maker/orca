@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { lstatSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -88,6 +89,10 @@ function notInstalledStatus(
 
 export class GrokHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getGrokManagedScriptPath(), getGrokManagedScript())
   }
 
@@ -139,6 +144,10 @@ export class GrokHookService {
   }
 
   install(options?: { userInitiated?: boolean }): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const scriptPath = getGrokManagedScriptPath()
     const snapshot = readHooksJsonWithRaw(configPath)
@@ -201,6 +210,10 @@ export class GrokHookService {
     remoteHome: string,
     remoteGrokHome?: string
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     return await installRemoteGrokHook(
       sftp,
       remoteHome,
@@ -210,6 +223,10 @@ export class GrokHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     if (process.platform === 'win32') {
       unregisterGrokHookOwnerSync()
@@ -241,6 +258,10 @@ export class GrokHookService {
   }
 
   async removeAsync(): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const ownsWindowsHook = process.platform === 'win32'
     let peerOwnsWindowsHook = false

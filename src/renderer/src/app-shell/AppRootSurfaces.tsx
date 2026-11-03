@@ -1,9 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { ModalBoundary, OverlayBoundary } from './app-root-surface-boundaries'
-import { OnboardingLanguageLoading } from '../components/onboarding/OnboardingLanguageLoading'
-import { useLanguageReadiness } from '../i18n/language-readiness'
 import { memo, Suspense } from 'react'
-import { createPortal } from 'react-dom'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { translate } from '@/i18n/i18n'
 import { RecoverableRenderErrorBoundary } from '../components/error-boundaries/RecoverableRenderErrorBoundary'
@@ -12,21 +9,14 @@ import { CrashReportDialog } from '../components/crash-report/CrashReportDialog'
 import { MarkdownTemplatePicker } from '../components/editor/MarkdownTemplatePicker'
 import RecentTabSwitcher from '../components/tab-bar/RecentTabSwitcher'
 import { SkillFreshnessUpdateDialog } from '../components/skills/SkillFreshnessUpdateDialog'
-import { StarNagAgentValueMomentObserver } from '../components/star-nag/StarNagAgentValueMomentObserver'
-import { NativeChatResumeOnRestartModal } from '../components/NativeChatResumeRuntimeModal'
-import { StarNagToastHost } from '../components/star-nag/StarNagToastHost'
-import { TelemetryFirstLaunchSurface } from '../components/TelemetryFirstLaunchSurface'
 import { ZoomOverlay } from '../components/ZoomOverlay'
 import { WslMoveDialogHost } from '../components/wsl-move/WslMoveDialog'
 import { shouldRenderPetOverlay } from '../components/pet/pet-overlay-visibility'
 import { useAppStore } from '../store'
-import type { UpdateStatus } from '../../../shared/update-status-types'
 import { useLazyModalMounts } from './use-lazy-modal-mounts'
-import { AppNotificationCards } from './AppNotificationCards'
 import { usePreloadWorktreeJumpPalette, WorktreeJumpPalette } from './worktree-jump-palette-preload'
 import {
   selectAppRootSurfacePetEnabled,
-  selectAppRootSurfaceTelemetryOptedIn,
   selectAppRootSurfaceVoiceEnabled
 } from './app-root-surface-settings'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
@@ -70,16 +60,6 @@ const SshPassphraseDialog = lazy(() =>
 const RemoteServerUpdateDialog = lazy(
   () => import('../components/settings/RemoteServerUpdateDialog')
 )
-const ContextualTourOverlay = lazy(() =>
-  import('../components/contextual-tours/ContextualTourOverlay').then((module) => ({
-    default: module.ContextualTourOverlay
-  }))
-)
-const SetupGuideTelemetryObserver = lazy(() =>
-  import('../components/setup-guide/SetupGuideTelemetryObserver').then((module) => ({
-    default: module.SetupGuideTelemetryObserver
-  }))
-)
 const FloatingTerminalPanel = lazy(() =>
   import('../components/floating-terminal/FloatingTerminalPanel').then((module) => ({
     default: module.FloatingTerminalPanel
@@ -87,28 +67,15 @@ const FloatingTerminalPanel = lazy(() =>
 )
 // Load the pet asset/overlay only when enabled.
 const PetOverlay = lazy(() => import('../components/pet/PetOverlay'))
-// Avoid fetching onboarding assets for users past first launch.
-const OnboardingFlow = lazy(() => import('../components/onboarding/OnboardingFlow'))
-
-function shouldMountUpdateCardForStatus(status: UpdateStatus): boolean {
-  if (status.state === 'idle') {
-    return false
-  }
-  if (status.state === 'checking' || status.state === 'not-available') {
-    return status.userInitiated === true
-  }
-  return true
-}
 
 /** Keep root overlays in stable sibling order; fetch gated chunks only when their surfaces can appear. Memoized so active-workspace App renders skip every root overlay. */
 export const AppRootSurfaces = memo(function AppRootSurfaces(props: {
   floatingWorkspace: FloatingWorkspacePanelState
   onboardingGate: OnboardingGate
 }): React.JSX.Element {
-  const { floatingWorkspace, onboardingGate } = props
+  const { floatingWorkspace } = props
   // Memoized: subscribe so a language change still repaints its labels.
   useTranslation()
-  const languageReady = useLanguageReadiness((state) => state.ready)
   const { mountedLazyModalIds, shouldMountAddRepoDialog } = useLazyModalMounts()
   usePreloadWorktreeJumpPalette()
   const activeView = useAppStore((s) => s.activeView)
@@ -116,17 +83,12 @@ export const AppRootSurfaces = memo(function AppRootSurfaces(props: {
   // Subscribe only to consumed settings so unrelated preferences cannot rerender every overlay.
   const voiceEnabled = useAppStore(selectAppRootSurfaceVoiceEnabled)
   const petEnabled = useAppStore(selectAppRootSurfacePetEnabled)
-  const telemetryOptedIn = useAppStore(selectAppRootSurfaceTelemetryOptedIn)
   const statusBarVisible = useAppStore((s) => s.statusBarVisible)
   const persistedUIReady = useAppStore((s) => s.persistedUIReady)
   const petVisible = useAppStore((s) => s.petVisible)
   const dictationState = useAppStore((s) => s.dictationState)
-  const updateStatus = useAppStore((s) => s.updateStatus)
-  const activeContextualTourId = useAppStore((s) => s.activeContextualTourId)
   const hasSshCredentialRequest = useAppStore((s) => s.sshCredentialQueue.length > 0)
 
-  const shouldMountSetupGuideTelemetryObserver = persistedUIReady
-  const shouldMountUpdateCard = shouldMountUpdateCardForStatus(updateStatus)
   const shouldMountDictationController = voiceEnabled || dictationState !== 'idle'
   const renderPetOverlay = shouldRenderPetOverlay({ persistedUIReady, petEnabled, petVisible })
 
@@ -260,16 +222,7 @@ export const AppRootSurfaces = memo(function AppRootSurfaces(props: {
           </ModalBoundary>
         ) : null}
       </Suspense>
-      {shouldMountSetupGuideTelemetryObserver ? (
-        <Suspense fallback={null}>
-          <SetupGuideTelemetryObserver />
-        </Suspense>
-      ) : null}
-      {activeContextualTourId !== null ? (
-        <Suspense fallback={null}>
-          <ContextualTourOverlay />
-        </Suspense>
-      ) : null}
+      {/* RA: no automatic setup observer or contextual tour overlay. */}
       {/* Wait for UI hydration so default visibility cannot flash a saved-hidden pet. */}
       {renderPetOverlay ? (
         <Suspense fallback={null}>
@@ -278,23 +231,7 @@ export const AppRootSurfaces = memo(function AppRootSurfaces(props: {
           </OverlayBoundary>
         </Suspense>
       ) : null}
-      <AppNotificationCards
-        activeView={activeView}
-        shouldMountUpdateCard={shouldMountUpdateCard}
-        chatUiHereCornerCardOpen={onboardingGate.chatUiHereCornerCardOpen}
-        onChatUiHereCornerCardClose={() => onboardingGate.setChatUiHereCornerCardOpen(false)}
-      />
-      <OverlayBoundary boundaryId="overlay.native-chat-resume-on-restart" resetKey={activeView}>
-        <NativeChatResumeOnRestartModal />
-      </OverlayBoundary>
-      <OverlayBoundary boundaryId="overlay.star-nag-toast" resetKey={activeView}>
-        <StarNagToastHost />
-      </OverlayBoundary>
-      <StarNagAgentValueMomentObserver />
-      {/* Mount once per session; the internal gate selects pre-telemetry users (telemetry-plan.md §First-launch experience). */}
-      <OverlayBoundary boundaryId="overlay.telemetry-first-launch" resetKey={telemetryOptedIn}>
-        <TelemetryFirstLaunchSurface />
-      </OverlayBoundary>
+      {/* RA: no notification cards, restart offers, star nags or telemetry consent surfaces. */}
       <OverlayBoundary boundaryId="overlay.zoom" resetKey={activeView}>
         <ZoomOverlay />
       </OverlayBoundary>
@@ -334,32 +271,7 @@ export const AppRootSurfaces = memo(function AppRootSurfaces(props: {
       >
         <CrashReportDialog />
       </RecoverableRenderErrorBoundary>
-      {onboardingGate.onboarding && onboardingGate.shouldRender
-        ? createPortal(
-            <Suspense fallback={null}>
-              <RecoverableRenderErrorBoundary
-                boundaryId="modal.onboarding"
-                surface="modal"
-                className="fixed inset-0 z-40 bg-background"
-                title={translate('auto.App.f02d37278a', 'Onboarding hit an error.')}
-                description={translate(
-                  'auto.App.221a95ba38',
-                  'Retry onboarding or close it and continue in the app.'
-                )}
-              >
-                {languageReady ? (
-                  <OnboardingFlow
-                    onboarding={onboardingGate.onboarding}
-                    onOnboardingChange={onboardingGate.setOnboarding}
-                  />
-                ) : (
-                  <OnboardingLanguageLoading />
-                )}
-              </RecoverableRenderErrorBoundary>
-            </Suspense>,
-            document.body
-          )
-        : null}
+      {/* RA: onboarding wizard is never mounted. */}
       {shouldMountDictationController ? (
         <Suspense fallback={null}>
           <OverlayBoundary boundaryId="overlay.dictation" resetKey={activeView}>

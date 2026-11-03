@@ -92,7 +92,7 @@ export function AgentsPane({
           wslDistros={wslDistros}
           wslCapabilitiesLoading={wslCapabilitiesLoading}
         />
-        <AgentStatusHooksSetting settings={settings} updateSettings={updateSettings} />
+        {/* RA: agent status uses OSC 7501; no managed hooks toggle. */}
         <SettingsSwitchRow
           label={getClaudeSubagentNavigationTitle()}
           description={getClaudeSubagentNavigationDescription()}

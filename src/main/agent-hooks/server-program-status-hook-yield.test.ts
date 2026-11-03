@@ -52,6 +52,15 @@ function paneRow() {
 }
 
 describe('OSC 7501 status beside hooks', () => {
+  // RA: disabling managed hooks must leave terminal program reports live.
+  it('accepts OSC 7501 working and waiting states with hooks disabled', () => {
+    server.setStatusHooksEnabled(false)
+    programStatus({ state: 'working', agentType: 'opencode' })
+    expect(paneRow()?.state).toBe('working')
+    programStatus({ state: 'waiting', agentType: 'opencode' })
+    expect(paneRow()?.state).toBe('waiting')
+  })
+
   it('drives the pane on its own when no hook reports it', () => {
     programStatus({ state: 'working', agentType: 'claude', toolInput: 'Fixing the parser' })
     expect(paneRow()).toMatchObject({

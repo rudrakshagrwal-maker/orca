@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { readFileSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { AgentTokenUsageReporter } from './agent-token-usage-reporter'
@@ -94,7 +95,8 @@ export abstract class UsageProviderStoreLifecycle<
     const defaults = config.createDefaultState()
     this.schemaVersion = defaults.schemaVersion
     this.state = defaults
-    this.loaded = this.load()
+    // RA: do not parse or migrate retained usage caches at startup.
+    this.loaded = backgroundJobsDisabled() ? Promise.resolve() : this.load()
   }
 
   /** Resolves once persisted state is in memory; synchronous readers must wait for it first. */
@@ -139,7 +141,8 @@ export abstract class UsageProviderStoreLifecycle<
 
   async refresh(force = false): Promise<PublicUsageProviderScanState<DataPresenceKey>> {
     await this.loaded
-    if (!this.state.scanState.enabled) {
+    // RA: never scan foreign agent usage stores, even for previously enabled profiles.
+    if (backgroundJobsDisabled() || !this.state.scanState.enabled) {
       return this.getScanState()
     }
     const currentWorktreeFingerprint = await this.getCurrentWorktreeFingerprint()

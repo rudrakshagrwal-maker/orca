@@ -29,7 +29,8 @@ function writeSettings(settings: Record<string, unknown>): void {
   })
 }
 
-describe('RA local plugin defaults and legacy migration', () => {
+// RA: fork policy overrides the old default-on migration.
+describe('plugin system remains disabled', () => {
   beforeEach(() => {
     testState.dir = mkdtempSync(join(tmpdir(), 'orca-test-'))
   })

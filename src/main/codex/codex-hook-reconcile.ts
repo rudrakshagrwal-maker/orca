@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { withTimeout } from '../../shared/promise-timeout-fallback'
 import {
   CODEX_HOOK_LAUNCH_WAIT_MS,
@@ -44,6 +45,10 @@ export function startCodexHooks({
   startAfter = Promise.resolve(),
   ...appConfig
 }: ReconcileConfig & {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   pathReady: Promise<unknown>
   /** orcad passes its readiness so this PATH scan stays off it; launches never wait on it. */
   startAfter?: Promise<unknown>
@@ -65,6 +70,10 @@ export function startCodexHooks({
 
 /** Concurrent calls request another pass; reconciliation failures are logged. */
 export function reconcileCodexHooks(request: ReconcileRequest = {}): Promise<void> {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return Promise.resolve()
+  }
   releaseStartup?.()
   return reconcileAfter(Promise.resolve(), request)
 }

@@ -192,65 +192,12 @@ describe('registerAppMenu', () => {
     expect(options.onBeforeReload).toHaveBeenCalledWith({ ignoreCache: true, webContentsId: 102 })
   })
 
-  it('routes Check for Updates modifier clicks to prerelease and perf checks', () => {
+  // RA: no platform menu can invoke the updater.
+  it('omits update checks on every platform', () => {
     const options = buildMenuOptions()
     registerAppMenu(options)
-
-    const parentLabel = isMac ? 'Orca' : 'Help'
-    const item = getSubmenu(getTemplate(), parentLabel).find(
-      (entry) => entry.label === 'Check for Updates...'
-    )
-
-    item?.click?.({} as never, undefined as never, { shiftKey: true } as Electron.KeyboardEvent)
-    item?.click?.({} as never, undefined as never, {} as Electron.KeyboardEvent)
-    item?.click?.(
-      {} as never,
-      undefined as never,
-      {
-        shiftKey: true,
-        ...(isMac ? { metaKey: true } : { ctrlKey: true })
-      } as Electron.KeyboardEvent
-    )
-    item?.click?.(
-      {} as never,
-      undefined as never,
-      (isMac ? { metaKey: true } : { ctrlKey: true }) as Electron.KeyboardEvent
-    )
-    item?.click?.(
-      {} as never,
-      undefined as never,
-      (isMac ? { ctrlKey: true } : { metaKey: true }) as Electron.KeyboardEvent
-    )
-    item?.click?.(
-      {} as never,
-      undefined as never,
-      { altKey: true, shiftKey: true } as Electron.KeyboardEvent
-    )
-    item?.click?.(
-      {} as never,
-      undefined as never,
-      {
-        triggeredByAccelerator: true,
-        shiftKey: true,
-        ...(isMac ? { metaKey: true } : { ctrlKey: true })
-      } as Electron.KeyboardEvent
-    )
-
-    expect(options.onCheckForUpdates.mock.calls).toEqual([
-      [{ includePrerelease: true, includePerfPrerelease: false }],
-      [{ includePrerelease: false, includePerfPrerelease: false }],
-      [{ includePrerelease: true, includePerfPrerelease: true }],
-      [{ includePrerelease: false, includePerfPrerelease: true }],
-      [{ includePrerelease: false, includePerfPrerelease: false }],
-      [
-        {
-          includePrerelease: !isMac,
-          includePerfPrerelease: false,
-          ...(isMac ? { localBuild: true } : {})
-        }
-      ],
-      [{ includePrerelease: false, includePerfPrerelease: false }]
-    ])
+    expect(JSON.stringify(getTemplate())).not.toContain('Check for Updates')
+    expect(options.onCheckForUpdates).not.toHaveBeenCalled()
   })
 
   it('shows the worktree palette shortcut as a display-only menu hint', () => {
@@ -571,8 +518,7 @@ describe('registerAppMenu', () => {
     expect(automationsItem?.checked).toBe(false)
 
     const mobileItem = appearanceSubmenu.find((item) => item.label === 'Show Orca Mobile Button')
-    expect(mobileItem?.type).toBe('checkbox')
-    expect(mobileItem?.checked).toBe(true)
+    expect(mobileItem).toBeUndefined()
 
     const titlebarItem = appearanceSubmenu.find((item) => item.label === 'Show Titlebar App Name')
     expect(titlebarItem?.checked).toBe(true)
@@ -604,7 +550,7 @@ describe('registerAppMenu', () => {
 
     expect(options.onToggleAppearance).toHaveBeenCalledWith('showTasksButton')
     expect(options.onToggleAppearance).toHaveBeenCalledWith('showAutomationsButton')
-    expect(options.onToggleAppearance).toHaveBeenCalledWith('showMobileButton')
+    expect(options.onToggleAppearance).not.toHaveBeenCalledWith('showMobileButton')
     expect(options.onToggleAppearance).toHaveBeenCalledWith('showTitlebarAppName')
   })
 

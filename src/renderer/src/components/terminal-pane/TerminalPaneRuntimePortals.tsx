@@ -1,9 +1,6 @@
 import { createPortal } from 'react-dom'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import CodexRestartChip from '../CodexRestartChip'
-import { CodexSharedServerBanner } from './CodexSharedServerBanner'
-import { ClaudeOldTerminalBanner } from './ClaudeOldTerminalBanner'
-import { ClaudeDiffPanelNoticeBanner } from './ClaudeDiffPanelNoticeBanner'
 import { NewerDaemonHoldBanner } from './NewerDaemonHoldBanner'
 import { WorkerAutoCloseBanner } from './WorkerAutoCloseBanner'
 import { WslDistroStoppedHoldCard } from './WslDistroStoppedHoldCard'
@@ -74,25 +71,9 @@ export function TerminalPaneCodexRestartPortals({
               }}
               shouldFocus={isActive && isVisible && activePane?.id === pane.id}
             />
-            <CodexSharedServerBanner
-              key={`codex-shared-server-${pane.id}-${ptyId}`}
-              ptyId={ptyId}
-              tabId={tabId}
-              leafId={pane.leafId}
-            />
-            <ClaudeOldTerminalBanner
-              key={`claude-old-terminal-${pane.id}-${ptyId}`}
-              ptyId={ptyId}
-              tabId={tabId}
-              leafId={pane.leafId}
-            />
-            <ClaudeDiffPanelNoticeBanner
-              key={`claude-diff-panel-notice-${pane.id}-${ptyId}`}
-              ptyId={ptyId}
-              tabId={tabId}
-              leafId={pane.leafId}
-              container={pane.container}
-            />
+            {/* RA: no automatic legacy-account/server warning nag. */}
+            {/* RA: no automatic legacy-account/server warning nag. */}
+            {/* RA: no automatic Claude diff-panel coaching banner. */}
             <WorkerAutoCloseBanner
               key={`worker-auto-close-${pane.id}`}
               tabId={tabId}

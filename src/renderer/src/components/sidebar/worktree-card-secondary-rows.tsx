@@ -1,6 +1,5 @@
 import React from 'react'
 
-import { LinearAgentSkillSetupPrompt } from './LinearAgentSkillSetupPrompt'
 import WorktreeCardAgents from './WorktreeCardAgents'
 import {
   WorktreeCardDeleteFailed,
@@ -19,9 +18,6 @@ export function WorktreeCardSecondaryRows({
 }): React.JSX.Element {
   const {
     worktree,
-    repo,
-    settings,
-    isActive,
     lineageCollapsed,
     lineageChildWorktreeIds,
     onLineageToggle,
@@ -50,14 +46,7 @@ export function WorktreeCardSecondaryRows({
         <WorktreeCardDeleteFailed error={worktree.removalError} />
       ) : null}
 
-      {isActive && worktree.linkedLinearIssue ? (
-        <LinearAgentSkillSetupPrompt
-          linked
-          remote={Boolean(repo?.connectionId || settings?.activeRuntimeEnvironmentId?.trim())}
-          surface="modal"
-          settings={settings}
-        />
-      ) : null}
+      {/* RA: no automatic Linear skill-setup dialog or reminder toast. */}
 
       {/* Why: counterbalance the card stack gap (-mt-1) so agents right after the title read as one header group. */}
       {showInlineAgentList && (

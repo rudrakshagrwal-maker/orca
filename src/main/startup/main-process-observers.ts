@@ -1,13 +1,9 @@
-import { app, powerMonitor } from 'electron'
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
+import { app } from 'electron'
 import { join } from 'node:path'
 import { AgentAwakeService } from '../power/agent-awake-service'
 import { normalizeComputerAwakeMode } from '../../shared/computer-awake-mode'
 import { registerSystemResumeBroadcast } from '../power/system-resume-broadcast'
-import { readDesktopAwayState } from '../notifications/desktop-away-state'
-import {
-  listCapableSharedControlSockets,
-  startDesktopPresenceReporter
-} from '../notifications/desktop-presence-reporter'
 import { agentHookServer } from '../agent-hooks/server'
 import { installHookStatusSessionTabsRepublish } from '../agent-hooks/hook-status-session-tabs-republish'
 import { initTelemetry, track } from '../telemetry/client'
@@ -17,8 +13,6 @@ import { recordDurableCrashBreadcrumb } from '../crash-reporting/durable-crash-b
 import { reportPreviousHangDetection } from '../hang-watchdog/previous-hang-detection'
 import { getCanonicalUserDataPath } from '../persistence/loading-store/user-data-path'
 import { recoverPendingSkillTransactions } from '../skills/skill-transaction-startup-recovery'
-import { initCohortClassifier } from '../telemetry/cohort-classifier'
-import { initOnboardingCohortClassifier } from '../telemetry/onboarding-cohort-classifier'
 import { StatsCollector } from '../stats/collector'
 import { feedAgentSessionStats } from '../stats/agent-session-stats-feed'
 import { ClaudeUsageStore } from '../claude-usage/store'
@@ -37,22 +31,7 @@ export function initializeMainProcessObservers(): void {
     throw new Error('Store must be initialized before observers')
   }
   state.unsubscribeSystemResumeBroadcast = registerSystemResumeBroadcast()
-  state.stopDesktopPresenceReporter = startDesktopPresenceReporter({
-    readAway: () => readDesktopAwayState(powerMonitor),
-    listTargets: listCapableSharedControlSockets,
-    subscribePowerEvents: ({ away, back }) => {
-      powerMonitor.on('suspend', away)
-      powerMonitor.on('lock-screen', away)
-      powerMonitor.on('resume', back)
-      powerMonitor.on('unlock-screen', back)
-      return () => {
-        powerMonitor.off('suspend', away)
-        powerMonitor.off('lock-screen', away)
-        powerMonitor.off('resume', back)
-        powerMonitor.off('unlock-screen', back)
-      }
-    }
-  })
+  // RA: desktop presence is never reported.
   state.agentAwakeService = new AgentAwakeService()
   state.agentAwakeService.setMode(
     normalizeComputerAwakeMode(
@@ -120,30 +99,31 @@ export function initializeMainProcessObservers(): void {
       self_recovered: state.hangDetection.selfRecovered
     })
   }
-  state.skillTransactionRecovery = recoverPendingSkillTransactions(
-    join(app.getPath('userData'), 'skill-installs')
-  )
-  void state.skillTransactionRecovery
-    .then((report) => {
-      const result = report as {
-        scanned: number
-        recovered: number
-        failures: { code: string }[]
-        truncated: boolean
-      }
-      if (result.scanned || result.failures.length || result.truncated) {
-        console.info('[skills] startup transaction recovery:', {
-          scanned: result.scanned,
-          recovered: result.recovered,
-          failures: result.failures.map((failure) => failure.code),
-          truncated: result.truncated
-        })
-      }
-    })
-    .catch((error) => console.warn('[skills] startup transaction recovery failed:', error))
-  // Hydrate repo count before IPC/window tracking; cohort classification reads it synchronously.
-  initCohortClassifier(store)
-  initOnboardingCohortClassifier(store)
+  // RA: do not recover transactions into global agent skill directories.
+  if (!preserveGlobalAgentConfiguration()) {
+    state.skillTransactionRecovery = recoverPendingSkillTransactions(
+      join(app.getPath('userData'), 'skill-installs')
+    )
+    void state.skillTransactionRecovery
+      .then((report) => {
+        const result = report as {
+          scanned: number
+          recovered: number
+          failures: { code: string }[]
+          truncated: boolean
+        }
+        if (result.scanned || result.failures.length || result.truncated) {
+          console.info('[skills] startup transaction recovery:', {
+            scanned: result.scanned,
+            recovered: result.recovered,
+            failures: result.failures.map((failure) => failure.code),
+            truncated: result.truncated
+          })
+        }
+      })
+      .catch((error) => console.warn('[skills] startup transaction recovery failed:', error))
+  }
+  // RA: cohort classification is disabled.
   state.stats = new StatsCollector()
   feedAgentSessionStats(state.stats, agentHookServer)
   state.claudeUsage = new ClaudeUsageStore(store)

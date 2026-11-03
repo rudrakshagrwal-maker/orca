@@ -1,4 +1,10 @@
-import { describe, expect, it } from 'vitest'
+// RA: retained mutation internals are tested only under an explicitly unblocked policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
+import { describe, expect, it, vi } from 'vitest'
 import { stripLegacyManagedProfileBlock } from './codex-hook-legacy-cleanup'
 
 const START = '# BEGIN ORCA AGENT STATUS HOOKS'

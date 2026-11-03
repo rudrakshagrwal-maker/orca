@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { join } from 'node:path'
 import { PluginImageCache } from '../plugins/plugin-image-cache'
 import { installPluginImageProtocolHandler } from '../plugins/plugin-image-protocol'
@@ -51,6 +52,10 @@ const PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS = 60_000
 const PLUGIN_MARKETPLACE_SEED_STARTUP_DELAY_MS = 15_000
 
 export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService): Promise<void> {
+  // RA: no marketplace, kill-list, install counts, plugin workers or periodic remote fetches.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   const store = state.store
   const keybindings = state.keybindings
   if (!store || !keybindings) {

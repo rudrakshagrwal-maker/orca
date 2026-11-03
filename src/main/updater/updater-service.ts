@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import type { BrowserWindow } from 'electron'
 import type {
   LinuxPackageInstallInstructions,
@@ -36,6 +37,10 @@ export function checkForRemoteServerUpdate(
   runtimeId: string,
   options?: UpdateCheckOptions
 ): RemoteServerUpdaterSnapshot {
+  // RA: remote update probes cannot bypass the disabled desktop updater.
+  if (backgroundJobsDisabled()) {
+    return updater.getRemoteServerUpdaterSnapshot(runtimeId)
+  }
   return updater.checkForRemoteServerUpdate(runtimeId, options)
 }
 
@@ -48,14 +53,26 @@ export function installRemoteServerUpdate(runtimeId: string): RemoteServerUpdate
 }
 
 export function checkForUpdates(): void {
+  // RA: no updater network requests or schedules.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   updater.checkForUpdates()
 }
 
 export function checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
+  // RA: no updater network requests or schedules.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   updater.checkForUpdatesFromMenu(options)
 }
 
 export function downloadUpdate(): void {
+  // RA: no updater network requests or schedules.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   updater.downloadUpdate()
 }
 
@@ -79,6 +96,10 @@ export async function listAvailableReleaseBuilds(
   channel: ReleaseChannel,
   options?: ReleaseBuildListOptions
 ): Promise<ReleaseBuild[]> {
+  // RA: no release-list downloads.
+  if (backgroundJobsDisabled()) {
+    return []
+  }
   return updater.listAvailableReleaseBuilds(channel, options)
 }
 
@@ -94,5 +115,9 @@ export function setupAutoUpdater(
   mainWindow: BrowserWindow | null,
   opts?: UpdaterSetupOptions
 ): void {
+  // RA: no updater network requests or schedules.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   updater.setupAutoUpdater(mainWindow, opts)
 }

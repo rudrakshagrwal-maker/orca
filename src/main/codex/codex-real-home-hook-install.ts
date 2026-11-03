@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import {
   createManagedCommandMatcher,
   readHooksJsonWithRaw,
@@ -64,6 +65,10 @@ const MAX_PASSES = 4
 
 /** Approve before writing entries; roll back approvals if the entry write fails. */
 export async function reconcileRealHomeCodexHookEntries(args: ReconcileArgs): Promise<void> {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   await reconcileCodexHookEntriesInHome(getRealHomeCodexHookHome(), args, { pristineBackup: true })
 }
 
@@ -72,6 +77,10 @@ export async function reconcileCodexHookEntriesInHome(
   args: ReconcileArgs,
   options: { pristineBackup: boolean } = { pristineBackup: false }
 ): Promise<void> {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   try {
     await runExclusivelyForCodexTrustConfig(home.tomlPath, async () => {
       for (let pass = 0; pass < MAX_PASSES; pass += 1) {
@@ -232,6 +241,10 @@ export async function removeRealHomeCodexHookForOptOut(
   codexHashes: readonly CodexHookHashes[],
   home: CodexHookHome = getRealHomeCodexHookHome()
 ): Promise<'removed' | 'unavailable'> {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return 'unavailable'
+  }
   try {
     return await runExclusivelyForCodexTrustConfig(home.tomlPath, async () => {
       const lane = sweepRealHomeCodexHook(home)

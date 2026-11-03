@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 // Share parsing and merge rules with local installation; replace only filesystem operations.
 
 import { randomUUID } from 'node:crypto'
@@ -34,6 +35,10 @@ export async function writeHooksJsonRemote(
   // JSONC callers can supply text edited in place.
   options?: { serialized?: string }
 ): Promise<void> {
+  // RA: never publish managed hooks into local or remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const dir = dirnamePosix(remotePath)
   await mkdirpRemote(sftp, dir)
   const serialized = options?.serialized ?? `${JSON.stringify(config, null, 2)}\n`
@@ -68,6 +73,10 @@ export async function writeManagedScriptRemote(
   remotePath: string,
   content: string
 ): Promise<void> {
+  // RA: never publish managed hooks into local or remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const dir = dirnamePosix(remotePath)
   await mkdirpRemote(sftp, dir)
   try {

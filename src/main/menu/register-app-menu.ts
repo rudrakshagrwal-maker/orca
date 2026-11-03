@@ -52,7 +52,6 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
     onOpenSetupGuide,
     onOpenFeatureTour,
     onOpenCrashReport,
-    onCheckForUpdates,
     onBeforeReload,
     onZoomIn,
     onZoomOut,
@@ -75,29 +74,7 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
     return formatKeybindingList(bindings, process.platform)
   }
 
-  // Share modifier-click release-channel routing across platform-specific update menu locations.
-  const checkForUpdatesClick: Electron.MenuItemConstructorOptions['click'] = (
-    _menuItem,
-    _window,
-    event
-  ) => {
-    const modifierClick = !event.triggeredByAccelerator
-    const localBuild = isMac && modifierClick && event.altKey === true
-    const includePerfPrerelease =
-      !localBuild && modifierClick && (isMac ? event.metaKey === true : event.ctrlKey === true)
-    const includePrerelease = !localBuild && modifierClick && event.shiftKey === true
-    onCheckForUpdates({
-      includePrerelease,
-      includePerfPrerelease,
-      ...(localBuild ? { localBuild: true } : {})
-    })
-  }
-
-  const checkForUpdatesItem: Electron.MenuItemConstructorOptions = {
-    label: translateMain('menu.checkForUpdates', 'Check for Updates...'),
-    click: checkForUpdatesClick
-  }
-
+  // RA: update checks are absent from every platform menu.
   const settingsBindings = getEffectiveKeybindingsForAction(
     'app.settings',
     process.platform,
@@ -130,7 +107,6 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
     label: options.appMenuLabel ?? app.name,
     submenu: [
       { role: 'about' },
-      checkForUpdatesItem,
       settingsItem,
       { type: 'separator' },
       { role: 'services' },
@@ -226,12 +202,7 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
         checked: appearance.showAutomationsButton,
         click: () => onToggleAppearance('showAutomationsButton')
       },
-      {
-        label: translateMain('menu.showMobileButton', 'Show Orca Mobile Button'),
-        type: 'checkbox',
-        checked: appearance.showMobileButton,
-        click: () => onToggleAppearance('showMobileButton')
-      },
+      // RA: no Orca Mobile entry without the relay.
       {
         label: translateMain('menu.showTitlebarAppName', 'Show Titlebar App Name'),
         type: 'checkbox',
@@ -287,8 +258,7 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
         ? []
         : ([
             { type: 'separator' },
-            { role: 'about' },
-            checkForUpdatesItem
+            { role: 'about' }
           ] satisfies Electron.MenuItemConstructorOptions[]))
     ]
   }

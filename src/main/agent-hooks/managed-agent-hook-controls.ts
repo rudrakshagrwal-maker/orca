@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import type { AgentHookInstallStatus, AgentHookTarget } from '../../shared/agent-hook-types'
 import {
   getManagedAgentHookTarget,
@@ -137,6 +138,10 @@ export async function installManagedAgentHooks(
   settings: ManagedHookSettings = null,
   options: InstallOptions = {}
 ): Promise<AgentHookInstallStatus[]> {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return []
+  }
   await refreshExistingManagedScripts(options)
   const installers = selectedInstallers(options)
   const disabled = new Set(normalizeDisabledTuiAgents(settings?.disabledTuiAgents))
@@ -204,6 +209,10 @@ export async function installManagedAgentHooks(
 export async function removeManagedAgentHooks(
   options: RemoveOptions = {}
 ): Promise<AgentHookInstallStatus[]> {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return []
+  }
   const allowed = options.agents ? new Set(options.agents) : null
   const results: AgentHookInstallStatus[] = []
   for (const [agent, remove] of MANAGED_AGENT_HOOK_REMOVERS) {
@@ -222,6 +231,10 @@ export async function removeManagedAgentHooks(
 export async function removeManagedAgentHooksAsync(
   options: RemoveOptions = {}
 ): Promise<AgentHookInstallStatus[]> {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return []
+  }
   const allowed = options.agents ? new Set(options.agents) : null
   return await Promise.all(
     MANAGED_AGENT_HOOK_ASYNC_REMOVERS.filter(
@@ -251,6 +264,10 @@ export async function applyAgentStatusHooksEnabled(
   settings: ManagedHookSettings = null,
   options: ApplyOptions = {}
 ): Promise<AgentHookInstallStatus[]> {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return []
+  }
   if (!enabled) {
     return options.keepSharedEntries
       ? getManagedAgentHookStatuses()

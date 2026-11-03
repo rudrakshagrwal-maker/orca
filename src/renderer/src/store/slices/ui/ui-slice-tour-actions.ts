@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
 import { getContextualTour } from '../../../../../shared/contextual-tours'
 import {
@@ -47,6 +48,10 @@ export function createUiTourActions(set: UISliceSet, get: UISliceGet): Partial<U
       ),
     requestContextualTour: (id, source, wasFeaturePreviouslyInteracted, options) =>
       set((s) => {
+        // RA: the tour overlay is unmounted; never activate a hidden tour.
+        if (backgroundJobsDisabled()) {
+          return s
+        }
         const tour = getContextualTour(id)
         const decision = getContextualTourRequestDecision({
           tour,

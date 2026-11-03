@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { existsSync, readFileSync, unlinkSync } from 'node:fs'
 import type { SFTPWrapper } from 'ssh2'
 
@@ -142,6 +143,10 @@ function buildStatus(
 
 export class MuseHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     const present = await refreshManagedScriptIfPresent(
       getMuseManagedScriptPath(),
       getManagedScript()
@@ -178,6 +183,10 @@ export class MuseHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getMuseConfigPath()
     const managedHooksPath = getMuseManagedHooksPath()
     const source = readMuseSettingsSource(configPath)
@@ -222,6 +231,10 @@ export class MuseHookService {
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const remoteConfigPath = getMuseRemoteConfigPath(remoteHome)
     const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/muse-hook.sh`
     const remoteManagedHooksPath = getMuseRemoteManagedHooksPath(remoteHome)
@@ -280,6 +293,10 @@ export class MuseHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getMuseConfigPath()
     const managedHooksPath = getMuseManagedHooksPath()
     const source = readMuseSettingsSource(configPath)

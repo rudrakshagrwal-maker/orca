@@ -1,7 +1,13 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { parse } from 'jsonc-parser'
 import { claudeAgentViewChord } from './agent-view-keybindings'
 import { createAgentHookMemorySftp } from '../../agent-hooks/agent-hook-memory-sftp.test-fixture'

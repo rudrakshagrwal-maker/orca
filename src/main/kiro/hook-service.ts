@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, posix as pathPosix } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -169,6 +170,10 @@ function buildStatus(agentsDir: string, files: AgentFileRead[]): AgentHookInstal
 
 export class KiroHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getKiroManagedScriptPath(), getManagedScript())
   }
 
@@ -192,6 +197,10 @@ export class KiroHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const agentsDir = getKiroAgentsDir()
     const files = readLocalAgentFiles(agentsDir)
     const scriptPath = getKiroManagedScriptPath()
@@ -220,6 +229,10 @@ export class KiroHookService {
     remoteHome: string,
     kiroHomeDir?: string
   ): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const agentsDir = getKiroRemoteAgentsDir(remoteHome, kiroHomeDir)
     const scriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/kiro-hook.sh`
     try {
@@ -265,6 +278,10 @@ export class KiroHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     removeKiroStandaloneHooks()
     const agentsDir = getKiroAgentsDir()
     const files = readLocalAgentFiles(agentsDir)

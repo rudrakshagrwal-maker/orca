@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { CLAUDE_AGENT_VIEW_MOD_SOURCE } from '../claude/agent-view/agent-view-mod-source'
 import { bindRemoteClaudeInterruptReconciliation } from '../ssh/ssh-agent-hook-interrupt-reconciliation'
 import { createHash } from 'node:crypto'
@@ -93,6 +94,10 @@ export type WslHookRelayManagerDeps = {
 
 /** Read the hooks setting live for spawn, reattach, and crash recovery. */
 export function isWslHookRelayAllowed(deps: WslHookRelayManagerDeps): boolean {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return false
+  }
   return (
     deps.platform() === 'win32' &&
     deps.remoteHooksEnabled() &&

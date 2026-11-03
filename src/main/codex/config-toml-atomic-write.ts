@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import {
   existsSync,
@@ -13,6 +14,10 @@ import { renameFileWithWindowsRetry } from '../codex-accounts/fs-utils'
 import { writeRollingFileBackup } from '../filesystem/rolling-file-backup'
 
 export function writeTomlConfigAtomically(configPath: string, contents: string): void {
+  // RA: preserve local and remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const writePath = resolveTomlWritePath(configPath)
   const directory = dirname(writePath)
   mkdirSync(directory, { recursive: true })

@@ -17,7 +17,6 @@ import { publishHeadlessRuntimeGraph } from '../runtime/headless-runtime-graph'
 import { OffscreenBrowserBackend } from '../browser/offscreen-browser-backend'
 import { browserManager } from '../browser/browser-manager'
 import { getDesktopRelayStatus } from './main-process-relay-status'
-import { startDesktopRelayService } from './main-process-relay-startup'
 import { getServeOptions, getBundledWebClientRoot, printServeReady } from './main-process-serve'
 import {
   bindTerminalRuntimeStartupServices,
@@ -30,7 +29,6 @@ import { prepareCodexSessionResumeForLaunch } from './codex-session-resume-launc
 import { startWindowsDesktopBeforeShellPathReady } from './windows-desktop-shell-path-startup'
 import { repairKnownPoisonedInstallDirBeforeWindow } from './windows-install-dir-acl-recovery'
 import { installServeQuitHandling } from './serve-quit-handling'
-import { installCloudSessionShutdownFlush } from './cloud-session-shutdown-flush'
 import { registerHeadlessServeSshHandlers } from './headless-serve-ssh-registration'
 import { settleServeDesktopActivation } from './serve-desktop-activation'
 import {
@@ -40,12 +38,6 @@ import {
 import { registerCliForHeadlessServe } from './serve-cli-registration'
 import { startAppImageCopyPreExtraction } from '../cli/appimage-copy-pre-extraction'
 import { scheduleAllPendingHistoryTreeRemovals } from '../terminal-history-deletion'
-import { triggerStartupNotificationRegistration } from '../ipc/startup-notification-registration'
-import { startDesktopPushService } from './main-process-push-startup'
-import {
-  connectDesktopConnectorCloud,
-  installDesktopConnectorCloud
-} from './main-process-connector-startup'
 import { mainProcessState as state } from './main-process-state'
 import { logStartupMilestone } from './startup-diagnostics'
 import { setupHeadlessServeAutoUpdater } from '../window/main-window-updater'
@@ -195,7 +187,7 @@ async function launchServeMode(
   })
   scheduleAgentLaunchRecordWarmup(null)
   // Headless phones still register/unregister tokens, though this host dispatches no push notifications.
-  startDesktopPushService(runtimeRpc)
+  // RA: no cloud push service.
   settleDesktopActivation()
   installServeQuitHandling()
   await registerCliForHeadlessServe()
@@ -245,23 +237,13 @@ async function launchDesktopMode(
     )
   }
   // Register before proxy await so concurrent token mints wait rather than fail provider_missing; installer requests are already guarded.
-  startDesktopRelayService(runtimeRpc)
-  connectDesktopConnectorCloud()
+  // RA: no relay or connector cloud connection.
   // Create the window before awaiting proxy readiness; the request guard already fences fetches.
   await state.initialProxyApplicationReady
   // Apply persisted proxy before the push gateway's first request.
-  startDesktopPushService(runtimeRpc)
-  // Request macOS notification permission after reveal or the maximized window can hide it.
-  win.once('show', () => {
-    // Await i18n so the one-time prompt is not stuck in the English fallback.
-    void state.mainProcessI18nReady.then(() => {
-      // Initialization failure can leave no Store; do not throw inside Electron listeners.
-      const store = state.store
-      if (store && store.getOnboarding().closedAt !== null) {
-        triggerStartupNotificationRegistration(store)
-      }
-    })
-  })
+  // RA: no cloud push service.
+  // RA: notification permission is requested only through explicit user actions.
+
 }
 
 export async function initializeMainProcessRuntimeLaunch(
@@ -281,11 +263,9 @@ export async function initializeMainProcessRuntimeLaunch(
     return
   }
   state.serveOptions = serveOptions
-  installCloudSessionShutdownFlush()
+  // RA: no cloud session upload on shutdown.
   const runtimeRpc = installRuntimeRpc(runtime, serveOptions)
-  if (!serveOptions) {
-    installDesktopConnectorCloud()
-  }
+  // RA: no desktop cloud connector registration.
   const shellPathReady = shellPathHydration.whenReady()
   // Publish the same shell-PATH generation to renderer Git and terminal startup barriers.
   state.shellPathReady = shellPathReady

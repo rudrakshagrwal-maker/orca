@@ -242,8 +242,8 @@ export function configureOrcaUserDataPathEnv(): void {
 
 export function shouldInstallManagedHooks(isDev: boolean): boolean {
   void isDev
-  // Codex hooks now target Orca-owned homes; retain installation until every agent has its own seam.
-  return true
+  // RA: never install managed agent hooks.
+  return false
 }
 
 export function installDevParentDisconnectQuit(isDev: boolean): void {
@@ -311,6 +311,9 @@ export function installDevParentSignalQuit(isDev: boolean): void {
 }
 
 export function enableMainProcessGpuFeatures(): void {
+  // RA: bound Chromium disk caches on every platform, including software rendering.
+  app.commandLine.appendSwitch('disk-cache-size', '10485760')
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
   if (process.platform === 'linux' && getMainE2EConfig().userDataDir) {
     // Ubuntu/Xvfb E2E needs software rendering to avoid GPU-process startup failure.
     app.disableHardwareAcceleration()

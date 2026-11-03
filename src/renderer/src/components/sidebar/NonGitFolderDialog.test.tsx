@@ -2,7 +2,10 @@ import type * as RuntimeRpc from '@/runtime/runtime-rpc-client'
 import { makeDetectedResult } from '@/store/slices/worktrees-detected-listing-fixtures'
 import { clearHostAgentMenuSettingsForTests } from '@/components/settings/use-host-agent-launch-preferences'
 import { replaceRuntimeEnvironmentRevisions } from '@/runtime/runtime-environment-revision'
-import { getDefaultOnboardingState } from '../../../../shared/onboarding-defaults'
+// RA: retained wizard scenarios explicitly begin unfinished.
+import {
+  createUnfinishedOnboardingState as getDefaultOnboardingState
+} from '../../../../shared/onboarding-state-test-fixture'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type * as ReactModule from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

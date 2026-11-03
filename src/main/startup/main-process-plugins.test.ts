@@ -61,12 +61,9 @@ it('binds the runtime and exactly one settings→refresh listener without any wi
   await state.pluginService?.whenReady()
   refresh.mockClear()
 
-  // The runtime, plus the hook server's agent rows for agents.list.
-  expect(setRuntimeDelegate).toHaveBeenCalledWith(
-    expect.objectContaining({ listAgentStatuses: expect.any(Function) })
-  )
-  for (const listener of settingsListeners) {
-    listener({ devPluginPaths: [] })
-  }
-  expect(refresh).toHaveBeenCalledOnce()
+  expect(state.pluginService).toBeNull()
+  expect(setRuntimeDelegate).not.toHaveBeenCalled()
+  expect(refresh).not.toHaveBeenCalled()
+  expect(settingsListeners).toHaveLength(0)
+  expect(runtime.onWorktreeLifecycle).not.toHaveBeenCalled()
 })

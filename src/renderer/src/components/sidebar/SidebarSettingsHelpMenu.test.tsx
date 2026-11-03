@@ -208,9 +208,10 @@ describe('SidebarSettingsHelpMenu', () => {
     expect(helpIndex).toBeGreaterThan(settingsIndex)
   })
 
-  it('renders Send Feedback menu item', () => {
+  // RA: disabled automatic/feedback surfaces have no help-menu entry.
+  it('omits Send Feedback', () => {
     const html = renderToStaticMarkup(<SidebarSettingsHelpMenu />)
-    expect(html).toContain('Send Feedback')
+    expect(html).not.toContain('Send Feedback')
   })
 
   it('renders Keyboard Shortcuts menu item', () => {
@@ -218,10 +219,11 @@ describe('SidebarSettingsHelpMenu', () => {
     expect(html).toContain('Keyboard Shortcuts')
   })
 
-  it('renders Milestones with progress when setup is incomplete', () => {
+  // RA: disabled automatic/feedback surfaces have no help-menu entry.
+  it('omits incomplete setup milestones', () => {
     const html = renderToStaticMarkup(<SidebarSettingsHelpMenu />)
-    expect(html).toContain('Milestones')
-    expect(html).toContain('data-testid="setup-guide-progress-ring"')
+    expect(html).not.toContain('Milestones')
+    expect(html).not.toContain('data-testid="setup-guide-progress-ring"')
   })
 
   it('hides Milestones when setup is complete', () => {
@@ -235,9 +237,10 @@ describe('SidebarSettingsHelpMenu', () => {
     expect(html).not.toContain('Milestones')
   })
 
-  it('renders the Onboarding menu item by default', () => {
+  // RA: disabled automatic/feedback surfaces have no help-menu entry.
+  it('omits the onboarding menu item', () => {
     const html = renderToStaticMarkup(<SidebarSettingsHelpMenu />)
-    expect(html).toContain('Onboarding')
+    expect(html).not.toContain('Onboarding')
   })
 
   it('renders Restart Orca by default', () => {
@@ -283,59 +286,25 @@ describe('SidebarSettingsHelpMenu', () => {
     expect(html).toContain('>X<')
   })
 
-  it('renders Check for Updates menu item', () => {
+  it('omits update checks from Help', () => {
     const html = renderToStaticMarkup(<SidebarSettingsHelpMenu />)
-    expect(html).toContain('Check for Updates')
-    expect(html).toMatch(/(⇧\+click|Shift\+click) checks the latest RC/)
-    expect(html).toMatch(/(⌘\+click|Ctrl\+click) checks the latest perf build/)
+    expect(html).not.toContain('Check for Updates')
   })
 
-  it('passes update-check modifier options through the updater bridge', async () => {
+  it('does not check for updates when Help opens', async () => {
     const container = await renderMenu()
-    const checkButton = findMenuItem(container, 'Check for Updates')
-    const primaryModifier = navigator.userAgent.includes('Mac')
-      ? { metaKey: true }
-      : { ctrlKey: true }
-
-    await act(async () => {
-      checkButton.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, shiftKey: true }))
-      checkButton.click()
-    })
-    await act(async () => {
-      checkButton.dispatchEvent(
-        new MouseEvent('pointerdown', { bubbles: true, ...primaryModifier })
-      )
-      checkButton.click()
-    })
-    await act(async () => {
-      checkButton.click()
-    })
-
-    expect(mocks.updaterCheck).toHaveBeenNthCalledWith(1, {
-      includePrerelease: true,
-      includePerfPrerelease: false
-    })
-    expect(mocks.updaterCheck).toHaveBeenNthCalledWith(2, {
-      includePrerelease: false,
-      includePerfPrerelease: true
-    })
-    expect(mocks.updaterCheck).toHaveBeenNthCalledWith(3, {
-      includePrerelease: false,
-      includePerfPrerelease: false
-    })
-  })
-
-  // Only this test opens the menu, so its first warm must cause the chunk’s sole evaluation regardless of order.
-  it('warms the feedback chunk when the menu opens, before Send Feedback is selected', async () => {
-    const container = await renderMenu()
-    expect(mocks.feedbackChunkLoads).toBe(0)
-
     await act(async () => {
       container.querySelector<HTMLButtonElement>('[data-testid="open-menu"]')?.click()
     })
+    expect(mocks.updaterCheck).not.toHaveBeenCalled()
+  })
 
-    expect(mocks.feedbackChunkLoads).toBe(1)
-    expect(document.body.querySelector('[data-testid="feedback-dialog"]')).toBeNull()
+  it('does not preload feedback when Help opens', async () => {
+    const container = await renderMenu()
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="open-menu"]')?.click()
+    })
+    expect(mocks.feedbackChunkLoads).toBe(0)
   })
 
   it('renders shortcut keys in the settings tooltip', () => {

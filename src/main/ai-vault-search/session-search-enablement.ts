@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { changedAiVaultSearchSettings } from '../../shared/ai-vault-search-settings'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { updateSessionSearchInService } from '../ai-vault/session-scanner-service-spawn'
@@ -22,6 +23,10 @@ export function installChildSessionSearchService(args: {
   /** How a Workspace or Project scope becomes this host's own paths. */
   getScopeCatalog?: SessionSearchScopeCatalogSource
 }): { dispose(): void } | null {
+  // RA: never initialize the AI Vault scanner/indexer.
+  if (backgroundJobsDisabled()) {
+    return null
+  }
   if (!sessionSearchSqliteAvailable()) {
     return null
   }

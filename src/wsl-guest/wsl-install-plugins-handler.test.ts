@@ -1,8 +1,14 @@
 // Run off Windows: guest overlays use POSIX home paths; live Windows-to-WSL coverage belongs to the rig.
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { PluginOverlayManager } from './plugin-overlay'
 import { createInstallPluginsHandler } from './wsl-install-plugins-handler'
