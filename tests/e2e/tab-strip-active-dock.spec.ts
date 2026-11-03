@@ -93,6 +93,8 @@ test.describe('Tab strip active-tab dock', () => {
       await expect.poll(() => isSlotInView(orcaPage, inactiveTabId)).toBe(true)
       await inactiveTab.click()
       await expect(inactiveTab).toHaveAttribute('data-active', 'true')
+      // RA: The previous active tab now exposes close only on hover/focus.
+      await activeTab.hover()
       await activeTab.locator('[data-tab-close-button]').click()
       await expect(activeTab).toHaveCount(0)
 

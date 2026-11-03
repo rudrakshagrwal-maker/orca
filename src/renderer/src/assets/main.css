@@ -895,21 +895,7 @@ body[data-modal-overlay-open]
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 1.5rem), transparent);
 }
 
-.terminal-tab-strip[data-active-tab-dock-disabled] > [data-active-tab-dock] {
-  position: relative;
-  z-index: auto;
-}
-
-/* Why: tabs only draw a right border, so a tab docked at the end has no seam against the tab it covers. */
-.terminal-tab-strip[data-active-tab-docked='end'] > [data-active-tab-dock]::before {
-  content: '';
-  position: absolute;
-  inset-block: 0;
-  left: 0;
-  width: 1px;
-  background: var(--border);
-  z-index: 30;
-}
+/* RA: Active tabs scroll in their natural slots; no sticky dock seam or override. */
 
 /* SortableTab renders activity as a DOM child, reserving ::before/::after for drop-indicator feedback. */
 
@@ -925,6 +911,90 @@ body[data-modal-overlay-open]
   height: 100dvh;
   width: 100vw;
   overflow: hidden;
+}
+
+/* RA: Inset outlined panels share the canvas; existing titlebars stay outside the inset row. */
+.workspace-shell {
+  --workspace-panel-gap: 5px;
+  position: relative;
+  background: var(--background);
+}
+
+/* RA: Preserve the edge-to-edge window drag strip above workspace tabs. */
+.workspace-shell:has(.workspace-main-panel[data-workspace-chrome='true'])::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--workspace-panel-gap);
+  -webkit-app-region: drag;
+}
+
+.workspace-panels {
+  padding: var(--workspace-panel-gap);
+}
+
+.workspace-sidebar-column[data-open='true'],
+.workspace-main-panel,
+.workspace-main-panel [data-slot='workspace-tab-group'],
+[data-slot='workspace-right-panel'][data-open='true'] {
+  @apply rounded-md;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--background);
+}
+
+/* RA: Split groups own their frames; pages and the legacy workspace keep one outer frame. */
+.workspace-main-panel[data-workspace-chrome='true']:has([data-slot='workspace-tab-group']) {
+  border: 0;
+  border-radius: 0;
+}
+
+.workspace-sidebar-column[data-open='true'] {
+  margin-right: var(--workspace-panel-gap);
+}
+
+/* RA: Keep the clipped sidebar's resize target reachable at its inside edge. */
+.workspace-sidebar-column [data-sidebar-resize-handle] {
+  right: 0;
+  width: var(--workspace-panel-gap);
+}
+
+.workspace-sidebar-column [data-sidebar-resize-handle] > div {
+  display: none;
+}
+
+[data-slot='workspace-right-panel'][data-open='true'] {
+  margin: var(--workspace-panel-gap) var(--workspace-panel-gap) var(--workspace-panel-gap) 0;
+}
+
+/* RA: Panel insets replace the old strip without moving terminal content between DOM owners. */
+.workspace-main-panel .workspace-tab-drag-strip {
+  display: none;
+}
+
+/* RA: Retained terminals/chats are siblings of the visible groups and need their own corner clip. */
+.workspace-main-panel [data-tab-group-body-id],
+.workspace-main-panel [data-retained-pane-host] {
+  border-bottom-left-radius: calc(var(--radius) * 0.8 - 1px);
+  border-bottom-right-radius: calc(var(--radius) * 0.8 - 1px);
+}
+
+/* RA: Floating surfaces use the same 8px corners and solid, unfiltered paint without elevation. */
+[data-slot='dialog-content'],
+[data-slot='command-dialog-content'],
+[data-slot='sheet-content'],
+[data-slot='popover-content'],
+[data-slot='hover-card-content'],
+[data-slot='select-content'],
+[data-slot='dropdown-menu-content'],
+[data-slot='dropdown-menu-sub-content'],
+[data-slot='context-menu-content'],
+[data-slot='context-menu-sub-content'] {
+  @apply rounded-md;
+  border-color: var(--border);
+  background: var(--popover);
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 /* An app theme's image (lib/theme-background.ts): one static layer, veiled toward --background by its opacity. */
@@ -959,32 +1029,7 @@ body[data-modal-overlay-open]
   background-color: var(--background);
 }
 
-/* The seam's translucent border blended over the backdrop; keep that base so no slit shows. */
-:root:is([data-window-material], [data-theme-background]) .workspace-sidebar-seam {
-  background: linear-gradient(var(--background), var(--background)) left / 1px 100% no-repeat
-    border-box;
-}
-
-/* Blur source regions independently so status-bar animation cannot re-filter the workspace. */
-:root:not([data-reduce-effects])
-  body:is([data-modal-overlay-open], [data-onboarding-overlay-open])
-  .app-layout
-  > :not(.window-controls) {
-  filter: blur(2px);
-}
-
-:root:not([data-reduce-effects])
-  body
-  > :is(
-    [data-slot='dialog-content'],
-    [data-slot='command-dialog-content'],
-    [data-slot='sheet-content'],
-    [data-onboarding-overlay]
-  ):has(~ [data-slot='dialog-overlay'], ~ [data-slot='sheet-overlay']) {
-  filter: blur(2px);
-}
-
-/* Reduce visual effects (#20936): no blur passes over the workspace, and solid floating surfaces. */
+/* RA: Modal backdrops only dim; reduced effects also makes other floating surfaces solid. */
 :root[data-reduce-effects] {
   --floating-surface: var(--popover);
   --dialog-surface: var(--background);
@@ -1007,7 +1052,7 @@ html.native-shell .app-layout {
   height: 100%;
 }
 
-/* Tab-group split resize handle — wide hit area, visible center line. */
+/* RA: The resize target is the 5px gap; each adjacent panel paints its own border. */
 .tab-group-split-resize-handle {
   flex-shrink: 0;
   position: relative;
@@ -1015,43 +1060,17 @@ html.native-shell .app-layout {
 }
 
 .tab-group-split-resize-handle.is-vertical {
-  width: 6px;
+  width: 5px;
   cursor: col-resize;
 }
 
 .tab-group-split-resize-handle.is-horizontal {
-  height: 6px;
+  height: 5px;
   cursor: row-resize;
 }
 
 .tab-group-split-resize-handle::after {
-  content: '';
-  position: absolute;
-  border-radius: 1px;
-  /* Set only when Settings changed the divider color from its default. */
-  background: var(--split-divider-setting, var(--split-divider));
-  transition: background 100ms ease;
-}
-
-.tab-group-split-resize-handle.is-vertical::after {
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-}
-
-.tab-group-split-resize-handle.is-horizontal::after {
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  transform: translateY(-50%);
-}
-
-.tab-group-split-resize-handle:hover::after,
-.tab-group-split-resize-handle.is-dragging::after {
-  background: var(--split-divider-hover);
+  content: none;
 }
 
 /* Electron drag hit-testing ignores z-index; every overlapping Radix portal needs explicit no-drag. */

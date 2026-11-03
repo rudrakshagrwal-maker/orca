@@ -221,7 +221,11 @@ export function TabBarQuickCommandsMenu({
             type="button"
             onClick={() => mostRecent && runAndClose(mostRecent)}
             disabled={!mostRecent}
-            className={cn(innerButtonBase, 'gap-1.5 rounded-l-md rounded-r-none px-1.5')}
+            // RA: Saved commands use the same compact strip control as the empty state.
+            className={cn(
+              innerButtonBase,
+              'min-w-7 justify-center gap-0 rounded-l-md rounded-r-none px-0 @[901px]/tab-strip:gap-1 @[901px]/tab-strip:px-1.5'
+            )}
             aria-label={
               mostRecent
                 ? translate(
@@ -236,8 +240,8 @@ export function TabBarQuickCommandsMenu({
             }
           >
             <Play className="size-3 shrink-0" fill="currentColor" strokeWidth={0} />
-            {/* Why: keyed to the strip's width, not focus, so narrow split groups stay icon-only without reflowing. */}
-            <span className="max-w-[160px] truncate text-[12px] font-medium @max-[480px]/tab-strip:hidden">
+            {/* RA: Measure each split strip independently. */}
+            <span className="hidden max-w-[160px] truncate text-[12px] font-medium @[901px]/tab-strip:inline">
               {mostRecent?.command.label ??
                 translate('auto.components.tab.bar.TabBarQuickCommandsButton.7b1c9d6ae1', 'Run')}
             </span>
@@ -273,7 +277,7 @@ export function TabBarQuickCommandsMenu({
                 type="button"
                 className={cn(
                   innerButtonBase,
-                  'justify-center rounded-l-none rounded-r-md border-l border-border/60 px-1'
+                  'min-w-7 justify-center rounded-l-none rounded-r-md border-l border-border/60 px-0'
                 )}
                 aria-label={moreCommandsLabel}
                 onPointerEnter={allowMoreCommandsTooltip}

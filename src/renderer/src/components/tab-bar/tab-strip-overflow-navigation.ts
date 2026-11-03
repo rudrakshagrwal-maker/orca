@@ -15,11 +15,8 @@ import {
 import {
   findOffscreenOpenedTabStripSlot,
   findTabStripSlot,
-  getActiveTabDockSide,
   readTabStripSlotIds,
-  revealTabStripSlot,
-  updateTabStripDockAvailability,
-  type ActiveTabDockSide
+  revealTabStripSlot
 } from './tab-strip-slot-geometry'
 import { motionSafeScrollBehavior } from '@/hooks/usePrefersReducedMotion'
 import { useTabDragActive } from '../tab-group/tab-drag-context'
@@ -55,19 +52,18 @@ const EMPTY_TAB_STRIP_OVERFLOW_STATE: TabStripOverflowState = {
 
 export function useTabStripOverflowNavigation({
   activeVisibleTabId,
-  activeDockSlotId,
+  activeSlotId,
   layoutKey,
   worktreeId
 }: {
   activeVisibleTabId: string | null
   /** The slot drawn active; a client-hosted row can take it without `activeVisibleTabId` changing. */
-  activeDockSlotId: string | null
+  activeSlotId: string | null
   layoutKey: string
   worktreeId: string
 }): {
   tabStripRef: RefObject<HTMLDivElement | null>
   tabStripOverflowState: TabStripOverflowState
-  activeTabDockSide: ActiveTabDockSide | null
   scrollTabStrip: (direction: 'start' | 'end', behavior?: ScrollBehavior) => void
   subscribeToStripResize: (listener: () => void) => () => void
 } {
@@ -76,8 +72,8 @@ export function useTabStripOverflowNavigation({
   const stripResizeListenersRef = useRef<Set<() => void>>(new Set())
   const prevStripRef = useRef<{ worktreeId: string; tabIds: ReadonlySet<string> } | null>(null)
   const stickToEndRef = useRef(false)
-  const tabClosedThisCommitRef = useRef(false)
   const activeTabIdRef = useRef<string | null>(null)
+  const activeSlotIdRef = useRef<string | null>(null)
   const hoverDeferredRevealIdsRef = useRef<Set<string>>(new Set())
   const scrollAnchorRef = useRef<{
     activeTabId: string | null
@@ -87,7 +83,6 @@ export function useTabStripOverflowNavigation({
   const [tabStripOverflowState, setTabStripOverflowState] = useState<TabStripOverflowState>(
     EMPTY_TAB_STRIP_OVERFLOW_STATE
   )
-  const [activeTabDockSide, setActiveTabDockSide] = useState<ActiveTabDockSide | null>(null)
   const updateTabStripOverflowState = useCallback((): void => {
     const el = tabStripRef.current
     if (!el) {
@@ -97,8 +92,6 @@ export function useTabStripOverflowNavigation({
     setTabStripOverflowState((previous) =>
       sameTabStripOverflowState(previous, next) ? previous : next
     )
-    updateTabStripDockAvailability(el)
-    setActiveTabDockSide(getActiveTabDockSide(el))
   }, [])
   const scrollTabStrip = useCallback(
     (direction: 'start' | 'end', behavior: ScrollBehavior = 'smooth'): void => {
@@ -149,12 +142,26 @@ export function useTabStripOverflowNavigation({
     el.addEventListener('scroll', onScroll, { passive: true })
     onScroll()
 
+    let previousClientWidth = el.clientWidth
     const handleStripResize = (): void => {
+      const viewportChanged = previousClientWidth !== el.clientWidth
+      previousClientWidth = el.clientWidth
       updateTabStripOverflowState()
       // Keep end-pinned strips at the right edge as live labels change scrollWidth.
       if (stickToEndRef.current && !isTabStripPointerGestureActive()) {
         el.scrollLeft = Math.max(0, el.scrollWidth - el.clientWidth)
       }
+      // RA: A split resize can hide the active slot, including a client-hosted browser row.
+      if (viewportChanged && !isTabStripPointerGestureActive()) {
+        const activeSlot = activeSlotIdRef.current
+          ? findTabStripSlot(el, activeSlotIdRef.current)
+          : undefined
+        if (activeSlot) {
+          revealTabStripSlot(activeSlot)
+          stickToEndRef.current = isTabStripScrolledToEnd(el)
+        }
+      }
+      updateTabStripOverflowState()
       recordScrollAnchor()
       for (const listener of stripResizeListenersRef.current) {
         listener()
@@ -188,7 +195,7 @@ export function useTabStripOverflowNavigation({
       if (!offscreenOpened) {
         return
       }
-      revealTabStripSlot(el, offscreenOpened)
+      revealTabStripSlot(offscreenOpened)
       stickToEndRef.current = isTabStripScrolledToEnd(el)
       updateTabStripOverflowState()
       recordScrollAnchor()
@@ -201,6 +208,9 @@ export function useTabStripOverflowNavigation({
   useLayoutEffect(() => {
     activeTabIdRef.current = activeVisibleTabId
   }, [activeVisibleTabId])
+  useLayoutEffect(() => {
+    activeSlotIdRef.current = activeSlotId
+  }, [activeSlotId])
 
   useLayoutEffect(() => {
     const strip = tabStripRef.current
@@ -219,7 +229,6 @@ export function useTabStripOverflowNavigation({
     const pointerGestureActive = isTabStripPointerGestureActive()
     // Why identities, not a count: a tab that replaces another opens without the strip growing.
     const tabOpened = [...tabIds].some((id) => !prev.tabIds.has(id))
-    tabClosedThisCommitRef.current = !tabOpened && [...prev.tabIds].some((id) => !tabIds.has(id))
     const scrollToEnd = (stick: boolean): void => {
       const el = tabStripRef.current
       if (!el) {
@@ -234,7 +243,7 @@ export function useTabStripOverflowNavigation({
     const recorded = scrollAnchorRef.current
     if (tabOpened && !pointerGestureActive) {
       if (recorded?.activeTabId === activeTabIdRef.current) {
-        // Preserve the viewed tab’s x through insertion; reveal only offscreen destinations while the active tab docks.
+        // RA: Preserve the viewed tab through insertion, then reveal offscreen destinations normally.
         if (recorded.anchor) {
           restoreTabStripScrollAnchor(strip, recorded.anchor)
         }
@@ -248,7 +257,7 @@ export function useTabStripOverflowNavigation({
         } else {
           const offscreenOpened = findOffscreenOpenedTabStripSlot(strip, prev.tabIds)
           if (offscreenOpened) {
-            revealTabStripSlot(strip, offscreenOpened)
+            revealTabStripSlot(offscreenOpened)
           }
         }
         stickToEndRef.current = isTabStripScrolledToEnd(strip)
@@ -273,37 +282,27 @@ export function useTabStripOverflowNavigation({
 
   useLayoutEffect(() => {
     const strip = tabStripRef.current
-    if (!strip || !activeVisibleTabId) {
+    if (!strip || !activeSlotId) {
       recordScrollAnchor()
       return
     }
-    const activeSlot = findTabStripSlot(strip, activeVisibleTabId)
+    const activeSlot = findTabStripSlot(strip, activeSlotId)
     if (!activeSlot) {
       recordScrollAnchor()
       return
     }
-    // Hold the strip through tab presses and closes so it cannot slide under the pointer or chase distant MRU targets.
-    if (isTabStripPointerGestureActive() || tabClosedThisCommitRef.current) {
+    // RA: Reveal selection after closes too; defer only while a pointer gesture or drag owns the strip.
+    if (isTabStripPointerGestureActive() || isTabDragActive) {
       requestAnimationFrame(updateTabStripOverflowState)
       recordScrollAnchor()
       return
     }
-    revealTabStripSlot(strip, activeSlot)
+    revealTabStripSlot(activeSlot)
     // Why: the scroll event lands after the resize observer, which would re-pin a stale end stick over this reveal.
     stickToEndRef.current = isTabStripScrolledToEnd(strip)
     requestAnimationFrame(updateTabStripOverflowState)
     recordScrollAnchor()
-  }, [activeVisibleTabId, recordScrollAnchor, updateTabStripOverflowState])
-
-  // Dock ownership and drag transitions change sticky layout without scrolling or resizing.
-  useLayoutEffect(() => {
-    updateTabStripOverflowState()
-  }, [activeDockSlotId, isTabDragActive, updateTabStripOverflowState])
-
-  // Why every render: the close flag belongs to the commit that set it, not a later tab switch.
-  useLayoutEffect(() => {
-    tabClosedThisCommitRef.current = false
-  })
+  }, [activeSlotId, isTabDragActive, recordScrollAnchor, updateTabStripOverflowState])
 
   // Why share these observers: each one watches every tab, so a second set doubles that work.
   const subscribeToStripResize = useCallback((listener: () => void): (() => void) => {
@@ -316,7 +315,6 @@ export function useTabStripOverflowNavigation({
   return {
     tabStripRef,
     tabStripOverflowState,
-    activeTabDockSide,
     scrollTabStrip,
     subscribeToStripResize
   }

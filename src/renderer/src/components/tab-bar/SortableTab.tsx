@@ -1,7 +1,7 @@
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { useCallback, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { X, Minimize2, Pin } from 'lucide-react'
+import { X, Minimize2 } from 'lucide-react'
 import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
 import { getAgentLabel } from '@/lib/agent-catalog'
 import { basename } from '@/lib/path'
@@ -39,6 +39,7 @@ import type { NativeChatTabSession } from './tab-session-history-switch'
 import type { StructuredChatTabNamingFailure } from '@/runtime/structured-conversation-name'
 import { useNativeChatNamingFailure } from './use-native-chat-naming-failure'
 import { NativeChatNamingErrorBlock, NativeChatNamingFailedDialog } from './NativeChatNamingFailure'
+import { selectTabIsSubagent } from './tab-agent-lineage'
 
 /** What the strip draws for a terminal or native chat tab; never a source of agent identity. */
 type SortableTabModel = Pick<
@@ -113,6 +114,8 @@ export default function SortableTab({
   namingFailure
 }: SortableTabProps): React.JSX.Element {
   const naming = useNativeChatNamingFailure(namingFailure)
+  // RA: Only the derived boolean subscribes, so unrelated agent updates do not repaint this tab.
+  const isSubagent = useAppStore((s) => selectTabIsSubagent(s, tab.worktreeId, tab.id))
   // Why: agent-completion unread exists even with terminal-attention off; collapse both sources to one primitive so unrelated tabs don't re-render.
   const hasUnreadActivity = useAppStore((s) =>
     terminalTabHasUnreadActivity({
@@ -197,7 +200,7 @@ export default function SortableTab({
     disabled: isEditing
   })
   const handleMenuOpenChange = useTabContextMenuOpening(setMenuOpen, retirePendingActivation)
-  const slotProps = useTabStripSlotProps(tab.id, isActive)
+  const slotProps = useTabStripSlotProps(tab.id, isPinned && !isEditing, isSubagent)
   const tabTitle = tab.customTitle ?? tab.title
   const tabRoot = (
     <div
@@ -205,13 +208,14 @@ export default function SortableTab({
       data-testid="sortable-tab"
       data-tab-id={tab.id}
       data-tab-title={tabTitle}
+      aria-label={isPinned ? displayTitle : undefined}
       data-pinned={isPinned ? 'true' : 'false'}
       // Expose rendered selection so E2E catches visual regressions missed by store-only assertions.
       data-active={isActive ? 'true' : 'false'}
       data-agent-activity-status={activityStatus}
       {...attributes}
       {...dragListeners}
-      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
+      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${isPinned && !isEditing ? 'justify-center [&>span]:mr-0' : ''} ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
       onDoubleClick={(e) => {
         if (isEditing) {
           return
@@ -255,9 +259,7 @@ export default function SortableTab({
         isActive={isActive}
         progress={programProgress}
       />
-      {isPinned && !isEditing && (
-        <Pin className="mr-1 size-3 shrink-0 text-muted-foreground" aria-hidden />
-      )}
+      {/* RA: Pinned tabs retain their identity icon and hover title only. */}
       {isEditing ? (
         <Input
           ref={setRenameInputElement}
@@ -287,16 +289,19 @@ export default function SortableTab({
           className="mr-1 min-w-0 flex-1"
           spellCheck={false}
         />
-      ) : (
-        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{displayTitle}</span>
-      )}
-      {tab.color && !isEditing && (
+      ) : !isPinned ? (
+        // RA: Child labels use the next smaller token without changing the agent glyph.
+        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1${isSubagent ? ' text-2xs' : ''}`}>
+          {displayTitle}
+        </span>
+      ) : null}
+      {tab.color && !isEditing && !isPinned && (
         <span
           className="mr-1.5 size-2 rounded-full shrink-0"
           style={{ backgroundColor: tab.color }}
         />
       )}
-      {isExpanded && !isEditing && (
+      {isExpanded && !isEditing && !isPinned && (
         <button
           className={`mr-1 flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive
@@ -316,10 +321,11 @@ export default function SortableTab({
       )}
       {!isEditing && !isPinned && (
         <button
-          className={`relative z-10 flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
+          // RA: Inactive tabs give the close button's space back to their title until hover/focus.
+          className={`relative z-10 items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive
-              ? 'text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:text-foreground focus-visible:bg-muted'
-              : 'text-transparent group-hover:text-muted-foreground hover:!text-foreground hover:!bg-muted focus-visible:!text-foreground focus-visible:!bg-muted'
+              ? 'flex text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:text-foreground focus-visible:bg-muted'
+              : 'hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:text-foreground focus-visible:bg-muted'
           }`}
           // Why: stable accessible name lets E2E drive the real close path instead of calling the store.
           aria-label={translate(

@@ -224,7 +224,8 @@ export function buildOrderedTabItems({
       })
     }
   }
-  return items
+  // RA: Stable partition keeps pinned tabs first within this group's existing order.
+  return items.sort((left, right) => Number(right.isPinned) - Number(left.isPinned))
 }
 
 export function buildTabDropIndicators(

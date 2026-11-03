@@ -150,7 +150,7 @@ export default function BrowserTab({
     { onActivate }
   )
   const handleMenuOpenChange = useTabContextMenuOpening(setMenuOpen, retirePendingActivation)
-  const slotProps = useTabStripSlotProps(tab.id, isActive)
+  const slotProps = useTabStripSlotProps(tab.id, isPinned)
 
   const tabRoot = (
     <div
@@ -158,9 +158,10 @@ export default function BrowserTab({
       data-tab-id={tab.id}
       data-active={isActive ? 'true' : 'false'}
       data-pinned={isPinned ? 'true' : 'false'}
+      aria-label={isPinned ? tabLabel : undefined}
       {...attributes}
       {...listeners}
-      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
+      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${isPinned ? 'justify-center [&>*]:mr-0' : ''} ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
       onPointerDown={(e) => {
         onTabPointerDown(
           e,
@@ -204,9 +205,9 @@ export default function BrowserTab({
           fallbackClassName="text-blue-500"
         />
       )}
-      {isPinned && <Pin className="mr-1 size-3 shrink-0 text-muted-foreground" aria-hidden />}
-      <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{tabLabel}</span>
-      {showAudioControl && (
+      {/* RA: Audio controls remain in the context menu when the tab is icon-only. */}
+      {!isPinned && <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{tabLabel}</span>}
+      {showAudioControl && !isPinned && (
         // Why: unlike close, stays visible on inactive tabs; finding the playing tab is the point.
         <button
           type="button"
@@ -223,10 +224,11 @@ export default function BrowserTab({
       )}
       {!isPinned && (
         <button
-          className={`flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
+          // RA: Give inactive titles the close button's space until hover or keyboard focus.
+          className={`items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive
-              ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              : 'text-transparent group-hover:text-muted-foreground hover:!text-foreground hover:!bg-muted'
+              ? 'flex text-muted-foreground hover:text-foreground hover:bg-muted'
+              : 'hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {

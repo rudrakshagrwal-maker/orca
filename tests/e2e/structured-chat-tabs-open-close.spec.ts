@@ -114,6 +114,8 @@ test.describe('structured chat tabs', () => {
     await expect(tabInStrip(page, firstTab)).toBeVisible()
 
     // The window closes one chat from its tab; the host closes the other.
+    // RA: Inactive close buttons appear when the user hovers their tab.
+    await tabInStrip(page, firstTab).hover()
     await tabInStrip(page, firstTab).locator('[data-tab-close-button="true"]').click()
     await expect(tabInStrip(page, firstTab)).toHaveCount(0)
     await expect(tabInStrip(page, secondTab)).toBeVisible()

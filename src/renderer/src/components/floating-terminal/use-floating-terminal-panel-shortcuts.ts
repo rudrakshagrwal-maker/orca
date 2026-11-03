@@ -7,6 +7,7 @@ import {
 } from '@/lib/floating-workspace-shortcut-policy'
 import { isFloatingWorkspaceTerminalInputTarget } from '@/lib/floating-workspace-terminal-actions'
 import { getShortcutPlatform } from '@/lib/shortcut-platform'
+import { keepPinnedWorkspaceTabOpen } from '@/lib/keep-last-workspace-tab-open'
 import { requestTerminalTabRename } from '@/components/tab-bar/terminal-tab-rename-request'
 import { resolveTerminalAgentTabShortcut } from '@/components/terminal-agent-tab-shortcut'
 import { launchFloatingWorkspaceAgentShortcut } from '@/components/agent-tab-shortcut-launch'
@@ -149,6 +150,14 @@ export function useFloatingTerminalPanelShortcuts({
         return 'handled'
       }
       if (resolution.kind === 'close') {
+        // RA: Floating tabs obey the same pin guard before delegating terminal chords.
+        if (
+          activeClosableTab &&
+          keepPinnedWorkspaceTabOpen(FLOATING_TERMINAL_WORKTREE_ID, activeClosableTab.id)
+        ) {
+          consume()
+          return 'handled'
+        }
         if (resolution.focusedFloatingTerminal) {
           if (input.doubleTapModifier) {
             consume()

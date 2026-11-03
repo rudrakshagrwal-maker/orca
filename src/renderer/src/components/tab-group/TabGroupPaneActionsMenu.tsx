@@ -38,9 +38,13 @@ export function TabGroupPaneActionsMenu({
               onClick={(event) => {
                 event.stopPropagation()
               }}
-              className="my-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              // RA: Keep the ellipsis compact; restore its name only on wide strips.
+              className="my-auto flex h-7 min-w-7 shrink-0 items-center justify-center gap-0 rounded-md px-0 @[901px]/tab-strip:gap-1 @[901px]/tab-strip:px-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Ellipsis className="size-4" />
+              <span className="hidden text-xs @[901px]/tab-strip:inline">
+                {translate('auto.components.tab.group.TabGroupPanel.9acaf92093', 'Pane Actions')}
+              </span>
             </button>
           </DropdownMenuTrigger>
         </TooltipTrigger>

@@ -248,11 +248,14 @@ export default function TabGroupPanel({
   )
 
   const actionChromeClassName = cn(
-    'ml-1.5 flex shrink-0 items-center gap-0.5 transition-opacity duration-150',
+    // RA: Adjacent 28px controls need no extra horizontal gaps.
+    'flex shrink-0 items-center gap-0 transition-opacity duration-150',
     !isFocused && 'opacity-50 hover:opacity-100 focus-within:opacity-100'
   )
   return (
     <div
+      // RA: The main shell frames each group independently, including its attached tab strip.
+      data-slot="workspace-tab-group"
       // Dim unfocused splits only when siblings exist; keep vertical seams neutral and change only the bottom focus border.
       className={`group/tab-group relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden${
         hasSplitGroups
@@ -285,7 +288,7 @@ export default function TabGroupPanel({
           data-terminal-focus-release-surface="true"
           data-worktree-id={worktreeId}
         >
-          <div className="flex h-full items-stretch pr-1.5">
+          <div className="flex h-full items-stretch">
             {/* Why: Electron drag hit-test respects no-drag only on DOM descendants, not z-index siblings, so this no-drag spacer keeps the collapsed left-sidebar's floating toggle clickable. */}
             {reserveCollapsedSidebarHeaderSpace && !sidebarOpen ? (
               <div

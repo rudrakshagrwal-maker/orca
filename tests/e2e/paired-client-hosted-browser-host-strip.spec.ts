@@ -171,6 +171,8 @@ test('shows a client-hosted page in the host tab strip and closes it from there'
     // Titles come from the client's metadata publish; a URL-only row would mean that never landed.
     await expect(hostRow).toContainText(PAGE_TITLE, { timeout: 60_000 })
 
+    // RA: Hosted rows share inactive tabs' hover-only close button.
+    await hostRow.hover()
     await hostRow.getByRole('button', { name: 'Close hosted page' }).click()
 
     await expect(hostRow).toHaveCount(0, { timeout: 60_000 })
