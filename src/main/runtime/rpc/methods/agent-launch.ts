@@ -14,6 +14,7 @@ import {
 import { executeAgentLaunch } from '../../../agent-launch/agent-launch-executor'
 import { trackTerminalSpawnDispatch } from '../../../agent-launch/agent-launch-not-started'
 import type { OrcaRuntimeService } from '../../orca-runtime'
+import { recordAgentLaunchParent } from '../../runtime-agent-launch-parents'
 import { defineMethod, type RpcContext } from '../core'
 import {
   admitAgentLaunchOperation,
@@ -66,6 +67,7 @@ async function runAgentLaunch(
   { intent, decidedMode }: Awaited<ReturnType<typeof resolveUnlaunchedIntent>>,
   context: HostLaunchContext,
   view: AgentLaunchView,
+  parentTerminalHandle?: string,
   replaySafe?: ReplaySafeLaunch
 ): Promise<AgentLaunchResult> {
   const callerNavigationId = agentLaunchCallerNavigationId(intent.target, context)
@@ -84,6 +86,10 @@ async function runAgentLaunch(
     workspaces: agentLaunchWorkspaceFactory(context, intent.agent),
     // The tab is shown as it is published, not after a prompt that can take a minute to land.
     onSurfacePublished: (surface) => {
+      // RA: Record before prompt delivery or publication callbacks can fail.
+      if (!intent.reuseTerminal) {
+        recordAgentLaunchParent(context.runtime, surface.outcome, parentTerminalHandle)
+      }
       try {
         context.agentLaunchPolicy?.onSurfacePublished?.(surface)
       } catch (error) {
@@ -115,7 +121,8 @@ function runLegacyAgentLaunch(
       {
         early: null,
         presentation: params.presentation
-      }
+      },
+      params.parentTerminalHandle
     )
   if (params.target.kind === 'create-worktree' && params.target.create.clientMutationId) {
     const { repo, repoHostId } = params.target.create
@@ -205,7 +212,7 @@ async function executeAdmittedAgentLaunch(
   const handedOff = prepareAgentHandoffCard(params, context)
   let result: AgentLaunchResult
   try {
-    result = await runAgentLaunch(resolved, context, view, {
+    result = await runAgentLaunch(resolved, context, view, params.parentTerminalHandle, {
       attachOperationId: admission.attachOperationId,
       callerKey: admission.callerKey,
       terminalSpawn,

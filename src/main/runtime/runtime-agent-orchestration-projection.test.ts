@@ -34,6 +34,7 @@ import {
   structuredAgentSessionTabId
 } from '../../shared/agent-session/view/structured-agent-session-projection'
 import { RuntimeAgentOrchestrationProjection } from './runtime-agent-orchestration-projection'
+import { getAgentLaunchParents, recordAgentLaunchParent } from './runtime-agent-launch-parents'
 import {
   installSqlVisitCounters,
   latestStatementMetrics,
@@ -61,6 +62,122 @@ afterEach(() => vi.restoreAllMocks())
 function chatRow(sessionId: string): string {
   return structuredAgentSessionPaneKey(structuredAgentSessionTabId(sessionId), sessionId)
 }
+
+// RA: Ordinary launches must project ancestry without fabricating dispatches.
+describe('RuntimeAgentOrchestrationProjection launch lineage', () => {
+  function setup(db: OrchestrationDb | null = null) {
+    const runtime = {}
+    const panes = new Map([
+      ['term_parent', 'tab-parent:leaf-parent'],
+      ['term_child', 'tab-child:leaf-child'],
+      ['term_grandchild', 'tab-grandchild:leaf-grandchild']
+    ])
+    const projection = new RuntimeAgentOrchestrationProjection({
+      getDb: () => db,
+      getLeaves: () => [],
+      getPtys: () => [],
+      paneOf: () => ({ tabId: null, paneKey: null, recordedAtGraphSequence: 0 }),
+      issueLeafHandle: () => '',
+      issuePtyHandle: () => '',
+      makePaneKey: () => '',
+      getWorktreeId: (handle) => (panes.has(handle) ? 'wt-launch' : null),
+      getHandleForPaneKey: (key) => [...panes].find(([, pane]) => pane === key)?.[0] ?? null,
+      getPaneKey: (handle) => panes.get(handle) ?? null,
+      getLaunchParents: () => getAgentLaunchParents(runtime),
+      getDispatchAuthority: () => null,
+      getAgentStatusSnapshot: () => [],
+      getSessionRecords: () => null
+    })
+    const launch = (child: string, parent: string) =>
+      recordAgentLaunchParent(runtime, { kind: 'terminal', handle: child }, parent)
+    return { runtime, panes, projection, launch }
+  }
+
+  it.each(['no-db', 'empty-db', 'unrelated-dispatch'])(
+    'publishes nested launches with %s',
+    (state) => {
+      const db = state === 'no-db' ? null : new OrchestrationDb(':memory:')
+      try {
+        if (state === 'unrelated-dispatch' && db) {
+          const run = db.createRun({
+            objective: 'unrelated work',
+            coordinatorHandle: 'term_other_parent',
+            coordinatorPaneKey: null
+          })
+          const task = db.createTask({ runId: run.id, spec: 'unrelated work' })
+          db.createDispatchContext({
+            taskId: task.id,
+            assigneeHandle: 'term_other',
+            creator: { kind: 'system' },
+            maxDepth: Number.MAX_SAFE_INTEGER
+          })
+        }
+        const { projection, launch } = setup(db)
+        launch('term_child', 'term_parent')
+        launch('term_grandchild', 'term_child')
+
+        expect(projection.buildByPaneKey()).toEqual({
+          'tab-child:leaf-child': {
+            parentTerminalHandle: 'term_parent',
+            parentPaneKey: 'tab-parent:leaf-parent'
+          },
+          'tab-grandchild:leaf-grandchild': {
+            parentTerminalHandle: 'term_child',
+            parentPaneKey: 'tab-child:leaf-child'
+          }
+        })
+        expect(projection.getForHandle('term_child')).toEqual({
+          parentTerminalHandle: 'term_parent',
+          parentPaneKey: 'tab-parent:leaf-parent'
+        })
+      } finally {
+        db?.close()
+      }
+    }
+  )
+
+  it('keeps the original parent and scopes handles to each runtime', () => {
+    const first = setup()
+    const second = setup()
+    first.launch('term_child', 'term_parent')
+    first.launch('term_child', 'term_grandchild')
+    first.launch('term_parent', 'term_parent')
+    expect(first.projection.buildByPaneKey()).toEqual({
+      'tab-child:leaf-child': {
+        parentTerminalHandle: 'term_parent',
+        parentPaneKey: 'tab-parent:leaf-parent'
+      }
+    })
+    expect(second.projection.buildByPaneKey()).toBeUndefined()
+  })
+
+  it('retains a closed parent handle but evicts retired terminal children', () => {
+    const { runtime, projection, panes, launch } = setup()
+    launch('term_child', 'term_parent')
+    panes.delete('term_parent')
+    expect(projection.buildByPaneKey()).toEqual({
+      'tab-child:leaf-child': { parentTerminalHandle: 'term_parent' }
+    })
+    panes.delete('term_child')
+    expect(projection.buildByPaneKey()).toBeUndefined()
+    expect(getAgentLaunchParents(runtime)?.size).toBe(0)
+  })
+
+  it('projects a launched chat under its visible session pane', () => {
+    const { runtime, projection } = setup()
+    recordAgentLaunchParent(
+      runtime,
+      { kind: 'structured', handle: structuredAgentSessionTabId(WORKER_CHAT), sessionId: WORKER_CHAT },
+      'term_parent'
+    )
+    expect(projection.buildByPaneKey()).toEqual({
+      [chatRow(WORKER_CHAT)]: {
+        parentTerminalHandle: 'term_parent',
+        parentPaneKey: 'tab-parent:leaf-parent'
+      }
+    })
+  })
+})
 
 describe('RuntimeAgentOrchestrationProjection chat lineage', () => {
   let db: OrchestrationDb
@@ -101,6 +218,9 @@ describe('RuntimeAgentOrchestrationProjection chat lineage', () => {
       maxDepth: Number.MAX_SAFE_INTEGER
     })
     const leaf: RuntimeLeafRecord = { ...MIRROR_LEAVES_STEP_1[0], ptyId: 'pty_w' }
+    const launchParents = new Map([
+      [TERMINAL_WORKER_HANDLE, { parentTerminalHandle: 'term_launch_parent' }]
+    ])
     const projection = new RuntimeAgentOrchestrationProjection({
       getDb: () => db,
       getLeaves: () => [leaf],
@@ -112,6 +232,8 @@ describe('RuntimeAgentOrchestrationProjection chat lineage', () => {
       getWorktreeId: () => null,
       getHandleForPaneKey: () => null,
       getPaneKey: () => null,
+      // RA: Durable dispatch ancestry takes precedence over launch-only display lineage.
+      getLaunchParents: () => launchParents,
       getDispatchAuthority: () => null,
       getAgentStatusSnapshot: () => [],
       getSessionRecords: () => null
@@ -121,6 +243,7 @@ describe('RuntimeAgentOrchestrationProjection chat lineage', () => {
 
     expect(contexts?.[chatRow(WORKER_CHAT)]?.parentPaneKey).toBe(chatRow(COORDINATOR_CHAT))
     expect(contexts?.[TERMINAL_WORKER_PANE]?.parentPaneKey).toBe(chatRow(COORDINATOR_CHAT))
+    expect(contexts?.[TERMINAL_WORKER_PANE]?.parentTerminalHandle).not.toBe('term_launch_parent')
     // The minted pane key authorizes the worker's mailbox; it must never reach a renderer.
     expect(JSON.stringify(contexts)).not.toContain(chatWorker.paneKey)
     expect(JSON.stringify(contexts)).not.toContain(chatWorker.handle)

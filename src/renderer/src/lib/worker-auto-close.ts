@@ -84,7 +84,8 @@ export function workerAutoCloseKey(
 // Changes when the pane's Dispatch or agent moves on, so the host is asked right then; null for non-workers.
 function workerActivity(state: AppState, paneKey: string): string | null {
   const context = selectVisibleAgentOrchestration(state)[paneKey]
-  return context
+  // RA: Launch-only ancestry must not start dispatch-worker polling.
+  return context?.dispatchId
     ? `${context.dispatchId}:${context.dispatchStatus ?? ''}:${state.agentStatusByPaneKey[paneKey]?.state ?? ''}`
     : null
 }

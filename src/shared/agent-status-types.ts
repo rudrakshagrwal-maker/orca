@@ -56,8 +56,9 @@ export type WellKnownAgentType = TerminalAgent | 'unknown'
 export type AgentType = WellKnownAgentType | (string & {})
 
 export type AgentStatusOrchestrationContext = {
-  taskId: string
-  dispatchId: string
+  // RA: Plain agent launches have parent lineage without a task or dispatch.
+  taskId?: string
+  dispatchId?: string
   /** Runtime-authoritative lifecycle state. Hook-only contexts may omit it. */
   dispatchStatus?: 'pending' | 'dispatched' | 'completed' | 'failed' | 'circuit_broken'
   taskTitle?: string

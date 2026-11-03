@@ -146,6 +146,10 @@ export async function callAgentLaunch(
   const params = {
     ...request,
     ...launch,
+    // RA: Carry the launching pane without installing agent hooks.
+    ...(process.env.ORCA_TERMINAL_HANDLE
+      ? { parentTerminalHandle: process.env.ORCA_TERMINAL_HANDLE }
+      : {}),
     ...(operationId ? { operationId } : {}),
     launchSource: 'cli'
   }

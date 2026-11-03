@@ -26,9 +26,10 @@ export function benchmarkPresentationCorpus(
     attentionFacts: number
     parentSessionId: OrcaSessionId
   },
+  // RA: Launch-only contexts do not carry a dispatch identity.
   build: (
     db: OrchestrationDb
-  ) => Record<string, { parentPaneKey?: string | null; dispatchId: string }> | undefined
+  ) => Record<string, { parentPaneKey?: string | null; dispatchId?: string }> | undefined
 ) {
   const { nullAddress, history, terminalHistory, attentionFacts, parentSessionId } = corpus
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()

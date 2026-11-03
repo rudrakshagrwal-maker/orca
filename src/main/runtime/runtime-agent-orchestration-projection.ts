@@ -16,6 +16,7 @@ import { isRecentPresentationDispatch } from './orchestration/db/dispatch-contex
 import { currentRunCoordinatorOrcaSessionId } from './orchestration/db/runs/run-coordinator-orca-session'
 import type { DispatchContextRow } from './orchestration/types'
 import type { PtyPaneOf } from './terminal/surface/pty-pane-query'
+import type { AgentLaunchParent } from './runtime-agent-launch-parents'
 
 export type RuntimeAgentOrchestrationDependencies = {
   getDb(): OrchestrationDb | null
@@ -28,6 +29,7 @@ export type RuntimeAgentOrchestrationDependencies = {
   getWorktreeId(handle: string): string | null
   getHandleForPaneKey(paneKey: string): string | null
   getPaneKey(handle: string): string | null
+  getLaunchParents?(): Map<string, AgentLaunchParent> | undefined
   getDispatchAuthority(handle: string): OrchestrationCompatibilityTerminalAuthority | null
   getAgentStatusSnapshot(): readonly FleetAgentStatusEvidence[]
   getSessionRecords(): AgentSessionRecordReader | null
@@ -39,7 +41,8 @@ export class RuntimeAgentOrchestrationProjection {
   buildByPaneKey(): Record<string, AgentStatusOrchestrationContext> | undefined {
     const db = this.deps.getDb()
     if (!db || db.hasAnyDispatchContexts?.() === false) {
-      return undefined
+      // RA: CLI launches and command splits need no orchestration dispatch.
+      return this.withLaunchParents()
     }
     const scope = createOrchestrationProjectionScope(db, this.deps)
     const contexts: Record<string, AgentStatusOrchestrationContext> = {}
@@ -111,16 +114,16 @@ export class RuntimeAgentOrchestrationProjection {
     }
     const entries = Object.entries(contexts)
     if (entries.length === 0) {
-      return undefined
+      return this.withLaunchParents(contexts, scope)
     }
     if (batchAttention) {
       const now = scope.now
       const factsByDispatch = db.getWorkerAttentionFactsForDispatches(
-        entries.map(([, context]) => context.dispatchId),
+        entries.flatMap(([, context]) => (context.dispatchId ? [context.dispatchId] : [])),
         now
       )
       for (const [paneKey, context] of entries) {
-        const facts = factsByDispatch.get(context.dispatchId)
+        const facts = context.dispatchId ? factsByDispatch.get(context.dispatchId) : undefined
         if (facts) {
           contexts[paneKey] = {
             ...context,
@@ -134,7 +137,49 @@ export class RuntimeAgentOrchestrationProjection {
         }
       }
     }
-    return contexts
+    return this.withLaunchParents(contexts, scope)
+  }
+
+  // RA: Merge launch ancestry after dispatch attention; never invent task/dispatch IDs.
+  private withLaunchParents(
+    contexts: Record<string, AgentStatusOrchestrationContext> = {},
+    scope?: ReturnType<typeof createOrchestrationProjectionScope>
+  ): Record<string, AgentStatusOrchestrationContext> | undefined {
+    const parents = this.deps.getLaunchParents?.()
+    for (const [handle, parent] of parents ?? []) {
+      let paneKey = this.deps.getPaneKey(handle)
+      if (parent.sessionId) {
+        scope ??= createOrchestrationProjectionScope(null, this.deps)
+        paneKey = scope.resolve(parent.sessionId)
+      }
+      if (!paneKey) {
+        // Drop retired terminal children on the existing publication path.
+        if (!parent.sessionId && this.deps.getWorktreeId(handle) === null) {
+          parents?.delete(handle)
+        }
+        continue
+      }
+      const context = contexts[paneKey]
+      if (!context?.parentTerminalHandle && !context?.parentPaneKey) {
+        const launchParent = this.launchParentContext(handle)
+        if (launchParent && launchParent.parentPaneKey !== paneKey) {
+          contexts[paneKey] = { ...context, ...launchParent }
+        }
+      }
+    }
+    return Object.keys(contexts).length > 0 ? contexts : undefined
+  }
+
+  private launchParentContext(handle: string): AgentStatusOrchestrationContext | undefined {
+    const parent = this.deps.getLaunchParents?.()?.get(handle)
+    if (!parent) {
+      return undefined
+    }
+    const parentPaneKey = this.deps.getPaneKey(parent.parentTerminalHandle)
+    return {
+      parentTerminalHandle: parent.parentTerminalHandle,
+      ...(parentPaneKey ? { parentPaneKey } : {})
+    }
   }
 
   getForHandle(
@@ -152,9 +197,12 @@ export class RuntimeAgentOrchestrationProjection {
     const dispatch =
       db?.getActiveDispatchForTerminal?.(handle, paneKey) ?? this.getRecent(handle, db, scope.now)
     if (!dispatch) {
-      return undefined
+      return this.launchParentContext(handle)
     }
-    return this.projectDispatch(dispatch, handle, db, options, scope)
+    const context = this.projectDispatch(dispatch, handle, db, options, scope)
+    return context.parentTerminalHandle || context.parentPaneKey
+      ? context
+      : { ...context, ...this.launchParentContext(handle) }
   }
 
   private projectDispatch(

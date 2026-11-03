@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AGENT_LAUNCH_RUNTIME_CAPABILITY } from '../../../../shared/agent-launch-runtime-capability'
 import type { RpcContext } from '../core'
+import { getAgentLaunchParents } from '../../runtime-agent-launch-parents'
 import {
   CAPABLE_CLIENT,
   methodNamed,
@@ -114,6 +115,30 @@ describe('who may call agent.launch', () => {
 })
 
 describe('what agent.launch accepts', () => {
+  // RA: Record actual published surfaces, and never reparent a reused terminal.
+  it.each([false, true])('records parent lineage for terminal preference %s', async (terminal) => {
+    const runtime = runtimeStub(terminal ? { settings: {} } : {})
+    const result = await launch({ ...CREATE_LAUNCH, parentTerminalHandle: 'term_parent' }, runtime)
+    expect(getAgentLaunchParents(runtime)?.get(result.outcome.handle)).toEqual({
+      parentTerminalHandle: 'term_parent',
+      ...(result.outcome.kind === 'structured' ? { sessionId: result.outcome.sessionId } : {})
+    })
+  })
+
+  it('does not claim a reused terminal was launched by the caller', async () => {
+    const runtime = runtimeStub()
+    await launch(
+      {
+        agent: 'claude',
+        target: { kind: 'existing', worktree: 'id:wt-7' },
+        reuseTerminal: { handle: 'term_live' },
+        parentTerminalHandle: 'term_parent'
+      },
+      runtime
+    )
+    expect(getAgentLaunchParents(runtime)).toBeUndefined()
+  })
+
   it('rejects an agent Orca cannot launch', () => {
     expect(parseLaunch({ ...CREATE_LAUNCH, agent: 'not-an-agent' }).success).toBe(false)
   })

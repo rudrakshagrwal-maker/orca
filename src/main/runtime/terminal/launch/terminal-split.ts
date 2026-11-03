@@ -12,6 +12,7 @@ import {
 } from './terminal-split-retry'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import type { Worktree } from '../../../../shared/worktree/types'
+import { recordAgentLaunchParent } from '../../runtime-agent-launch-parents'
 
 export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopExplicitlyClosedTabPtys {
   protected abstract splitPtyBackedTerminal(
@@ -51,13 +52,20 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
     // Internal creation evidence; RPC and preload callers never supply it.
     createdWorktree?: Worktree
   ): Promise<RuntimeTerminalSplit> {
+    // RA: Command splits (including team shims) already identify their spawning terminal.
+    const recordParent = (split: RuntimeTerminalSplit): RuntimeTerminalSplit => {
+      if (opts.command) {
+        recordAgentLaunchParent(this, { kind: 'terminal', handle: split.handle }, handle)
+      }
+      return split
+    }
     const livePty = this.getLivePtyForHandle(handle)
     if (livePty && opts.retrySplit) {
       // Main starts these splits itself and answers without the window, so none can be pending.
       throw splitRetryUnknownError(livePty.record.tabId, opts.retrySplit)
     }
     if (livePty) {
-      return await this.splitPtyBackedTerminal(livePty.pty, opts, createdWorktree)
+      return recordParent(await this.splitPtyBackedTerminal(livePty.pty, opts, createdWorktree))
     }
     this.assertGraphReady()
     const { leaf } = this.getLiveLeafForHandle(handle)
@@ -70,17 +78,19 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
       const cwd = leaf.ptyId
         ? await this.ptyController?.getCwd?.(leaf.ptyId).catch(() => null)
         : null
-      return this.splitPaneInMain(
-        { worktreeId: leaf.worktreeId, tabId: leaf.tabId, leafId: leaf.leafId },
-        {
-          direction,
-          ...(cwd ? { cwd } : {}),
-          command: opts.command,
-          env: opts.env,
-          envToDelete: opts.envToDelete,
-          activate: opts.activate,
-          ...(opts.wslUserAct ? { wslUserAct: true } : {})
-        }
+      return recordParent(
+        await this.splitPaneInMain(
+          { worktreeId: leaf.worktreeId, tabId: leaf.tabId, leafId: leaf.leafId },
+          {
+            direction,
+            ...(cwd ? { cwd } : {}),
+            command: opts.command,
+            env: opts.env,
+            envToDelete: opts.envToDelete,
+            activate: opts.activate,
+            ...(opts.wslUserAct ? { wslUserAct: true } : {})
+          }
+        )
       )
     }
 
@@ -90,7 +100,7 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
       if (split?.tabId !== leaf.tabId) {
         throw splitRetryUnknownError(leaf.tabId, opts.retrySplit)
       }
-      return await this.awaitRendererSplit(split, opts.retrySplit)
+      return recordParent(await this.awaitRendererSplit(split, opts.retrySplit))
     }
     const newLeafId = randomUUID()
     const split = { tabId: leaf.tabId, paneRuntimeId: leaf.paneRuntimeId }
@@ -103,7 +113,7 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
       telemetrySource: opts.telemetrySource,
       newLeafId
     })
-    return await this.awaitRendererSplit(split, newLeafId)
+    return recordParent(await this.awaitRendererSplit(split, newLeafId))
   }
 
   private async awaitRendererSplit(

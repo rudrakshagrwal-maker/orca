@@ -28,6 +28,7 @@ import {
 import type { RpcContext } from '../core'
 import { terminalStartError } from '../../../../shared/terminal-start-failure'
 import type { OrcaRuntimeService } from '../../orca-runtime'
+import { getAgentLaunchParents } from '../../runtime-agent-launch-parents'
 import { RpcDispatcher } from '../dispatcher'
 import {
   methodNamed,
@@ -220,6 +221,27 @@ describe('a fresh launch writes the ledger once before its effect', () => {
 })
 
 describe('stable replay identity', () => {
+  // RA: Display lineage is outside replay identity and cannot reparent a published launch.
+  it('replays from another terminal while retaining the original parent', async () => {
+    const runtime = runtimeStub()
+    const replay = methodNamed(AGENT_LAUNCH_METHODS, 'agent.launchReplay')
+    const invoke = (parentTerminalHandle: string) =>
+      replay.handler(
+        replay.params.parse({
+          ...createLaunch({ operationId: OPERATION_ID }),
+          parentTerminalHandle
+        }),
+        rpcContext(runtime, PAIRED_CLIENT)
+      )
+
+    const first = await invoke('term_parent')
+    await expect(invoke('term_retry')).resolves.toEqual(first)
+    expect(getAgentLaunchParents(runtime)?.get(first.outcome.handle)?.parentTerminalHandle).toBe(
+      'term_parent'
+    )
+    expect(runtime.createManagedWorktree).toHaveBeenCalledTimes(1)
+  })
+
   it('replays across a bearer-credential change under the paired device subject', async () => {
     const params = createLaunch({ operationId: OPERATION_ID })
     const firstRuntime = runtimeStub()

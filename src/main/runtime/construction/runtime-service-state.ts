@@ -26,6 +26,7 @@ import { RuntimeResolvedWorktreeCache } from '../runtime-resolved-worktree-cache
 import { RuntimeWorktreeLineageController } from '../runtime-worktree-lineage-controller'
 import { createRuntimeAgentProjections } from './runtime-agent-projections'
 import type { RuntimeAgentOrchestrationDependencies } from '../runtime-agent-orchestration-projection'
+import { getAgentLaunchParents } from '../runtime-agent-launch-parents'
 import { RuntimeTerminalList } from '../runtime-terminal-list'
 import { RuntimeManagedWorktreeQueries } from '../runtime-managed-worktree-queries'
 import { RuntimePtyForegroundAgent } from '../runtime-pty-foreground-agent'
@@ -128,6 +129,8 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
       getWorktreeId: (handle) => this.getTerminalWorktreeIdForHandle(handle),
       getHandleForPaneKey: (paneKey) => this.getTerminalHandleForPaneKey(paneKey),
       getPaneKey: (handle) => this.getPaneKeyForTerminalHandle(handle),
+      // RA: Launch lineage is shared with captured and live projections.
+      getLaunchParents: () => getAgentLaunchParents(this),
       getDispatchAuthority: (handle) => this.getOrchestrationDispatchAuthority(handle),
       getAgentStatusSnapshot: () => this.getOrchestrationFleetAgentStatusSnapshot(),
       getSessionRecords: () => readAgentOrchestrationProjectionRecords(),

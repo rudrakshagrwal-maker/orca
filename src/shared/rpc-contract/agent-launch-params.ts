@@ -69,6 +69,8 @@ export const AgentLaunchFields = z.object({
   /** Terminal-only cwd; structured launches downgrade rather than silently ignoring it. */
   cwd: z.string().min(1, 'Empty launch cwd').optional(),
   launchSource: LaunchSourceParam.optional(),
+  // RA: Optional display lineage; shared by launch and replay, outside operation identity.
+  parentTerminalHandle: z.string().min(1, 'Missing parent terminal handle').optional(),
   /** Caller reserves identity, not placement; validate verbatim adoption so reservations match.
    * Structured launches use its tab half as tabId; reused terminals ignore it. paneKey reports the actual pane.
    * Tab IDs span workspaces, so mint a fresh UUID per launch. */

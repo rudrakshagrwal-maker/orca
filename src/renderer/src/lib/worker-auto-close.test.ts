@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WorkerAutoCloseState } from '../../../shared/worker-auto-close'
 
 const mocks = vi.hoisted(() => ({
-  worker: Boolean(true)
+  worker: Boolean(true),
+  launchOnly: Boolean(false)
 }))
 
 vi.mock('@/runtime/runtime-rpc-client', () => ({
@@ -22,7 +23,11 @@ vi.mock('@/runtime/local-runtime-capabilities', () => ({
 vi.mock('@/runtime/visible-agent-orchestration', () => ({
   selectVisibleAgentOrchestration: () =>
     mocks.worker
-      ? { 'tab:leaf': { taskId: 't', dispatchId: 'd', dispatchStatus: 'completed' } }
+      ? {
+          'tab:leaf': mocks.launchOnly
+            ? { parentTerminalHandle: 'term_parent' }
+            : { taskId: 't', dispatchId: 'd', dispatchStatus: 'completed' }
+        }
       : {}
 }))
 vi.mock('@/store', () => ({
@@ -30,6 +35,7 @@ vi.mock('@/store', () => ({
 }))
 
 import { useWorkerAutoClose } from './worker-auto-close'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 
 const TARGET = { kind: 'local' as const }
 const SUBJECT = { paneKey: 'tab:leaf' }
@@ -45,6 +51,22 @@ describe('useWorkerAutoClose', () => {
   afterEach(() => {
     act(() => root?.unmount())
     vi.useRealTimers()
+    mocks.worker = true
+    mocks.launchOnly = false
+    vi.clearAllMocks()
+  })
+
+  // RA: Parent lineage alone creates no auto-close requests or timers.
+  it('does not poll or tick for a plain launched child', async () => {
+    mocks.launchOnly = true
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    root = createRoot(document.createElement('div'))
+    await act(async () => root!.render(createElement(Probe)))
+    await act(async () => vi.advanceTimersByTimeAsync(5_000))
+
+    expect(latest).toBeNull()
+    expect(callRuntimeRpc).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('stops its countdown clock and forgets the state once the pane is no longer a worker', async () => {

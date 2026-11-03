@@ -135,6 +135,27 @@ describe('orca cli agent launch', () => {
     })
   })
 
+  // RA: Agent-initiated launches retain their source pane through the shared CLI path.
+  it('forwards the launching terminal handle to the execution host', async () => {
+    vi.stubEnv('ORCA_TERMINAL_HANDLE', 'term_parent')
+    try {
+      queueFixtures(callMock, agentLaunchHostFixture(), agentLaunchFixture(WORKTREE_ID))
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      await main(
+        ['agent', 'launch', '--agent', 'claude', '--worktree', `id:${WORKTREE_ID}`],
+        '/tmp/repo'
+      )
+
+      expect(callMock).toHaveBeenCalledWith(
+        'agent.launchReplay',
+        expect.objectContaining({ parentTerminalHandle: 'term_parent' })
+      )
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('honors the paired execution host for agent launch', async () => {
     pairRuntimeEnvironment(listEnvironmentsMock, 'server-1')
     queueFixtures(callMock, agentLaunchHostFixture(), agentLaunchFixture('folder:server-folder'))

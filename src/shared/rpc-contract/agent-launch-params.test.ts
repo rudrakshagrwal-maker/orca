@@ -1,11 +1,28 @@
 // Unknown telemetry labels from newer clients must not block launches on older hosts.
 
 import { describe, expect, it } from 'vitest'
-import { AgentLaunch } from './agent-launch-params'
+import { AgentLaunch, AgentLaunchReplay } from './agent-launch-params'
 
 const BASE = { agent: 'claude', target: { kind: 'existing', worktree: 'wt-1' } }
 
 describe('agent.launch params', () => {
+  // RA: Both wire methods retain optional parent lineage after validation.
+  it('carries a parent terminal through launch and replay without requiring one', () => {
+    const parentTerminalHandle = 'term_parent'
+    expect(AgentLaunch.parse({ ...BASE, parentTerminalHandle }).parentTerminalHandle).toBe(
+      parentTerminalHandle
+    )
+    expect(
+      AgentLaunchReplay.parse({
+        ...BASE,
+        parentTerminalHandle,
+        operationId: `${Date.now()}-000000000000000000000000000000aa`
+      }).parentTerminalHandle
+    ).toBe(parentTerminalHandle)
+    expect(AgentLaunch.parse(BASE)).not.toHaveProperty('parentTerminalHandle')
+    expect(AgentLaunch.safeParse({ ...BASE, parentTerminalHandle: '' }).success).toBe(false)
+  })
+
   it('keeps agentArgs tri-state: a string, an explicit null, and absent are three answers', () => {
     expect(AgentLaunch.parse({ ...BASE, agentArgs: '--model opus' }).agentArgs).toBe('--model opus')
     expect(AgentLaunch.parse({ ...BASE, agentArgs: null }).agentArgs).toBeNull()

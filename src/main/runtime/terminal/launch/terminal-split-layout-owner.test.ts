@@ -119,6 +119,10 @@ describe('a split of a pane the window draws, in a layout-owner build', () => {
     expect(statusesSeen).toEqual([{ status: 'starting' }])
     expect(runtime.startStatusOf(makePaneKey(TAB_ID, split.leafId ?? ''))).toBeNull()
     expect(split.tabId).toBe(TAB_ID)
+    // RA: The known spawning pane supplies lineage even without an agent.launch call.
+    expect(
+      runtime.getAgentStatusOrchestrationContextForPaneKey(makePaneKey(TAB_ID, split.leafId ?? ''))
+    ).toMatchObject({ parentTerminalHandle: handle })
   })
 
   it('lists the new pane to phones and session.tabs with no window report', async () => {
