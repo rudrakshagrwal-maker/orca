@@ -41,6 +41,7 @@ export const WORKSPACE_SESSION_FIELD_OWNERSHIP = {
   activeWorkspaceKey: 'global',
   activeWorktreeIdsOnShutdown: 'worktreeArray',
   terminalLayoutsByTabId: 'tabKeyed',
+  terminalLaunchParentsByPaneKey: 'paneKeyed', // RA: route by the child's owning host.
   // Local-only scrollback never uploads but follows its tab’s host partition; do not merge it across hosts like sleeping-agent rows.
   localOnlyScrollbackByTabId: 'tabKeyed',
   remoteSessionIdsByTabId: 'tabKeyed',

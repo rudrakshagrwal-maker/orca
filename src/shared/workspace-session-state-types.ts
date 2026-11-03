@@ -42,6 +42,8 @@ export type WorkspaceSessionState = {
   /** Keys may be legacy raw worktree IDs or canonical WorkspaceKey values. */
   tabsByWorktree: Record<string, TerminalTab[]>
   terminalLayoutsByTabId: Record<string, TerminalLayoutSnapshot>
+  // RA: main-owned child pane -> parent pane, persisted with the existing session.
+  terminalLaunchParentsByPaneKey?: Record<string, string>
   /** Ordinary cold-park scrollback, tabId → leafId → buffer; never leaves this client.
    * Keep separate from peer-shared layout buffers: wholesale layout copies would upload frequent hidden-workspace captures. Inventory apply rewrites layouts, leaving this home intact. Read through resolveLeafScrollbackBuffers for precedence between homes. */
   localOnlyScrollbackByTabId?: Record<string, Record<string, string>>

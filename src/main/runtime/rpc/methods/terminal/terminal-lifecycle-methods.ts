@@ -62,6 +62,8 @@ export const TERMINAL_LIFECYCLE_METHODS = [
             params.worktree.slice('id:'.length),
             { tabId: params.tabId, leafId: params.leafId },
             {
+              // RA: host-owned tab creation accepts the same lineage as background creates.
+              ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
               command: params.command,
               ...(params.cwd ? { cwd: params.cwd } : {}),
               ...(params.shell ? { shellOverride: params.shell } : {}),
@@ -86,6 +88,8 @@ export const TERMINAL_LIFECYCLE_METHODS = [
         params.reconcileExisting === true,
         (canonicalWorktreeSelector, preAllocatedHandle) =>
           runtime.createTerminal(canonicalWorktreeSelector, {
+            // RA: keep the caller's parent for plain shells as well as immediate agents.
+            ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
             // A CLI command (typed or an agent's) or a window's create is the user's act.
             wslUserAct: true,
             command: params.command,
@@ -143,10 +147,11 @@ export const TERMINAL_LIFECYCLE_METHODS = [
     name: 'terminal.split',
     permission: 'workspace',
     params: TerminalSplit,
-    handler: async (params, { runtime }) => ({
-      split:
+    handler: async (params, { runtime }) => {
+      const split =
         params.pane && !params.terminal
           ? await runtime.splitTerminalPane(params.pane, {
+              ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
               direction: params.direction ?? 'horizontal',
               newLeafId: params.newLeafId,
               cwd: params.cwd,
@@ -159,6 +164,7 @@ export const TERMINAL_LIFECYCLE_METHODS = [
             })
           : // The schema requires a handle when no pane is named.
             await runtime.splitTerminal(params.terminal ?? '', {
+              ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
               direction: params.direction,
               command: params.command,
               env: params.env,
@@ -166,7 +172,8 @@ export const TERMINAL_LIFECYCLE_METHODS = [
               retrySplit: params.retrySplit,
               wslUserAct: true
             })
-    })
+      return { split }
+    }
   }),
   ...TERMINAL_WORKSPACE_STOP_METHODS,
   defineMethod({

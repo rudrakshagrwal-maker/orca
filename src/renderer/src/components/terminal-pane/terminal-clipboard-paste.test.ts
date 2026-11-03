@@ -9,6 +9,7 @@ import {
 describe('terminal clipboard paste', () => {
   // RA: The receiving shell must see a screenshot under a spaced temp directory as one path.
   it.each([
+    ['C:\\Users\\Rudraksh\\Temp\\shot.png', '"C:\\Users\\Rudraksh\\Temp\\shot.png"'],
     ['C:\\Users\\Example User\\Temp\\shot.png', '"C:\\Users\\Example User\\Temp\\shot.png"'],
     ['/tmp/example user/shot.png', "'/tmp/example user/shot.png'"]
   ])('quotes generated image path %s', async (filePath, quotedPath) => {

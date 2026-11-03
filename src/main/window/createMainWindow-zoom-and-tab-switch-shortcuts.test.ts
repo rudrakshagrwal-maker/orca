@@ -82,15 +82,18 @@ describe('createMainWindow', () => {
       ]) {
         const preventDefault = vi.fn()
         beforeInputEvent({ preventDefault } as never, input as never)
-        expect(preventDefault).toHaveBeenCalledTimes(1)
+        // RA: Windows no longer owns the duplicate numpad zoom binding.
+        const removedWindowsAlias =
+          platform === 'win32' &&
+          (input.key === 'Subtract' || input.code === 'NumpadSubtract')
+        expect(preventDefault).toHaveBeenCalledTimes(removedWindowsAlias ? 0 : 1)
       }
 
-      expect(webContents.send).toHaveBeenCalledTimes(5)
-      expect(webContents.send).toHaveBeenNthCalledWith(1, 'terminal:zoom', 'out')
-      expect(webContents.send).toHaveBeenNthCalledWith(2, 'terminal:zoom', 'out')
-      expect(webContents.send).toHaveBeenNthCalledWith(3, 'terminal:zoom', 'out')
-      expect(webContents.send).toHaveBeenNthCalledWith(4, 'terminal:zoom', 'out')
-      expect(webContents.send).toHaveBeenNthCalledWith(5, 'terminal:zoom', 'out')
+      const zoomCount = platform === 'win32' ? 3 : 5
+      expect(webContents.send).toHaveBeenCalledTimes(zoomCount)
+      for (let call = 1; call <= zoomCount; call++) {
+        expect(webContents.send).toHaveBeenNthCalledWith(call, 'terminal:zoom', 'out')
+      }
 
       const setTerminalFocus = vi
         .mocked(ipcMain.on)

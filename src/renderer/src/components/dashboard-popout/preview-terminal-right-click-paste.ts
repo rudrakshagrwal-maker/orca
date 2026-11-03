@@ -1,5 +1,6 @@
 import type { Terminal } from '@xterm/xterm'
 import { copyTerminalSelection } from '@/components/terminal-pane/terminal-selection-copy'
+import { isWindowsUserAgent } from '@/components/terminal-pane/pane-helpers'
 import type { PreviewTerminalPasteSource } from './preview-terminal-paste'
 import {
   claimTerminalRightClickPasteMouseDown,
@@ -8,7 +9,7 @@ import {
 
 type PreviewRightClickTerminal = Pick<Terminal, 'getSelection' | 'clearSelection' | 'focus'>
 
-/** Match pane right-click behavior: copy selection or paste; Ctrl+right-click retains native menu access. */
+/** RA: Windows pastes; other platforms copy selections first. Ctrl+right-click retains menu access. */
 export function installPreviewTerminalRightClickPaste({
   container,
   getTerminal,
@@ -30,7 +31,8 @@ export function installPreviewTerminalRightClickPaste({
     }
     event.preventDefault()
     event.stopPropagation()
-    if (terminal.getSelection()) {
+    // RA: Match Windows terminal panes: a selection must not turn paste into copy.
+    if (!isWindowsUserAgent() && terminal.getSelection()) {
       void copyTerminalSelection({
         terminal,
         writeClipboardText: window.api.ui.writeTerminalClipboardText,

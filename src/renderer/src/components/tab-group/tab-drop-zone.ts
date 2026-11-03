@@ -43,6 +43,12 @@ export function resolvePaneColumnEdgeZone(
     tabStripHeightPx?: number
   }
 ): Exclude<TabDropZone, 'center'> | null {
+  const tabStripHeight = options?.tabStripHeightPx ?? TAB_GROUP_TAB_STRIP_HEIGHT_PX
+  const tabStripBottom = panelRect.top + tabStripHeight
+  // RA: The entire tab strip, including its side edges, moves tabs instead of splitting.
+  if (point.y < tabStripBottom) {
+    return null
+  }
   const localX = point.x - panelRect.left
   const horizontalEdge = panelRect.width * 0.2
 
@@ -51,13 +57,6 @@ export function resolvePaneColumnEdgeZone(
   }
   if (localX > panelRect.width - horizontalEdge) {
     return 'right'
-  }
-
-  const tabStripHeight = options?.tabStripHeightPx ?? TAB_GROUP_TAB_STRIP_HEIGHT_PX
-  const tabStripBottom = panelRect.top + tabStripHeight
-  // Reserve the strip for reordering; vertical split targets belong to the pane body.
-  if (point.y < tabStripBottom) {
-    return null
   }
 
   const bodyRect =

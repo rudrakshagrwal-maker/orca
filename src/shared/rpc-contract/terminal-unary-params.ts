@@ -227,6 +227,8 @@ export const ResumeProviderSessionParam = z.object({
 })
 
 export const TerminalCreateParams = z.object({
+  // RA: optional for older clients and user-created terminals.
+  parentTerminalHandle: z.string().min(1).optional(),
   worktree: OptionalString,
   clientMutationId: z.string().min(1).max(128).optional(),
   reconcileExisting: z.boolean().optional(),
@@ -272,6 +274,8 @@ export const TerminalCreateParams = z.object({
 
 export const TerminalSplit = z
   .object({
+    // RA: absent callers inherit the split source's ancestry.
+    parentTerminalHandle: z.string().min(1).optional(),
     // Required unless `pane` names the source; the refinement keeps the handle's message.
     terminal: OptionalString,
     expectedIncarnationId: TerminalHandle.shape.expectedIncarnationId,

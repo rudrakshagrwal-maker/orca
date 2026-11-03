@@ -159,6 +159,8 @@ export abstract class OrcaRuntimeWithGetAgentSessionExecutionNamespace extends O
       throw new Error('client_disconnected')
     }
     const terminal = await this.createTerminal(`id:${workspace.id}`, {
+      // RA: a resume into a new terminal retains the requesting terminal as parent.
+      ...(request.parentTerminalHandle ? { parentTerminalHandle: request.parentTerminalHandle } : {}),
       // Only the agent-session RPC reaches here: the caller's own act.
       wslUserAct: true,
       command: startup.launchCommand,

@@ -206,6 +206,8 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
       ...(cwdContext.parentAmbiguous ? { cwdParentAmbiguous: cwdContext.parentAmbiguous } : {}),
       noParent,
       callerTerminalHandle,
+      // RA: terminal creation lineage is separate from the worktree's parent choice.
+      ...(callerTerminalHandle ? { parentTerminalHandle: callerTerminalHandle } : {}),
       // Always request CLI provenance, including hand-typed creates without a terminal handle.
       cliProvenanceRequest: callerTerminalHandle ? { callerTerminalHandle } : {}
     }

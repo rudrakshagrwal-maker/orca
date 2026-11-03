@@ -13,6 +13,8 @@ import { UNMEASURED_PTY_SIZE } from '../../../ipc/pty/pty-first-size'
 import { resolveLaunchCommandPaneAgent } from '../../runtime-agent-launch-resolution'
 
 export type TerminalSplitOptions = {
+  // RA: carry creator identity through internal split factories.
+  parentTerminalHandle?: string
   direction?: 'horizontal' | 'vertical'
   command?: string
   env?: Record<string, string>

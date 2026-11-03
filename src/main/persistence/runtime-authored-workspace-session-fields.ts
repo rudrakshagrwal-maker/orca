@@ -1,5 +1,6 @@
 import type { WorkspaceSessionState } from '../../shared/workspace-session-state-types'
 import { parsePaneKey } from '../../shared/stable-pane-id'
+import { reconcileTerminalLaunchParents } from '../../shared/terminal-launch-lineage'
 
 // Renderer snapshots omit runtime-owned fields; Store must preserve them, including before-unload writes.
 function unionWriteOnceDefaultTerminalTabsApplied(
@@ -52,6 +53,20 @@ export function preserveRuntimeAuthoredWorkspaceSessionFields(
   prior: WorkspaceSessionState | null | undefined
 ): WorkspaceSessionState {
   let result = next
+  // RA: renderer snapshots cannot erase main's lineage; closing either pane retires the link.
+  if (
+    prior?.terminalLaunchParentsByPaneKey &&
+    prior.terminalLaunchParentsByPaneKey !== next.terminalLaunchParentsByPaneKey
+  ) {
+    result = {
+      ...result,
+      terminalLaunchParentsByPaneKey: {
+        ...next.terminalLaunchParentsByPaneKey,
+        ...prior.terminalLaunchParentsByPaneKey
+      }
+    }
+  }
+  result = reconcileTerminalLaunchParents(result)
   if (
     next.clientHostedBrowserPagesByWorktree === undefined &&
     prior?.clientHostedBrowserPagesByWorktree !== undefined

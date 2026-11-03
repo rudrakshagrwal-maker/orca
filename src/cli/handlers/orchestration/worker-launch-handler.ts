@@ -57,6 +57,10 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
       nextCommands?: string[]
       next?: string
     }>(client, flags, 'orchestration.workerStart', {
+      // RA: record the actual calling shell, separately from explicit --from authority.
+      ...(process.env.ORCA_TERMINAL_HANDLE
+        ? { parentTerminalHandle: process.env.ORCA_TERMINAL_HANDLE }
+        : {}),
       task,
       ...(spec ? { spec } : {}),
       ...(taskTitle ? { taskTitle } : {}),

@@ -26,7 +26,10 @@ import { RuntimeResolvedWorktreeCache } from '../runtime-resolved-worktree-cache
 import { RuntimeWorktreeLineageController } from '../runtime-worktree-lineage-controller'
 import { createRuntimeAgentProjections } from './runtime-agent-projections'
 import type { RuntimeAgentOrchestrationDependencies } from '../runtime-agent-orchestration-projection'
-import { getAgentLaunchParents } from '../runtime-agent-launch-parents'
+import {
+  configureAgentLaunchParentPersistence,
+  getAgentLaunchParents
+} from '../runtime-agent-launch-parents'
 import { RuntimeTerminalList } from '../runtime-terminal-list'
 import { RuntimeManagedWorktreeQueries } from '../runtime-managed-worktree-queries'
 import { RuntimePtyForegroundAgent } from '../runtime-pty-foreground-agent'
@@ -118,6 +121,12 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
   })
 
   protected agentOrchestrationDependencies(bound?: Partial<RuntimeAgentOrchestrationDependencies>) {
+    // RA: keep lineage in this host's existing session partitions, never in agent config.
+    configureAgentLaunchParentPersistence(this, {
+      getStore: () => this.store,
+      getPaneKey: (handle) => this.getTerminalPaneKey(handle),
+      getHandle: (paneKey) => this.getTerminalHandleForPaneKey(paneKey)
+    })
     return {
       getDb: () => this.getOrchestrationDbIfAvailable(),
       getLeaves: () => this.leaves.values(),

@@ -100,6 +100,11 @@ export const WORKSPACE_SESSION_FIELD_DISPOSITION = {
     onRepoRemoval: 'prunedByBespokeRule',
     onTransfer: 'copiedByBespokeRule'
   },
+  // RA: prune with pane membership; cross-profile copies start independent terminal trees.
+  terminalLaunchParentsByPaneKey: {
+    onRepoRemoval: 'prunedByBespokeRule',
+    onTransfer: 'notTransferred'
+  },
   // Owner-key helpers also accept bare repo IDs.
   terminalTopologyRevisionByRepoId: {
     onRepoRemoval: 'prunedByOwnerKey',

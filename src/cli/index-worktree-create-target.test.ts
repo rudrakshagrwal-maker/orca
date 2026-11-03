@@ -606,6 +606,8 @@ describe('orca cli worktree awareness', () => {
       cwdParentWorktree: 'id:repo-1::/tmp/repo',
       noParent: false,
       callerTerminalHandle: 'term_parent',
+      // RA: terminal lineage travels separately from workspace parent selection.
+      parentTerminalHandle: 'term_parent',
       cliProvenanceRequest: { callerTerminalHandle: 'term_parent' }
     })
   })

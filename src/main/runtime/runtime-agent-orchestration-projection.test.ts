@@ -151,13 +151,11 @@ describe('RuntimeAgentOrchestrationProjection launch lineage', () => {
     expect(second.projection.buildByPaneKey()).toBeUndefined()
   })
 
-  it('retains a closed parent handle but evicts retired terminal children', () => {
+  it('evicts lineage when either terminal closes', () => {
     const { runtime, projection, panes, launch } = setup()
     launch('term_child', 'term_parent')
     panes.delete('term_parent')
-    expect(projection.buildByPaneKey()).toEqual({
-      'tab-child:leaf-child': { parentTerminalHandle: 'term_parent' }
-    })
+    expect(projection.buildByPaneKey()).toBeUndefined()
     panes.delete('term_child')
     expect(projection.buildByPaneKey()).toBeUndefined()
     expect(getAgentLaunchParents(runtime)?.size).toBe(0)

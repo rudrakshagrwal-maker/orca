@@ -30,12 +30,17 @@ const STRUCTURED_SETUP_WAIT_TIMEOUT_MS = 60_000
 
 export function agentLaunchWorkspaceFactory(
   context: RpcContext,
-  agent: TuiAgent
+  agent: TuiAgent,
+  parentTerminalHandle?: string
 ): AgentLaunchWorkspaceFactory {
   return {
     createFolderWorkspace: agentLaunchFolderWorkspaceCreator(context, agent),
     createRecoveryShell: async (worktreeId) => {
-      await context.runtime.createTerminal(`id:${worktreeId}`, { surfaceOwner: false })
+      await context.runtime.createTerminal(`id:${worktreeId}`, {
+        surfaceOwner: false,
+        // RA: recovery shells retain the original launch's creator.
+        ...(parentTerminalHandle ? { parentTerminalHandle } : {})
+      })
     },
     createWorktree: async ({
       create,
@@ -93,6 +98,8 @@ export function agentLaunchWorkspaceFactory(
             },
             context
           ),
+          // RA: startup/setup/default terminals share the agent.launch caller.
+          ...(parentTerminalHandle ? { parentTerminalHandle } : {}),
           ...(agentArgs !== undefined ? { startupAgentArgs: agentArgs } : {}),
           ...(startupPrompt
             ? {

@@ -23,6 +23,7 @@ import {
 } from './worker-topology'
 import { createWorkerWorktree, type WorkerWorktreeCreationTarget } from './worker-worktree-creation'
 import type { ReopenedWorker, WorkerFollowUp } from './worker-follow-up-placement'
+import { recordAgentLaunchParent } from '../../../../runtime-agent-launch-parents'
 
 /** Name only the two required fields so untyped worktree accessors cannot introduce any into unions. */
 type PlacedWorktree = { id: string; repoId: string }
@@ -130,6 +131,12 @@ async function launchWorkerAgent(
   let launched: Awaited<ReturnType<typeof executeAgentLaunch>>
   try {
     launched = await executeAgentLaunch({
+      // RA: all newly published worker surfaces retain creation ancestry before prompt delivery.
+      onSurfacePublished: (surface) => recordAgentLaunchParent(
+        args.runtime,
+        surface.outcome,
+        args.params.parentTerminalHandle ?? args.params.from
+      ),
       runtime: args.runtime,
       intent: {
         agent,
@@ -146,6 +153,7 @@ async function launchWorkerAgent(
       workspaces: {
         createRecoveryShell: async (worktreeId) => {
           const shell = await args.runtime.createTerminal(`id:${worktreeId}`, {
+            parentTerminalHandle: args.params.parentTerminalHandle ?? args.params.from,
             surfaceOwner: false
           })
           args.effects.push({

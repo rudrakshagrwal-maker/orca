@@ -21,7 +21,7 @@ describe('keybindings', () => {
     ).toBe(true)
   })
 
-  it('zooms in on the plus key whether or not the layout needs Shift for it', () => {
+  it('matches platform zoom defaults on international plus keys', () => {
     const plusKey = { meta: false, control: true, alt: false }
     // German/Swiss put '+' on BracketRight and Nordic layouts on Minus, both unshifted.
     for (const platform of ['darwin', 'win32', 'linux'] as const) {
@@ -32,7 +32,8 @@ describe('keybindings', () => {
         { key: '+', code: 'Equal', shift: true }
       ]) {
         expect(keybindingMatchesAction('zoom.in', { ...plusKey, ...mod, ...input }, platform)).toBe(
-          true
+          // RA: Windows uses Ctrl+Equal alone; international Plus aliases remain remappable.
+          platform !== 'win32'
         )
       }
       // Shift on the German '+' key types '*', which must not zoom.
@@ -144,10 +145,11 @@ describe('keybindings', () => {
     expect(keybindingMatchesAction('browser.grabElement', cyrillicCtrlC, 'win32')).toBe(true)
     expect(keybindingMatchesAction('browser.grabElement', cyrillicCtrlC, 'linux')).toBe(true)
 
-    // Ctrl+Shift+C on the same layout (terminal copy) must match too.
+    // RA: Windows keeps Ctrl+C as terminal copy; the removed alias stays remappable.
     expect(
       keybindingMatchesAction('terminal.copySelection', { ...cyrillicCtrlC, shift: true }, 'win32')
-    ).toBe(true)
+    ).toBe(false)
+    expect(keybindingMatchesAction('terminal.copySelection', cyrillicCtrlC, 'win32')).toBe(true)
 
     // Greek layout: physical P produces 'π' (U+03C0); Ctrl+P must still match.
     expect(

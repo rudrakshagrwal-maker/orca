@@ -149,6 +149,8 @@ export const SetTabProps = WorktreeTabSelector.extend({
 })
 
 export const CreateTerminalTab = WorktreeTabSelector.extend({
+  // RA: the session-tab RPC is also a terminal creation entry point.
+  parentTerminalHandle: z.string().min(1).optional(),
   sourceChatFork: z
     .object({ sessionId: z.string().min(1) })
     .strict()

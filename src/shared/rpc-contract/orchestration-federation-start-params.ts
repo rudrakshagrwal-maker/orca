@@ -3,6 +3,8 @@ import { OptionalFiniteNumber, OptionalString, requiredString } from './rpc-para
 import { OptionalWorkerLaunchPreference } from './orchestration-worker-start-params'
 
 export const FederationAttachStartParams = z.object({
+  // RA: carry the spawning shell through remote attachment; dispatch lineage stays authoritative.
+  parentTerminalHandle: z.string().min(1).optional(),
   /** Omitted by v1.4.198 coordinators; the worker host then mints a stub home Run. */
   runId: OptionalString,
   dispatchId: requiredString('Missing Dispatch ID'),

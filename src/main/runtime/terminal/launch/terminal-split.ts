@@ -35,6 +35,8 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
   async splitTerminal(
     handle: string,
     opts: {
+      // RA: an explicit CLI creator takes precedence over the split target.
+      parentTerminalHandle?: string
       direction?: 'horizontal' | 'vertical'
       command?: string
       env?: Record<string, string>
@@ -52,11 +54,13 @@ export abstract class OrcaRuntimeWithSplitTerminal extends OrcaRuntimeWithStopEx
     // Internal creation evidence; RPC and preload callers never supply it.
     createdWorktree?: Worktree
   ): Promise<RuntimeTerminalSplit> {
-    // RA: Command splits (including team shims) already identify their spawning terminal.
+    // RA: a plain split can become an agent later; record its creator immediately.
     const recordParent = (split: RuntimeTerminalSplit): RuntimeTerminalSplit => {
-      if (opts.command) {
-        recordAgentLaunchParent(this, { kind: 'terminal', handle: split.handle }, handle)
-      }
+      recordAgentLaunchParent(
+        this,
+        { kind: 'terminal', handle: split.handle },
+        opts.parentTerminalHandle ?? handle
+      )
       return split
     }
     const livePty = this.getLivePtyForHandle(handle)

@@ -1,7 +1,7 @@
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { GitCompareArrows, Eye, ShieldAlert, Pin, ListChecks, Smartphone } from 'lucide-react'
+import { GitCompareArrows, Eye, ShieldAlert, ListChecks, Smartphone } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { TabHoverCard } from './TabHoverCard'
 import { basename } from '@/lib/path'
@@ -231,7 +231,7 @@ export default function EditorFileTab({
     disabled: isRenaming
   })
   const handleMenuOpenChange = useTabContextMenuOpening(setMenuOpen, retirePendingActivation)
-  const slotProps = useTabStripSlotProps(file.tabId ?? file.id, isActive)
+  const slotProps = useTabStripSlotProps(file.tabId ?? file.id, isPinned && !isRenaming)
 
   const tabRoot = (
     <div
@@ -239,9 +239,10 @@ export default function EditorFileTab({
       data-tab-id={file.tabId ?? file.id}
       data-active={isActive ? 'true' : 'false'}
       data-pinned={isPinned ? 'true' : 'false'}
+      aria-label={isPinned ? getEditorDisplayLabel(file) : undefined}
       {...attributes}
       {...dragListeners}
-      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
+      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${isPinned && !isRenaming ? 'justify-center [&>*]:mr-0' : ''} ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
       onPointerDown={(e) => {
         onPointerDown(
           e,
@@ -282,86 +283,94 @@ export default function EditorFileTab({
       ) : (
         tabIcon(`w-3 h-3 mr-1 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`)
       )}
-      {isPinned && <Pin className="mr-1 size-3 shrink-0 text-muted-foreground" aria-hidden />}
-      <span className="mr-1 flex min-w-0 flex-1 items-baseline gap-1">
-        {isRenaming ? (
-          <Input
-            ref={setRenameInputElement}
-            density="compact"
-            data-tab-rename-input="true"
-            aria-label={translate(
-              'auto.components.tab.bar.EditorFileTab.3da7445c84',
-              'Rename file {{value0}}',
-              { value0: basename(file.filePath) }
-            )}
-            defaultValue={basename(file.filePath)}
-            className="mr-1 min-w-0 flex-1"
-            spellCheck={false}
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            onDoubleClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              // IME candidate confirmation must not commit the rename.
-              if (isImeCompositionKeyDown(e)) {
-                return
-              }
-              if (e.key === 'Enter') {
-                e.preventDefault()
+      {/* RA: Pinned editors keep their hover title; rename temporarily needs the full field. */}
+      {(!isPinned || isRenaming) && (
+        <span className="mr-1 flex min-w-0 flex-1 items-baseline gap-1">
+          {isRenaming ? (
+            <Input
+              ref={setRenameInputElement}
+              density="compact"
+              data-tab-rename-input="true"
+              aria-label={translate(
+                'auto.components.tab.bar.EditorFileTab.3da7445c84',
+                'Rename file {{value0}}',
+                { value0: basename(file.filePath) }
+              )}
+              defaultValue={basename(file.filePath)}
+              className="mr-1 min-w-0 flex-1"
+              spellCheck={false}
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                // IME candidate confirmation must not commit the rename.
+                if (isImeCompositionKeyDown(e)) {
+                  return
+                }
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  commitRename()
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  renameCancelledRef.current = true
+                  setIsRenaming(false)
+                }
+              }}
+              onBlur={commitRename}
+            />
+          ) : (
+            <span
+              className={`${TAB_LABEL_WIDTH_CLASSES}${isPreviewTab ? ' italic' : ''}${isMissingFileMutation ? ' line-through' : ''}`}
+              style={tabStatusColor ? { color: tabStatusColor } : undefined}
+              onDoubleClick={(e) => {
+                if (isPreviewTab && onMakePermanent) {
+                  e.stopPropagation()
+                  onMakePermanent()
+                  return
+                }
+                // Preview double-click promotes the tab; rename filename text only after it is permanent.
+                if (!canRename) {
+                  return
+                }
                 e.stopPropagation()
-                commitRename()
-              } else if (e.key === 'Escape') {
-                e.preventDefault()
-                e.stopPropagation()
-                renameCancelledRef.current = true
-                setIsRenaming(false)
-              }
-            }}
-            onBlur={commitRename}
-          />
-        ) : (
-          <span
-            className={`${TAB_LABEL_WIDTH_CLASSES}${isPreviewTab ? ' italic' : ''}${isMissingFileMutation ? ' line-through' : ''}`}
-            style={tabStatusColor ? { color: tabStatusColor } : undefined}
-            onDoubleClick={(e) => {
-              if (isPreviewTab && onMakePermanent) {
-                e.stopPropagation()
-                onMakePermanent()
-                return
-              }
-              // Preview double-click promotes the tab; rename filename text only after it is permanent.
-              if (!canRename) {
-                return
-              }
-              e.stopPropagation()
-              openRenameInput()
-            }}
-          >
-            {getEditorDisplayLabel(file)}
-          </span>
-        )}
-        {isMissingFileMutation && !isRenaming && (
-          <span className="shrink-0 text-[10px] leading-none font-semibold tracking-wide text-muted-foreground">
-            {file.externalMutation}
-          </span>
-        )}
-        {tabStatus && !isRenaming && !isMissingFileMutation && (
-          <span
-            className="shrink-0 text-[10px] leading-none font-semibold tracking-wide"
-            style={{ color: tabStatusColor }}
-          >
-            {STATUS_LABELS[tabStatus]}
-          </span>
-        )}
-      </span>
+                openRenameInput()
+              }}
+            >
+              {getEditorDisplayLabel(file)}
+            </span>
+          )}
+          {isMissingFileMutation && !isRenaming && (
+            <span className="shrink-0 text-[10px] leading-none font-semibold tracking-wide text-muted-foreground">
+              {file.externalMutation}
+            </span>
+          )}
+          {tabStatus && !isRenaming && !isMissingFileMutation && (
+            <span
+              className="shrink-0 text-[10px] leading-none font-semibold tracking-wide"
+              style={{ color: tabStatusColor }}
+            >
+              {STATUS_LABELS[tabStatus]}
+            </span>
+          )}
+        </span>
+      )}
       {/* RA: Reserve the dirty dot, but return clean inactive close space to the title. */}
       <div
-        className={`relative items-center justify-center w-4 h-4 shrink-0 ${
-          isActive || file.isDirty ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'
+        className={`items-center justify-center w-4 h-4 shrink-0 ${
+          isPinned
+            ? 'absolute right-0 top-0 flex'
+            : isActive || file.isDirty
+              ? 'relative flex'
+              : 'relative hidden group-hover:flex group-focus-within:flex'
         }`}
       >
         {file.isDirty && (!isActive || isPinned) && (
-          <span className="absolute size-1.5 rounded-full bg-foreground/60 group-hover:hidden group-focus-within:hidden" />
+          <span
+            className={`absolute size-1.5 rounded-full bg-foreground/60 ${isPinned ? '' : 'group-hover:hidden group-focus-within:hidden'}`}
+          />
         )}
         {!isPinned && (
           <EditorFileTabCloseButton

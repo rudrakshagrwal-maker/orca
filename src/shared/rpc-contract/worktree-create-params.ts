@@ -94,6 +94,8 @@ export const WorktreeCreate = z
     cwdParentAmbiguous: z.literal(true).optional(),
     noParent: OptionalBoolean,
     callerTerminalHandle: OptionalString,
+    // RA: creator terminal for startup/setup/default terminal surfaces.
+    parentTerminalHandle: z.string().min(1).optional(),
     orchestrationContext: z
       .object({
         parentWorktreeId: OptionalString,

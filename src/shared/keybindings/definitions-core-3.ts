@@ -166,7 +166,8 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     defaultBindings: {
       darwin: ['Mod+Shift+Z'],
       linux: ['Mod+Shift+Z', 'Ctrl+Y'],
-      win32: ['Mod+Shift+Z', 'Ctrl+Y']
+      // RA: Keep the Windows redo chord without its duplicate.
+      win32: ['Ctrl+Y']
     }
   },
   {
@@ -219,7 +220,8 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     defaultBindings: {
       darwin: ['Mod+C'],
       linux: ['Ctrl+Shift+C', 'Ctrl+C'],
-      win32: ['Ctrl+Shift+C', 'Ctrl+C']
+      // RA: Windows uses Ctrl+C/V; removed aliases stay available through Settings.
+      win32: ['Ctrl+C']
     }
   },
   {
@@ -243,7 +245,7 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     defaultBindings: {
       darwin: ['Mod+V'],
       linux: ['Ctrl+V', 'Ctrl+Shift+V', 'Shift+Insert'],
-      win32: ['Ctrl+V', 'Ctrl+Shift+V', 'Shift+Insert']
+      win32: ['Ctrl+V']
     }
   },
   {
@@ -268,7 +270,8 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     group: 'Terminal Panes',
     scope: 'terminal',
     searchKeywords: ['shortcut', 'pane', 'focus', 'next'],
-    defaultBindings: platformBindings(['Mod+BracketRight'])
+    // RA: Windows pane navigation defaults to the directional Ctrl+Arrow actions below.
+    defaultBindings: { ...platformBindings(['Mod+BracketRight']), win32: [] }
   },
   {
     id: 'terminal.focusPreviousPane',
@@ -276,7 +279,7 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     group: 'Terminal Panes',
     scope: 'terminal',
     searchKeywords: ['shortcut', 'pane', 'focus', 'previous'],
-    defaultBindings: platformBindings(['Mod+BracketLeft'])
+    defaultBindings: { ...platformBindings(['Mod+BracketLeft']), win32: [] }
   },
   // RA: Directional pane focus owns Ctrl+Arrow before terminal word navigation.
   ...([

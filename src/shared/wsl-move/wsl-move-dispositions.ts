@@ -139,6 +139,7 @@ export const WORKSPACE_SESSION_DISPOSITIONS = {
   activeWorkspaceKey: moveDisposition(32, { rewriteDesktopCopy: true }),
   activeWorktreeIdsOnShutdown: moveDisposition(32),
   terminalLayoutsByTabId: moveDisposition(23),
+  terminalLaunchParentsByPaneKey: moveDisposition(23), // RA: durable pane identities survive moves.
   localOnlyScrollbackByTabId: moveDisposition(25, { newManifestSection: true }),
   remoteSessionIdsByTabId: { disposition: 'drop-pty-binding', item: 36 },
   browserPagesByWorkspace: moveDisposition(29),

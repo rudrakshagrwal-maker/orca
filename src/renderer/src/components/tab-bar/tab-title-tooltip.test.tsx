@@ -198,12 +198,19 @@ function textSpanHtml(markup: string, text: string): string {
   return markup.slice(tagStart, spanEnd + '</span>'.length)
 }
 
-function expectTabContainerWidth(markup: string, root: string): void {
+function expectTabContainerWidth(markup: string, root: string, isPinned = false): void {
   const container = firstOpeningTag(markup)
-  const widthClasses = 'min-w-[144px] flex-1'
+  // RA: Pinned slots stay fixed at 40px; ordinary tabs retain the lane's Chrome width.
+  const widthClasses = isPinned ? 'w-10 min-w-10 max-w-10 flex-none' : 'min-w-[110px] flex-1'
   expect(container).toContain(widthClasses)
-  expect(root).not.toContain('min-w-[144px]')
+  expect(container).not.toContain('sticky')
+  expect(root).not.toContain('min-w-[110px]')
   expect(root).toContain('w-full')
+  if (isPinned) {
+    expect(root).not.toContain('tab-label')
+    expect(markup).not.toContain('class="tab-label ')
+    expect(markup).not.toContain('data-tab-close-button')
+  }
 }
 
 function expectTooltipContent(markup: string, text: string): void {
@@ -261,7 +268,7 @@ function makeEditorFile(overrides: Partial<OpenFile & { tabId?: string }> = {}):
 }
 
 describe('tab title tooltips', () => {
-  it('uses the terminal custom title for the visible label and tooltip trigger content', () => {
+  it.each([false, true])('retains the terminal hover title with pinned=%s', (isPinned) => {
     const markup = renderToStaticMarkup(
       <SortableTab
         tab={makeTerminalTab({ customTitle: 'Custom terminal title' })}
@@ -272,7 +279,7 @@ describe('tab title tooltips', () => {
         hasTabsToRight={false}
         hasTabsToLeft={false}
         isActive={true}
-        isPinned={false}
+        isPinned={isPinned}
         isExpanded={false}
         onActivate={vi.fn()}
         onClose={vi.fn()}
@@ -295,7 +302,8 @@ describe('tab title tooltips', () => {
     expect(root).toContain('data-tooltip-trigger="true"')
     expect(root).toContain('role="tab"')
     expect(root).toContain('tabindex="0"')
-    expectTabContainerWidth(markup, root)
+    expectTabContainerWidth(markup, root, isPinned)
+    expect(markup.includes('>Custom terminal title</span>')).toBe(!isPinned)
   })
 
   it("shows the provider icon while stripping the agent's leading status glyph from the label", () => {
@@ -333,12 +341,12 @@ describe('tab title tooltips', () => {
     expect(markup).not.toContain('>✳ Claude Code</span>')
   })
 
-  it('uses the browser tab fallback label from the tab prop, not the live URL', () => {
+  it.each([false, true])('retains the browser hover title with pinned=%s', (isPinned) => {
     const markup = renderToStaticMarkup(
       <BrowserTab
         tab={makeBrowserTab({ title: '', faviconUrl: 'https://example.com/favicon.ico' })}
         isActive={false}
-        isPinned={false}
+        isPinned={isPinned}
         hasTabsToRight={false}
         hasTabsToLeft={false}
         tabCount={1}
@@ -361,15 +369,17 @@ describe('tab title tooltips', () => {
     expect(root).toContain('role="tab"')
     expect(root).toContain('tabindex="0"')
     expect(root).toContain('data-tab-id="browser-1"')
-    expectTabContainerWidth(markup, root)
+    expectTabContainerWidth(markup, root, isPinned)
+    expect(markup.includes('>example.com/docs/long-browser-tab-path</span>')).toBe(!isPinned)
+    if (isPinned) expect(markup).not.toContain('<button')
   })
 
-  it('uses the editor display label while leaving adjacent adornments outside the label', () => {
+  it.each([false, true])('retains the editor hover title with pinned=%s', (isPinned) => {
     const markup = renderToStaticMarkup(
       <EditorFileTab
         file={makeEditorFile({ externalMutation: 'renamed', isPreview: true })}
         isActive={false}
-        isPinned={false}
+        isPinned={isPinned}
         hasTabsToRight={false}
         hasTabsToLeft={false}
         tabCount={1}
@@ -388,14 +398,17 @@ describe('tab title tooltips', () => {
 
     expectTooltipContent(markup, 'VeryLongEditorFileName.tsx')
     expect(markup).toContain('>Editor</span>')
-    expect(markup).toContain('line-through')
-    expect(markup).toContain('renamed')
+    expect(markup.includes('line-through')).toBe(!isPinned)
+    expect(markup.includes('>renamed</span>')).toBe(!isPinned)
     const root = openingTag(markup, 'data-sortable-id', 'editor-tab-1')
     expect(root).toContain('data-tooltip-trigger="true"')
     expect(root).toContain('role="tab"')
     expect(root).toContain('tabindex="0"')
     expect(root).toContain('data-tab-id="editor-tab-1"')
-    expect(textSpanHtml(markup, 'VeryLongEditorFileName.tsx')).not.toContain('renamed')
-    expectTabContainerWidth(markup, root)
+    if (!isPinned) {
+      expect(textSpanHtml(markup, 'VeryLongEditorFileName.tsx')).not.toContain('renamed')
+    }
+    expectTabContainerWidth(markup, root, isPinned)
+    if (isPinned) expect(markup).not.toContain('<button')
   })
 })

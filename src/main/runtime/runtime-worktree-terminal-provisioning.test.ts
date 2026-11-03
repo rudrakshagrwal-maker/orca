@@ -40,6 +40,25 @@ function provision(host: ReturnType<typeof fakeHost>, startup: boolean) {
 }
 
 describe('default tabs beside the agent a create started', () => {
+  // RA: setup, default tabs and fallback shells all share the worktree caller.
+  it.each(['defaults', 'setup', 'shell'])('retains the creator for %s provisioning', async (kind) => {
+    const host = fakeHost()
+    await provisionWorktreeTerminals(host, {
+      worktreeSelector: 'id:wt-1',
+      worktreeId: 'wt-1',
+      worktreePath: '/worktrees/wt-1',
+      parentTerminalHandle: 'term_creator',
+      hasStartupTerminal: false,
+      setupCommandPlatform: 'posix',
+      ...(kind === 'defaults' ? { defaultTabs: DEFAULT_TABS } : {}),
+      ...(kind === 'setup' ? { setup: { runnerScriptPath: '/repo/setup.sh', envVars: {} } } : {})
+    })
+    expect(host.createTerminal).toHaveBeenCalled()
+    for (const [, options] of host.createTerminal.mock.calls) {
+      expect(options.parentTerminalHandle).toBe('term_creator')
+    }
+  })
+
   it('makes the agent the first default tab, as the window lays it out', async () => {
     const host = fakeHost()
     await provision(host, true)

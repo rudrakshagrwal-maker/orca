@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ManagedPane, PaneManager } from '@/lib/pane-manager/pane-manager'
 import type { TerminalPasteSource } from './terminal-paste-model'
 import { copyTerminalSelection } from './terminal-selection-copy'
+import { isWindowsUserAgent } from './pane-helpers'
 import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/close-all-context-menus'
 import {
   claimTerminalRightClickPasteMouseDown,
@@ -68,13 +69,13 @@ export function useTerminalContextMenuTrigger({
         : null
     contextPaneIdRef.current = clickedPane?.id ?? null
 
-    // Configured right-click copies selection or pastes; Ctrl+right-click preserves menu access.
+    // RA: Windows right-click always pastes; Ctrl+right-click preserves menu access.
     if (rightClickToPaste && !event.ctrlKey) {
       event.stopPropagation()
       if (!clickedPane) {
         return
       }
-      if (clickedPane.terminal.getSelection()) {
+      if (!isWindowsUserAgent() && clickedPane.terminal.getSelection()) {
         void copyTerminalSelection({
           terminal: clickedPane.terminal,
           writeClipboardText: window.api.ui.writeTerminalClipboardText,

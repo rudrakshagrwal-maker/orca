@@ -8,6 +8,8 @@ import type { DefaultTerminalTab } from '../../shared/workspace-layout/workspace
 
 type TerminalResult = { handle: string }
 export type WorktreeProvisionTerminalOptions = {
+  // RA: preserve the originating terminal through setup and default tabs.
+  parentTerminalHandle?: string
   /** The pane main already wrote (layout-owner build): the terminal starts in it. */
   tabId?: string
   leafId?: string
@@ -42,9 +44,11 @@ export type WorktreeTerminalProvisioningHost = {
 }
 
 // What every terminal of this create shares: who surfaces it, and whether the create was the user's act (E9).
-type TerminalSurfacing = { surfaceOwner?: false; wslUserAct?: true }
+type TerminalSurfacing = { surfaceOwner?: false; wslUserAct?: true; parentTerminalHandle?: string }
 
 export type WorktreeTerminalProvisioningArgs = {
+  // RA: forwarded to every newly provisioned terminal.
+  parentTerminalHandle?: string
   /** The create was the user's act: its terminals may start a stopped WSL distro. */
   wslUserAct?: true
   worktreeSelector: string
@@ -191,6 +195,8 @@ export async function provisionWorktreeTerminals(
     return { setupSpawned: false, setupTerminalHandle: null }
   }
   const surfacing: TerminalSurfacing = {
+    // RA: all setup/default/fallback shells retain the worktree creator.
+    ...(args.parentTerminalHandle ? { parentTerminalHandle: args.parentTerminalHandle } : {}),
     ...(args.surfaceOwner === false ? { surfaceOwner: false as const } : {}),
     ...(args.wslUserAct ? { wslUserAct: true as const } : {})
   }

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { keepLastWorkspaceTabOpen } from '@/lib/keep-last-workspace-tab-open'
+import {
+  keepLastWorkspaceTabOpen,
+  keepPinnedWorkspaceTabOpen
+} from '@/lib/keep-last-workspace-tab-open'
 import { onActiveTerminalPaneCloseRequest } from './request-active-terminal-pane-close'
 import { useAppStore } from '../../store'
 import { retireUnboundRuntimeTerminalPane } from './retire-unbound-runtime-terminal-pane'
@@ -43,8 +46,8 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
   } = controller
   // RA: Recheck each tab-close fallback, including delayed main replies.
   const onCloseTab = useCallback(
-    () => void (keepLastWorkspaceTabOpen(worktreeId) || closeTab()),
-    [closeTab, worktreeId]
+    () => void (keepLastWorkspaceTabOpen(worktreeId, tabId) || closeTab()),
+    [closeTab, tabId, worktreeId]
   )
   // The window's half of a split pane's close: its transport, status and pane go.
   const closePaneLocally = useCallback(
@@ -212,12 +215,16 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
   )
 
   const closeActivePane = useCallback((): void => {
+    // RA: Ctrl+W on a pinned terminal leaves its panes intact too.
+    if (keepPinnedWorkspaceTabOpen(worktreeId, tabId)) {
+      return
+    }
     const manager = managerRef.current
     const pane = manager?.getActivePane() ?? manager?.getPanes()[0]
     if (pane) {
       handleRequestClosePane(pane.id)
     }
-  }, [handleRequestClosePane, managerRef])
+  }, [handleRequestClosePane, managerRef, tabId, worktreeId])
   useEffect(
     () => onActiveTerminalPaneCloseRequest(tabId, closeActivePane),
     [closeActivePane, tabId]

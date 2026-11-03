@@ -1,7 +1,7 @@
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { useCallback, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { X, Minimize2, Pin } from 'lucide-react'
+import { X, Minimize2 } from 'lucide-react'
 import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
 import { getAgentLabel } from '@/lib/agent-catalog'
 import { basename } from '@/lib/path'
@@ -200,7 +200,7 @@ export default function SortableTab({
     disabled: isEditing
   })
   const handleMenuOpenChange = useTabContextMenuOpening(setMenuOpen, retirePendingActivation)
-  const slotProps = useTabStripSlotProps(tab.id, isActive, isSubagent)
+  const slotProps = useTabStripSlotProps(tab.id, isPinned && !isEditing, isSubagent)
   const tabTitle = tab.customTitle ?? tab.title
   const tabRoot = (
     <div
@@ -208,13 +208,14 @@ export default function SortableTab({
       data-testid="sortable-tab"
       data-tab-id={tab.id}
       data-tab-title={tabTitle}
+      aria-label={isPinned ? displayTitle : undefined}
       data-pinned={isPinned ? 'true' : 'false'}
       // Expose rendered selection so E2E catches visual regressions missed by store-only assertions.
       data-active={isActive ? 'true' : 'false'}
       data-agent-activity-status={activityStatus}
       {...attributes}
       {...dragListeners}
-      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
+      className={`w-full group relative flex items-center h-full px-1.5 text-xs cursor-pointer select-none outline-none focus:outline-none focus-visible:outline-none ${isPinned && !isEditing ? 'justify-center [&>span]:mr-0' : ''} ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getDropIndicatorClasses(dropIndicator ?? null)} ${getTabRootStateClasses(isActive)}`}
       onDoubleClick={(e) => {
         if (isEditing) {
           return
@@ -258,9 +259,7 @@ export default function SortableTab({
         isActive={isActive}
         progress={programProgress}
       />
-      {isPinned && !isEditing && (
-        <Pin className="mr-1 size-3 shrink-0 text-muted-foreground" aria-hidden />
-      )}
+      {/* RA: Pinned tabs retain their identity icon and hover title only. */}
       {isEditing ? (
         <Input
           ref={setRenameInputElement}
@@ -290,19 +289,19 @@ export default function SortableTab({
           className="mr-1 min-w-0 flex-1"
           spellCheck={false}
         />
-      ) : (
+      ) : !isPinned ? (
         // RA: Child labels use the next smaller token without changing the agent glyph.
         <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1${isSubagent ? ' text-2xs' : ''}`}>
           {displayTitle}
         </span>
-      )}
-      {tab.color && !isEditing && (
+      ) : null}
+      {tab.color && !isEditing && !isPinned && (
         <span
           className="mr-1.5 size-2 rounded-full shrink-0"
           style={{ backgroundColor: tab.color }}
         />
       )}
-      {isExpanded && !isEditing && (
+      {isExpanded && !isEditing && !isPinned && (
         <button
           className={`mr-1 flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive

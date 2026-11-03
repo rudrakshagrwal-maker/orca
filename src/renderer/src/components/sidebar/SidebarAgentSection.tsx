@@ -28,7 +28,7 @@ import {
 } from './worktree-agent-orchestration-index'
 import { activateWorktreeAgentPane } from './use-worktree-agent-activation'
 import { activateRetainedAgentRow } from './activate-retained-agent-row'
-import { buildSidebarAgentTree, SIDEBAR_AGENT_GROUPS } from './sidebar-agent-tree'
+import { buildSidebarAgentTree } from './sidebar-agent-tree'
 import { getFocusedAgentPaneKeyForWorktree } from './focused-agent-row-highlight'
 
 const COLLAPSE_KEY = 'ra:sidebar-agents'
@@ -131,12 +131,6 @@ function SidebarAgentSectionBody(): React.JSX.Element {
     names.set(FLOATING_TERMINAL_WORKTREE_ID, translate('ra.sidebar.floatingTerminals', 'Terminals'))
     return names
   }, [worktreeMap, folderWorkspaces, detectedWorktreesByRepo, languageRevision])
-  const groupLabels = {
-    attention: translate('ra.sidebar.agentsNeedsYou', 'Needs you'),
-    working: translate('ra.sidebar.agentsWorking', 'Working'),
-    done: translate('ra.sidebar.agentsDone', 'Done'),
-    idle: translate('ra.sidebar.agentsIdle', 'Idle')
-  }
   const renderBranch = (
     agent: AgentRow,
     ancestors: ReadonlySet<string>,
@@ -198,18 +192,8 @@ function SidebarAgentSectionBody(): React.JSX.Element {
   }
   return (
     <>
-      {SIDEBAR_AGENT_GROUPS.map((group) => {
-        const roots = tree.groups.get(group) ?? []
-        return roots.length > 0 ? (
-          <section key={group} aria-label={groupLabels[group]}>
-            <div className="flex h-7 items-center gap-1.5 px-2 text-[13px] text-muted-foreground">
-              {groupLabels[group]}
-              <span className="tabular-nums">{roots.length}</span>
-            </div>
-            <ul className="list-none">{roots.map((root) => renderBranch(root, new Set()))}</ul>
-          </section>
-        ) : null
-      })}
+      {/* RA: one hierarchy; status glyphs stay on their existing rows. */}
+      <ul className="list-none">{tree.rootRows.map((root) => renderBranch(root, new Set()))}</ul>
       {rows.length === 0 ? (
         <div className="px-2 py-1 text-[13px] text-muted-foreground">
           {translate('ra.sidebar.noAgents', 'No agents')}

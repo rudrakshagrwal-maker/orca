@@ -6,38 +6,21 @@ import {
 } from '@/components/dashboard/dashboard-row-bucket'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
 
-export const SIDEBAR_AGENT_GROUPS = ['attention', 'working', 'done', 'idle'] as const
-export type SidebarAgentGroup = (typeof SIDEBAR_AGENT_GROUPS)[number]
-
-// RA: assign the whole tree to its most urgent member, including nested workers.
+// RA: start order is independent of status, turn timestamps and acknowledgements.
 export function buildSidebarAgentTree(rows: DashboardAgentRow[], state: AgentRowUnreadState) {
-  const tree = buildAgentRowLineageTree(rows)
-  const records = readAgentRowTurnRecords(state)
-  const groups = new Map<SidebarAgentGroup, DashboardAgentRow[]>(
-    SIDEBAR_AGENT_GROUPS.map((group) => [group, []])
+  const tree = buildAgentRowLineageTree(
+    [...rows].sort((a, b) =>
+      (a.startedAt || a.tab.createdAt) - (b.startedAt || b.tab.createdAt) ||
+        a.paneKey.localeCompare(b.paneKey)
+    )
   )
+  const records = readAgentRowTurnRecords(state)
   const unvisitedPaneKeys = new Set<string>()
-  const priorityByPaneKey = new Map<string, number>()
   for (const row of rows) {
-    const { bucket, unseen } = dashboardRowBucketProjection(row, records)
-    priorityByPaneKey.set(row.paneKey, SIDEBAR_AGENT_GROUPS.indexOf(bucket))
+    const { unseen } = dashboardRowBucketProjection(row, records)
     if (unseen) {
       unvisitedPaneKeys.add(row.paneKey)
     }
   }
-  for (const root of tree.rootRows) {
-    let priority = SIDEBAR_AGENT_GROUPS.length - 1
-    const pending = [root]
-    const visited = new Set<string>()
-    for (const row of pending) {
-      if (visited.has(row.paneKey)) {
-        continue
-      }
-      visited.add(row.paneKey)
-      priority = Math.min(priority, priorityByPaneKey.get(row.paneKey) ?? priority)
-      pending.push(...(tree.childrenByParentPaneKey.get(row.paneKey) ?? []))
-    }
-    groups.get(SIDEBAR_AGENT_GROUPS[priority] ?? 'idle')?.push(root)
-  }
-  return { ...tree, groups, unvisitedPaneKeys }
+  return { ...tree, unvisitedPaneKeys }
 }

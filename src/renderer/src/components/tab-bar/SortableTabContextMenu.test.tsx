@@ -345,6 +345,23 @@ describe('SortableTabContextMenu', () => {
     })
   })
 
+  // RA: Both direct placements move the clicked tab, even when it is already active.
+  it.each([true, false])('offers direct split placements with active=%s', (isActive) => {
+    const { container } = renderMenu({ isActive })
+    act(() => getButton(container, 'Add tab to split view (right)').click())
+    expect(moveMock.moveTabToNewPaneColumn).toHaveBeenLastCalledWith({
+      unifiedTabId: 'tab-1',
+      groupId: 'group-1',
+      direction: 'right'
+    })
+    act(() => getButton(container, 'Add tab to split view (below)').click())
+    expect(moveMock.moveTabToNewPaneColumn).toHaveBeenLastCalledWith({
+      unifiedTabId: 'tab-1',
+      groupId: 'group-1',
+      direction: 'down'
+    })
+  })
+
   it('hides terminal-only split actions for structured chat tabs', () => {
     const { container } = renderMenu({ canSplitTerminal: false })
 

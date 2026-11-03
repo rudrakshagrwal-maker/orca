@@ -78,13 +78,13 @@ describe('KeybindingService tab-switch cohort seeding', () => {
       expect(existsSync(getUserKeybindingsPath(home))).toBe(false)
 
       const overrides = service.getOverrides()
-      expect(getEffectiveKeybindingsForAction('tab.nextAllTypes', platform, overrides)).toEqual([
-        'Mod+Shift+BracketRight',
-        'Ctrl+Tab'
-      ])
-      expect(getEffectiveKeybindingsForAction('tab.nextSameType', platform, overrides)).toEqual([
-        'Mod+Alt+BracketRight'
-      ])
+      // RA: Fresh Windows profiles use only Ctrl+Tab; other platforms keep upstream defaults.
+      expect(getEffectiveKeybindingsForAction('tab.nextAllTypes', platform, overrides)).toEqual(
+        platform === 'win32' ? ['Ctrl+Tab'] : ['Mod+Shift+BracketRight', 'Ctrl+Tab']
+      )
+      expect(getEffectiveKeybindingsForAction('tab.nextSameType', platform, overrides)).toEqual(
+        platform === 'win32' ? [] : ['Mod+Alt+BracketRight']
+      )
 
       expect(
         keybindingMatchesAction(
@@ -93,7 +93,7 @@ describe('KeybindingService tab-switch cohort seeding', () => {
           platform,
           overrides
         )
-      ).toBe(true)
+      ).toBe(platform !== 'win32')
       expect(
         keybindingMatchesAction(
           'tab.nextSameType',

@@ -8,6 +8,7 @@ import {
 import { workspaceSessionPartitionHostId } from '../../../shared/workspace-session-partition-owner'
 import { isWslMoveWorkspaceSessionFrozen } from '../moving-wsl-projects/wsl-move-scope-guard'
 import { cloneWorkspaceSessionState, deleteOwnerKeyedSessionFields } from './session-owner-fields'
+import { reconcileTerminalLaunchParents } from '../../../shared/terminal-launch-lineage'
 
 /** Frozen WSL sessions must survive pruning for downgrade. */
 export function withoutWslMoveFrozenOwners(ownerKeys: ReadonlySet<string>): ReadonlySet<string> {
@@ -21,6 +22,10 @@ export function deleteScannedSessionFieldsForOwners(
   removedTabIds: ReadonlySet<string>,
   isRemovedOwner: (worktreeId: string) => boolean
 ): void {
+  // RA: removing a workspace closes either endpoint of its launch relationships.
+  if (next.terminalLaunchParentsByPaneKey) {
+    next.terminalLaunchParentsByPaneKey = reconcileTerminalLaunchParents(next).terminalLaunchParentsByPaneKey
+  }
   if (next.terminalPtyIncarnationsByPaneKey) {
     next.terminalPtyIncarnationsByPaneKey = Object.fromEntries(
       Object.entries(next.terminalPtyIncarnationsByPaneKey).filter(([paneKey]) => {

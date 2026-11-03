@@ -12,6 +12,11 @@ describe('resolvePaneColumnEdgeZone', () => {
     expect(resolvePaneColumnEdgeZone(panelRect, { x: 150, y: 100 })).toBeNull()
   })
 
+  // RA: Tab-bar drops must remain moves even at either horizontal split edge.
+  it.each([5, 150, 295])('does not split on the tab strip at x=%s', (x) => {
+    expect(resolvePaneColumnEdgeZone(panelRect, { x, y: 16 })).toBeNull()
+  })
+
   it('does not return up while the pointer is still in the tab strip', () => {
     expect(
       resolvePaneColumnEdgeZone(panelRect, {

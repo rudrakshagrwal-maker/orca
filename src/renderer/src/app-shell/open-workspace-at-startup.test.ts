@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => {
     platform: 'win32',
     pairedWeb: false,
     repos,
+    tabsByWorktree: {} as Record<string, { id: string; ptyId: string | null }[]>,
+    unifiedTabsByWorktree: {} as Record<string, { contentType: string }[]>,
     worktreesByRepo: {
       workspace: [
         { id: 'linked', isMainWorktree: false, hostId: 'local' },
@@ -17,6 +19,7 @@ const mocks = vi.hoisted(() => {
     },
     addRepoPath: vi.fn(),
     fetchWorktrees: vi.fn(),
+    createTab: vi.fn(),
     activateAndRevealWorktree: vi.fn()
   }
 })
@@ -48,6 +51,12 @@ describe('Workspace startup selection', () => {
     mocks.platform = 'win32'
     mocks.pairedWeb = false
     mocks.repos = [repo]
+    mocks.tabsByWorktree = {}
+    mocks.unifiedTabsByWorktree = {}
+    mocks.createTab.mockImplementation((worktreeId: string) => {
+      mocks.tabsByWorktree[worktreeId] = [{ id: 'claude-tab', ptyId: null }]
+      mocks.unifiedTabsByWorktree[worktreeId] = [{ contentType: 'terminal' }]
+    })
     mocks.addRepoPath.mockResolvedValue(repo)
     mocks.fetchWorktrees.mockResolvedValue(true)
   })
@@ -57,8 +66,45 @@ describe('Workspace startup selection', () => {
     expect(mocks.addRepoPath).not.toHaveBeenCalled()
     expect(mocks.activateAndRevealWorktree).toHaveBeenCalledExactlyOnceWith('local-main', {
       executionHostId: 'local',
-      runtimeEnvironmentId: null
+      runtimeEnvironmentId: null,
+      providesInitialSurface: true
     })
+  })
+
+  // RA: Restored terminal identity, including cold/no-PTY tabs, suppresses startup Claude.
+  it('queues Claude in Workspace before activation and does not queue it twice', async () => {
+    await openWorkspaceAtStartup(() => false)
+    await openWorkspaceAtStartup(() => false)
+    expect(mocks.createTab).toHaveBeenCalledExactlyOnceWith(
+      'local-main',
+      undefined,
+      undefined,
+      {
+        launchAgent: 'claude',
+        startupCwd: 'C:\\Users\\Rudraksh\\Documents\\Workspace',
+        pendingStartup: { command: 'claude --dangerously-skip-permissions' },
+        recordInteraction: false
+      }
+    )
+    expect(mocks.createTab.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.activateAndRevealWorktree.mock.invocationCallOrder[0]!
+    )
+  })
+
+  it.each(['legacy', 'unified'])('preserves a restored %s terminal', async (model) => {
+    if (model === 'legacy') {
+      mocks.tabsByWorktree['local-main'] = [{ id: 'restored', ptyId: null }]
+    } else {
+      mocks.unifiedTabsByWorktree['local-main'] = [{ contentType: 'terminal' }]
+    }
+    await openWorkspaceAtStartup(() => false)
+    expect(mocks.createTab).not.toHaveBeenCalled()
+  })
+
+  it('opens Claude beside restored browser tabs when Workspace has no terminals', async () => {
+    mocks.unifiedTabsByWorktree['local-main'] = [{ contentType: 'browser' }]
+    await openWorkspaceAtStartup(() => false)
+    expect(mocks.createTab).toHaveBeenCalledOnce()
   })
 
   it('adds Workspace locally when the only matching path belongs to a remote host', async () => {
@@ -95,5 +141,6 @@ describe('Workspace startup selection', () => {
     })
     await openWorkspaceAtStartup(() => cancelled)
     expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+    expect(mocks.createTab).not.toHaveBeenCalled()
   })
 })

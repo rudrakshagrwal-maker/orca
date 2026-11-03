@@ -16,6 +16,7 @@ import { agentLaunchTokenFor, withAgentLaunchToken } from '../../../agent-launch
 import { seedPtyLaunchTitle } from './pty-launch-title'
 import { migratedPaneRestoreHint } from '../../migrated-pane-restore-cwd'
 import { paneSize, resolvePtyFirstSize } from '../../../ipc/pty/pty-first-size'
+import { recordAgentLaunchParent } from '../../runtime-agent-launch-parents'
 
 export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTerminalCreateDeduplication {
   protected abstract paneStartStatusArgs: dependencies.PaneStartArgsOf
@@ -263,6 +264,8 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
             ...(savedStartupCwd !== workspace.path ? { startupCwd: savedStartupCwd } : {})
           })
         }
+        // RA: central create records ancestry before presentation can fail.
+        recordAgentLaunchParent(this, { kind: 'terminal', handle }, opts.parentTerminalHandle)
         const reveal = revealCreatedTerminal({
           notifier: this.notifier,
           workspace,
@@ -305,6 +308,12 @@ export abstract class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTermi
     }
     // The renderer owns this spawn, so this process cannot see when it is requested.
     opts.onPtySpawnDispatched?.()
-    return createDesktopTerminal(this, opts, presentation)
+    const terminal = await createDesktopTerminal(this, opts, presentation)
+    recordAgentLaunchParent(
+      this,
+      { kind: 'terminal', handle: terminal.handle },
+      opts.parentTerminalHandle
+    )
+    return terminal
   }
 }

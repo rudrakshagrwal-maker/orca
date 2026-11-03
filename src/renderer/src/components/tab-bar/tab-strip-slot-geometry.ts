@@ -1,10 +1,5 @@
 /** Strip slots exclude adjacent out-of-flow menu triggers. */
 const SLOT_SELECTOR = '[data-tab-strip-slot]'
-/** Marks the slot of the tab that renders active; it is sticky, so it docks to the edge it would scroll past. */
-const DOCK_SELECTOR = '[data-active-tab-dock]'
-const DOCK_DISABLED_ATTRIBUTE = 'data-active-tab-dock-disabled'
-
-export type ActiveTabDockSide = 'start' | 'end'
 
 function getSlots(strip: HTMLElement): HTMLElement[] {
   return Array.from(strip.querySelectorAll<HTMLElement>(`:scope > ${SLOT_SELECTOR}`))
@@ -12,21 +7,6 @@ function getSlots(strip: HTMLElement): HTMLElement[] {
 
 function getSlotId(slot: HTMLElement): string {
   return slot.dataset.tabStripSlot ?? ''
-}
-
-function getActiveTabDock(strip: HTMLElement): HTMLElement | null {
-  return strip.hasAttribute(DOCK_DISABLED_ATTRIBUTE)
-    ? null
-    : strip.querySelector<HTMLElement>(`:scope > ${DOCK_SELECTOR}`)
-}
-
-export function updateTabStripDockAvailability(strip: HTMLElement): void {
-  const dock = strip.querySelector<HTMLElement>(`:scope > ${DOCK_SELECTOR}`)
-  // Leave room for another tab beside the dock, or inactive tabs become unreachable.
-  strip.toggleAttribute(
-    DOCK_DISABLED_ATTRIBUTE,
-    dock !== null && strip.clientWidth < dock.getBoundingClientRect().width * 2
-  )
 }
 
 export function findTabStripSlot(strip: HTMLElement, tabId: string): HTMLElement | undefined {
@@ -37,26 +17,10 @@ export function readTabStripSlotIds(strip: HTMLElement): ReadonlySet<string> {
   return new Set(getSlots(strip).map(getSlotId))
 }
 
-/** Viewport span of `slot`'s place in the tab order; only the dock is drawn anywhere else. */
-function getSlotNaturalSpan(strip: HTMLElement, slot: HTMLElement): [number, number] {
-  const rect = slot.getBoundingClientRect()
-  if (!slot.matches(DOCK_SELECTOR)) {
-    return [rect.left, rect.right]
-  }
-  let prev = slot.previousElementSibling
-  while (prev && !prev.matches(SLOT_SELECTOR)) {
-    prev = prev.previousElementSibling
-  }
-  const left = prev
-    ? prev.getBoundingClientRect().right
-    : strip.getBoundingClientRect().left + strip.clientLeft - strip.scrollLeft
-  return [left, left + rect.width]
-}
-
 /** Which edge `slot`'s place in the tab order is past; null when that place is on screen. */
-function getSlotOffscreenSide(strip: HTMLElement, slot: HTMLElement): ActiveTabDockSide | null {
+function getSlotOffscreenSide(strip: HTMLElement, slot: HTMLElement): 'start' | 'end' | null {
   const viewLeft = strip.getBoundingClientRect().left + strip.clientLeft
-  const [left, right] = getSlotNaturalSpan(strip, slot)
+  const { left, right } = slot.getBoundingClientRect()
   if (left < viewLeft - 1) {
     return 'start'
   }
@@ -64,17 +28,6 @@ function getSlotOffscreenSide(strip: HTMLElement, slot: HTMLElement): ActiveTabD
     return 'end'
   }
   return null
-}
-
-export function getActiveTabDockSide(strip: HTMLElement): ActiveTabDockSide | null {
-  const dock = getActiveTabDock(strip)
-  return dock ? getSlotOffscreenSide(strip, dock) : null
-}
-
-/** True when `el` belongs to the active tab and is drawn docked at an edge instead of its real spot. */
-export function isDockedTabStripElement(strip: HTMLElement, el: Element): boolean {
-  const dock = getActiveTabDock(strip)
-  return dock !== null && dock.contains(el) && getSlotOffscreenSide(strip, dock) !== null
 }
 
 /** The first slot missing from `knownIds` whose place in the tab order is off screen. */
@@ -87,25 +40,7 @@ export function findOffscreenOpenedTabStripSlot(
   )
 }
 
-/** Reveal natural slot geometry instead of its sticky dock; reserve room for the active dock when both cannot fit. */
-export function revealTabStripSlot(strip: HTMLElement, slot: HTMLElement): void {
-  let [left, right] = getSlotNaturalSpan(strip, slot)
-  const dock = getActiveTabDock(strip)
-  if (dock && dock !== slot) {
-    const [dockLeft, dockRight] = getSlotNaturalSpan(strip, dock)
-    if (Math.max(right, dockRight) - Math.min(left, dockLeft) <= strip.clientWidth) {
-      left = Math.min(left, dockLeft)
-      right = Math.max(right, dockRight)
-    } else if (dockRight <= left) {
-      left -= dockRight - dockLeft
-    } else if (dockLeft >= right) {
-      right += dockRight - dockLeft
-    }
-  }
-  const viewLeft = strip.getBoundingClientRect().left + strip.clientLeft
-  if (left < viewLeft) {
-    strip.scrollLeft -= viewLeft - left
-  } else if (right > viewLeft + strip.clientWidth) {
-    strip.scrollLeft += Math.min(left - viewLeft, right - viewLeft - strip.clientWidth)
-  }
+// RA: Active tabs keep their natural position and scroll to the nearest visible edge.
+export function revealTabStripSlot(slot: HTMLElement): void {
+  slot.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 }

@@ -200,6 +200,10 @@ export const TERMINAL_HANDLERS: Record<string, CommandHandler> = {
       }
     }
     const result = await client.call<{ terminal: RuntimeTerminalCreate }>('terminal.create', {
+      // RA: retain ancestry even when the caller sends the agent command later.
+      ...(process.env.ORCA_TERMINAL_HANDLE
+        ? { parentTerminalHandle: process.env.ORCA_TERMINAL_HANDLE }
+        : {}),
       worktree: await getBrowserWorktreeSelector(flags, cwd, client),
       command,
       ...(shell !== undefined ? { shell } : {}),
@@ -247,6 +251,10 @@ export const TERMINAL_HANDLERS: Record<string, CommandHandler> = {
       }
     }
     const result = await client.call<{ split: RuntimeTerminalSplit }>('terminal.split', {
+      // RA: the caller can differ from the pane it asks to split.
+      ...(process.env.ORCA_TERMINAL_HANDLE
+        ? { parentTerminalHandle: process.env.ORCA_TERMINAL_HANDLE }
+        : {}),
       terminal: await getTerminalHandle(flags, cwd, client),
       direction: directionFlag,
       command: getOptionalStringFlag(flags, 'command'),

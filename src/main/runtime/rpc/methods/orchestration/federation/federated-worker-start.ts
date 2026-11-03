@@ -163,6 +163,8 @@ export async function startFederatedWorker(args: FederatedWorkerStartRequest): P
         server.environmentId,
         'orchestration.federationAttachStart',
         {
+          // RA: preserve the original shell's identity across the worker-server RPC.
+          ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
           runId,
           dispatchId: started.dispatch.id,
           taskId: taskForRemote.id,

@@ -342,6 +342,8 @@ describe('Coordinator', () => {
     await vi.advanceTimersByTimeAsync(100)
 
     expect(runtime.createdTerminals.length).toBe(1)
+    // RA: automatic workers are children from the moment their shell exists.
+    expect(runtime.createdTerminalOptions[0]).toHaveProperty('parentTerminalHandle', 'coord')
     expect(runtime.createdTerminalOptions[0]).not.toHaveProperty('presentation')
 
     insertWorkerDone(db, { taskId: task.id, from: runtime.createdTerminals[0] })

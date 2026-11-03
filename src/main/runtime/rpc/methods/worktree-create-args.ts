@@ -31,6 +31,10 @@ export function buildManagedWorktreeCreateArgs(
     provenance.automationProvenance.origin !== 'client'
   return {
     repoSelector: worktreeCreateRepoSelector(params),
+    // RA: older CLI callers already send callerTerminalHandle.
+    ...((params.parentTerminalHandle ?? params.callerTerminalHandle)
+      ? { parentTerminalHandle: params.parentTerminalHandle ?? params.callerTerminalHandle }
+      : {}),
     // A phone's retry key is the identity of its creation.
     creationId: params.creationId ?? params.clientMutationId,
     ...(viewerSupported !== undefined ? { terminalImageViewerSupported: viewerSupported } : {}),

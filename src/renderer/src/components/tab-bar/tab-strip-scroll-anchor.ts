@@ -1,5 +1,3 @@
-import { isDockedTabStripElement } from './tab-strip-slot-geometry'
-
 /** A tab's on-screen x inside the strip viewport, recorded before tabs are inserted around it. */
 export type TabStripScrollAnchor = {
   tabId: string
@@ -14,7 +12,7 @@ function findTab(strip: HTMLElement, tabId: string): HTMLElement | undefined {
   return tabElements(strip).find((tab) => tab.dataset.tabId === tabId)
 }
 
-/** Anchor to the visible active tab or first visible tab, excluding sticky docks whose position hides surrounding scroll changes. */
+// RA: Every slot scrolls naturally, so the visible active or first visible tab can anchor insertion.
 export function captureTabStripScrollAnchor(
   strip: HTMLElement,
   activeTabId: string | null
@@ -25,8 +23,7 @@ export function captureTabStripScrollAnchor(
     return (
       rect.width > 0 &&
       rect.right > stripRect.left &&
-      rect.left < stripRect.right &&
-      !isDockedTabStripElement(strip, tab)
+      rect.left < stripRect.right
     )
   }
   const active = activeTabId ? findTab(strip, activeTabId) : undefined

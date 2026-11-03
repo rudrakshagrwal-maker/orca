@@ -94,9 +94,21 @@ describe('getTabStripScrollMaskClassName', () => {
     ).toBe('terminal-tab-strip--fade-start terminal-tab-strip--fade-end')
   })
 
-  it('drops the fade on the edge the active tab is docked to', () => {
-    const metrics = { hasOverflow: true, canScrollStart: true, canScrollEnd: true }
-    expect(getTabStripScrollMaskClassName(metrics, 'start')).toBe('terminal-tab-strip--fade-end')
-    expect(getTabStripScrollMaskClassName(metrics, 'end')).toBe('terminal-tab-strip--fade-start')
+  // RA: Fade edges follow scroll position with no active-tab exemption.
+  it('fades only the edge with offscreen tabs', () => {
+    expect(
+      getTabStripScrollMaskClassName({
+        hasOverflow: true,
+        canScrollStart: false,
+        canScrollEnd: true
+      })
+    ).toBe('terminal-tab-strip--fade-end')
+    expect(
+      getTabStripScrollMaskClassName({
+        hasOverflow: true,
+        canScrollStart: true,
+        canScrollEnd: false
+      })
+    ).toBe('terminal-tab-strip--fade-start')
   })
 })

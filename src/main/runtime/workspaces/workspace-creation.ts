@@ -127,7 +127,12 @@ export abstract class OrcaRuntimeWithCreateManagedWorktree extends OrcaRuntimeWi
           ptySpawnAvailable: Boolean(this.ptyController?.spawn),
           provisionInBackground: () => this.shouldProvisionWorktreeInBackground(args.navigation),
           createTerminal: (selector, options) =>
-            this.createTerminal(selector, { ...options, ...wslUserAct(args) }),
+            this.createTerminal(selector, {
+              ...options,
+              ...wslUserAct(args),
+              // RA: every startup shell belongs to the caller, even before an agent starts.
+              parentTerminalHandle: args.parentTerminalHandle ?? args.lineage?.callerTerminalHandle
+            }),
           pasteDraft: (handle, draft) => this.pasteStartupDraftWhenReady(handle, draft),
           sendFollowup: (handle, followup, terminal) =>
             void this.deliverStartupFollowup(handle, followup, { terminalCreation: terminal }),
@@ -241,12 +246,22 @@ export abstract class OrcaRuntimeWithCreateManagedWorktree extends OrcaRuntimeWi
         canSpawn: Boolean(this.ptyController?.spawn),
         provisionInBackground: () => this.shouldProvisionWorktreeInBackground(args.navigation),
         createTerminal: (selector, options) =>
-          this.createTerminal(selector, { ...options, ...wslUserAct(args) }, worktree),
+          this.createTerminal(selector, {
+            ...options,
+            ...wslUserAct(args),
+            // RA: record the spawning terminal across local/SSH startup routes.
+            parentTerminalHandle: args.parentTerminalHandle ?? args.lineage?.callerTerminalHandle
+          }, worktree),
         pasteDraft: (handle, draft) => this.pasteStartupDraftWhenReady(handle, draft),
         sendFollowup: (handle, followup, terminal) =>
           void this.deliverStartupFollowup(handle, followup, { terminalCreation: terminal }),
         provision: (options) =>
-          this.provisionManagedWorktreeTerminals({ ...options, ...wslUserAct(args) }, worktree),
+          this.provisionManagedWorktreeTerminals({
+            ...options,
+            ...wslUserAct(args),
+            // RA: background setup/default tabs retain the same creator.
+            parentTerminalHandle: args.parentTerminalHandle ?? args.lineage?.callerTerminalHandle
+          }, worktree),
         activate: activationCallbacks.local
       }
     })

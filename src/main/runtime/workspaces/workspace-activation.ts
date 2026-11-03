@@ -260,6 +260,8 @@ export abstract class OrcaRuntimeWithActivateManagedWorktree extends OrcaRuntime
 
   async provisionManagedWorktreeTerminals(
     args: {
+      // RA: all default/setup terminals retain the worktree creation caller.
+      parentTerminalHandle?: string
       worktreeSelector: string
       worktreeId: string
       worktreePath: string

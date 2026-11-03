@@ -254,6 +254,8 @@ export default function TabGroupPanel({
   )
   return (
     <div
+      // RA: The main shell frames each group independently, including its attached tab strip.
+      data-slot="workspace-tab-group"
       // Dim unfocused splits only when siblings exist; keep vertical seams neutral and change only the bottom focus border.
       className={`group/tab-group relative flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden${
         hasSplitGroups
