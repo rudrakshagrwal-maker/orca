@@ -2,7 +2,8 @@
 export function defaultTerminalFontFamily(): string {
   const platform = typeof process !== 'undefined' ? process.platform : ''
   if (platform === 'win32') {
-    return 'Cascadia Mono'
+    // RA: match VS Code's Windows terminal default.
+    return 'Consolas'
   }
   if (platform === 'linux') {
     return 'DejaVu Sans Mono'

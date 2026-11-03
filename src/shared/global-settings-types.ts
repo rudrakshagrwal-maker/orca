@@ -101,6 +101,8 @@ export type GlobalSettings = GlobalSettingsBase & {
   primarySelectionMiddleClickPasteDefaultedForTerminalDefaults?: boolean
   terminalFontSize: number
   terminalFontFamily: string
+  /** RA: one-time switch of old Orca terminal font defaults to VS Code's (Consolas 14, weight 400). */
+  raVsCodeFontDefaultsApplied?: boolean
   terminalFontWeight: number
   terminalFontWeightBold: number
   terminalLineHeight: number

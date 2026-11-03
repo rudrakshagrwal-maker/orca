@@ -70,6 +70,15 @@ export function prepareLoadedProfileSettings(
   defaults: PersistedState,
   markNeedsSave: () => void
 ): PreparedLoadedProfileSettings {
+  // RA: once, move untouched upstream font defaults (Cascadia Mono, 500, 13-14px) to VS Code's.
+  const raSettings = parsed.settings as Partial<GlobalSettings> | undefined
+  if (raSettings && raSettings.raVsCodeFontDefaultsApplied !== true) {
+    if (raSettings.terminalFontFamily === 'Cascadia Mono') raSettings.terminalFontFamily = 'Consolas'
+    if (raSettings.terminalFontWeight === 500) raSettings.terminalFontWeight = 400
+    if (raSettings.terminalFontSize === 13) raSettings.terminalFontSize = 14
+    raSettings.raVsCodeFontDefaultsApplied = true
+    markNeedsSave()
+  }
   const migratedPortugueseUiLanguage = migratePortugueseUiLanguageOnLoad(parsed.settings)
   if (
     parsed.settings?.uiLanguage !== migratedPortugueseUiLanguage.uiLanguage ||

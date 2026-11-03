@@ -1,4 +1,5 @@
-export const DEFAULT_TERMINAL_FONT_WEIGHT = 500
+// RA: normal weight, like VS Code.
+export const DEFAULT_TERMINAL_FONT_WEIGHT = 400
 export const TERMINAL_FONT_WEIGHT_MIN = 100
 export const TERMINAL_FONT_WEIGHT_MAX = 900
 export const TERMINAL_FONT_WEIGHT_STEP = 100
