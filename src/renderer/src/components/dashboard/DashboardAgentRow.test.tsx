@@ -61,6 +61,29 @@ function renderRow(agent: DashboardAgentRowData): string {
   )
 }
 
+// RA: compact sidebar rows use the status clock, not the session's start time.
+it('renders a compact orchestrator row with workspace, title, age and attention', () => {
+  const markup = renderToStaticMarkup(
+    <TooltipProvider>
+      <DashboardAgentRow
+        agent={makeAgent({ startedAt: 1 }, { state: 'blocked', updatedAt: NOW - 1 })}
+        sidebarTreeRow
+        sidebarWorkspaceName="Orca"
+        childAgentCount={2}
+        onDismiss={vi.fn()}
+        onActivate={vi.fn()}
+        now={NOW}
+      />
+    </TooltipProvider>
+  )
+  expect(markup).toContain('Orca')
+  expect(markup).toContain('Terminal 1')
+  expect(markup).toContain('Orchestrator')
+  expect(markup).toContain('1m')
+  expect(markup).toContain('text-destructive')
+  expect(markup).not.toContain('data-agent-row-tool-placeholder')
+})
+
 function renderSendTargetRow(
   props: Pick<
     ComponentProps<typeof DashboardAgentRow>,

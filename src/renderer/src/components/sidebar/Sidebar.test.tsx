@@ -61,6 +61,11 @@ vi.mock('./WorktreeList', () => ({
 
 vi.mock('./WslMovedProjectsSection', () => ({ default: () => null }))
 
+// RA: sidebar shell tests isolate the global agent row subscriptions.
+vi.mock('./SidebarAgentSection', () => ({
+  default: () => <div data-testid="sidebar-agent-section" />
+}))
+
 vi.mock('./SidebarToolbar', () => ({
   default: () => <div data-testid="sidebar-toolbar" />
 }))
