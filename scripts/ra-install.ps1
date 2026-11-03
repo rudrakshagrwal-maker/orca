@@ -45,10 +45,8 @@ foreach ($folder in @(
         throw 'Windows did not provide a Start menu or desktop folder.'
     }
     New-Item -ItemType Directory -Path $folder -Force | Out-Null
-    # RA: Keep the visible name Orca inside a separate shortcut folder.
-    $shortcutFolder = Join-Path $folder 'Orca RA'
-    New-Item -ItemType Directory -Path $shortcutFolder -Force | Out-Null
-    $shortcutPath = Join-Path $shortcutFolder 'Orca.lnk'
+    # RA: Plain "Orca" shortcut straight on the desktop and in the Start menu.
+    $shortcutPath = Join-Path $folder 'Orca.lnk'
     $shortcut = $shell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = $appPath
     $shortcut.WorkingDirectory = $installDir
