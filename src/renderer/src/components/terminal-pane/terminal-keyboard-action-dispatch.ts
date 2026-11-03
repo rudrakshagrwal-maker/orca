@@ -10,6 +10,7 @@ import {
 } from '@/lib/pane-manager/terminal-scroll-intent'
 import type { resolveTerminalKeyboardShortcutAction } from './terminal-keyboard-shortcut-matching'
 import { equalizeTerminalPanes } from './terminal-pane-layout-owner-commands'
+import { focusTerminalPaneInDirection } from './terminal-directional-focus'
 
 type TerminalShortcutAction = NonNullable<ReturnType<typeof resolveTerminalKeyboardShortcutAction>>
 
@@ -141,6 +142,11 @@ export function dispatchTerminalShortcutAction(
     return
   }
   if (action.type === 'focusPane') {
+    // RA: Spatial focus crosses tab groups and leaves expanded siblings hidden.
+    if (action.direction !== 'next' && action.direction !== 'previous') {
+      focusTerminalPaneInDirection(manager, action.direction)
+      return
+    }
     const panes = manager.getPanes()
     if (panes.length < 2) {
       return
@@ -156,42 +162,6 @@ export function dispatchTerminalShortcutAction(
     const activeId = manager.getActivePane()?.id ?? panes[0].id
     const currentIdx = panes.findIndex((pane) => pane.id === activeId)
     if (currentIdx === -1) {
-      return
-    }
-    // RA: The manager contains only this tab's panes; pick the closest center in the requested direction.
-    if (action.direction !== 'next' && action.direction !== 'previous') {
-      const currentRect = panes[currentIdx].container.getBoundingClientRect()
-      const currentX = (currentRect.left + currentRect.right) / 2
-      const currentY = (currentRect.top + currentRect.bottom) / 2
-      let nearest: ManagedPane | undefined
-      let nearestDistance = Infinity
-      for (const pane of panes) {
-        if (pane.id === activeId) {
-          continue
-        }
-        const rect = pane.container.getBoundingClientRect()
-        if (rect.width <= 0 || rect.height <= 0) {
-          continue
-        }
-        const dx = (rect.left + rect.right) / 2 - currentX
-        const dy = (rect.top + rect.bottom) / 2 - currentY
-        const inDirection =
-          action.direction === 'left'
-            ? dx < 0
-            : action.direction === 'right'
-              ? dx > 0
-              : action.direction === 'up'
-                ? dy < 0
-                : dy > 0
-        const distance = dx * dx + dy * dy
-        if (inDirection && distance < nearestDistance) {
-          nearest = pane
-          nearestDistance = distance
-        }
-      }
-      if (nearest) {
-        manager.setActivePane(nearest.id, { focus: true })
-      }
       return
     }
     const dir = action.direction === 'next' ? 1 : -1

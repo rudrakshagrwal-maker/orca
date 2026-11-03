@@ -23,20 +23,30 @@ describe('directional pane shortcuts', () => {
     ['ArrowDown', 'down']
   ] as const)('focuses the %s pane before Windows byte fallbacks', (key, direction) => {
     const isLocalWindowsConptyPane = vi.fn(() => true)
-    for (const repeat of [false, true]) {
-      expect(
-        resolveTerminalShortcutAction(
-          event({ key, code: key, ctrlKey: true, repeat }),
-          false,
-          'false',
-          0,
-          true,
-          undefined,
-          isLocalWindowsConptyPane
-        )
-      ).toEqual({ type: 'focusPane', direction })
+    // RA: Agent keyboard protocols and terminal-first must not route navigation into the PTY.
+    const getKittyKeyboardFlags = vi.fn(() => 31)
+    for (const terminalShortcutPolicy of ['orca-first', 'terminal-first'] as const) {
+      for (const repeat of [false, true]) {
+        expect(
+          resolveTerminalShortcutAction(
+            event({ key, code: key, ctrlKey: true, repeat }),
+            false,
+            'false',
+            0,
+            true,
+            undefined,
+            isLocalWindowsConptyPane,
+            getKittyKeyboardFlags,
+            undefined,
+            undefined,
+            () => true,
+            terminalShortcutPolicy
+          )
+        ).toEqual({ type: 'focusPane', direction })
+      }
     }
     expect(isLocalWindowsConptyPane).not.toHaveBeenCalled()
+    expect(getKittyKeyboardFlags).not.toHaveBeenCalled()
     expect(
       resolveTerminalShortcutAction(event({ key, code: key, ctrlKey: true }), false)
     ).toEqual({ type: 'focusPane', direction })
