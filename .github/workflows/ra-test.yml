@@ -1,0 +1,33 @@
+name: Orca RA Tests
+
+# RA: Orca's own unit tests on every push to ra, beside (not blocking) the Windows build.
+on:
+  push:
+    branches: [ra]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ra-test
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
