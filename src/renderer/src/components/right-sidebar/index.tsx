@@ -135,7 +135,8 @@ function RightSidebarInner(): React.JSX.Element {
     <div
       ref={containerRef}
       className={cn(
-        'relative flex-shrink-0 flex flex-row',
+        // RA: Let the panel yield to the available width, including during live resizes.
+        'relative flex min-w-0 max-w-full flex-row',
         // Allow the open resize handle to overflow; at width zero, clip mounted content and icons.
         rightSidebarOpen ? 'overflow-visible' : 'overflow-hidden'
       )}
@@ -161,11 +162,12 @@ function RightSidebarInner(): React.JSX.Element {
         ) : (
           /* The 40px activity bar absorbs part of the 138px window-control overlay; inset the header by the remaining 98px. */
           <div className="flex items-center justify-between h-[36px] min-h-[36px] px-3 border-b border-border right-sidebar-header-side-inset right-sidebar-header-drag">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
+            {/* RA: Long titles yield before the sidebar controls. */}
+            <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wider text-foreground">
               {visibleItems.find((item) => item.id === effectiveTab)?.title ?? ''}
             </span>
             <TooltipProvider delayDuration={400}>
-              <div className="flex items-center">{closeButton}</div>
+              <div className="flex shrink-0 items-center">{closeButton}</div>
             </TooltipProvider>
           </div>
         )}
