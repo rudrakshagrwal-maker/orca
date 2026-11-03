@@ -71,11 +71,11 @@ describe('deriveWindowsAppDataPath', () => {
 })
 
 describe('ensureWindowsAppDataPath', () => {
-  it('keeps the native appData and pins userData to the path Electron would derive', () => {
+  it('keeps native appData and isolates the fork profile from official Orca', () => {
     const host = createHost('C:\\Users\\me\\AppData\\Roaming')
     ensureWindowsAppDataPath(host, { APPDATA: 'D:\\ignored' }, 'win32')
     expect(host.calls).toEqual(['get:appData', 'set:userData'])
-    expect(host.paths.get('userData')).toBe('C:\\Users\\me\\AppData\\Roaming\\orca')
+    expect(host.paths.get('userData')).toBe('C:\\Users\\me\\AppData\\Roaming\\Orca-RA')
   })
 
   it('leaves userData to an explicit --user-data-dir switch', () => {
@@ -95,7 +95,7 @@ describe('ensureWindowsAppDataPath', () => {
 
     expect(host.calls).toEqual(['get:appData', 'set:appData', 'set:userData'])
     expect(host.paths.get('appData')).toBe(missingAppData)
-    expect(host.paths.get('userData')).toBe(win32.join(missingAppData, 'orca'))
+    expect(host.paths.get('userData')).toBe(win32.join(missingAppData, 'Orca-RA'))
     expect(existsSync(missingAppData)).toBe(true)
   })
 

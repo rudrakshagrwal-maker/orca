@@ -20,7 +20,8 @@ import {
 export const BUILTIN_TERMINAL_THEME_NAMES = getThemeNames()
 
 export { DEFAULT_TERMINAL_THEME_DARK, DEFAULT_TERMINAL_THEME_LIGHT }
-export const DEFAULT_TERMINAL_DIVIDER_DARK = '#3f3f46'
+// RA: Missing divider preferences use the same dim border as Tango Black chrome.
+export const DEFAULT_TERMINAL_DIVIDER_DARK = '#1c1c1c'
 export const DEFAULT_TERMINAL_DIVIDER_LIGHT = '#d4d4d8'
 
 export type EffectiveTerminalAppearance = {

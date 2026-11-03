@@ -1,0 +1,74 @@
+name: Orca RA Windows
+
+# RA: Build an unsigned manual installer without an update feed or telemetry keys.
+on:
+  push:
+    branches: [ra]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ra-win
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-win:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      ORCA_BACKGROUND_LAUNCH: '1'
+      NODE_OPTIONS: --max-old-space-size=4096
+      ORCA_BUILD_COMMIT: ${{ github.sha }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup pnpm from packageManager
+        uses: pnpm/setup@v2
+        with:
+          install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # RA: build:desktop:assets resolves Expo and React Native from mobile/node_modules.
+      - uses: ./.github/actions/install-mobile-dependencies
+
+      - name: Typecheck
+        run: pnpm run typecheck:ci
+
+      # RA: build:release also builds native/ (the orca.exe CLI launcher electron-builder packs).
+      - name: Build app
+        run: pnpm build:release
+
+      - name: Prepare Electron runtime
+        run: pnpm run ensure:electron-runtime
+
+      - name: Package Windows installer
+        run: pnpm exec electron-builder --config config/electron-builder.config.cjs --win --publish never
+
+      - name: Replace manual installer release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # RA: The NSIS artifact includes the packaged version.
+          installers=(dist/Orca-RA-Setup-*.exe)
+          test "${#installers[@]}" -eq 1
+          test -s "${installers[0]}"
+          gh release delete ra-latest --yes --cleanup-tag || true
+          gh release create ra-latest "${installers[0]}" --title "Orca RA ${GITHUB_SHA::7}" --notes ok --target "$GITHUB_SHA"

@@ -1,8 +1,20 @@
 import { join, resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getPlatformUserDataPath } from './metadata'
 import { getMacOpenArgs } from './launch'
 import { pinLaunchUserDataPath, resolveLaunchUserDataPath } from './launch-user-data-path'
+
+// RA: The bundled CLI must discover this fork's desktop instead of official Orca.
+describe('Windows fork profile discovery', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('uses the same isolated profile as the Windows desktop', () => {
+    vi.stubEnv('APPDATA', 'C:\\Users\\me\\AppData\\Roaming')
+    expect(getPlatformUserDataPath('win32')).toBe(
+      join('C:\\Users\\me\\AppData\\Roaming', 'Orca-RA')
+    )
+  })
+})
 
 describe('resolveLaunchUserDataPath', () => {
   it('prefers ORCA_USER_DATA_PATH, made absolute', () => {

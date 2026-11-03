@@ -332,8 +332,9 @@
   --orca-security-ring: #737373;
   --orca-security-floating-surface: rgba(0, 0, 0, 0.72);
   --orca-security-dialog-surface: rgba(23, 23, 23, 0.96);
-  --background: #0a0a0a;
-  --editor-surface: #1e1e1e;
+  /* RA: Tango Black chrome uses the existing surface tokens throughout the app. */
+  --background: #000000;
+  --editor-surface: #000000;
   --foreground: #f0f0f0;
   --chat-canvas-mix: 5%;
   --chat-foreground-mix: 78%;
@@ -350,12 +351,12 @@
   --chat-composer-base: transparent;
   --chat-composer-border-mix: 9%;
   --chat-content-max-width: 46rem;
-  --card: #171717;
+  --card: #000000;
   --card-foreground: #f0f0f0;
-  --popover: #171717;
+  --popover: #000000;
   --popover-foreground: #f0f0f0;
   --floating-surface: rgba(0, 0, 0, 0.72);
-  --dialog-surface: rgba(23, 23, 23, 0.96);
+  --dialog-surface: rgba(0, 0, 0, 0.96);
   --primary: #e5e5e5;
   --primary-foreground: #171717;
   --secondary: #262626;
@@ -364,7 +365,7 @@
   --muted-foreground: #acacac;
   --accent: #404040;
   --accent-foreground: #f0f0f0;
-  --border: rgb(255 255 255 / 0.07);
+  --border: #1c1c1c;
   --input: rgb(255 255 255 / 0.15);
   --ring: #737373;
   --terminal-pane-locate: var(--color-blue-400);
@@ -379,22 +380,20 @@
   --chart-3: var(--color-blue-600);
   --chart-4: var(--color-blue-700);
   --chart-5: var(--color-blue-800);
-  /* Mirror light mode’s lifted worktree sidebar above the dark canvas. */
-  --worktree-sidebar: #2a2a2a;
+  /* RA: Both sidebars share the black canvas; hover/focus tokens retain their contrast. */
+  --worktree-sidebar: #000000;
   --worktree-sidebar-foreground: #f0f0f0;
   --worktree-sidebar-accent: #353535;
   --worktree-sidebar-accent-foreground: #f0f0f0;
-  /* Match --border / --sidebar-border (7%) so the left sidebar's divider lines
-     aren't brighter than the rest of the UI in dark mode (#5906). */
-  --worktree-sidebar-border: rgb(255 255 255 / 0.07);
+  --worktree-sidebar-border: #1c1c1c;
   --worktree-sidebar-ring: #737373;
-  --sidebar: #171717;
+  --sidebar: #000000;
   --sidebar-foreground: #f0f0f0;
   --sidebar-primary: #1447e6;
   --sidebar-primary-foreground: #f0f0f0;
   --sidebar-accent: #262626;
   --sidebar-accent-foreground: #f0f0f0;
-  --sidebar-border: rgb(255 255 255 / 0.07);
+  --sidebar-border: #1c1c1c;
   --sidebar-ring: #525252;
   --terminal-pane-title-on-dark-fg: rgb(255 255 255 / 0.52);
   --terminal-pane-title-on-dark-input-fg: rgb(255 255 255 / 0.7);
@@ -424,7 +423,8 @@
   /* Brighter than terminal defaults so the always-visible line clears 3:1 on `--card`. */
   --split-divider: #71717a;
   --split-divider-hover: #a1a1aa;
-  --tab-active: color-mix(in srgb, var(--foreground) 6%, var(--tab-bar, var(--card)));
+  /* RA: Keep the existing active indicator while both tab surfaces remain black. */
+  --tab-active: var(--tab-bar, var(--card));
   --tab-inactive: var(--tab-bar, var(--card));
 }
 

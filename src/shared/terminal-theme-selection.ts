@@ -21,7 +21,8 @@ import type { TerminalOscColorQueryReplyColors } from './terminal-osc-color-repl
 import { TERMINAL_THEME_CATALOG } from './terminal-themes'
 import type { TerminalThemeMap } from './terminal-themes/types'
 
-export const DEFAULT_TERMINAL_THEME_DARK = 'Ghostty Default Style Dark'
+// RA: Use Tango Black for missing, removed or invalid dark theme selections too.
+export const DEFAULT_TERMINAL_THEME_DARK = 'Tango Black'
 export const DEFAULT_TERMINAL_THEME_LIGHT = 'Builtin Tango Light'
 
 export type TerminalThemeSelectionSettings = Pick<

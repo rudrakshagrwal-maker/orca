@@ -55,7 +55,8 @@ export function createOrFocusWorkspaceSpaceWindow(store: Store): BrowserWindow {
     title: translateMain('native.dialog.spaceTitle', 'Orca Space Beta'),
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff',
+    // RA: Match the dark CSS canvas before the renderer's first paint.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#000000' : '#ffffff',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,

@@ -124,7 +124,8 @@ export function createMainWindow(
     ...windowMaterialOptions(
       windowMaterial,
       process.platform,
-      nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff'
+      // RA: Match the dark CSS canvas before the renderer's first paint.
+      nativeTheme.shouldUseDarkColors ? '#000000' : '#ffffff'
     ),
     // Keep macOS traffic lights inset; hide Windows native chrome to avoid duplicate titlebars.
     titleBarStyle:

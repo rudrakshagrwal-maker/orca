@@ -44,7 +44,8 @@ describe('useTerminalViewerColorPublication', () => {
 
   it('publishes a theme change with no terminal pane open, to main and to paired hosts', () => {
     const { unmount } = renderHook(() => useTerminalViewerColorPublication())
-    expect(lastPushedColors()).toEqual({ foreground: '#ffffff', background: '#282c34' })
+    // RA: A fresh viewer publishes the Tango Black palette to every owner.
+    expect(lastPushedColors()).toEqual({ foreground: '#d3d7cf', background: '#000000' })
 
     act(() => {
       const settings = useAppStore.getState().settings!

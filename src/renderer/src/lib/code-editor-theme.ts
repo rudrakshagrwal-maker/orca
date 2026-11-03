@@ -112,14 +112,14 @@ export function resolveCodeEditorTheme(input: {
       : selected.id === appTheme?.id)
   if (sameAsApp) {
     return {
-      // Why read the document: a followed editor matches what was painted, built-ins included.
-      monaco: appTheme
+      // RA: Derive built-in dark Monaco colors from the same black CSS tokens as the chrome.
+      monaco: appTheme || input.dark
         ? derivePluginMonacoTheme({
-            base: appTheme.base,
+            base: appTheme?.base ?? appBase,
             read: input.readDocument,
             painted: input.appPainted,
             probe: input.probe,
-            tokenColors: appTheme.tokenColors
+            tokenColors: appTheme?.tokenColors
           })
         : null,
       override: null

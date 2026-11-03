@@ -46,7 +46,7 @@ describe('the terminal colours a host configures', () => {
     ).toEqual({ foreground: '#ffffff', background: '#101010' })
     expect(
       resolveConfiguredTerminalColors({ ...base, terminalThemeDark: 'no such theme' }, true)
-    ).toEqual({ foreground: '#ffffff', background: '#282c34' })
+    ).toEqual({ foreground: '#d3d7cf', background: '#000000' })
   })
 })
 
@@ -108,7 +108,7 @@ describe('plugin terminal palettes', () => {
   })
 
   it('falls back to the default theme for a missing or malformed snapshot', () => {
-    const fallback = resolveConfiguredTerminalColors(base, true)
+    const fallback = { foreground: '#d3d7cf', background: '#000000' }
     for (const terminalPluginPalettes of [[], [{ id, colors: { background: 'red;' } }]]) {
       expect(
         resolveConfiguredTerminalColors(
@@ -121,7 +121,7 @@ describe('plugin terminal palettes', () => {
 
   it('stops painting while its plugin is off and paints again once it is back on', () => {
     const selected = { ...base, terminalThemeDark: id, terminalPluginPalettes: [{ id, colors }] }
-    const fallback = resolveConfiguredTerminalColors(base, true)
+    const fallback = { foreground: '#d3d7cf', background: '#000000' }
     expect(
       resolveConfiguredTerminalColors({ ...selected, disabledPlugins: ['samples.dusk'] }, true)
     ).toEqual(fallback)
@@ -160,7 +160,7 @@ describe('deleting an imported terminal theme (#32138)', () => {
     const { updates, undo } = terminalCustomThemeRemoval(settings, 'warp:dusk')
     expect(updates).toEqual({
       terminalCustomThemes: [kept],
-      terminalThemeDark: 'Ghostty Default Style Dark',
+      terminalThemeDark: 'Tango Black',
       terminalColorOverrides: undefined,
       terminalThemeLight: 'Builtin Tango Light',
       terminalColorOverridesLight: undefined

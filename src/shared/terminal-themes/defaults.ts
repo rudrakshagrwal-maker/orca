@@ -1,6 +1,32 @@
 import type { TerminalThemeMap } from './types'
 
 export const DEFAULT_TERMINAL_THEMES: TerminalThemeMap = {
+  // RA: Exact Tango ANSI palette on a pure-black terminal canvas.
+  'Tango Black': {
+    background: '#000000',
+    foreground: '#d3d7cf',
+    cursor: '#d3d7cf',
+    cursorAccent: '#000000',
+    selectionBackground: '#2e3436',
+    selectionForeground: '#d3d7cf',
+    black: '#2e3436',
+    red: '#cc0000',
+    green: '#4e9a06',
+    yellow: '#c4a000',
+    blue: '#3465a4',
+    magenta: '#75507b',
+    cyan: '#06989a',
+    white: '#d3d7cf',
+    brightBlack: '#555753',
+    brightRed: '#ef2929',
+    brightGreen: '#8ae234',
+    brightYellow: '#fce94f',
+    brightBlue: '#729fcf',
+    brightMagenta: '#ad7fa8',
+    brightCyan: '#34e2e2',
+    brightWhite: '#eeeeec'
+  },
+
   // Most colors come from Ghostty. Orca raises dark selection contrast because Ghostty's
   // original #3e4451 blends into Codex-style gray instruction blocks.
   'Ghostty Default Style Dark': {

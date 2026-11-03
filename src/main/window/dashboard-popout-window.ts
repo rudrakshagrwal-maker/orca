@@ -152,7 +152,8 @@ export function createOrFocusDashboardPopout(
     title: translateMain('native.dialog.dashboardTitle', 'Orca Agent Dashboard'),
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff',
+    // RA: Match the dark CSS canvas before the renderer's first paint.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#000000' : '#ffffff',
     // Use native movable/closable chrome on every platform; the popout renders no custom titlebar.
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

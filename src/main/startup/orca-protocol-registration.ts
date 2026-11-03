@@ -1,5 +1,8 @@
 import type { App } from 'electron'
 
+// RA: Leave official Orca's protocol handler alone; this fork opens local work directly.
+const REGISTER_ORCA_PROTOCOL = false
+
 /**
  * Registers `orca://` with Windows, which NSIS installs leave unregistered; macOS reads it from
  * Info.plist and Linux packages from the desktop entry. Only packaged desktop launches register,
@@ -9,7 +12,12 @@ export function registerOrcaProtocolClient(
   app: Pick<App, 'isPackaged' | 'isDefaultProtocolClient' | 'setAsDefaultProtocolClient'>,
   options: { platform: NodeJS.Platform; desktopLaunch: boolean }
 ): boolean {
-  if (options.platform !== 'win32' || !app.isPackaged || !options.desktopLaunch) {
+  if (
+    !REGISTER_ORCA_PROTOCOL ||
+    options.platform !== 'win32' ||
+    !app.isPackaged ||
+    !options.desktopLaunch
+  ) {
     return false
   }
   if (app.isDefaultProtocolClient('orca')) {

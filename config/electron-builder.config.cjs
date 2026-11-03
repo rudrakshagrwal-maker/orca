@@ -28,9 +28,6 @@ const {
 } = require('./packaged-windows-only-runtime-files.cjs')
 const { verifyLinuxGlibcFloor } = require('./scripts/verify-linux-glibc-floor.cjs')
 const {
-  verifyPackagedWindowsAgentHook
-} = require('./scripts/verify-packaged-windows-agent-hook.cjs')
-const {
   ensureBundledWaylandClipboard,
   finalizePackagedWaylandClipboard
 } = require('./wayland-clipboard-resources.cjs')
@@ -237,7 +234,7 @@ const ORCA_MAC_TEAM_ID = '6CX3WHS9HZ'
 module.exports = {
   appId,
   productName: 'Orca',
-  protocols: [{ name: 'Orca', schemes: ['orca'] }],
+  // RA: Keep protocol declarations platform-specific so Windows cannot inherit orca://.
   toolsets: { appimage: '1.0.3' },
   ...(devChannelBuildVersion
     ? { extraMetadata: { version: devChannelBuildVersion } }
@@ -444,7 +441,7 @@ module.exports = {
     const canExecuteTargetArch = context.arch === hostArchEnum || context.arch === 4
     if (context.electronPlatformName === 'win32') {
       verifyPackagedWindowsNodePty(resourcesDir, context.arch, { canExecuteTargetArch })
-      verifyPackagedWindowsAgentHook(resourcesDir, context.arch)
+      // RA: Windows packages no agent-hook executable to verify or install.
     }
     verifySkillsCliRuntime(join(resourcesDir, 'app.asar.unpacked', 'out'), resourcesDir, {
       executeCommands: canExecuteTargetArch
@@ -514,7 +511,13 @@ module.exports = {
     }
   },
   win: {
+    // RA: Isolate Windows install identity while preserving upstream macOS signing identity.
+    appId: 'com.rudraksh.orca',
+    // RA: Do not claim official Orca's URL scheme during installation.
+    protocols: [],
     executableName: 'Orca',
+    // RA: Windows builds have no update feed; installers are distributed manually.
+    publish: null,
     // SignPath signs Windows installers after packaging, so set release publisherName explicitly.
     // Unsigned dev channels omit it or updater signature checks reject dev updates and return to stable.
     // Sign hook signs nothing: it relays transient NSIS uninstaller files to CI SignPath; unset relay env leaves local/dev builds inert.
@@ -539,12 +542,6 @@ module.exports = {
         from: 'native/windows-cli-launcher/.build/orca-administrator-restart.exe',
         to: 'bin/orca-administrator-restart.exe'
       },
-      // Why resources/bin: SignPath signs every unsigned PE under win-unpacked, and the hook
-      // installer copies this signed file into ~/.orca/agent-hooks (#20913).
-      {
-        from: 'native/windows-agent-hook/.build/orca-agent-hook.exe',
-        to: 'bin/orca-agent-hook.exe'
-      },
       {
         from: 'node_modules/agent-browser/bin/agent-browser-win32-x64.exe',
         to: 'agent-browser-win32-x64.exe'
@@ -557,15 +554,21 @@ module.exports = {
     ]
   },
   nsis: {
-    artifactName: 'orca-windows-setup.${ext}',
+    // RA: Manual, current-user installs have their own artifact and install namespace.
+    artifactName: 'Orca-RA-Setup-${version}.${ext}',
+    oneClick: true,
+    perMachine: false,
+    allowElevation: false,
+    packElevateHelper: false,
     shortcutName: '${productName}',
+    menuCategory: 'Orca RA',
     uninstallDisplayName: '${productName}',
-    createDesktopShortcut: 'always',
-    // One NSIS include hosts update-guarded daemon cleanup and additive markdown Open With registration.
-    // Avoid fileAssociations: it would steal default .md ownership; see the include’s header.
-    include: resolve(__dirname, 'nsis', 'orca-installer-hooks.nsh')
+    createDesktopShortcut: false,
+    // RA: Avoid official Orca's associations and uninstall cleanup of shared daemon paths.
+    include: resolve(__dirname, 'nsis', 'ra-installer.nsh')
   },
   mac: {
+    protocols: [{ name: 'Orca', schemes: ['orca'] }],
     // Alternate rank preserves Finder’s default; one entry per extension because app-builder globs the value as a string.
     fileAssociations: [
       ...MARKDOWN_FILE_EXTENSIONS.map((ext) => ({
@@ -650,6 +653,7 @@ module.exports = {
     artifactName: 'orca-macos-${arch}.${ext}'
   },
   linux: {
+    protocols: [{ name: 'Orca', schemes: ['orca'] }],
     // shared-mime-info already maps md/markdown: advertise handler only, leaving mimeapps.list defaults intact.
     // Omit mdx because Ubuntu 24.04 maps it to application/x-genesis-32x-rom; claiming it would need a glob override.
     mimeTypes: ['text/markdown', 'text/csv', 'text/tab-separated-values'],

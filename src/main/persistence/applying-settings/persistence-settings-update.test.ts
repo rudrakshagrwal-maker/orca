@@ -78,10 +78,11 @@ describe('Store', () => {
   it('updateSettings merges partial updates', async () => {
     const store = await createStore()
     const initial = store.getSettings()
-    expect(initial.theme).toBe('system')
+    // RA: The fork starts dark; partial updates must still merge other settings.
+    expect(initial.theme).toBe('dark')
 
     const updated = store.updateSettings({
-      theme: 'dark',
+      theme: 'light',
       editorAutoSave: true,
       editorAutoSaveDelayMs: 1500,
       appFontFamily: 'Inter',
@@ -89,7 +90,7 @@ describe('Store', () => {
       terminalFontWeight: 600,
       terminalFontWeightBold: 800
     })
-    expect(updated.theme).toBe('dark')
+    expect(updated.theme).toBe('light')
     expect(updated.editorAutoSave).toBe(true)
     expect(updated.editorAutoSaveDelayMs).toBe(1500)
     expect(updated.appFontFamily).toBe('Inter')

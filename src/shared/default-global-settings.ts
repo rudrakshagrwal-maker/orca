@@ -40,7 +40,8 @@ export function buildDefaultSettings(args: {
     branchPrefix: 'git-username',
     branchPrefixCustom: '',
     jiraIssueKeyCasing: 'lowercase',
-    theme: 'system',
+    // RA: Start dark regardless of the system appearance.
+    theme: 'dark',
     pluginAppTheme: null,
     pluginAppThemeLight: null,
     pluginAppThemeDark: null,
@@ -84,8 +85,9 @@ export function buildDefaultSettings(args: {
     terminalCursorStyle: 'block',
     terminalCursorStyleDefaultedToBlock: true,
     terminalCursorBlink: true,
-    terminalThemeDark: 'Ghostty Default Style Dark',
-    terminalDividerColorDark: '#3f3f46',
+    // RA: Tango Black is the local fork's default terminal palette.
+    terminalThemeDark: 'Tango Black',
+    terminalDividerColorDark: '#1c1c1c',
     terminalUseSeparateLightTheme: true,
     terminalColorOverridesSplit: true,
     terminalThemeLight: 'Builtin Tango Light',
@@ -202,7 +204,8 @@ export function buildDefaultSettings(args: {
     terminalModelQueryAuthority: true,
     defaultTuiAgent: null,
     disabledTuiAgents: [...DEFAULT_DISABLED_TUI_AGENTS],
-    pluginSystemEnabled: true,
+    // RA: Marketplace/safety-list fetches and plugin workers are opt-in for this local app.
+    pluginSystemEnabled: false,
     pluginSystemDefaultedOn: true,
     disabledPlugins: [],
     pluginConsents: {},

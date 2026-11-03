@@ -21,8 +21,8 @@ const PLUGIN_APP_THEME_CSS_FALLBACKS: Record<
   PluginThemeCssFallbackRule | Record<'light' | 'dark', PluginThemeCssFallbackRule>
 > = {
   '--tab-bar': ['--card'],
-  // Why per base: a white light --card can't be lifted, so light recesses the inactive tabs.
-  '--tab-active': { light: ['--tab-bar'], dark: { mixForeground: 6, into: '--tab-bar' } },
+  // RA: Match main.css: dark tabs keep the bar surface and use the active indicator.
+  '--tab-active': ['--tab-bar'],
   '--tab-active-foreground': ['--foreground'],
   '--tab-active-indicator': ['--tab-active-foreground'],
   '--tab-inactive': { light: { mixForeground: 4, into: '--tab-bar' }, dark: ['--tab-bar'] },

@@ -54,6 +54,31 @@ function resolve(
 }
 
 describe('resolveCodeEditorTheme', () => {
+  // RA: Monaco must follow black CSS surfaces even without a plugin app theme.
+  it('paints the built-in dark editor and gutter from the document tokens', () => {
+    const tokens: Record<string, string> = {
+      '--background': '#000000',
+      '--editor-surface': '#000000',
+      '--foreground': '#f0f0f0',
+      '--muted-foreground': '#acacac',
+      '--border': '#1c1c1c'
+    }
+    const result = resolveCodeEditorTheme({
+      dark: true,
+      appTheme: null,
+      selected: null,
+      appPainted: {},
+      readDocument: (token) => tokens[token] ?? '',
+      probe
+    })
+    expect(result.override).toBeNull()
+    expect(result.monaco?.data.colors).toMatchObject({
+      'editor.background': '#000000',
+      'editorGutter.background': '#000000',
+      'minimap.background': '#000000'
+    })
+  })
+
   it("paints a dark plugin editor in a light app from that theme's own tokens", () => {
     const result = resolve(dusk, dawn)
     expect(result.monaco?.data.base).toBe('vs-dark')
