@@ -995,8 +995,7 @@ body[data-modal-overlay-open]
 :root[data-reduce-effects] *::before,
 :root[data-reduce-effects] *::after {
   backdrop-filter: none !important;
-  /* RA: avoid decorative animated compositor layers in app chrome. */
-  animation: none !important;
+  /* RA: animations stay on: killing them froze the agent status spinner. */
 }
 
 /* Why: native windows have a stable content box and need no wake-time viewport reflow. */
