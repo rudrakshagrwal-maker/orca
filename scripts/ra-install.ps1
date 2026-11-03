@@ -83,3 +83,5 @@ foreach ($folder in $shortcutFolders) {
 }
 
 Write-Host "Orca installed at $appPath"
+# RA: reopen Orca after the silent install so agents reattach without a manual start.
+Start-Process -FilePath $appPath
