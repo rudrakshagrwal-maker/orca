@@ -68,7 +68,8 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'global', 'worktree', 'create', 'new workspace'],
-    defaultBindings: platformBindings(['Mod+N', 'Mod+Shift+N'])
+    // RA: Windows keeps one default per action; every action remains remappable.
+    defaultBindings: { ...platformBindings(['Mod+N', 'Mod+Shift+N']), win32: ['Mod+N'] }
   },
   {
     id: 'workspace.rename',

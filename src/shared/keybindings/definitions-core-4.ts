@@ -43,7 +43,8 @@ export const KEYBINDING_DEFINITION_CORE_4: readonly KeybindingDefinition[] = [
       // letter primary would fail on non-Latin layouts and IMEs. Mod+Shift+J stays
       // as the alias wherever Switch worktree is remapped or terminal-first.
       linux: WINDOWS_LINUX_TOGGLE_BINDINGS,
-      win32: WINDOWS_LINUX_TOGGLE_BINDINGS
+      // RA: Keep the non-conflicting primary; Ctrl+Shift+J already opens the worktree palette.
+      win32: ['Mod+Shift+F11']
     }
   },
   {

@@ -31,7 +31,11 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'zoom', 'in', 'scale'],
-    defaultBindings: platformBindings(['Mod+Equal', 'Mod+Shift+Plus', 'Mod+NumpadAdd'])
+    // RA: Windows defaults use one Chrome-style chord per action.
+    defaultBindings: {
+      ...platformBindings(['Mod+Equal', 'Mod+Shift+Plus', 'Mod+NumpadAdd']),
+      win32: ['Mod+Equal']
+    }
   },
   {
     id: 'zoom.out',
@@ -39,7 +43,10 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'zoom', 'out', 'scale'],
-    defaultBindings: platformBindings(['Mod+Minus', 'Mod+NumpadSubtract'])
+    defaultBindings: {
+      ...platformBindings(['Mod+Minus', 'Mod+NumpadSubtract']),
+      win32: ['Mod+Minus']
+    }
   },
   {
     id: 'zoom.reset',
@@ -181,7 +188,8 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'next', 'switch', 'cycle'],
     // Why: the widespread "switch tab" chord (Mod+Shift+Bracket) now drives all-types cycling; same-type moved to Mod+Alt for new installs.
-    defaultBindings: platformBindings(['Mod+Alt+BracketRight'])
+    // RA: Typed tab cycles are opt-in on Windows; Ctrl+Tab owns default cycling.
+    defaultBindings: { ...platformBindings(['Mod+Alt+BracketRight']), win32: [] }
   },
   {
     id: 'tab.previousSameType',
@@ -189,7 +197,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'previous', 'switch', 'cycle'],
-    defaultBindings: platformBindings(['Mod+Alt+BracketLeft'])
+    defaultBindings: { ...platformBindings(['Mod+Alt+BracketLeft']), win32: [] }
   },
   {
     id: 'tab.nextAllTypes',
@@ -198,7 +206,10 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'next', 'switch', 'cycle', 'all', 'any'],
     // RA: Ctrl+Tab cycles in tab-strip order, including terminal focus.
-    defaultBindings: platformBindings(['Mod+Shift+BracketRight', 'Ctrl+Tab']),
+    defaultBindings: {
+      ...platformBindings(['Mod+Shift+BracketRight', 'Ctrl+Tab']),
+      win32: ['Ctrl+Tab']
+    },
     allowInTerminal: true
   },
   {
@@ -208,7 +219,10 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'previous', 'switch', 'cycle', 'all', 'any'],
     // RA: Shift reverses tab-strip cycling.
-    defaultBindings: platformBindings(['Mod+Shift+BracketLeft', 'Ctrl+Shift+Tab']),
+    defaultBindings: {
+      ...platformBindings(['Mod+Shift+BracketLeft', 'Ctrl+Shift+Tab']),
+      win32: ['Ctrl+Shift+Tab']
+    },
     allowInTerminal: true
   },
   {
@@ -227,7 +241,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'terminal', 'next', 'switch'],
-    defaultBindings: platformBindings(['Ctrl+PageDown']),
+    defaultBindings: { ...platformBindings(['Ctrl+PageDown']), win32: [] },
     allowInTerminal: true
   },
   {
@@ -236,7 +250,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'terminal', 'previous', 'switch'],
-    defaultBindings: platformBindings(['Ctrl+PageUp']),
+    defaultBindings: { ...platformBindings(['Ctrl+PageUp']), win32: [] },
     allowInTerminal: true
   },
   {

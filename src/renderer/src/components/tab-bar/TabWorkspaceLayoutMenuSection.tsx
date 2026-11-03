@@ -59,6 +59,25 @@ export function TabWorkspaceLayoutMenuSection({
   return (
     <>
       {leadingSeparator ? <ContextMenuSeparator /> : null}
+      {/* RA: Expose the common split placements directly, including for the active tab. */}
+      <ContextMenuItem
+        onSelect={() => moveTabToNewPaneColumn({ unifiedTabId, groupId, direction: 'right' })}
+      >
+        <ArrowRight className="size-3.5 shrink-0" />
+        {translate(
+          'auto.components.tab.bar.TabWorkspaceLayoutMenuSection.addSplitRight',
+          'Add tab to split view (right)'
+        )}
+      </ContextMenuItem>
+      <ContextMenuItem
+        onSelect={() => moveTabToNewPaneColumn({ unifiedTabId, groupId, direction: 'down' })}
+      >
+        <ArrowDown className="size-3.5 shrink-0" />
+        {translate(
+          'auto.components.tab.bar.TabWorkspaceLayoutMenuSection.addSplitBelow',
+          'Add tab to split view (below)'
+        )}
+      </ContextMenuItem>
       <ContextMenuSub>
         <ContextMenuSubTrigger className="[&>svg:last-child]:size-3.5">
           <Columns2 className="size-3.5 shrink-0" />

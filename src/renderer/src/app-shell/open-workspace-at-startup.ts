@@ -37,9 +37,23 @@ export async function openWorkspaceAtStartup(isCancelled: () => boolean): Promis
   if (mainWorktree) {
     const { activateAndRevealWorktree } = await import('@/lib/worktree-activation')
     if (!isCancelled()) {
+      // RA: Queue atomically before activation can seed or mount a bare shell.
+      const state = useAppStore.getState()
+      if (
+        !state.tabsByWorktree[mainWorktree.id]?.length &&
+        !state.unifiedTabsByWorktree[mainWorktree.id]?.some((tab) => tab.contentType === 'terminal')
+      ) {
+        state.createTab(mainWorktree.id, undefined, undefined, {
+          launchAgent: 'claude',
+          startupCwd: workspacePath,
+          pendingStartup: { command: 'claude --dangerously-skip-permissions' },
+          recordInteraction: false
+        })
+      }
       activateAndRevealWorktree(mainWorktree.id, {
         executionHostId: LOCAL_EXECUTION_HOST_ID,
-        runtimeEnvironmentId: null
+        runtimeEnvironmentId: null,
+        providesInitialSurface: true
       })
     }
   }

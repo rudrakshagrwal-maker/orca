@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { installPreviewTerminalRightClickPaste } from './preview-terminal-right-click-paste'
 
 describe('installPreviewTerminalRightClickPaste', () => {
@@ -28,6 +28,7 @@ describe('installPreviewTerminalRightClickPaste', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('X11; Linux x86_64')
     document.body.innerHTML = ''
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -36,6 +37,18 @@ describe('installPreviewTerminalRightClickPaste', () => {
     focus = vi.fn<() => void>()
     rightClickToPaste = true
     Object.assign(window, { api: { ui: { writeTerminalClipboardText } } })
+  })
+
+  afterEach(() => vi.restoreAllMocks())
+
+  // RA: Windows right-click pastes without a menu even while text remains selected.
+  it('pastes rather than copying the selection on Windows', () => {
+    vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Windows NT 10.0')
+    selection = 'selected text'
+    install()
+    expect(rightClick().defaultPrevented).toBe(true)
+    expect(pasteClipboardText).toHaveBeenCalledWith(document.activeElement, 'right-click')
+    expect(writeTerminalClipboardText).not.toHaveBeenCalled()
   })
 
   it('pastes when nothing is selected', () => {
