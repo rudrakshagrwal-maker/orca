@@ -78,6 +78,12 @@ export class RuntimeRpcLifecycle extends RuntimeRpcWebSocketDispatch {
     const activeTransports: RpcTransport[] = [socketTransport]
     const transportsMeta: RuntimeTransportMetadata[] = [transportMeta]
 
+    // RA: the orca CLI's runtime-source fence reads this installation id; publish it even
+    // when the mobile WebSocket server is off, or CLI calls fail after a restart.
+    if (!this.enableWebSocket) {
+      this.hostDescriptor = await loadHostDescriptor(this.userDataPath)
+      publishHostDescriptor(this.runtime.getRuntimeId(), this.hostDescriptor)
+    }
     // Per-device tokens/E2EE avoid React Native's inability to pin self-signed TLS certificates.
     if (this.enableWebSocket) {
       // Flush deferred lastSeen before replacement registry reads disk.
