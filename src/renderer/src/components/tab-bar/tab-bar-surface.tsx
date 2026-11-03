@@ -119,7 +119,8 @@ export function renderTabBarSurface({
             <Button
               variant="ghost"
               size="icon-xs"
-              className="mx-0.5 my-auto h-6 w-5 @max-[260px]/tab-strip:hidden"
+              // RA: Keep a 28px target without extra horizontal margins.
+              className="my-auto size-7 @max-[260px]/tab-strip:hidden"
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
               aria-label={translate(
                 'auto.components.tab.bar.TabBar.7a9b4af2af',
@@ -188,7 +189,8 @@ export function renderTabBarSurface({
             <Button
               variant="ghost"
               size="icon-xs"
-              className="mx-0.5 my-auto h-6 w-5 @max-[260px]/tab-strip:hidden"
+              // RA: Match the left scroll target.
+              className="my-auto size-7 @max-[260px]/tab-strip:hidden"
               style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
               aria-label={translate(
                 'auto.components.tab.bar.TabBar.232e075b07',
@@ -216,7 +218,8 @@ export function renderTabBarSurface({
       >
         <DropdownMenuTrigger asChild>
           <button
-            className="ml-2 my-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            // RA: The target supplies its own spacing on narrow split strips.
+            className="my-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent/50 hover:text-foreground"
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             title={translate('auto.components.tab.bar.TabBar.b1a132357f', 'New tab')}
             aria-label={translate('auto.components.tab.bar.TabBar.b1a132357f', 'New tab')}

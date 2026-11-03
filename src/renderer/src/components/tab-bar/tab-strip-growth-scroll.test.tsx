@@ -7,7 +7,8 @@ import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
 import { isTabStripPointerGestureActive } from './tab-strip-pointer-gesture'
 
 const TAB_WIDTH = 100
-const VIEWPORT_WIDTH = 300
+let viewportWidth = 300
+let notifyResize = (): void => {}
 
 const scrollLeftByElement = new WeakMap<Element, number>()
 const originals = {
@@ -28,6 +29,19 @@ function rect(left: number, width: number): DOMRect {
 
 /** Model 100px tabs in a 300px viewport, including scroll offsets and sticky active slots. */
 function installStripLayout(): void {
+  viewportWidth = 300
+  // RA: Drive the real resize handler deterministically without browser layout.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: ResizeObserverCallback) {
+        notifyResize = () => callback([], this as unknown as ResizeObserver)
+      }
+      observe(): void {}
+      disconnect(): void {}
+      unobserve(): void {}
+    }
+  )
   Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
     configurable: true,
     get(this: Element) {
@@ -37,7 +51,7 @@ function installStripLayout(): void {
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
     configurable: true,
     get(this: Element) {
-      return isStrip(this) ? VIEWPORT_WIDTH : 0
+      return isStrip(this) ? viewportWidth : 0
     }
   })
   Object.defineProperty(HTMLElement.prototype, 'scrollLeft', {
@@ -52,7 +66,7 @@ function installStripLayout(): void {
   })
   HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement): DOMRect {
     if (isStrip(this)) {
-      return rect(0, VIEWPORT_WIDTH)
+      return rect(0, viewportWidth)
     }
     const strip = this.parentElement
     if (strip && isStrip(strip)) {
@@ -60,7 +74,7 @@ function installStripLayout(): void {
       const left = index * TAB_WIDTH - strip.scrollLeft
       const docked = this.hasAttribute('data-active-tab-dock')
       return rect(
-        docked ? Math.min(VIEWPORT_WIDTH - TAB_WIDTH, Math.max(0, left)) : left,
+        docked ? Math.min(viewportWidth - TAB_WIDTH, Math.max(0, left)) : left,
         TAB_WIDTH
       )
     }
@@ -70,6 +84,7 @@ function installStripLayout(): void {
 }
 
 function restoreStripLayout(): void {
+  vi.unstubAllGlobals()
   HTMLElement.prototype.getBoundingClientRect = originals.rect
   HTMLElement.prototype.scrollIntoView = originals.scrollIntoView
   for (const key of ['scrollLeft', 'scrollWidth', 'clientWidth'] as const) {
@@ -266,11 +281,13 @@ describe('tab strip scroll when tabs are closed', () => {
     restoreStripLayout()
   })
 
-  it('keeps the strip still when closing the active tab switches to a far tab', () => {
+  // RA: A replacement active tab must be revealed after closing the previous selection.
+  it('reveals the active tab selected by closing a distant tab', () => {
     const { strip, rerender } = mountScrolled('E', 300)
     rerender(<Strip tabs={TABS.filter((id) => id !== 'E')} active="A" />)
-    expect(strip.scrollLeft).toBe(300)
-    expect(strip.dataset.dock).toBe('start')
+    expect(strip.scrollLeft).toBe(0)
+    expect(tabX(strip, 'A')).toBe(0)
+    expect(strip.dataset.dock).toBeUndefined()
   })
 
   it('still reveals a later tab switch after a close', () => {
@@ -296,12 +313,15 @@ describe('tab strip with a docked active tab', () => {
     expect(mountScrolled('E', 300).strip.dataset.dock).toBeUndefined()
   })
 
-  it('reports the dock edge when a client-hosted row takes and gives back the active state', () => {
+  it('reveals a client-hosted row when it takes the active state and restores the tab', () => {
     const { strip, rerender } = mountScrolled('E', 300, ['remote'])
     expect(strip.dataset.dock).toBeUndefined()
     rerender(<Strip tabs={TABS} hostedRows={['remote']} activeHostedRow="remote" active="E" />)
-    expect(strip.dataset.dock).toBe('end')
+    expect(strip.scrollLeft).toBe(800)
+    expect(tabX(strip, 'remote')).toBe(200)
+    expect(strip.dataset.dock).toBeUndefined()
     rerender(<Strip tabs={TABS} hostedRows={['remote']} active="E" />)
+    expect(strip.scrollLeft).toBe(400)
     expect(strip.dataset.dock).toBeUndefined()
   })
 
@@ -344,6 +364,17 @@ describe('tab strip while scrolling', () => {
       strip.dispatchEvent(new Event('scroll'))
     })
     expect(stripRenderCount).toBe(rendersBefore)
+  })
+
+  it('reveals the active tab when a split becomes narrower', () => {
+    const { strip } = mountScrolled('G', 400)
+    act(() => {
+      viewportWidth = 200
+      notifyResize()
+    })
+    expect(strip.scrollLeft).toBe(500)
+    expect(tabX(strip, 'G')).toBe(100)
+    expect(strip.dataset.dock).toBeUndefined()
   })
 
   it('tells resize subscribers when tabs change the strip without a scroll', async () => {

@@ -170,14 +170,15 @@ export function TabBarQuickCommandsButton({
             <button
               type="button"
               onClick={() => addRepoCommand(defaultHostId)}
-              className="my-auto flex h-7 shrink-0 items-center gap-1 rounded-md px-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              // RA: Labels return only above 900px of this strip, not the window.
+              className="my-auto flex h-7 min-w-7 shrink-0 items-center justify-center gap-0 rounded-md px-0 @[901px]/tab-strip:gap-1 @[901px]/tab-strip:px-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label={translate(
                 'auto.components.tab.bar.TabBarQuickCommandsButton.8f1e971966',
                 'Add quick command'
               )}
             >
               <Play className="size-3.5" />
-              <span className="text-[12px] font-medium @max-[480px]/tab-strip:hidden">
+              <span className="hidden text-[12px] font-medium @[901px]/tab-strip:inline">
                 {translate(
                   'auto.components.tab.bar.TabBarQuickCommandsButton.a2c7a33831',
                   'Command'

@@ -2,22 +2,17 @@ import { X } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 
 export function EditorFileTabCloseButton({
-  fileIsDirty,
   showsSelectionChrome,
   onClose
 }: {
-  fileIsDirty: boolean
   showsSelectionChrome: boolean
   onClose: () => void
 }): React.JSX.Element {
   return (
     <button
-      className={`flex items-center justify-center w-4 h-4 rounded-sm ${
-        fileIsDirty
-          ? 'hidden group-hover:flex text-muted-foreground hover:text-foreground hover:bg-muted'
-          : showsSelectionChrome
-            ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            : 'text-transparent group-hover:text-muted-foreground hover:!text-foreground hover:!bg-muted'
+      // RA: Active tabs always expose close, including dirty files; inactive buttons take no title space.
+      className={`items-center justify-center w-4 h-4 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted ${
+        showsSelectionChrome ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'
       }`}
       type="button"
       // Share the real close affordance with simulator tabs so E2E exercises their actual button.

@@ -39,6 +39,7 @@ import type { NativeChatTabSession } from './tab-session-history-switch'
 import type { StructuredChatTabNamingFailure } from '@/runtime/structured-conversation-name'
 import { useNativeChatNamingFailure } from './use-native-chat-naming-failure'
 import { NativeChatNamingErrorBlock, NativeChatNamingFailedDialog } from './NativeChatNamingFailure'
+import { selectTabIsSubagent } from './tab-agent-lineage'
 
 /** What the strip draws for a terminal or native chat tab; never a source of agent identity. */
 type SortableTabModel = Pick<
@@ -113,6 +114,8 @@ export default function SortableTab({
   namingFailure
 }: SortableTabProps): React.JSX.Element {
   const naming = useNativeChatNamingFailure(namingFailure)
+  // RA: Only the derived boolean subscribes, so unrelated agent updates do not repaint this tab.
+  const isSubagent = useAppStore((s) => selectTabIsSubagent(s, tab.worktreeId, tab.id))
   // Why: agent-completion unread exists even with terminal-attention off; collapse both sources to one primitive so unrelated tabs don't re-render.
   const hasUnreadActivity = useAppStore((s) =>
     terminalTabHasUnreadActivity({
@@ -197,7 +200,7 @@ export default function SortableTab({
     disabled: isEditing
   })
   const handleMenuOpenChange = useTabContextMenuOpening(setMenuOpen, retirePendingActivation)
-  const slotProps = useTabStripSlotProps(tab.id, isActive)
+  const slotProps = useTabStripSlotProps(tab.id, isActive, isSubagent)
   const tabTitle = tab.customTitle ?? tab.title
   const tabRoot = (
     <div
@@ -288,7 +291,10 @@ export default function SortableTab({
           spellCheck={false}
         />
       ) : (
-        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{displayTitle}</span>
+        // RA: Child labels use the next smaller token without changing the agent glyph.
+        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1${isSubagent ? ' text-2xs' : ''}`}>
+          {displayTitle}
+        </span>
       )}
       {tab.color && !isEditing && (
         <span
@@ -316,10 +322,11 @@ export default function SortableTab({
       )}
       {!isEditing && !isPinned && (
         <button
-          className={`relative z-10 flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
+          // RA: Inactive tabs give the close button's space back to their title until hover/focus.
+          className={`relative z-10 items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive
-              ? 'text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:text-foreground focus-visible:bg-muted'
-              : 'text-transparent group-hover:text-muted-foreground hover:!text-foreground hover:!bg-muted focus-visible:!text-foreground focus-visible:!bg-muted'
+              ? 'flex text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:text-foreground focus-visible:bg-muted'
+              : 'hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:text-foreground focus-visible:bg-muted'
           }`}
           // Why: stable accessible name lets E2E drive the real close path instead of calling the store.
           aria-label={translate(

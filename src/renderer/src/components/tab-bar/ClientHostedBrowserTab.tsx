@@ -47,8 +47,18 @@ export default function ClientHostedBrowserTab({
       >
         <div
           data-client-hosted-browser-row-id={row.browserPageId}
+          // RA: Keyboard focus reveals the inactive close button just like hovering.
+          role="tab"
+          tabIndex={0}
+          aria-selected={isActive}
           className={`w-full group relative flex h-full cursor-pointer select-none items-center px-1.5 text-xs outline-none focus:outline-none focus-visible:outline-none ${getTabStripBorderClasses(hasTabsToRight, { includeTopBorder: includeTopTabBorder })} ${getTabRootStateClasses(isActive)}`}
           onPointerDown={onActivate}
+          onKeyDown={(event) => {
+            if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault()
+              onActivate()
+            }
+          }}
           onMouseDown={(event) => {
             if (event.button === 1) {
               event.preventDefault()
@@ -76,10 +86,11 @@ export default function ClientHostedBrowserTab({
           <button
             type="button"
             aria-label={translate('browser.clientHosted.hostRowClose', 'Close hosted page')}
-            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm ${
+            // RA: Match normal browser tabs' inactive close affordance.
+            className={`h-4 w-4 shrink-0 items-center justify-center rounded-sm ${
               isActive
-                ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                : 'text-transparent group-hover:text-muted-foreground hover:!bg-muted hover:!text-foreground'
+                ? 'flex text-muted-foreground hover:bg-muted hover:text-foreground'
+                : 'hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {

@@ -223,10 +223,11 @@ export default function BrowserTab({
       )}
       {!isPinned && (
         <button
-          className={`flex items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
+          // RA: Give inactive titles the close button's space until hover or keyboard focus.
+          className={`items-center justify-center w-4 h-4 rounded-sm shrink-0 ${
             isActive
-              ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              : 'text-transparent group-hover:text-muted-foreground hover:!text-foreground hover:!bg-muted'
+              ? 'flex text-muted-foreground hover:text-foreground hover:bg-muted'
+              : 'hidden group-hover:flex group-focus-within:flex text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {

@@ -76,8 +76,8 @@ export function useTabStripOverflowNavigation({
   const stripResizeListenersRef = useRef<Set<() => void>>(new Set())
   const prevStripRef = useRef<{ worktreeId: string; tabIds: ReadonlySet<string> } | null>(null)
   const stickToEndRef = useRef(false)
-  const tabClosedThisCommitRef = useRef(false)
   const activeTabIdRef = useRef<string | null>(null)
+  const activeDockSlotIdRef = useRef<string | null>(null)
   const hoverDeferredRevealIdsRef = useRef<Set<string>>(new Set())
   const scrollAnchorRef = useRef<{
     activeTabId: string | null
@@ -149,12 +149,29 @@ export function useTabStripOverflowNavigation({
     el.addEventListener('scroll', onScroll, { passive: true })
     onScroll()
 
+    let previousClientWidth = el.clientWidth
     const handleStripResize = (): void => {
+      const viewportChanged = previousClientWidth !== el.clientWidth
+      previousClientWidth = el.clientWidth
       updateTabStripOverflowState()
       // Keep end-pinned strips at the right edge as live labels change scrollWidth.
       if (stickToEndRef.current && !isTabStripPointerGestureActive()) {
         el.scrollLeft = Math.max(0, el.scrollWidth - el.clientWidth)
       }
+      // RA: A split resize can hide the active slot, including a client-hosted browser row.
+      if (
+        (viewportChanged || el.hasAttribute('data-active-tab-dock-disabled')) &&
+        !isTabStripPointerGestureActive()
+      ) {
+        const activeSlot = activeDockSlotIdRef.current
+          ? findTabStripSlot(el, activeDockSlotIdRef.current)
+          : undefined
+        if (activeSlot) {
+          revealTabStripSlot(el, activeSlot)
+          stickToEndRef.current = isTabStripScrolledToEnd(el)
+        }
+      }
+      updateTabStripOverflowState()
       recordScrollAnchor()
       for (const listener of stripResizeListenersRef.current) {
         listener()
@@ -201,6 +218,9 @@ export function useTabStripOverflowNavigation({
   useLayoutEffect(() => {
     activeTabIdRef.current = activeVisibleTabId
   }, [activeVisibleTabId])
+  useLayoutEffect(() => {
+    activeDockSlotIdRef.current = activeDockSlotId
+  }, [activeDockSlotId])
 
   useLayoutEffect(() => {
     const strip = tabStripRef.current
@@ -219,7 +239,6 @@ export function useTabStripOverflowNavigation({
     const pointerGestureActive = isTabStripPointerGestureActive()
     // Why identities, not a count: a tab that replaces another opens without the strip growing.
     const tabOpened = [...tabIds].some((id) => !prev.tabIds.has(id))
-    tabClosedThisCommitRef.current = !tabOpened && [...prev.tabIds].some((id) => !tabIds.has(id))
     const scrollToEnd = (stick: boolean): void => {
       const el = tabStripRef.current
       if (!el) {
@@ -273,17 +292,17 @@ export function useTabStripOverflowNavigation({
 
   useLayoutEffect(() => {
     const strip = tabStripRef.current
-    if (!strip || !activeVisibleTabId) {
+    if (!strip || !activeDockSlotId) {
       recordScrollAnchor()
       return
     }
-    const activeSlot = findTabStripSlot(strip, activeVisibleTabId)
+    const activeSlot = findTabStripSlot(strip, activeDockSlotId)
     if (!activeSlot) {
       recordScrollAnchor()
       return
     }
-    // Hold the strip through tab presses and closes so it cannot slide under the pointer or chase distant MRU targets.
-    if (isTabStripPointerGestureActive() || tabClosedThisCommitRef.current) {
+    // RA: Reveal selection after closes too; defer only while a pointer gesture or drag owns the strip.
+    if (isTabStripPointerGestureActive() || isTabDragActive) {
       requestAnimationFrame(updateTabStripOverflowState)
       recordScrollAnchor()
       return
@@ -293,17 +312,12 @@ export function useTabStripOverflowNavigation({
     stickToEndRef.current = isTabStripScrolledToEnd(strip)
     requestAnimationFrame(updateTabStripOverflowState)
     recordScrollAnchor()
-  }, [activeVisibleTabId, recordScrollAnchor, updateTabStripOverflowState])
+  }, [activeDockSlotId, isTabDragActive, recordScrollAnchor, updateTabStripOverflowState])
 
   // Dock ownership and drag transitions change sticky layout without scrolling or resizing.
   useLayoutEffect(() => {
     updateTabStripOverflowState()
   }, [activeDockSlotId, isTabDragActive, updateTabStripOverflowState])
-
-  // Why every render: the close flag belongs to the commit that set it, not a later tab switch.
-  useLayoutEffect(() => {
-    tabClosedThisCommitRef.current = false
-  })
 
   // Why share these observers: each one watches every tab, so a second set doubles that work.
   const subscribeToStripResize = useCallback((listener: () => void): (() => void) => {

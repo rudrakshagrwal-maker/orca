@@ -154,6 +154,8 @@ const SCENARIOS: Scenario[] = [
       await newTabFromMenu(run.page)
       await run.oracle.step('new tab', { worktreeId, panesPerTab: [1, 1] })
       const firstTab = run.page.locator(SORTABLE_TAB).first()
+      // RA: Reveal the inactive tab's close affordance.
+      await firstTab.hover()
       await firstTab.getByRole('button', { name: /^Close tab /i }).click()
       await expect(run.page.locator(SORTABLE_TAB)).toHaveCount(1)
       await run.oracle.step('close first tab', { worktreeId, panesPerTab: [1], removed: 1 })

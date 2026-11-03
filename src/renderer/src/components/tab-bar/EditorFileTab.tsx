@@ -354,14 +354,17 @@ export default function EditorFileTab({
           </span>
         )}
       </span>
-      {/* Share one dot/close slot so autosave cannot change tab width. */}
-      <div className="relative flex items-center justify-center w-4 h-4 shrink-0">
-        {file.isDirty && (
+      {/* RA: Reserve the dirty dot, but return clean inactive close space to the title. */}
+      <div
+        className={`relative items-center justify-center w-4 h-4 shrink-0 ${
+          isActive || file.isDirty ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'
+        }`}
+      >
+        {file.isDirty && (!isActive || isPinned) && (
           <span className="absolute size-1.5 rounded-full bg-foreground/60 group-hover:hidden group-focus-within:hidden" />
         )}
         {!isPinned && (
           <EditorFileTabCloseButton
-            fileIsDirty={file.isDirty}
             showsSelectionChrome={isActive}
             onClose={onClose}
           />

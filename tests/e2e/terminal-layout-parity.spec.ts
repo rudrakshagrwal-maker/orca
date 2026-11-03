@@ -273,6 +273,8 @@ const SCENARIOS: ParityScenario[] = [
       await waitForActiveTerminalManager(page)
       await expect(page.locator(SORTABLE_TAB)).toHaveCount(2)
       const firstTab = page.locator(SORTABLE_TAB).first()
+      // RA: Reveal the inactive tab's close affordance.
+      await firstTab.hover()
       await firstTab.getByRole('button', { name: /^Close tab /i }).click()
       await expect(page.locator(SORTABLE_TAB)).toHaveCount(1)
       await waitForActiveTerminalManager(page)
