@@ -141,8 +141,8 @@ export function AppWorkspaceShell(props: {
         'The app is still running. Retry the shell or use the menu to report the crash details.'
       )}
     >
-      {/* RA: Bound the workspace row so split-pane content cannot widen the window layout. */}
-      <div className="flex flex-row flex-1 min-w-0 max-w-full min-h-0 overflow-hidden">
+      {/* RA: Keep titlebar chrome outside the inset panel row. */}
+      <div className="workspace-shell flex flex-row flex-1 min-w-0 max-w-full min-h-0 overflow-hidden">
         {/* Keep the non-workspace titlebar from spanning the right sidebar. */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
           {/* Workspace tab groups reach the top; other pages retain the titlebar. */}
@@ -152,12 +152,13 @@ export function AppWorkspaceShell(props: {
               {titlebarMainStrip}
             </div>
           ) : null}
-          <div className="flex flex-row flex-1 min-h-0 overflow-hidden">
+          <div className="workspace-panels flex flex-row flex-1 min-w-0 min-h-0 overflow-hidden">
             {layout.showSidebar ? (
               layout.leftTitlebarChromeLayout.shouldMount ? (
                 /* Remove the collapsed header from flex layout so panes reclaim the left edge. */
                 <div
-                  className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' relative w-0 overflow-visible'}`}
+                  className={`workspace-sidebar-column flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' relative w-0 overflow-visible'}`}
+                  data-open={layout.sidebarOpen}
                 >
                   <div
                     // The floating header covers the center border; restore the seam and size to its own controls.
@@ -181,10 +182,18 @@ export function AppWorkspaceShell(props: {
                   </div>
                 </div>
               ) : (
-                <WorktreeSidebar layout={layout} scrollRefs={sidebarScrollRefs} />
+                <div
+                  className="workspace-sidebar-column flex min-h-0 shrink-0"
+                  data-open={layout.sidebarOpen}
+                >
+                  <WorktreeSidebar layout={layout} scrollRefs={sidebarScrollRefs} />
+                </div>
               )
             ) : null}
-            <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+            <div
+              className="workspace-main-panel flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden"
+              data-workspace-chrome={layout.workspaceChromeActive}
+            >
               {/* Automations/artifacts own their headers; another titlebar would leave an empty stripe. */}
               {layout.stackedSidebarOpen &&
               layout.activeView !== 'automations' &&

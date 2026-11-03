@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { PanelRight } from 'lucide-react'
 import { useAppStore } from '@/store'
-import { cn } from '@/lib/utils'
 import { useSidebarResize } from '@/hooks/useSidebarResize'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
@@ -134,19 +133,13 @@ function RightSidebarInner(): React.JSX.Element {
   return (
     <div
       ref={containerRef}
-      className={cn(
-        // RA: Let the panel yield to the available width, including during live resizes.
-        'relative flex min-w-0 max-w-full flex-row',
-        // Allow the open resize handle to overflow; at width zero, clip mounted content and icons.
-        rightSidebarOpen ? 'overflow-visible' : 'overflow-hidden'
-      )}
+      // RA: Frame the content and optional side activity bar as one panel.
+      data-slot="workspace-right-panel"
+      data-open={rightSidebarOpen}
+      className="relative flex min-w-0 max-w-full flex-row overflow-hidden"
     >
-      <div
-        className="flex flex-col flex-1 min-w-0 bg-sidebar overflow-hidden"
-        style={{
-          borderLeft: rightSidebarOpen ? '1px solid var(--sidebar-border)' : 'none'
-        }}
-      >
+      {/* RA: The outer panel owns the border around both activity-bar placements. */}
+      <div className="flex flex-col flex-1 min-w-0 bg-sidebar overflow-hidden">
         {activityBarPosition === 'top' ? (
           <RightSidebarTopActivityBar
             hasDesktopWindowChrome={hasDesktopWindowChrome}
