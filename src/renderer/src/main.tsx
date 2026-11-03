@@ -55,7 +55,8 @@ if (
 
 applyWindowMaterialToDocument()
 const cachedPluginTheme = readCachedPluginAppTheme()
-applyDocumentTheme(cachedPluginTheme?.base ?? 'system', { disableTransitions: false })
+// RA: Paint dark before settings arrive, including on systems using light appearance.
+applyDocumentTheme(cachedPluginTheme?.base ?? 'dark', { disableTransitions: false })
 if (cachedPluginTheme) {
   applyCachedPluginAppTheme(cachedPluginTheme)
 }

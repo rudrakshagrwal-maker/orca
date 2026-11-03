@@ -47,7 +47,8 @@ describe('daemon OSC 10/11 colours', () => {
       )
     })
 
-    expect(subprocess.write.mock.calls[0]).toEqual(['\x1b]11;rgb:2828/2c2c/3434\x1b\\'])
+    // RA: An unconfigured owner starts with the fork's black background.
+    expect(subprocess.write.mock.calls[0]).toEqual(['\x1b]11;rgb:0000/0000/0000\x1b\\'])
   })
 
   it('resends the last colours when an adapter connects, so a push made while offline lands', async () => {

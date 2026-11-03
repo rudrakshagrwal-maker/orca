@@ -49,6 +49,6 @@ export function ensureWindowsAppDataPath(
   if (host.commandLine.hasSwitch('user-data-dir')) {
     return
   }
-  // Use Electron's own value while bypassing its unsafe provider.
-  host.setPath('userData', win32.join(appData, host.getName()))
+  // RA: Keep settings, browser sessions and instance locks out of official Orca's profile.
+  host.setPath('userData', win32.join(appData, 'Orca-RA'))
 }

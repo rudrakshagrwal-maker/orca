@@ -73,7 +73,10 @@ describe('Store', () => {
     expect(settings.branchPrefix).toBe('git-username')
     expect(settings.refreshLocalBaseRefOnWorktreeCreate).toBe(false)
     expect(settings.sourceControlGroupOrder).toBe('changes-first')
-    expect(settings.theme).toBe('system')
+    // RA: A fresh profile is dark with the local Tango Black terminal palette.
+    expect(settings.theme).toBe('dark')
+    expect(settings.terminalThemeDark).toBe('Tango Black')
+    expect(settings.pluginSystemEnabled).toBe(false)
     expect(settings.appIcon).toBe('classic')
     expect(settings.appFontFamily).toBe('Geist')
     expect(settings.editorAutoSave).toBe(false)

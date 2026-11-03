@@ -11,19 +11,22 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ('orca-ra-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempDir | Out-Null
-gh release download ra-latest -R rudrakshagrwal-maker/orca -p '*.exe' -D $tempDir --clobber
+# RA: Download only this fork's versioned installer.
+gh release download ra-latest -R rudrakshagrwal-maker/orca -p 'Orca-RA-Setup-*.exe' -D $tempDir --clobber
 if ($LASTEXITCODE -ne 0) {
     throw "Installer download failed with exit code $LASTEXITCODE."
 }
-$installers = @(Get-ChildItem -LiteralPath $tempDir -Filter '*.exe' -File)
+$installers = @(Get-ChildItem -LiteralPath $tempDir -Filter 'Orca-RA-Setup-*.exe' -File)
 if ($installers.Count -ne 1 -or $installers[0].Length -eq 0) {
     throw 'Expected one non-empty Orca installer in the release.'
 }
 
-Get-Process -Name Orca -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction Stop
-
-# RA: Pin the per-user destination so shortcuts always target the installer we just ran.
-$installDir = Join-Path $env:LOCALAPPDATA 'Programs\Orca'
+# RA: Stop only this fork and install beside official Orca.
+$installDir = Join-Path $env:LOCALAPPDATA 'Programs\Orca-RA'
+$appPath = Join-Path $installDir 'Orca.exe'
+Get-Process -Name Orca -ErrorAction SilentlyContinue |
+    Where-Object { $_.Path -eq $appPath } |
+    Stop-Process -Force -ErrorAction Stop
 $installer = Start-Process -FilePath $installers[0].FullName -ArgumentList "/S /currentuser /D=$installDir" -WindowStyle Hidden -Wait -PassThru
 if ($installer.ExitCode -ne 0) {
     throw "Orca installer failed with exit code $($installer.ExitCode)."
@@ -42,7 +45,10 @@ foreach ($folder in @(
         throw 'Windows did not provide a Start menu or desktop folder.'
     }
     New-Item -ItemType Directory -Path $folder -Force | Out-Null
-    $shortcutPath = Join-Path $folder 'Orca.lnk'
+    # RA: Keep the visible name Orca inside a separate shortcut folder.
+    $shortcutFolder = Join-Path $folder 'Orca RA'
+    New-Item -ItemType Directory -Path $shortcutFolder -Force | Out-Null
+    $shortcutPath = Join-Path $shortcutFolder 'Orca.lnk'
     $shortcut = $shell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = $appPath
     $shortcut.WorkingDirectory = $installDir

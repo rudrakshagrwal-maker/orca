@@ -1,10 +1,10 @@
 /** The plugin system's switches, approvals and dev paths, composed into GlobalSettings. */
 export type PluginSystemSettings = {
-  /** Master switch for the plugin system. On by default; false means no
+  /** Master switch for the plugin system. RA: off by default; false means no
    *  discovery, no panels, no plugin code paths run at all. */
   pluginSystemEnabled: boolean
-  /** One-shot guard for the default-on rollout: a saved false from the old
-   *  default flips on once; later explicit false (e.g. policy) sticks. */
+  /** RA: Retain the legacy rollout guard so settings writers and older stores
+   *  preserve explicit plugin choices. */
   pluginSystemDefaultedOn?: boolean
   /** Qualified plugin keys (`publisher.id`) the user disabled. Discovered
    *  plugins stay listed but are not activated. */
@@ -31,9 +31,8 @@ export function normalizePluginSystemEnabledDefaultOn(
   settings: Partial<PluginSystemDefaultOnSettings> | undefined
 ): Required<PluginSystemDefaultOnSettings> {
   return {
-    // Pre-rollout false was the old default, not an opt-out.
-    pluginSystemEnabled:
-      settings?.pluginSystemDefaultedOn === true ? settings.pluginSystemEnabled !== false : true,
+    // RA: Missing or legacy settings must not enable marketplace fetches on startup.
+    pluginSystemEnabled: settings?.pluginSystemEnabled === true,
     pluginSystemDefaultedOn: true
   }
 }

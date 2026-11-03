@@ -5,7 +5,7 @@ import {
   getBuiltinTheme
 } from './terminal-theme'
 
-// Mirrors Codex instruction block gray so the dark selection cannot disappear into it.
+// Mirrors Codex instruction block gray for users who retain the Ghostty palette.
 const INSTRUCTION_BLOCK_BACKGROUND = '#3e4451'
 
 function parseHexColor(color: string): [number, number, number] | null {
@@ -52,9 +52,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('default dark terminal theme selection contrast', () => {
+describe('Ghostty terminal theme selection contrast', () => {
   it('keeps selection distinct from instruction blocks while preserving readable selected text', () => {
-    const theme = getBuiltinTheme(DEFAULT_TERMINAL_THEME_DARK)
+    // RA: Tango Black has its own requested selection colors; preserve this Ghostty regression.
+    const theme = getBuiltinTheme('Ghostty Default Style Dark')
 
     expect(theme, `${DEFAULT_TERMINAL_THEME_DARK} should exist`).not.toBeNull()
 
@@ -71,6 +72,17 @@ describe('default dark terminal theme selection contrast', () => {
       2
     )
     expect(contrastRatio(selectionForeground, selectionBackground)).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+describe('Tango Black terminal selection', () => {
+  it('keeps selected text legible against the requested Tango selection surface', () => {
+    const theme = getBuiltinTheme(DEFAULT_TERMINAL_THEME_DARK)
+    expect(theme?.background).toBe('#000000')
+    expect(theme?.selectionBackground).toBe('#2e3436')
+    expect(
+      contrastRatio(theme?.selectionForeground ?? '', theme?.selectionBackground ?? '')
+    ).toBeGreaterThanOrEqual(4.5)
   })
 })
 

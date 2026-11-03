@@ -65,7 +65,8 @@ export function getPlatformUserDataPath(
         'APPDATA is not set, so the Orca runtime metadata path cannot be resolved.'
       )
     }
-    return join(appData, 'orca')
+    // RA: Match the desktop fork's Windows profile rather than discovering official Orca.
+    return join(appData, 'Orca-RA')
   }
   // Match Electron’s packaged userData path.
   return join(process.env.XDG_CONFIG_HOME || join(homeDir, '.config'), 'orca')

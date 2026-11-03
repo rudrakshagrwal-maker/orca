@@ -66,6 +66,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test -s dist/orca-windows-setup.exe
+          # RA: The NSIS artifact includes the packaged version.
+          installers=(dist/Orca-RA-Setup-*.exe)
+          test "${#installers[@]}" -eq 1
+          test -s "${installers[0]}"
           gh release delete ra-latest --yes --cleanup-tag || true
-          gh release create ra-latest dist/orca-windows-setup.exe --title "Orca RA ${GITHUB_SHA::7}" --notes ok --target "$GITHUB_SHA"
+          gh release create ra-latest "${installers[0]}" --title "Orca RA ${GITHUB_SHA::7}" --notes ok --target "$GITHUB_SHA"

@@ -29,7 +29,7 @@ function writeSettings(settings: Record<string, unknown>): void {
   })
 }
 
-describe('plugin system default-on migration', () => {
+describe('RA local plugin defaults and legacy migration', () => {
   beforeEach(() => {
     testState.dir = mkdtempSync(join(tmpdir(), 'orca-test-'))
   })
@@ -39,16 +39,16 @@ describe('plugin system default-on migration', () => {
     rmSync(testState.dir, { recursive: true, force: true })
   })
 
-  it('turns plugins on for new profiles', async () => {
+  it('keeps plugins off for new profiles', async () => {
     const store = await createStore()
-    expect(store.getSettings().pluginSystemEnabled).toBe(true)
+    expect(store.getSettings().pluginSystemEnabled).toBe(false)
     expect(store.getSettings().pluginSystemDefaultedOn).toBe(true)
   })
 
-  it('flips a saved pre-rollout false on once', async () => {
+  it('keeps a saved pre-rollout false off', async () => {
     writeSettings({ pluginSystemEnabled: false })
     const store = await createStore()
-    expect(store.getSettings().pluginSystemEnabled).toBe(true)
+    expect(store.getSettings().pluginSystemEnabled).toBe(false)
     expect(store.getSettings().pluginSystemDefaultedOn).toBe(true)
   })
 
