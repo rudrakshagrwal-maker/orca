@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { app, ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import type { ReleaseBuildListResult, UpdateCheckOptions } from '../../shared/update-status-types'
@@ -33,6 +34,10 @@ const UPDATER_SETUP_FALLBACK_MS = 15_000
 let pendingAutoUpdaterSetup: (() => void) | null = null
 
 export function ensureAutoUpdaterConfigured(): void {
+  // RA: no updater setup, schedules or network checks.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   pendingAutoUpdaterSetup?.()
 }
 
@@ -81,6 +86,10 @@ function setupAutoUpdaterWithAppProxy(
   store: Store,
   options?: UpdaterSetupHooks
 ): void {
+  // RA: no updater setup, schedules or network checks.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   // Starts synchronously, so the session request guard holds the first update check until it settles.
   void applyProxyToElectronUpdaterSession(store.getSettings())
   setupAutoUpdater(mainWindow, buildUpdaterSetupOptions(store, options))
@@ -88,6 +97,10 @@ function setupAutoUpdaterWithAppProxy(
 
 /** Headless serve has no window-driven setup; defer the slow require past readiness so remote updater support becomes available (#22261). */
 export function setupHeadlessServeAutoUpdater(store: Store, options: UpdaterSetupHooks): void {
+  // RA: no updater setup, schedules or network checks.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   setImmediate(() => {
     try {
       setupAutoUpdaterWithAppProxy(null, store, options)
@@ -106,6 +119,10 @@ export function scheduleMainWindowAutoUpdaterSetup(
   store: Store,
   options?: UpdaterSetupHooks
 ): void {
+  // RA: no updater setup, schedules or network checks.
+  if (backgroundJobsDisabled()) {
+    return
+  }
   // Cold Windows/Defender makes electron-updater require slow (#7225); defer past paint, with a timer for crash-looping renderers.
   let updaterSetupDone = false
   let updaterSetupFallback: ReturnType<typeof setTimeout> | null = null
@@ -157,6 +174,10 @@ export function registerUpdaterHandlers(_store: Store): void {
   ipcMain.handle('updater:getStatus', () => getUpdateStatus())
   ipcMain.handle('updater:getVersion', () => app.getVersion())
   ipcMain.handle('updater:check', (_event, options?: UpdateCheckOptions) => {
+    // RA: manual checks cannot restart the disabled updater.
+    if (backgroundJobsDisabled()) {
+      return getUpdateStatus()
+    }
     ensureAutoUpdaterConfigured()
     return checkForUpdatesFromMenu(options)
   })
@@ -180,6 +201,10 @@ export function registerUpdaterHandlers(_store: Store): void {
       channel: ReleaseChannel,
       options?: { force?: boolean }
     ): Promise<ReleaseBuildListResult> => {
+      // RA: release discovery also phones home.
+      if (backgroundJobsDisabled()) {
+        return { ok: true, channel, builds: [] }
+      }
       if (!RELEASE_CHANNELS.includes(channel)) {
         return { ok: false, channel, ...updaterCodedMessage('unknownReleaseChannel', { channel }) }
       }

@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from './fork-background-policy'
 import { mkdirSync } from 'node:fs'
 import {
   writeCanonicalOpenCodePluginAtomically,
@@ -25,6 +26,10 @@ export function writeOpenCodeTuiPlugin(
   source: string,
   ownership: 'canonical' | 'overlay' = 'canonical'
 ): void {
+  // RA: never create plugin directories or register TUI plugins.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   writeOpenCodeTuiPluginDirectory(
     pluginsDir,
     openCodeTuiPluginDirName(pluginFileName),
@@ -39,6 +44,10 @@ export function writeOpenCodeTuiPluginDirectory(
   source: string,
   ownership: 'canonical' | 'overlay' = 'canonical'
 ): void {
+  // RA: never create plugin directories or register TUI plugins.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const dir = join(pluginsDir, directoryName)
   const entry = join(dir, 'tui.js')
   // The 1.x TUI loader rejects a default object that also exposes server().
@@ -71,6 +80,10 @@ function registerTuiPlugin(
   entry: string,
   ownership: 'canonical' | 'overlay'
 ): void {
+  // RA: never create plugin directories or register TUI plugins.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   try {
     registerOpenCodeTuiPlugin(dirname(pluginsDir), entry, ownership)
   } catch (error) {

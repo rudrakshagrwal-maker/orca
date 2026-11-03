@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import { chmod, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -67,6 +68,10 @@ export async function refreshManagedScriptIfPresent(
   content: string | Buffer,
   options: { moveLockedTargetAside?: boolean } = {}
 ): Promise<boolean> {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return false
+  }
   return writeManagedScriptAtomically(
     scriptPath,
     content,
@@ -77,6 +82,10 @@ export async function refreshManagedScriptIfPresent(
 
 // Callers must establish ownership from a surviving managed script or registration first.
 export async function restoreManagedScript(scriptPath: string, content: string): Promise<void> {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   await mkdir(dirname(scriptPath), { recursive: true })
   await writeManagedScriptAtomically(scriptPath, content, true)
 }

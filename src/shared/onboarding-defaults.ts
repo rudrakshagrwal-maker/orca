@@ -7,9 +7,10 @@ export const ONBOARDING_FLOW_VERSION = 4
 export function getDefaultOnboardingState(): OnboardingState {
   return {
     flowVersion: ONBOARDING_FLOW_VERSION,
-    closedAt: null,
-    outcome: null,
-    lastCompletedStep: -1,
+    // RA: first launch opens the normal app without a wizard or checklist.
+    closedAt: 0,
+    outcome: 'completed',
+    lastCompletedStep: ONBOARDING_FINAL_STEP,
     checklist: {
       addedRepo: false,
       choseAgent: false,
@@ -22,7 +23,7 @@ export function getDefaultOnboardingState(): OnboardingState {
       addedFolder: false,
       openedFile: false,
       ranAgentOnFile: false,
-      dismissed: false
+      dismissed: true
     } satisfies OnboardingChecklistState
   }
 }

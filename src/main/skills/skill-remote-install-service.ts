@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import type { RuntimeCapability } from '../../shared/protocol-version'
 import type { RuntimeRpcResponse } from '../../shared/runtime-rpc-envelope'
 import {
@@ -121,6 +122,10 @@ export async function installSkillOnRemoteRuntime(input: {
   requireHttps: boolean
   signal?: AbortSignal
 }): Promise<SkillInstallResult> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const request = input.request
   if (
     request.providers !== undefined &&
@@ -194,6 +199,10 @@ export async function installSkillBundleOnRemoteRuntime(input: {
   signal?: AbortSignal
   onProgress?: (progress: SkillBundleInstallProgress) => void
 }): Promise<SkillBundleInstallResult> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const request = input.request
   if (
     request.providers !== undefined &&

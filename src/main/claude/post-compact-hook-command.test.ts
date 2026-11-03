@@ -1,3 +1,9 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { runProcess } from '@orca/process-host'
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

@@ -1,10 +1,6 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import { useMountedRef } from '@/hooks/useMountedRef'
-import {
-  REACT_ERROR_BOUNDARY_REPORT_AVAILABLE_EVENT,
-  takePendingReactErrorBoundaryReport
-} from '@/lib/react-error-boundary-reporting'
 import type { CrashReportRecord } from '../../../../shared/crash-reporting'
 
 const CrashReportDialogSurface = lazy(() =>
@@ -14,16 +10,10 @@ const CrashReportDialogSurface = lazy(() =>
 )
 
 export function CrashReportDialog(): React.JSX.Element | null {
-  const promptedThisLaunch = useRef(false)
   const mountedRef = useMountedRef()
   const [open, setOpen] = useState(false)
   const [report, setReport] = useState<CrashReportRecord | null>(null)
   const [loading, setLoading] = useState(false)
-
-  const openCrashReport = useCallback((nextReport: CrashReportRecord): void => {
-    setReport(nextReport)
-    setOpen(true)
-  }, [])
 
   const loadCrashReport = useCallback(
     async (promptIfPresent: boolean): Promise<void> => {
@@ -60,14 +50,7 @@ export function CrashReportDialog(): React.JSX.Element | null {
     [mountedRef]
   )
 
-  useEffect(() => {
-    if (promptedThisLaunch.current) {
-      return
-    }
-    promptedThisLaunch.current = true
-    void loadCrashReport(true)
-  }, [loadCrashReport])
-
+  // RA: the crash dialog opens only from the explicit Help command.
   useEffect(() => {
     return window.api.ui.onOpenCrashReport(() => {
       setReport(null)
@@ -75,28 +58,6 @@ export function CrashReportDialog(): React.JSX.Element | null {
       void loadCrashReport(false)
     })
   }, [loadCrashReport])
-
-  useEffect(() => {
-    const pendingReport = takePendingReactErrorBoundaryReport()
-    if (pendingReport) {
-      openCrashReport(pendingReport)
-    }
-
-    const onReactErrorBoundaryReport = (): void => {
-      const nextReport = takePendingReactErrorBoundaryReport()
-      if (nextReport) {
-        openCrashReport(nextReport)
-      }
-    }
-
-    window.addEventListener(REACT_ERROR_BOUNDARY_REPORT_AVAILABLE_EVENT, onReactErrorBoundaryReport)
-    return () => {
-      window.removeEventListener(
-        REACT_ERROR_BOUNDARY_REPORT_AVAILABLE_EVENT,
-        onReactErrorBoundaryReport
-      )
-    }
-  }, [openCrashReport])
 
   if (!open) {
     return null

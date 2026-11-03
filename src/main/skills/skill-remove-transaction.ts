@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import { lstat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
@@ -103,6 +104,10 @@ export async function removeLocalSharedSkill(
   input: LocalSkillRemovalInput,
   dependencies: SkillRemovalTransactionDependencies = {}
 ): Promise<SkillInstallResult> {
+  // RA: skill installation and reconciliation cannot write agent-global directories.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const filesystem = input.filesystem ?? nativeSkillInstallFilesystem
   const releaseLock = await acquireSkillInstallLock({
     path: skillInstallLockPath(input.stateDirectory, input.canonicalPath)

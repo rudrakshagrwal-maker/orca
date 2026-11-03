@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import {
   existsSync,
   mkdirSync,
@@ -247,6 +248,10 @@ export function writeManagedScript(
   content: string | Buffer,
   options: { moveLockedTargetAside?: boolean } = {}
 ): void {
+  // RA: never publish managed hooks into local or remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const dir = dirname(scriptPath)
   mkdirSync(dir, { recursive: true })
 
@@ -307,6 +312,10 @@ export function writeHooksJson(
   // JSONC callers supply edited text while retaining atomic writes and backups.
   options?: { preserveMode?: boolean; defaultMode?: number; serialized?: string }
 ): void {
+  // RA: never publish managed hooks into local or remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const writePath = resolveHooksJsonWritePath(configPath)
   const dir = dirname(writePath)
   mkdirSync(dir, { recursive: true })

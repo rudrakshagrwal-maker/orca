@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -201,6 +202,10 @@ export function updateClaudeGlobalConfig(
   configFile: string,
   change: (config: Record<string, unknown>) => ClaudeGlobalConfigChange
 ): Promise<ClaudeGlobalConfigUpdateOutcome> {
+  // RA: preserve local and remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return Promise.resolve('unchanged')
+  }
   return runKeyedSerializedOperation(updateQueueByConfigFile, configFile, () =>
     updateClaudeGlobalConfigNow({ configFile, change })
   )

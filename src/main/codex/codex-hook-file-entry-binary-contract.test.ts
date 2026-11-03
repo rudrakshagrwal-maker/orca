@@ -1,3 +1,9 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { execFile, execFileSync } from 'node:child_process'
 import {
   existsSync,

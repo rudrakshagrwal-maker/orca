@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { serializeClaudeAgentViewConfig } from './agent-view-config-lock'
 import {
   ownership,
@@ -33,6 +34,10 @@ import { CLAUDE_AGENT_VIEW_PLUGIN } from '../../../shared/claude-agent-view'
 
 // Called only after the user opts in; a surviving marker remembers deletions and edited chords.
 export function installClaudeAgentView(configPath: string): boolean {
+  // RA: no keybinding, statusline or skill-directory mutations.
+  if (preserveGlobalAgentConfiguration()) {
+    return false
+  }
   const configDir = dirname(configPath)
   const keybindings = join(configDir, 'keybindings.json')
   const { raw } = readHooksJsonWithRaw(keybindings)
@@ -60,6 +65,10 @@ export function installClaudeAgentView(configPath: string): boolean {
 }
 
 export function removeClaudeAgentView(configPath: string): void {
+  // RA: no keybinding, statusline or skill-directory mutations.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const configDir = dirname(configPath)
   const root = join(configDir, 'skills', CLAUDE_AGENT_VIEW_PLUGIN)
   const legacy = readHooksJson(join(root, '.claude-plugin', 'orca-managed.json'))
@@ -97,6 +106,10 @@ function retirementMarker(
 }
 
 export function refreshClaudeAgentView(configPath: string): Promise<void> {
+  // RA: no keybinding, statusline or skill-directory mutations.
+  if (preserveGlobalAgentConfiguration()) {
+    return Promise.resolve()
+  }
   return serializeClaudeAgentViewConfig(configPath, () => retireLegacyClaudeAgentView(configPath))
 }
 
@@ -140,6 +153,10 @@ export async function removeClaudeAgentViewRemote(
   sftp: SFTPWrapper,
   configPath: string
 ): Promise<void> {
+  // RA: no keybinding, statusline or skill-directory mutations.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const configDir = posix.dirname(configPath)
   const root = posix.join(configDir, 'skills', CLAUDE_AGENT_VIEW_PLUGIN)
   const legacy = await readHooksJsonRemote(

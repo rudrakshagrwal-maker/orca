@@ -1,3 +1,9 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { createWorkerMaintenanceFixture } from '../../persistence/loading-store/profile-state-maintenance-fixture'
 import type { Store } from '../../persistence/loading-store/store'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'

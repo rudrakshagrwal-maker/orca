@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -35,6 +36,10 @@ function getManagedScriptPath(): string {
 
 export class CursorHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getManagedScriptPath(), getManagedScript())
   }
 
@@ -86,6 +91,10 @@ export class CursorHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const scriptPath = getManagedScriptPath()
     const config = readHooksJson(configPath)
@@ -147,6 +156,10 @@ export class CursorHookService {
 
   // Remote installs must match local hook behavior while using POSIX paths.
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const remoteConfigPath = `${remoteHome.replace(/\/$/, '')}/.cursor/hooks.json`
     const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/cursor-hook.sh`
     try {
@@ -203,6 +216,10 @@ export class CursorHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const config = readHooksJson(configPath)
     if (!config) {

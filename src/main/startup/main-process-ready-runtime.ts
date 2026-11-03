@@ -13,11 +13,6 @@ import { startPreGoneCrashSampling } from '../crash-reporting/process-gone-diagn
 import { recordProcessGoneCrash } from './main-window-lifecycle-flags'
 import { handleGpuChildCrash } from './gpu-lifecycle'
 import { isGpuFallbackCrashCandidate } from '../crash-reporting/gpu-crash-fallback-decision'
-import { startCodexHooks } from '../codex/codex-hook-reconcile'
-import { hydrateAgentCliShellPath } from '../agent-hooks/local-agent-cli-presence'
-import { isAgentStatusHooksEnabledForAgent } from '../agent-hooks/managed-agent-hook-controls'
-import { reconcileStartupManagedAgentHooks } from '../agent-hooks/managed-agent-hook-startup'
-import { shouldInstallManagedHooks } from './configure-process'
 import { mainProcessState as state } from './main-process-state'
 import { initializeMainProcessObservers } from './main-process-observers'
 import { installFirstWorkRenameHookSubscription } from './branch-rename-hook'
@@ -35,12 +30,10 @@ import {
 import { loadWorktreeRemovalRecordsForStore } from './worktree-removal-records-load'
 import { runAfterFirstWindowShown } from './first-window-deferral'
 import { logStartupMilestone } from './startup-diagnostics'
-import { refreshInstalledOpenCodeStatusPlugins } from '../opencode/opencode-status-plugin-startup-refresh'
 import { pruneDesktopOrcadArtifactCache } from '../orcad/orcad-artifact-cache-retention'
 import { runGatedWslMoveDesktopRewritePass } from '../persistence/moving-wsl-projects/wsl-move-desktop-rewrite'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { repairDuplicatePtyPanesOnStart } from '../runtime/moved-pane-owner-rekey'
-import { WslUsageReporter } from '../telemetry/wsl-usage-reporter'
 
 // Headless serve has no first window; timer fallback must still sweep trash.
 const WORKTREE_TRASH_SWEEP_FALLBACK_MS = 15_000
@@ -60,7 +53,7 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   installFirstWorkRenameHookSubscription()
   await initializeMainProcessPlugins(runtime)
   state.starNag = new StarNagService(store, state.stats!)
-  state.starNag.start()
+  // RA: retain user-invoked star IPC without starting automatic nags.
   state.starNag.registerIpcHandlers()
   state.agentBrowserBridge = new AgentBrowserBridge(browserManager, {
     onTabsChanged: (worktreeId) => runtime.notifyMobileSessionTabsChanged(worktreeId)
@@ -99,13 +92,7 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
     })
     runtime.finishInterruptedWorktreeRemovals()
   }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
-  // Defer noncritical plugin-file refresh past first paint.
-  runAfterFirstWindowShown(() => {
-    refreshInstalledOpenCodeStatusPlugins(store.getSettings())
-  }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
-  runAfterFirstWindowShown(() => {
-    new WslUsageReporter(store, app.getPath('userData')).start()
-  }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
+  // RA: no agent plugin refresh or WSL usage reporter.
   runAfterFirstWindowShown(() => {
     void pruneDesktopOrcadArtifactCache(app.getPath('userData')).catch((error) => {
       console.warn('[orcad-artifacts] Failed to bound the slot cache:', error)
@@ -116,24 +103,7 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
     void runGatedWslMoveDesktopRewritePass({ userDataPath: app.getPath('userData') })
   }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
   nativeTheme.themeSource = store.getSettings().theme ?? 'system'
-  // Wait for shell PATH before probing Codex; start reconciliation early so first launch can share it.
-  startCodexHooks({
-    pathReady: app.isPackaged ? hydrateAgentCliShellPath() : Promise.resolve(),
-    isEnabled: () => isAgentStatusHooksEnabledForAgent(store.getSettings(), 'codex'),
-    resolveLaunchHome: () => {
-      if (!state.codexRuntimeHome) {
-        throw new Error('Codex runtime home service is not initialized')
-      }
-      return state.codexRuntimeHome.resolveHostCodexHomePathForLaunchReadOnly()
-    }
-  })
-  if (shouldInstallManagedHooks(!app.isPackaged)) {
-    reconcileStartupManagedAgentHooks({
-      getSettings: () => store.getSettings(),
-      isQuitting: () => state.isQuitting,
-      shouldHydrateShellPath: app.isPackaged
-    })
-  }
+  // RA: no startup managed-hook reconciliation or Codex hook probes.
   // Sample live processes: gone-time metrics omit dead children and already-released memory.
   startPreGoneCrashSampling()
   app.on('child-process-gone', (_event, details) => {

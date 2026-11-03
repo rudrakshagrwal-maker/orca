@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { rmSync } from 'node:fs'
 import type { SFTPWrapper } from 'ssh2'
 
@@ -156,6 +157,10 @@ export class HermesHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const parsed = readConfigFile(configPath)
     if (!parsed.ok) {
@@ -187,6 +192,10 @@ export class HermesHookService {
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const remoteRoot = stripTrailingSlash(remoteHome)
     const remoteConfigPath = `${remoteRoot}/.hermes/config.yaml`
     try {
@@ -222,6 +231,10 @@ export class HermesHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const parsed = readConfigFile(configPath)
     if (!parsed.ok) {

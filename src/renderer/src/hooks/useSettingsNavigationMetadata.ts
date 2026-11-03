@@ -97,13 +97,16 @@ export function buildSettingsNavigationMetadata({
   }
 
   // Match SETTINGS_NAV_GROUPS order so Settings and Cmd+J keep siblings together.
+  // RA: hide disabled cloud, telemetry, plugin, mobile and checklist destinations.
   return [
     ...buildCapabilitySettingsSections(options),
     ...buildSetupSettingsSections(options),
     ...buildWorkflowSettingsSections(options, terminalPaneSearchEntries),
     ...buildInterfaceSettingsSections(options),
     ...buildRemoteSettingsSections(options, runtimeEnvironmentsSearchEntry, reposById)
-  ]
+  ].filter(
+    (section) => !['privacy', 'plugins', 'orca-account', 'mobile', 'setup-guide'].includes(section.id)
+  )
 }
 
 export function useSettingsNavigationMetadata(): SettingsNavSection[] {

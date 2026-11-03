@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../shared/fork-background-policy'
 import { existsSync, mkdirSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { resolveOpenCodeConfigDirectory } from '../shared/opencode-config-directory'
@@ -16,6 +17,10 @@ export function installOpenCodePluginInCanonicalConfig(
   homeDir: string,
   onlyIfInstalled = false
 ): boolean {
+  // RA: disable automatic work and preserve agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return false
+  }
   try {
     const configDir = resolveOpenCodeConfigDirectory(environment, homeDir)
     const pluginFileName =

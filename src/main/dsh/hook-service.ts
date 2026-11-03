@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { dirname } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -165,6 +166,10 @@ function buildStatus(
 /** DSH patch-layer and env-scrub constraints: docs/reference/dsh-harness-integration.md. */
 export class DshHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getDshManagedScriptPath(), getManagedScript())
   }
 
@@ -179,6 +184,10 @@ export class DshHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getDshConfigPath()
     const patchText = readTextOrAbsent(configPath)
     if (patchText === null) {
@@ -204,6 +213,10 @@ export class DshHookService {
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const remoteConfigPath = getDshRemoteConfigPath(remoteHome)
     const remoteScriptPath = `${remoteHome.replace(/\/$/, '')}/.orca/agent-hooks/dsh-hook.sh`
     const remoteManagedHooksPath = getDshRemoteManagedHooksPath(remoteHome)
@@ -227,6 +240,10 @@ export class DshHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getDshConfigPath()
     const patchText = readTextOrAbsent(configPath)
     if (patchText === null) {

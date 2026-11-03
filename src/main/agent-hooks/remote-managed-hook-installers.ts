@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { codebuddyHookService } from '../codebuddy/hook-service'
 import { qwenCodeHookService } from '../qwen-code/hook-service'
 import { qoderCnHookService, qoderHookService } from '../qoder/hook-service'
@@ -102,6 +103,10 @@ export async function installRemoteManagedAgentHooks(
   remoteHome: string,
   options?: RemoteManagedHookInstallOptions
 ): Promise<AgentHookInstallStatus[]> {
+  // RA: preserve local and remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return []
+  }
   // An empty allowlist must not create config homes for uninstalled CLIs.
   const allowedAgents = new Set(options?.agents ?? [])
   if (allowedAgents.size === 0) {

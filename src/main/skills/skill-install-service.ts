@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { join } from 'node:path'
 import type { SkillInstallResult } from '../../shared/skill-install-contract'
 import {
@@ -97,6 +98,10 @@ function placementTransaction(input: SkillInstallServiceInput, request: LocalSki
 export async function installSharedSkill(
   input: SkillInstallServiceInput
 ): Promise<SkillInstallResult> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const request = skillInstallLocalInput(input)
   await previewLocalSkillPackage(request)
   const result = await installLocalSkillPackage(request, {
@@ -109,6 +114,10 @@ export async function installSharedExtractedSkill(
   input: SkillInstallServiceInput,
   extracted: LocalExtractedSkillPackage
 ): Promise<SkillInstallResult> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const request = skillInstallLocalInput(input)
   const result = await installLocalExtractedSkillPackage(request, extracted, {
     placementTransaction: placementTransaction(input, request)
@@ -145,6 +154,10 @@ async function completeSharedSkillInstall(
 export async function removeSharedSkill(
   input: SkillRemoveServiceInput
 ): Promise<SkillInstallResult> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(input.skillName)) {
     throw new Error('skill-install-name-invalid')
   }

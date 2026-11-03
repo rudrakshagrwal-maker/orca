@@ -214,7 +214,8 @@ export function SkillFreshnessUpdateDialog(): React.JSX.Element {
     getSkillFreshnessUpdateDialogOpenRequest
   )
   const open = openRequest !== null
-  const target = openRequest?.target === undefined ? activeTarget : openRequest.target
+  // RA: a closed root dialog must not scan skills on any host.
+  const target = open ? (openRequest?.target === undefined ? activeTarget : openRequest.target) : null
   const targetKey = target ? bundledSkillTargetKey(target) : null
   const state = useSkillFreshness(target)
   const run = useSkillUpdateRun(targetKey)

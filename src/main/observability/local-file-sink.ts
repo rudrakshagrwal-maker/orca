@@ -4,8 +4,9 @@ import { chmodSync, existsSync, mkdirSync, statSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createBoundedLogFileWriter, DEFAULT_MAX_QUEUED_CHARS } from './bounded-log-file-writer'
 
-export const DEFAULT_MAX_BYTES = 10 * 1024 * 1024
-export const DEFAULT_MAX_FILES = 10
+// RA: retain at most two 2 MB trace files.
+export const DEFAULT_MAX_BYTES = 2 * 1024 * 1024
+export const DEFAULT_MAX_FILES = 2
 export const DEFAULT_BATCH_WINDOW_MS = 200
 const PRIVATE_DIRECTORY_MODE = 0o700
 const PRIVATE_FILE_MODE = 0o600
@@ -58,8 +59,9 @@ function droppedRecordMarker(fields: Record<string, unknown>): string {
 
 export function createLocalFileSink(opts: LocalFileSinkOptions): LocalFileSink {
   const filePath = opts.filePath
-  const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES
-  const maxFiles = opts.maxFiles ?? DEFAULT_MAX_FILES
+  // RA: explicit options may lower these limits, never raise them.
+  const maxBytes = Math.min(opts.maxBytes ?? DEFAULT_MAX_BYTES, DEFAULT_MAX_BYTES)
+  const maxFiles = Math.min(opts.maxFiles ?? DEFAULT_MAX_FILES, DEFAULT_MAX_FILES)
   const maxQueuedChars = opts.maxQueuedChars ?? DEFAULT_MAX_QUEUED_CHARS
 
   // Traces contain paths and crash context; restrict access regardless of umask.

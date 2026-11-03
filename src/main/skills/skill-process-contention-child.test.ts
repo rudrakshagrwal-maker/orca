@@ -1,6 +1,12 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { describe, it } from 'vitest'
+import { describe, it, vi } from 'vitest'
 import { installLocalSkillPackage } from './skill-install-transaction'
 
 const CHILD = process.env.ORCA_SKILL_CONTENTION_CHILD === '1'

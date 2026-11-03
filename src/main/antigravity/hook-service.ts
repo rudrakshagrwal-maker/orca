@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -80,6 +81,10 @@ export class AntigravityHookService {
   }
 
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     const runtimePath = process.platform === 'win32' ? this.getWindowsRuntimePath() : undefined
     if (process.platform === 'win32' && (await scriptStillExists(getManagedScriptPath()))) {
       await restoreManagedScript(
@@ -156,6 +161,10 @@ export class AntigravityHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const scriptPath = getManagedScriptPath()
     const config = readHooksJson(configPath)
@@ -196,6 +205,10 @@ export class AntigravityHookService {
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const home = remoteHome.replace(/\/$/, '')
     const remoteConfigPath = `${home}/.gemini/config/hooks.json`
     const remoteScriptPath = `${home}/.orca/agent-hooks/antigravity-hook.sh`
@@ -238,6 +251,10 @@ export class AntigravityHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const config = readHooksJson(configPath)
     if (!config) {

@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { SFTPWrapper } from 'ssh2'
@@ -149,6 +150,10 @@ function buildInstalledDroidConfig(
 
 export class DroidHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getManagedScriptPath(), getManagedScript())
   }
 
@@ -213,6 +218,10 @@ export class DroidHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const scriptPath = getManagedScriptPath()
     const config = readHooksJson(configPath)
@@ -234,6 +243,10 @@ export class DroidHookService {
 
   // Remote installs always use POSIX scripts and paths, including from Windows clients.
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const home = remoteHome.replace(/\/$/, '')
     const remoteConfigPath = `${home}/.factory/settings.json`
     const remoteScriptPath = `${home}/.orca/agent-hooks/droid-hook.sh`
@@ -273,6 +286,10 @@ export class DroidHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getConfigPath()
     const config = readHooksJson(configPath)
     if (!config) {

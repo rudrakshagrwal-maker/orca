@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
-import { getDefaultOnboardingState } from '../../../../shared/onboarding-defaults'
+// RA: retained wizard scenarios explicitly begin unfinished.
+import {
+  createUnfinishedOnboardingState as getDefaultOnboardingState
+} from '../../../../shared/onboarding-state-test-fixture'
 
 import { useAppStore } from '@/store'
 import {

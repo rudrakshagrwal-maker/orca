@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { isAbsolute, join } from 'node:path'
 import { homedir } from 'node:os'
@@ -87,6 +88,10 @@ export class MimoCodeHookService {
 
   /** MIMOCODE_CONFIG_DIR adds a config layer; MIMOCODE_HOME would also move auth and session data. */
   buildPtyEnv(_ptyId: string, existingConfigDir?: string): { MIMOCODE_CONFIG_DIR?: string } {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return existingConfigDir ? { MIMOCODE_CONFIG_DIR: existingConfigDir } : {}
+    }
     const fallback = { MIMOCODE_CONFIG_DIR: existingConfigDir }
     const root = join(getAppEnvironment().getPath('userData'), MIMOCODE_HOOKS_DIR)
     const overlay = existingConfigDir

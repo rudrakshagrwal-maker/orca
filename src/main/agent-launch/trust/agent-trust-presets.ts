@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -12,6 +13,10 @@ export type AgentTrustPreset = NonNullable<TuiAgentConfig['preflightTrust']>
 // Trust artifacts preserve the agent’s approval and sandbox policy.
 
 export function markCursorWorkspaceTrusted(workspacePath: string, home: string): void {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const absPath = canonicalize(workspacePath)
   const slug = cursorWorkspaceSlug(absPath)
   if (!slug) {
@@ -32,6 +37,10 @@ export function markCursorWorkspaceTrusted(workspacePath: string, home: string):
 }
 
 export function markCopilotFolderTrusted(workspacePath: string, home: string): void {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const absPath = canonicalize(workspacePath)
   const configDir = join(home, '.copilot')
   const configPath = join(configDir, 'config.json')
@@ -66,6 +75,10 @@ export function markCopilotFolderTrusted(workspacePath: string, home: string): v
 
 /** Antigravity trust is exact-path; parent entries do not cover new child workspaces. */
 export function markAntigravityWorkspaceTrusted(workspacePath: string, home: string): void {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const absPath = canonicalize(workspacePath)
   const configDir = join(home, '.gemini', 'antigravity-cli')
   const configPath = join(configDir, 'settings.json')
@@ -98,6 +111,10 @@ export function markAntigravityWorkspaceTrusted(workspacePath: string, home: str
 
 /** Kimi Code 2.3.1 keeps one exact-folder record per cwd (workspaceTrust/trustRecord.ts). */
 export function markKimiWorkspaceTrusted(workspacePath: string, kimiHome: string): void {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   // Kimi keys on process.cwd(): physical on POSIX, the spawn path as given on Windows.
   const root = process.platform === 'win32' ? resolve(workspacePath) : canonicalize(workspacePath)
   const trustFile = join(kimiHome, 'workspace-trust', kimiWorkspaceTrustKey(root))
@@ -129,6 +146,10 @@ export function markCodexProjectTrusted(
   workspacePath: string,
   configFiles: readonly string[]
 ): Promise<void> {
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (preserveGlobalAgentConfiguration()) {
+    return Promise.resolve()
+  }
   // Codex checks the starting folder before its repository root; no Git-layout lookup is needed.
   const absPath = canonicalize(workspacePath)
   // Serialize with hook installs so their capture/restore cannot overwrite the trust grant (#16441).

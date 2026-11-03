@@ -16,8 +16,9 @@ import { commonPropsSchema, validate } from './validator'
 export { shouldOptOutSdkAtInit } from './posthog-transport'
 
 // Compile-time feature flag, independent of the build-identity gate — both must be satisfied to transmit.
-// NOTE: config/scripts/verify-telemetry-constants.mjs greps `const TELEMETRY_ENABLED = true|false`; keep that shape or update its regex.
-const TELEMETRY_ENABLED = true
+// NOTE: config/scripts/verify-telemetry-constants.mjs greps this constant; keep its exact shape.
+// RA: never transmit telemetry, including official builds.
+const TELEMETRY_ENABLED = false
 
 // Require both CI-injected official build identity and write key; contributor builds fail closed. Vitest bypasses defines and uses globalThis fallbacks.
 const BUILD_IDENTITY: 'stable' | 'rc' | null =

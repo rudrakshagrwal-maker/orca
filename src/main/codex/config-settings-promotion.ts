@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { observeAgentStateFile } from './codex-path-observation'
@@ -99,6 +100,15 @@ function getHostPromotionHomes(): CodexSettingsPromotionHomes {
 export function promoteCodexRuntimeSettingsToSystem(
   homes?: CodexSettingsPromotionHomes
 ): CodexSettingsPromotionPlan | null {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return {
+      conflicts: new Map(),
+      runtimeValuesToPreserve: new Map(),
+      mirroredMcpServers: new Set(),
+      mirroredMcpServerRoot: false
+    }
+  }
   try {
     return promoteCodexRuntimeSettingsToSystemUnsafe(homes ?? getHostPromotionHomes())
   } catch (error) {

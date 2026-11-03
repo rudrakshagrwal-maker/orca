@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -86,6 +87,10 @@ async function writePreset(
   storedPath: string,
   host: WorkspaceTrustHost
 ): Promise<void> {
+  // RA: disable automatic work and preserve agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   switch (preset) {
     case 'claude': {
       const target = host.claudeConfig()
@@ -120,6 +125,10 @@ export async function applyWorkspaceTrustOnThisHost(
   workspacePath: string,
   describeHost: () => WorkspaceTrustHost
 ): Promise<void> {
+  // RA: disable automatic work and preserve agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   try {
     const host = describeHost()
     if (AGENT_TRUST_INHERITS_FROM_A_HOME[preset] || AGENT_TRUST_UNSAFE_AT_A_HOME.has(preset)) {

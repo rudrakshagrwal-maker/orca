@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { homedir } from 'node:os'
 import { basename, extname, join, win32 } from 'node:path'
 import {
@@ -233,6 +234,10 @@ export function applyManagedHooks(
   scriptFileName: string,
   plan: ClaudeManagedHookPlan
 ): HooksConfig {
+  // RA: leave agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    return config
+  }
   const nextHooks = { ...config.hooks }
   const isManagedCommand = createManagedCommandMatcher(scriptFileName)
 
@@ -287,6 +292,10 @@ export function applyManagedStatusLine(
   command: string,
   scriptFileName = getStatusLineScriptFileName()
 ): HooksConfig {
+  // RA: leave agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    return config
+  }
   if (getStatusLineSlotState(config, scriptFileName) === 'user') {
     return config
   }

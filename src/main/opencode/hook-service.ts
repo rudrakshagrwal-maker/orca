@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { join } from 'node:path'
 import {
@@ -103,6 +104,10 @@ export class OpenCodeHookService {
     sourceConfigDir: string,
     owner: OpenCodeHookService
   ): 'unmatched' | 'installed' | 'failed' {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return 'unmatched'
+    }
     if (directory !== owner.getSourceOverlayDir(sourceConfigDir)) {
       return 'unmatched'
     }
@@ -125,6 +130,10 @@ export class OpenCodeHookService {
     existingConfigDir?: string | undefined,
     defaultConfigDir?: string
   ): Record<string, string> {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return existingConfigDir ? { OPENCODE_CONFIG_DIR: existingConfigDir } : {}
+    }
     if (!isUsableId(ptyId)) {
       return existingConfigDir ? { OPENCODE_CONFIG_DIR: existingConfigDir } : {}
     }
@@ -164,6 +173,10 @@ export class OpenCodeHookService {
 
   // Refresh pre-1.4.209 server-only plugins for future loads; running services may retain cached modules.
   refreshLegacySharedPlugin(): void {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     if (this.tuiOnlyDirectory) {
       return
     }
@@ -192,6 +205,10 @@ export class OpenCodeHookService {
 
   // Refresh existing installs at startup so OpenCode 2 reloads upgrades before the next pane opens.
   refreshInstalledPlugins(): void {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     this.refreshLegacySharedPlugin()
     const overlayRoot = this.getOverlayRoot()
     const overlays = existsSync(overlayRoot)

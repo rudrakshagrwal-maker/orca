@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from './fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import {
   chmodSync,
@@ -90,11 +91,19 @@ function writeAtomicFile(targetPath: string, content: string): void {
 
 // Atomically replace the canonical target, preserving dotfile symlinks.
 export function writeCanonicalOpenCodePluginAtomically(pluginPath: string, source: string): void {
+  // RA: preserve local and remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const targetPath = resolveCanonicalPluginWritePath(pluginPath)
   writeAtomicFile(targetPath, source)
 }
 
 // Replace overlay links themselves; never follow them into user configuration.
 export function writeOverlayOpenCodePluginAtomically(pluginPath: string, source: string): void {
+  // RA: preserve local and remote agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   writeAtomicFile(pluginPath, source)
 }

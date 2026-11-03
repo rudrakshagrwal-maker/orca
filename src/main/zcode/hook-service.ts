@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import {
@@ -102,6 +103,10 @@ function buildStatus(
 
 export class ZCodeHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getZCodeManagedScriptPath(), getManagedScript())
   }
 
@@ -115,6 +120,10 @@ export class ZCodeHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getZCodeConfigPath()
     const scriptPath = getZCodeManagedScriptPath()
     const source = readZCodeConfigSource(configPath)
@@ -135,6 +144,10 @@ export class ZCodeHookService {
 
   // SSH hook installation uses the remote POSIX contract.
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const remoteConfigPath = getZCodeRemoteConfigPath(remoteHome)
     // Remote Windows is unsupported here; local process.platform cannot describe an SSH host.
     const remoteScriptFileName = getZCodePosixManagedScriptFileName()
@@ -166,6 +179,10 @@ export class ZCodeHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getZCodeConfigPath()
     const source = readZCodeConfigSource(configPath)
     if (!source) {

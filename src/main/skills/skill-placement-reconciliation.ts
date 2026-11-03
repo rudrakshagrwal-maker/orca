@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { lstat, mkdir, realpath, symlink } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import type { SkillPlacementResult } from '../../shared/skill-install-contract'
@@ -65,6 +66,10 @@ export async function createNativeSkillAlias(
   canonicalPath: string,
   destinationPath: string
 ): Promise<void> {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const parent = dirname(destinationPath)
   await mkdir(parent, { recursive: true })
   if (process.platform === 'win32') {
@@ -248,6 +253,10 @@ export async function reconcileSkillProviderPlacement(input: {
   targetPlatform?: 'darwin' | 'linux' | 'win32' | 'other'
   transaction?: { stagingPath: string; backupPath: string }
 }): Promise<SkillPlacementResult | null> {
+  // RA: skill installation and reconciliation cannot write agent-global directories.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   if (input.destination.readsCanonicalRoot) {
     return null
   }

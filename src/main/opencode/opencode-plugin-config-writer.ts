@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -21,6 +22,10 @@ export function writeOpenCodePluginConfig(options: {
   tuiOnlyDirectory: string | undefined
   ownership: 'canonical' | 'overlay'
 }): void {
+  // RA: preserve agent configuration across every direct entry point.
+  if (preserveGlobalAgentConfiguration()) {
+    return
+  }
   const pluginsDir = join(options.configDir, 'plugins')
   mkdirSync(pluginsDir, { recursive: true })
   const pluginPath = join(pluginsDir, options.pluginFileName)

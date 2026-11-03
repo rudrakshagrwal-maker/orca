@@ -1,8 +1,11 @@
+// RA: retain transport unit coverage without enabling production uploads.
+vi.mock('../../shared/fork-background-policy', () => ({ backgroundJobsDisabled: () => false }))
+
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type RequestListener, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { _internalsForTests, collectBundle, generateBundleSubmissionId } from './bundle'
 import { deleteBundle, uploadBundle, validateUploadUrl } from './diagnostic-bundle-upload'
 import { MAX_RESPONSE_BYTES } from './diagnostic-upload-http'

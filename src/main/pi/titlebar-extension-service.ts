@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { materializeOmpFreshConfig } from '../../shared/omp-fresh-config'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -161,6 +162,10 @@ export class PiTitlebarExtensionService {
   }
 
   buildFreshOmpEnv(): Record<string, string> {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return {}
+    }
     return {
       ORCA_OMP_FRESH_CONFIG: materializeOmpFreshConfig(
         join(getAppEnvironment().getPath('userData'), OMP_MANAGED_STATUS_EXTENSION_DIR)
@@ -174,6 +179,10 @@ export class PiTitlebarExtensionService {
     kind: PiAgentKind,
     options?: { materializeDefaultHome?: boolean; configDirName?: string }
   ): Record<string, string> {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return {}
+    }
     const freshConfigEnv = kind === 'omp' ? this.buildFreshOmpEnv() : {}
     const sourceAgentDir = existingAgentDir || getDefaultPiAgentDir(kind, options?.configDirName)
     if (kind !== 'prime-agent') {
@@ -218,6 +227,10 @@ export class PiTitlebarExtensionService {
   }
 
   clearPty(ptyId: string): void {
+    // RA: preserve local and remote agent configuration.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     // Teardown lacks agent kind; sweep both PTY roots but preserve source overlays containing user state.
     for (const kind of Object.keys(OVERLAY_ROOT_DIR_NAME) as LegacyOverlayAgentKind[]) {
       try {

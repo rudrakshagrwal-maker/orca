@@ -1,3 +1,9 @@
+// RA: exercise retained upstream internals under an explicitly unblocked unit-test policy.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { installNetRequestFetchAdapter } from './testing/updater-net-request.fixture'
 import { publishingIncident } from './releases/updater-prerelease-feed-reproduction.fixture'

@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -52,6 +53,10 @@ export class AmpHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const pluginPath = getPluginPath()
     const state = readLocalPluginState(pluginPath)
     if (state.kind === 'unmanaged' || state.kind === 'error') {
@@ -62,6 +67,10 @@ export class AmpHookService {
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const remotePluginPath = getRemotePluginPath(remoteHome)
     try {
       const existing = await readTextFileRemote(sftp, remotePluginPath)
@@ -88,6 +97,10 @@ export class AmpHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const pluginPath = getPluginPath()
     const state = readLocalPluginState(pluginPath)
     if (state.kind === 'managed') {

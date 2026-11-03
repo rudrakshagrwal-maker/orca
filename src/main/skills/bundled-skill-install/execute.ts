@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { join } from 'node:path'
 import type {
   BundledSkillCleanup,
@@ -241,6 +242,10 @@ async function withTargetLocks(
   unrun: (status: 'changed' | 'busy') => BundledSkillInstallResult,
   run: () => Promise<BundledSkillInstallResult>
 ): Promise<BundledSkillInstallResult> {
+  // RA: skill installation and reconciliation cannot write agent-global directories.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   let releases: (() => Promise<void>)[]
   try {
     releases = await acquireLocks(input, await lockPaths(input))
@@ -267,6 +272,10 @@ export async function executeBundledSkillPlan(
   input: BundledSkillExecuteInput,
   planDigest: string
 ): Promise<BundledSkillInstallResult> {
+  // RA: skill installation and reconciliation cannot write agent-global directories.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const names = input.names ?? input.sources.map((source) => source.name)
   const unrun = (status: 'changed' | 'busy'): BundledSkillInstallResult => ({
     scope: input.destination.scope,
@@ -293,6 +302,10 @@ export async function executeBundledSkillPlan(
 export async function autoUpdateBundledSkills(
   input: BundledSkillExecuteInput & { names: readonly string[] }
 ): Promise<BundledSkillInstallResult> {
+  // RA: skill installation and reconciliation cannot write agent-global directories.
+  if (preserveGlobalAgentConfiguration()) {
+    return { scope: input.destination.scope, skills: [] }
+  }
   const unrun = (status: 'changed' | 'busy'): BundledSkillInstallResult => ({
     scope: input.destination.scope,
     skills: input.names.map((name) => ({ name, status, ops: [] }))

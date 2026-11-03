@@ -6,7 +6,10 @@ import { useAppStore } from '@/store'
 import { createTestStore, makeWorktree } from '@/store/slices/store-test-helpers'
 import { makeDetectedResult } from '@/store/slices/worktrees-detected-listing-fixtures'
 import { getDefaultSettings } from '../../../shared/constants'
-import { getDefaultOnboardingState } from '../../../shared/onboarding-defaults'
+// RA: retained wizard scenarios explicitly begin unfinished.
+import {
+  createUnfinishedOnboardingState as getDefaultOnboardingState
+} from '../../../shared/onboarding-state-test-fixture'
 import type { PublicKnownRuntimeEnvironment } from '../../../shared/runtime-environments'
 import { projectAgentLaunchSettings } from '../../../shared/agent-launch-settings'
 import { clearHostAgentMenuSettingsForTests } from '@/components/settings/use-host-agent-launch-preferences'

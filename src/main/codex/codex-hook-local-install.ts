@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { mkdirSync } from 'node:fs'
 import type { AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import {
@@ -45,6 +46,10 @@ export async function installCodexHooksExclusively(
   hashes: CodexHookHashes,
   getStatus: (runtimeHomePath: string) => AgentHookInstallStatus
 ): Promise<AgentHookInstallStatus> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    return getStatus(runtimeHomePath)
+  }
   const configPath = getConfigPath(runtimeHomePath)
   const scriptPath = getManagedScriptPath()
   // Save in-Orca approvals before rewriting their runtime positions or cleaning stale trust.

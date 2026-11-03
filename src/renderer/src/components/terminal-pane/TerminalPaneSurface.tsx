@@ -15,7 +15,6 @@ import { AgentLaunchPaneNoticePortal } from './AgentLaunchPaneNotice'
 import { TerminalSessionStateSaveFailureDialog } from './TerminalSessionStateSaveFailureDialog'
 import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
 import { TerminalAgentSessionForkDialog } from './TerminalAgentSessionForkDialog'
-import { SessionRestoredBannerPortals } from './SessionRestoredBannerPortals'
 import { handleInternalTerminalFileDrop } from './terminal-drop-handler'
 import { TerminalQuickCommandEditorDialog } from './TerminalQuickCommandEditorDialog'
 import { TerminalPaneNativeChatPortal } from './TerminalPaneNativeChatPortal'
@@ -102,7 +101,6 @@ export function TerminalPaneSurface({
     searchOpen,
     searchStateRef,
     searchInputRef,
-    sessionRestoredBannerPaneIds,
     sessionStateSaveFailureMessage,
     setAgentSessionContinuation,
     setAgentSessionFork,
@@ -256,10 +254,7 @@ export function TerminalPaneSurface({
           />,
           activePane.container
         )}
-      <SessionRestoredBannerPortals
-        panes={managerRef.current?.getPanes() ?? []}
-        paneIds={sessionRestoredBannerPaneIds}
-      />
+      {/* RA: no informational session-restored banner. */}
       <TerminalPaneNativeChatPortal controller={controller} />
       <TerminalContextMenu
         open={contextMenu.open}

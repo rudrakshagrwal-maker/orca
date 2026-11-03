@@ -15,11 +15,6 @@ import {
   getAgentGeneratedTabTitlesTitle
 } from './agent-generated-tab-title-copy'
 import {
-  getAgentStatusHooksDescription,
-  getAgentStatusHooksSearchKeywords,
-  getAgentStatusHooksTitle
-} from './agent-status-hooks-copy'
-import {
   getAgentWorkspaceTrustDescription,
   getAgentWorkspaceTrustSearchKeywords,
   getAgentWorkspaceTrustTitle
@@ -168,11 +163,7 @@ const getAllAgentsPaneSearchEntries = createLocalizedCatalog(() => [
       ...translateSearchKeyword('settings.chat.providers.searchAgents', 'agents')
     ]
   },
-  {
-    title: getAgentStatusHooksTitle(),
-    description: getAgentStatusHooksDescription(),
-    keywords: getAgentStatusHooksSearchKeywords()
-  },
+  // RA: no search result for the hidden hooks switch.
   {
     id: 'claude-subagent-navigation',
     title: getClaudeSubagentNavigationTitle(),

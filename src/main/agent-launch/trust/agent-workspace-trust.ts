@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { homedir } from 'node:os'
 import {
   AGENT_TRUST_WRITE_DEADLINE_MS,
@@ -51,6 +52,10 @@ export async function applyAgentWorkspaceTrust(
   workspacePath: string,
   context: AgentTrustLaunchContext
 ): Promise<AgentTrustSpawnFields> {
+  // RA: disable automatic work and preserve agent configuration.
+  if (preserveGlobalAgentConfiguration()) {
+    return {}
+  }
   if (context.connectionId) {
     // Forward to the SSH relay so trust is written on the agent’s host.
     return { agentWorkspaceTrust: { workspacePath } }

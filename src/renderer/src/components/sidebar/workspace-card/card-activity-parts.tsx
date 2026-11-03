@@ -1,5 +1,4 @@
 import React from 'react'
-import { LinearAgentSkillSetupPrompt } from '../LinearAgentSkillSetupPrompt'
 import type { WorktreeCardController } from '../use-worktree-card-controller'
 import WorktreeCardAgents from '../WorktreeCardAgents'
 import {
@@ -69,14 +68,8 @@ export const CARD_ACTIVITY_PARTS = {
   DeleteFailed: part([], (_props, _children, { worktree }) =>
     worktree.removalError ? <WorktreeCardDeleteFailed error={worktree.removalError} /> : null
   ),
-  LinearSetupPrompt: part([], (_props, _children, { repo, settings }) => (
-    <LinearAgentSkillSetupPrompt
-      linked
-      remote={Boolean(repo?.connectionId || settings?.activeRuntimeEnvironmentId?.trim())}
-      surface="modal"
-      settings={settings}
-    />
-  )),
+  // RA: no automatic Linear skill-setup dialog or reminder toast.
+  LinearSetupPrompt: part([], () => null),
   ChildToggle: part([], (_props, _children, card) => (
     <WorktreeLineageToggle
       childWorktreeIds={card.lineageChildWorktreeIds}

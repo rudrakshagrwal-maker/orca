@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import type { SFTPWrapper } from 'ssh2'
 import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
 import {
@@ -85,6 +86,10 @@ function getManagedScript(target: 'local' | 'posix' = 'local'): string {
 
 export class DevinHookService {
   async refreshManagedScripts(): Promise<void> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return
+    }
     await refreshManagedScriptIfPresent(getDevinManagedScriptPath(), getManagedScript())
   }
 
@@ -141,6 +146,10 @@ export class DevinHookService {
   }
 
   install(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getDevinConfigPath()
     const scriptPath = getDevinManagedScriptPath()
     const source = readDevinHooksSource(configPath)
@@ -168,6 +177,10 @@ export class DevinHookService {
   }
 
   async installRemote(sftp: SFTPWrapper, remoteHome: string): Promise<AgentHookInstallStatus> {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     // Remote hook scripts use POSIX syntax regardless of the local platform.
     const remoteConfigPath = getDevinRemoteConfigPath(remoteHome)
     const remoteScriptFileName = getDevinPosixManagedScriptFileName()
@@ -214,6 +227,10 @@ export class DevinHookService {
   }
 
   remove(): AgentHookInstallStatus {
+    // RA: no managed agent hook writes, refreshes or removals.
+    if (preserveGlobalAgentConfiguration()) {
+      return this.getStatus()
+    }
     const configPath = getDevinConfigPath()
     const source = readDevinHooksSource(configPath)
     if (!source) {

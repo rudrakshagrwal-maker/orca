@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type {
@@ -146,6 +147,10 @@ function bundleStatus(
 export async function installSkillBundle(
   input: SkillBundleInstallServiceInput
 ): Promise<SkillBundleInstallResult> {
+  // RA: leave local and remote agent configuration untouched.
+  if (preserveGlobalAgentConfiguration()) {
+    throw new Error('Agent skill writes are disabled in this fork')
+  }
   const destinationRoot = skillInstallLocalInput({
     ...input,
     expectedPackageDigest: input.bundleDigest,

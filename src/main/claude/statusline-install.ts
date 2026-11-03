@@ -1,3 +1,4 @@
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { existsSync, rmSync, writeFileSync } from 'node:fs'
 import { writeManagedScript, type HooksConfig } from '../agent-hooks/installer-utils'
 import { getManagedStatusLineCommand, getManagedStatusLineScript } from './statusline-script'
@@ -16,6 +17,10 @@ export function installClaudeManagedStatusLine(
   config: HooksConfig,
   settings: ClaudeCompatibleHookSettings
 ): HooksConfig {
+  // RA: no managed statusline installation or retirement.
+  if (preserveGlobalAgentConfiguration()) {
+    return config
+  }
   const scriptFileName = getStatusLineScriptFileName(settings)
   const markerPath = getStatusLineInstallMarkerPath(settings)
   const slot = getStatusLineSlotState(config, scriptFileName)
@@ -42,6 +47,10 @@ export function retireClaudeManagedStatusLine(
   config: HooksConfig,
   settings: ClaudeCompatibleHookSettings
 ): HooksConfig {
+  // RA: no managed statusline installation or retirement.
+  if (preserveGlobalAgentConfiguration()) {
+    return config
+  }
   const { config: next, changed } = removeManagedStatusLine(
     config,
     getStatusLineScriptFileName(settings)

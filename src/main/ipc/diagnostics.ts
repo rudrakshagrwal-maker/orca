@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 // Main owns redacted payloads and upload endpoints; validate renderer requests and enforce consent here (telemetry-error-tracking.md).
 
 import { app, dialog, ipcMain, shell } from 'electron'
@@ -235,6 +236,10 @@ export function registerDiagnosticsHandlers(): void {
   ipcMain.handle(
     'diagnostics:uploadBundle',
     async (_event, bundleSubmissionId: unknown): Promise<UploadBundleIpcResult> => {
+      // RA: diagnostics never leave this machine.
+      if (backgroundJobsDisabled()) {
+        throw diagnosticsBundleFailure('sendingDisabled')
+      }
       // Accept only main-retained payload IDs, never renderer-supplied bytes.
       const pendingForConfirmation = getPendingBundleForUpload(bundleSubmissionId)
       // Recheck consent in case it changed after collection.
