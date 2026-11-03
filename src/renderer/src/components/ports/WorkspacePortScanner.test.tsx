@@ -17,6 +17,21 @@ import {
 import { getWorkspacePortsByWorktreeId } from '@/lib/workspace-ports/workspace-port-groups'
 import { useAppStore } from '@/store'
 import { WorkspacePortScanner } from './WorkspacePortScanner'
+import { AppBackgroundServices } from '@/app-shell/AppBackgroundServices'
+import { acquireWorkspacePortScanDemand } from '@/lib/workspace-ports/workspace-port-scan-demand'
+
+vi.mock('../AgentHibernationGate', () => ({ AgentHibernationGate: () => null }))
+vi.mock('../dashboard/RetainedAgentsSyncGate', () => ({ default: () => null }))
+vi.mock('../sidebar/SavedHostScopeWidenGate', () => ({ SavedHostScopeWidenGate: () => null }))
+vi.mock('@/hooks/MacosTccPromptNoticeHost', () => ({ MacosTccPromptNoticeHost: () => null }))
+vi.mock('@/app-shell/ActiveWorkspaceSyncGate', () => ({ ActiveWorkspaceSyncGate: () => null }))
+vi.mock('../native-chat/StructuredAgentSessionStatusBridge', () => ({
+  StructuredAgentSessionStatusBridge: () => null
+}))
+vi.mock('../native-chat/StructuredAgentSessionAttentionBridge', () => ({
+  StructuredAgentSessionAttentionBridge: () => null
+}))
+vi.mock('../native-chat-resume-on-restart-store', () => ({ useNativeChatLaunchResume: () => {} }))
 
 const localScan = vi.fn()
 const runtimeEnvironmentCall = vi.fn()
@@ -219,6 +234,43 @@ afterEach(() => {
 })
 
 describe('WorkspacePortScanner', () => {
+  it('keeps live scans and advertised URL updates while a popover is the only visible consumer', async () => {
+    useAppStore.setState({ workspaceSessionReady: true, rightSidebarOpen: false })
+    await act(async () => {
+      root?.render(<AppBackgroundServices />)
+      await flushPromises()
+    })
+    expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
+    let release = () => {}
+    try {
+      await act(async () => {
+        release = acquireWorkspacePortScanDemand()
+        await flushPromises()
+      })
+      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(1)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000)
+      })
+      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(2)
+      await act(async () => {
+        vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock.calls.at(-1)?.[0]()
+        await flushPromises()
+      })
+      expect(localScan).toHaveBeenCalled()
+      await act(async () => {
+        release()
+        await flushPromises()
+      })
+      const scans = runtimeEnvironmentCall.mock.calls.length
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000)
+      })
+      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(scans)
+    } finally {
+      act(() => release())
+    }
+  })
+
   it('turns a missing runtime scan payload into an unavailable result', async () => {
     runtimeEnvironmentCall.mockResolvedValue({ ok: true, result: undefined })
 

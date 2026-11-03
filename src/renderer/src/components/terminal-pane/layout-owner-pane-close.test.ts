@@ -114,7 +114,7 @@ it('a layout-owner build closes as today, forgetting its close, when main lacks 
   expect(p.transports.has(1)).toBe(false)
 })
 
-// RA: A delayed main refusal must not close the workspace's last tab.
+// RA: delayed explicit closes still close the last tab.
 it.each([1, 2])('handles last-pane refusal with %s workspace tabs', async (tabCount) => {
   mocks.layoutOwnerIsMain = true
   const p = await preparePendingSplitClose()
@@ -130,7 +130,16 @@ it.each([1, 2])('handles last-pane refusal with %s workspace tabs', async (tabCo
   first?.apply({}, LOCAL_LAYOUT_APPLY_ORIGIN)
   second?.refused?.('last_pane')
 
-  expect(p.controller.onCloseTab).toHaveBeenCalledTimes(tabCount > 1 ? 1 : 0)
+  expect(p.controller.onCloseTab).toHaveBeenCalledTimes(1)
+})
+
+it('explicit Close closes the last terminal tab', async () => {
+  const p = await preparePendingSplitClose()
+  const manager = p.controller.managerRef.current!
+  const lastPane = manager.getPanes()[0]
+  vi.spyOn(manager, 'getPanes').mockReturnValue([lastPane])
+  p.actions.handleRequestClosePane(1)
+  expect(p.controller.onCloseTab).toHaveBeenCalledOnce()
 })
 
 it('a layout-owner build leaves an unmounted tab alone when main refuses its last pane', async () => {

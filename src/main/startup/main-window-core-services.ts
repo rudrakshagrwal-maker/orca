@@ -163,9 +163,9 @@ export function attachMainWindowCoreServices(
     }
   )
   // RA: no permission-log helper or quota probes on startup, focus, show or restore.
+  rateLimits.attach(window, { refreshOnResume: !backgroundJobsDisabled() })
   if (!backgroundJobsDisabled()) {
     initTccPromptNotice(window, { deferWatchUntilReadyToShow: true })
-    rateLimits.attach(window)
     rateLimits.start({ fetchImmediately: false })
   }
 }

@@ -1,29 +1,19 @@
-import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { buildAgentStartupPlan, buildAgentDraftLaunchPlan } from './tui-agent-startup'
-import {
-  OPENCODE_STARTUP_PROMPT_SHA256_ENV,
-  OPENCODE_STARTUP_PROMPT_BODY_ENV,
-  OPENCODE_STARTUP_PROMPT_SHELL_ENV
-} from './opencode-startup-prompt'
+import { OPENCODE_STARTUP_PROMPT_SHA256_ENV } from './opencode-startup-prompt'
 import { tokenizeStartupCommand } from './tui-agent-startup-shell'
 
 describe('native OpenCode startup submission intent', () => {
-  it('binds the exact trimmed native prompt to host-selectable transport', () => {
+  it('keeps the exact trimmed prompt for plugin-free composer submission', () => {
     const plan = buildAgentStartupPlan({
       agent: 'opencode',
       prompt: '  task\nwith unicode é  ',
       cmdOverrides: {},
       platform: 'linux'
     })
-    expect(plan?.env).toEqual({
-      [OPENCODE_STARTUP_PROMPT_SHA256_ENV]: createHash('sha256')
-        .update('task\nwith unicode é')
-        .digest('hex'),
-      [OPENCODE_STARTUP_PROMPT_BODY_ENV]: 'task\nwith unicode é',
-      [OPENCODE_STARTUP_PROMPT_SHELL_ENV]: 'posix'
-    })
-    expect(plan?.launchCommand).toContain('--prompt')
+    expect(plan?.env).toBeUndefined()
+    expect(plan?.launchCommand).toBe('opencode')
+    expect(plan?.followupPrompt).toBe('task\nwith unicode é')
   })
 
   it('preserves explicit run commands without a submission intent', () => {

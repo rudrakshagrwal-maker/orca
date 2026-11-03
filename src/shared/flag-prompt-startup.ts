@@ -26,6 +26,18 @@ export function buildFlagPromptStartupPlan(args: {
     (args.agent === 'opencode' || args.agent === 'opencode2') && parsed.ok
       ? findOpenCodeRunCommand(parsed.tokens, args.shell)
       : null
+  // RA: TUI prompts use the existing ready-composer submit path, with no installed plugin.
+  if ((args.agent === 'opencode' || args.agent === 'opencode2') && !openCodeRun) {
+    return {
+      agent: args.agent,
+      launchCommand: args.launchCommand,
+      expectedProcess: TUI_AGENT_CONFIG[args.agent].expectedProcess,
+      followupPrompt: args.prompt,
+      launchConfig: args.launchConfig,
+      ...appliedSessionOptionProps(args.sessionOptions),
+      ...(args.agentEnv ? { env: { ...args.agentEnv } } : {})
+    }
+  }
   // OpenCode run takes a positional message; --prompt belongs to its TUI.
   const promptSuffix = openCodeRun
     ? openCodeRun.messageSeparatorIndex !== null

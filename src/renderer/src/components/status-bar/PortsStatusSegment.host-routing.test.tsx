@@ -107,6 +107,11 @@ vi.mock('@/i18n/i18n', () => ({
 }))
 
 import { PortsStatusSegment } from './PortsStatusSegment'
+import { useWorkspacePortScanDemand } from '@/lib/workspace-ports/workspace-port-scan-demand'
+
+function ScanDemand(): React.JSX.Element {
+  return <output data-scan-demand>{String(useWorkspacePortScanDemand())}</output>
+}
 
 function workspacePort(overrides: Partial<WorkspacePort> & { port: number; id: string }) {
   return {
@@ -177,6 +182,23 @@ describe('PortsStatusSegment popover host routing', () => {
       await Promise.resolve()
     })
   }
+
+  it('retains live scan demand while open and releases it on close or unmount', async () => {
+    act(() => root.render(
+      <>
+        <PortsStatusSegment iconOnly={false} />
+        <ScanDemand />
+      </>
+    ))
+    expect(container.querySelector('[data-scan-demand]')?.textContent).toBe('false')
+    await openPopover()
+    expect(container.querySelector('[data-scan-demand]')?.textContent).toBe('true')
+    act(() => popoverHandle.onOpenChange?.(false))
+    expect(container.querySelector('[data-scan-demand]')?.textContent).toBe('false')
+    await openPopover()
+    act(() => root.render(<ScanDemand />))
+    expect(container.querySelector('[data-scan-demand]')?.textContent).toBe('false')
+  })
 
   it("scans the active workspace's host, not the globally focused runtime", async () => {
     await openPopover()

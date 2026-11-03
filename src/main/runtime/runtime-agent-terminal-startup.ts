@@ -169,7 +169,13 @@ async function buildRuntimeAgentTerminalStartupOptions(
   const isRemote = Boolean(workspace.connectionId)
   const forceLine = opts.startupPromptCarry === 'force-line'
   // Create has no live PTY for later prompt delivery; refuse uncarryable text. force-line preserves createAgentSession's clean launch.
-  if (opts.startupPrompt && !forceLine && !agentPromptRidesLaunchCommand(agent)) {
+  // RA: launch callers with a carry callback submit stdin prompts after readiness.
+  if (
+    opts.startupPrompt &&
+    !forceLine &&
+    !opts.onStartupPromptCarry &&
+    !agentPromptRidesLaunchCommand(agent)
+  ) {
     throw new Error(`Agent ${agent} does not take a startup prompt on its launch command.`)
   }
   const scope = {

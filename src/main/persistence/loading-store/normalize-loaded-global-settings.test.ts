@@ -24,6 +24,42 @@ function normalizeLegacyProfile(overrides: Record<string, unknown>): PersistedSt
 }
 
 describe('retired setup placement', () => {
+  it('preserves first-session preferences on repeated fresh-profile loads', () => {
+    let settings = normalizeLegacyProfile({
+      keepComputerAwakeWhileAgentsRun: false,
+      terminalFontFamily: 'Cascadia Mono',
+      terminalFontWeight: 500,
+      terminalFontSize: 13,
+      terminalDividerThicknessPx: 3
+    })
+    for (let restart = 0; restart < 2; restart += 1) {
+      settings = normalizeLegacyProfile({ ...settings })
+      expect(settings.keepComputerAwakeWhileAgentsRun).toBe(false)
+      expect(settings.terminalFontFamily).toBe('Cascadia Mono')
+      expect(settings.terminalFontWeight).toBe(500)
+      expect(settings.terminalFontSize).toBe(13)
+      expect(settings.terminalDividerThicknessPx).toBe(3)
+    }
+  })
+
+  it('still migrates older profiles once', () => {
+    expect(
+      normalizeLegacyProfile({
+        raVsCodeFontDefaultsApplied: undefined,
+        raKeepAwakeDefaultApplied: undefined,
+        terminalFontFamily: 'Cascadia Mono',
+        terminalFontWeight: 500,
+        terminalFontSize: 13,
+        keepComputerAwakeWhileAgentsRun: false
+      })
+    ).toMatchObject({
+      terminalFontFamily: 'Consolas',
+      terminalFontWeight: 400,
+      terminalFontSize: 14,
+      keepComputerAwakeWhileAgentsRun: true
+    })
+  })
+
   it.each(['split-vertical', 'split-horizontal', 'new-tab', undefined])(
     'drops saved setup location %s without changing terminal preferences',
     (setupScriptLaunchMode) => {

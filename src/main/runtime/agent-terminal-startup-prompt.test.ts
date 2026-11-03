@@ -60,6 +60,25 @@ function spawnedCommand(spawn: ReturnType<typeof vi.fn>): string {
 }
 
 describe('a terminal create that is handed a launch prompt', () => {
+  it.each(['opencode', 'opencode2'] as const)(
+    'leaves %s submission to the caller without a plugin',
+    async (agent) => {
+      const { runtime, spawn } = runtimeWithAgentLaunch()
+      const onStartupPromptCarry = vi.fn()
+      await runtime.createTerminal('id:wt-1', {
+        startupAgent: agent,
+        startupPrompt: 'fix this task',
+        onStartupPromptCarry
+      })
+      expect(spawnedCommand(spawn)).toContain(agent)
+      expect(spawnedCommand(spawn)).not.toContain('--prompt')
+      expect(spawnedCommand(spawn)).not.toContain('fix this task')
+      expect(onStartupPromptCarry).toHaveBeenCalledExactlyOnceWith(false)
+      expect(spawn.mock.calls[0]?.[0]?.env ?? {}).not.toHaveProperty(
+        'ORCA_OPENCODE_STARTUP_PROMPT_NONCE'
+      )
+    }
+  )
   it.each([
     { supported: undefined, flag: undefined },
     { supported: true, flag: undefined },

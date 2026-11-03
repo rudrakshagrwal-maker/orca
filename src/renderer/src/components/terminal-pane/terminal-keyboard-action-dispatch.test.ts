@@ -7,13 +7,16 @@ import { handleFocusTerminalPaneDetail } from './focus-terminal-pane-event'
 import { dispatchTerminalShortcutAction } from './terminal-keyboard-action-dispatch'
 
 const setActiveTab = vi.hoisted(() => vi.fn())
+const closeTabs = vi.hoisted(() => ({ ids: ['tab-0', 'tab-1', 'tab-2'] }))
+vi.mock('sonner', () => ({ toast: { info: vi.fn() } }))
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => ({
       setActiveTab,
       setActiveTabType: vi.fn(),
       activeWorktreeId: 'wt-1',
-      tabsByWorktree: { 'wt-1': [{ id: 'tab-0' }, { id: 'tab-1' }, { id: 'tab-2' }] }
+      tabsByWorktree: { 'wt-1': closeTabs.ids.map((id) => ({ id })) },
+      unifiedTabsByWorktree: { 'wt-1': closeTabs.ids.map((id) => ({ id, entityId: id })) }
     })
   }
 }))
@@ -33,6 +36,7 @@ const cleanup: (() => void)[] = []
 let frames: Map<number, FrameRequestCallback>
 
 beforeEach(() => {
+  closeTabs.ids = ['tab-0', 'tab-1', 'tab-2']
   frames = new Map()
   let frameId = 0
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -137,6 +141,33 @@ function prepare(rectanglesByTab: PaneRectangle[][]) {
 }
 
 describe('directional terminal pane focus', () => {
+  it.each([
+    { tabs: 1, panes: 1, closes: false },
+    { tabs: 1, panes: 2, closes: true },
+    { tabs: 2, panes: 1, closes: true }
+  ])(
+    'protects only the last keyboard-closed tab ($tabs tabs, $panes panes)',
+    ({ tabs, panes, closes }) => {
+      const p = prepare([
+        Array.from({ length: panes }, (_, i): PaneRectangle => [i + 1, i * 100, 0, 100, 100])
+      ])
+      closeTabs.ids = Array.from({ length: tabs }, (_, i) => `tab-${i}`)
+      const onRequestClosePane = vi.fn()
+      const event = new KeyboardEvent('keydown', { cancelable: true })
+      const context = { tabId: 'tab-0', worktreeId: 'wt-1', onRequestClosePane }
+      dispatchTerminalShortcutAction(
+        { type: 'closeActivePane' },
+        event,
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: close dispatch reads only getPanes and getActivePane from this manager.
+        p.groups[0].manager as unknown as PaneManager,
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the close action reads only these identity and callback fields.
+        context as unknown as Parameters<typeof dispatchTerminalShortcutAction>[3]
+      )
+      expect(event.defaultPrevented).toBe(true)
+      expect(onRequestClosePane).toHaveBeenCalledTimes(closes ? 1 : 0)
+    }
+  )
+
   it('crosses two single-pane tab groups in both directions', () => {
     const p = prepare([
       [[1, 0, 0, 100, 100]],

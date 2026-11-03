@@ -2,6 +2,39 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# RA: use the plain shortcut only while it cannot replace another Orca installation.
+function Set-OrcaInstallShortcut {
+    param($Shell, [string]$Folder, [string]$AppPath, [string[]]$ShortcutFolders = @($Folder))
+
+    if (-not $Folder) {
+        throw 'Windows did not provide a Start menu or desktop folder.'
+    }
+    $shortcutPath = Join-Path $Folder 'Orca.lnk'
+    foreach ($existingFolder in $ShortcutFolders) {
+        if (-not $existingFolder) { continue }
+        foreach ($name in @('Orca.lnk', 'Orca\Orca.lnk')) {
+            $candidate = Join-Path $existingFolder $name
+            if ((Test-Path -LiteralPath $candidate -PathType Leaf) -and
+                $Shell.CreateShortcut($candidate).TargetPath -ne $AppPath) {
+                $shortcutPath = Join-Path $Folder 'Orca-RA\Orca.lnk'
+            }
+        }
+    }
+    if ((Test-Path -LiteralPath $shortcutPath -PathType Leaf) -and
+        $Shell.CreateShortcut($shortcutPath).TargetPath -ne $AppPath) {
+        throw "Refusing to overwrite another installation's shortcut: $shortcutPath"
+    }
+    New-Item -ItemType Directory -Path (Split-Path -Parent $shortcutPath) -Force | Out-Null
+    $shortcut = $Shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $AppPath
+    $shortcut.WorkingDirectory = Split-Path -Parent $AppPath
+    $shortcut.IconLocation = "$AppPath,0"
+    $shortcut.Save()
+    if (-not (Test-Path -LiteralPath $shortcutPath -PathType Leaf)) {
+        throw "Could not create shortcut $shortcutPath."
+    }
+}
+
 if ($env:OS -ne 'Windows_NT') {
     throw 'This installer requires Windows.'
 }
@@ -37,24 +70,16 @@ if (-not (Test-Path -LiteralPath $appPath -PathType Leaf)) {
 }
 
 $shell = New-Object -ComObject WScript.Shell
-foreach ($folder in @(
+$shortcutFolders = @(
     [Environment]::GetFolderPath('Programs'),
     [Environment]::GetFolderPath('DesktopDirectory')
-)) {
-    if (-not $folder) {
-        throw 'Windows did not provide a Start menu or desktop folder.'
-    }
-    New-Item -ItemType Directory -Path $folder -Force | Out-Null
-    # RA: Plain "Orca" shortcut straight on the desktop and in the Start menu.
-    $shortcutPath = Join-Path $folder 'Orca.lnk'
-    $shortcut = $shell.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = $appPath
-    $shortcut.WorkingDirectory = $installDir
-    $shortcut.IconLocation = "$appPath,0"
-    $shortcut.Save()
-    if (-not (Test-Path -LiteralPath $shortcutPath -PathType Leaf)) {
-        throw "Could not create shortcut $shortcutPath."
-    }
+)
+$existingShortcutFolders = $shortcutFolders + @(
+    [Environment]::GetFolderPath('CommonPrograms'),
+    [Environment]::GetFolderPath('CommonDesktopDirectory')
+)
+foreach ($folder in $shortcutFolders) {
+    Set-OrcaInstallShortcut -Shell $shell -Folder $folder -AppPath $appPath -ShortcutFolders $existingShortcutFolders
 }
 
 Write-Host "Orca installed at $appPath"

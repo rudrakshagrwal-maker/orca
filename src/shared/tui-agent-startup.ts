@@ -126,7 +126,12 @@ export function buildAgentStartupPlan(args: {
     }
   }
 
-  if (config.promptInjectionMode === 'flag-prompt') {
+  // RA: keep explicit OpenCode run commands on their positional-message transport.
+  if (
+    config.promptInjectionMode === 'flag-prompt' ||
+    agent === 'opencode' ||
+    agent === 'opencode2'
+  ) {
     return buildFlagPromptStartupPlan({
       agent,
       launchCommand,

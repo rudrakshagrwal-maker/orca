@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { TUI_AGENT_CONFIG } from './tui-agent-config'
 import { agentPromptRidesLaunchCommand, buildAgentStartupPlan } from './tui-agent-startup'
 import type { TuiAgent } from './tui-agent'
+import { getOpenCodeCliCapabilities } from './opencode-cli-version'
 
 // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the config is declared as a total record over TuiAgent, so its own keys are that union.
 const ALL_AGENTS = Object.keys(TUI_AGENT_CONFIG) as TuiAgent[]
@@ -20,6 +21,19 @@ function planFor(agent: TuiAgent) {
 }
 
 describe('the prompt-transport predicate against the plan it predicts', () => {
+  it.each(['2.0.12', '2.0.16'])(
+    'uses plugin-free followup submission for prefill-mode OpenCode %s',
+    (version) => {
+      expect(getOpenCodeCliCapabilities(version).promptMode).toBe('prefill')
+      for (const agent of ['opencode', 'opencode2'] as const) {
+        const plan = planFor(agent)!
+        expect(plan.launchCommand).not.toContain('--prompt')
+        expect(plan.env ?? {}).not.toHaveProperty('ORCA_OPENCODE_STARTUP_PROMPT_SHA256')
+        expect(plan.followupPrompt).toBe(PROMPT)
+        expect(agentPromptRidesLaunchCommand(agent)).toBe(false)
+      }
+    }
+  )
   // An empty agent list would make the contract vacuously pass.
 
   it('puts the prompt in the launch command exactly when it says it does', () => {

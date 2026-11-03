@@ -31,7 +31,7 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
   const {
     clearSessionRestoredBannerForPane,
     managerRef,
-    onCloseTab: closeTab,
+    onCloseTab,
     paneCwdRef,
     paneTransportsRef,
     pendingCloseConfirmation,
@@ -44,11 +44,7 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
     updateSettings,
     worktreeId
   } = controller
-  // RA: Recheck each tab-close fallback, including delayed main replies.
-  const onCloseTab = useCallback(
-    () => void (keepLastWorkspaceTabOpen(worktreeId, tabId) || closeTab()),
-    [closeTab, tabId, worktreeId]
-  )
+  // RA: explicit and lifecycle closes bypass the keyboard-only last-tab guard.
   // The window's half of a split pane's close: its transport, status and pane go.
   const closePaneLocally = useCallback(
     (paneId: number, committedLeafId?: string) => {
@@ -220,6 +216,9 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
       return
     }
     const manager = managerRef.current
+    if ((manager?.getPanes().length ?? 0) <= 1 && keepLastWorkspaceTabOpen(worktreeId, tabId)) {
+      return
+    }
     const pane = manager?.getActivePane() ?? manager?.getPanes()[0]
     if (pane) {
       handleRequestClosePane(pane.id)

@@ -11,6 +11,10 @@ import {
 import type { resolveTerminalKeyboardShortcutAction } from './terminal-keyboard-shortcut-matching'
 import { equalizeTerminalPanes } from './terminal-pane-layout-owner-commands'
 import { focusTerminalPaneInDirection } from './terminal-directional-focus'
+import {
+  keepLastWorkspaceTabOpen,
+  keepPinnedWorkspaceTabOpen
+} from '@/lib/keep-last-workspace-tab-open'
 
 type TerminalShortcutAction = NonNullable<ReturnType<typeof resolveTerminalKeyboardShortcutAction>>
 
@@ -212,6 +216,13 @@ export function dispatchTerminalShortcutAction(
   if (action.type === 'closeActivePane') {
     event.preventDefault()
     event.stopImmediatePropagation()
+    // RA: last-tab protection belongs to keyboard dispatch, never explicit Close.
+    if (
+      keepPinnedWorkspaceTabOpen(worktreeId, tabId) ||
+      (manager.getPanes().length <= 1 && keepLastWorkspaceTabOpen(worktreeId, tabId))
+    ) {
+      return
+    }
     const pane = manager.getActivePane() ?? manager.getPanes()[0]
     if (pane) {
       onRequestClosePane(pane.id)

@@ -9,6 +9,8 @@ import { useAppStore } from '../store'
 import { ActiveWorkspaceSyncGate } from './ActiveWorkspaceSyncGate'
 import { StructuredAgentSessionAttentionBridge } from '../components/native-chat/StructuredAgentSessionAttentionBridge'
 import { StructuredAgentSessionStatusBridge } from '../components/native-chat/StructuredAgentSessionStatusBridge'
+import { useNativeChatLaunchResume } from '../components/native-chat-resume-on-restart-store'
+import { useWorkspacePortScanDemand } from '@/lib/workspace-ports/workspace-port-scan-demand'
 
 const DashboardPopoutBridge = lazy(() => import('../components/dashboard/DashboardPopoutBridge'))
 
@@ -16,14 +18,18 @@ const DashboardPopoutBridge = lazy(() => import('../components/dashboard/Dashboa
 export function AppBackgroundServices(): React.JSX.Element {
   const workspaceSessionReady = useAppStore((s) => s.workspaceSessionReady)
   const portsVisible = useAppStore((s) => s.rightSidebarOpen && s.rightSidebarTab === 'ports')
+  const portsPopoverVisible = useWorkspacePortScanDemand()
+  useNativeChatLaunchResume(workspaceSessionReady)
   const dashboardPopoutEnabled = useAppStore(
     (s) => s.settings?.experimentalAgentDashboardPopout === true
   )
 
   return (
     <>
-      {/* RA: process/port scans run only while the Ports panel is open. */}
-      <WorkspacePortScanner enabled={workspaceSessionReady && portsVisible} />
+      {/* RA: share live scans across visible Ports panels and popovers. */}
+      <WorkspacePortScanner
+        enabled={workspaceSessionReady && (portsVisible || portsPopoverVisible)}
+      />
       <ActiveWorkspaceSyncGate />
       {/* Keep permission notices available across app surfaces. */}
       <MacosTccPromptNoticeHost />

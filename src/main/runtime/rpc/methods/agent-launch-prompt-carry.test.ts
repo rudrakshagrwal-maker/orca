@@ -18,9 +18,11 @@ const SUBMIT = { text: 'fix the failing checks\nlog tail follows', delivery: 'su
 function withPromptWriter(runtime: AgentLaunchRuntimeStub) {
   const waitForTerminal = vi.fn(async () => ({ satisfied: true, status: 'idle' }))
   // The idle evidence settles these launches; the composer signal never fires.
-  const waitForFreshWorkerComposer = vi.fn(async () => {
-    throw new Error('timeout')
-  })
+  const waitForFreshWorkerComposer = vi.fn(
+    async (): Promise<{ satisfied: boolean; status: string }> => {
+      throw new Error('timeout')
+    }
+  )
   const sendTerminalAgentPrompt = vi.fn(async () => ({
     handle: 'term_1',
     accepted: true,
@@ -43,6 +45,39 @@ async function launch(params: unknown, runtime: AgentLaunchRuntimeStub) {
   }
   return AGENT_LAUNCH.handler(parsed.data, rpcContext(runtime, CAPABLE_CLIENT))
 }
+
+it.each(['opencode', 'opencode2'])(
+  'reports %s handoff only after composer submission completes',
+  async (agent) => {
+    const { runtime, sendTerminalAgentPrompt } = withPromptWriter(
+      runtimeStub({ settings: {}, lineCarriesPrompt: false })
+    )
+    runtime.waitForFreshWorkerComposer.mockResolvedValue({ satisfied: true, status: 'idle' })
+    const submitted = Promise.withResolvers<{
+      handle: string
+      accepted: boolean
+      bytesWritten: number
+    }>()
+    const sending = Promise.withResolvers<void>()
+    sendTerminalAgentPrompt.mockImplementation(() => {
+      sending.resolve()
+      return submitted.promise
+    })
+    let settled = false
+    const pending = launch(
+      { agent, target: { kind: 'existing', worktree: 'id:wt-7' }, prompt: SUBMIT },
+      runtime
+    ).then((receipt) => {
+      settled = true
+      return receipt
+    })
+    await sending.promise
+    expect(sendTerminalAgentPrompt).toHaveBeenCalledOnce()
+    expect(settled).toBe(false)
+    submitted.resolve({ handle: 'term_1', accepted: true, bytesWritten: 12 })
+    expect((await pending).prompt).toEqual({ delivery: 'submit', outcome: 'handed-to-terminal' })
+  }
+)
 
 describe('an argv agent’s launch prompt, by what the runtime reports about its typed line', () => {
   const EXISTING = { agent: 'claude', target: { kind: 'existing', worktree: 'id:wt-7' } }

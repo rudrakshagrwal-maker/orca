@@ -82,8 +82,8 @@ describe('Store', () => {
     expect(settings.editorAutoSave).toBe(false)
     expect(settings.editorAutoSaveDelayMs).toBe(1000)
     // RA: Match the fresh-profile terminal font default.
-    expect(settings.terminalFontSize).toBe(13)
-    expect(settings.terminalFontWeight).toBe(500)
+    expect(settings.terminalFontSize).toBe(14)
+    expect(settings.terminalFontWeight).toBe(400)
     expect(settings.terminalFontWeightBold).toBe(700)
     expect(settings.terminalScrollSensitivity).toBe(1.15)
     expect(settings.terminalFastScrollSensitivity).toBe(5)

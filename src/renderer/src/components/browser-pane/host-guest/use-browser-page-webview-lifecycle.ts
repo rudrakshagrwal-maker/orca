@@ -11,7 +11,6 @@ import {
   type SetStateAction
 } from 'react'
 import { createBrowserUuid } from '@/lib/browser-uuid'
-import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import { useAppStore } from '@/store'
 import type { BrowserGrabPayload } from '../../../../../shared/browser-grab-types'
 import type {
@@ -26,7 +25,6 @@ import {
 import { syncGuestAnnotationViewportBridge } from '../annotate/guest-annotation-viewport-bridge'
 import { attachBrowserPageWebview } from './attach-browser-page-webview'
 import { setBrowserPageWebviewInputLock } from './browser-page-webview'
-import { replacePersistentWebview } from './webview-registry'
 import type {
   BrowserPageRecoveryNavigationValidation,
   BrowserPageUrlSetter,
@@ -228,12 +226,14 @@ export function useBrowserPageWebviewLifecycle({
     invalidateBrowserAnnotationDocumentRef.current = invalidateBrowserAnnotationDocument
   }, [invalidateBrowserAnnotationDocument])
 
-  const shouldMountGuest = !backgroundJobsDisabled() || isPaintable
+  // RA: create guests lazily, then retain page state until explicit close or recovery.
+  const [hasMountedGuest, setHasMountedGuest] = useState(isPaintable)
   useEffect(() => {
-    // RA: release hidden browsing guests; active automation/viewer leases remain paintable.
+    if (isPaintable) setHasMountedGuest(true)
+  }, [isPaintable])
+  const shouldMountGuest = isPaintable || hasMountedGuest
+  useEffect(() => {
     if (!shouldMountGuest) {
-      webviewRef.current = null
-      void replacePersistentWebview(browserTabId)
       return
     }
     return attachBrowserPageWebview({

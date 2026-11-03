@@ -81,7 +81,7 @@ export abstract class RateLimitServiceConfiguration extends RateLimitServiceAcco
     this.inactiveCodexAccountsGeneration += 1
     this.pruneInactiveCodexState()
   }
-  attach(mainWindow: BrowserWindow): void {
+  attach(mainWindow: BrowserWindow, options: { refreshOnResume?: boolean } = {}): void {
     this.detachWindowListeners?.()
     this.mainWindow = mainWindow
     const refreshOnResume = (): void => {
@@ -103,9 +103,12 @@ export abstract class RateLimitServiceConfiguration extends RateLimitServiceAcco
         this.mainWindow = null
       }
     }
-    mainWindow.on('focus', refreshOnResume)
-    mainWindow.on('show', refreshOnResume)
-    mainWindow.on('restore', refreshOnResume)
+    // RA: manual account refreshes need delivery even with automatic probes disabled.
+    if (options.refreshOnResume !== false) {
+      mainWindow.on('focus', refreshOnResume)
+      mainWindow.on('show', refreshOnResume)
+      mainWindow.on('restore', refreshOnResume)
+    }
     mainWindow.on('closed', onClosed)
     this.detachWindowListeners = detachWindowListeners
   }

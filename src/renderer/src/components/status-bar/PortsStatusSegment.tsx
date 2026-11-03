@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { acquireWorkspacePortScanDemand } from '@/lib/workspace-ports/workspace-port-scan-demand'
 import { Plug, ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -33,6 +34,10 @@ export function PortsStatusSegment({ iconOnly }: PortsStatusSegmentProps): React
   const runtimeEnvironments = useAppStore((s) => s.runtimeEnvironments)
   const recordFeatureInteraction = useAppStore((s) => s.recordFeatureInteraction)
   const [open, setOpen] = useState(false)
+  // RA: closing or unmounting releases this visible consumer's scan demand.
+  useEffect(() => {
+    if (open) return acquireWorkspacePortScanDemand()
+  }, [open])
   const [externalOpen, setExternalOpen] = useState(false)
   const runtimeTarget = useWorktreeRuntimeTarget(activeWorktreeId)
 

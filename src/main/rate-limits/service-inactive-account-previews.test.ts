@@ -5,6 +5,8 @@ import { fetchClaudeRateLimits, fetchManagedAccountUsage } from './claude-fetche
 import { fetchCodexRateLimits } from './codex-fetcher'
 import {
   deferred,
+  asRateLimitWindow,
+  FakeRateLimitWindow,
   errorProvider,
   okProvider,
   resetRateLimitProviderMocks
@@ -74,6 +76,45 @@ vi.mock('../minimax/minimax-cookie-store', () => ({
 describe('RateLimitService', () => {
   beforeEach(() => {
     resetRateLimitProviderMocks()
+  })
+
+  it('delivers inactive account refreshes without background or window-resume probes', async () => {
+    const service = new RateLimitService()
+    const window = new FakeRateLimitWindow()
+    service.attach(asRateLimitWindow(window), { refreshOnResume: false })
+    service.setInactiveClaudeAccountsResolver(() => [{ id: 'claude-inactive' }])
+    service.setInactiveCodexAccountsResolver(() => [
+      inactiveCodexAccount('codex-inactive', '/tmp/home')
+    ])
+    vi.mocked(fetchManagedAccountUsage).mockResolvedValue(okProvider('claude', 11))
+    vi.mocked(fetchCodexRateLimits).mockResolvedValue(okProvider('codex', 22))
+    try {
+      for (const event of ['focus', 'show', 'restore']) window.emit(event)
+      await Promise.resolve()
+      expect(fetchManagedAccountUsage).not.toHaveBeenCalled()
+      expect(fetchCodexRateLimits).not.toHaveBeenCalled()
+      await service.fetchInactiveClaudeAccountsOnOpen()
+      await service.fetchInactiveCodexAccountsOnOpen()
+      expect(window.webContents.send).toHaveBeenLastCalledWith(
+        'rateLimits:update',
+        expect.objectContaining({
+          inactiveClaudeAccounts: [
+            expect.objectContaining({
+              accountId: 'claude-inactive',
+              rateLimits: expect.objectContaining({ status: 'ok' })
+            })
+          ],
+          inactiveCodexAccounts: [
+            expect.objectContaining({
+              accountId: 'codex-inactive',
+              rateLimits: expect.objectContaining({ status: 'ok' })
+            })
+          ]
+        })
+      )
+    } finally {
+      service.stop()
+    }
   })
 
   it('aborts inactive Claude preview fetches on stop', async () => {

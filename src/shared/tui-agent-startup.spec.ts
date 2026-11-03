@@ -417,7 +417,8 @@ describe('tui agent startup plans', () => {
       platform: 'linux'
     })
 
-    expect(plan?.launchCommand).toBe("opencode --prompt 'fix it'")
+    expect(plan?.launchCommand).toBe('opencode')
+    expect(plan?.followupPrompt).toBe('fix it')
   })
 
   it('clears draft environment variables with the target shell syntax', () => {

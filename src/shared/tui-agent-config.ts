@@ -88,7 +88,8 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
   },
   opencode: {
     detectCmd: 'opencode',
-    promptInjectionMode: 'flag-prompt',
+    // RA: submit through the ready composer; OpenCode 2's --prompt only prefills.
+    promptInjectionMode: 'stdin-after-start',
     // Why: opencode enables bracketed paste before its composer mounts; wait for the post-\x1b[?2004h show-cursor so paste lands.
     draftPasteReadySignal: 'render-cursor-after-bracketed-paste',
     // OpenCode 2 renders input before loading its agent list; only the later agent/model row proves submit readiness.
@@ -108,7 +109,8 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     detectCmd: 'opencode2',
     // The private server inherits this pane's hook endpoint and identity.
     launchCmd: 'opencode2 --standalone',
-    promptInjectionMode: 'flag-prompt',
+    // RA: reuse plugin-free prompt submission and its delivery acknowledgement.
+    promptInjectionMode: 'stdin-after-start',
     draftPasteReadySignal: 'render-cursor-after-bracketed-paste',
     submitPasteReadySignal: 'opencode-agent-row',
     draftPasteReadyTimeoutMs: 20_000,

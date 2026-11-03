@@ -100,15 +100,6 @@ function getHostPromotionHomes(): CodexSettingsPromotionHomes {
 export function promoteCodexRuntimeSettingsToSystem(
   homes?: CodexSettingsPromotionHomes
 ): CodexSettingsPromotionPlan | null {
-  // RA: preserve agent configuration across every direct entry point.
-  if (preserveGlobalAgentConfiguration()) {
-    return {
-      conflicts: new Map(),
-      runtimeValuesToPreserve: new Map(),
-      mirroredMcpServers: new Set(),
-      mirroredMcpServerRoot: false
-    }
-  }
   try {
     return promoteCodexRuntimeSettingsToSystemUnsafe(homes ?? getHostPromotionHomes())
   } catch (error) {
@@ -147,6 +138,32 @@ function promoteCodexRuntimeSettingsToSystemUnsafe(
   const updates = new Map<string, string>()
   const conflicts = new Map<string, CodexSettingsConflict>()
   const runtimeValuesToPreserve = new Map<string, string | null>()
+  // RA: preserve session edits without ever promoting them into the user's config.
+  if (preserveGlobalAgentConfiguration()) {
+    const systemObservation = observeAgentStateFile(systemTomlPath)
+    if (systemObservation.kind === 'indeterminate') throw systemObservation.error
+    const runtimeValues = readPromotedSettingValuesFromContent(runtimeTomlObservation.value)
+    const systemValues = readPromotedSettingValuesFromContent(
+      systemObservation.kind === 'present' ? systemObservation.value : ''
+    )
+    for (const key of PROMOTED_STRUCTURED_KEYS) {
+      const runtimeRaw = getComparableRaw(runtimeValues.get(key))
+      const systemRaw = getComparableRaw(systemValues.get(key))
+      if (runtimeRaw === undefined || systemRaw === undefined) {
+        throw new Error('Cannot safely mirror multiline Codex settings')
+      }
+      if (
+        runtimeRaw !== systemRaw &&
+        (!baseline?.settings.has(key) ||
+          baseline.conflicts.has(key) ||
+          runtimeRaw !== baseline.settings.get(key))
+      ) {
+        runtimeValuesToPreserve.set(key, runtimeRaw)
+        conflicts.set(key, { runtime: runtimeRaw, system: systemRaw })
+      }
+    }
+    return { conflicts, runtimeValuesToPreserve, mirroredMcpServers, mirroredMcpServerRoot }
+  }
   if (baseline) {
     collectPromotionChanges({
       baseline,

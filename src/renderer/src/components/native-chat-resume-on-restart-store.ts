@@ -24,7 +24,7 @@ export const {
 export function useNativeChatRestartOffer(enabled: boolean, store = localNativeChatRestartStore) {
   useEffect(() => {
     if (enabled && store.target.kind === 'local') {
-      launch ??= loadLaunchOffer(store).finally(markNativeChatLaunchResumeDecided)
+      initializeNativeChatLaunchResume(store)
     }
   }, [enabled, store])
   return useSyncExternalStore(
@@ -50,7 +50,20 @@ export function useNativeChatRestartRun(store = localNativeChatRestartStore) {
 
 let launch: Promise<void> | undefined
 
-async function loadLaunchOffer(store: NativeChatRestartStore): Promise<void> {
+function initializeNativeChatLaunchResume(store: NativeChatRestartStore, showDialog = true): void {
+  launch ??= loadLaunchOffer(store, showDialog)
+    .finally(markNativeChatLaunchResumeDecided)
+    .catch((error) => console.warn('[native-chat] launch resume failed', error))
+}
+
+// RA: launch decisions outlive popup/status surfaces and wait for saved settings.
+export function useNativeChatLaunchResume(enabled: boolean): void {
+  useEffect(() => {
+    if (enabled) initializeNativeChatLaunchResume(localNativeChatRestartStore, false)
+  }, [enabled])
+}
+
+async function loadLaunchOffer(store: NativeChatRestartStore, showDialog: boolean): Promise<void> {
   // The preference belongs to this launch's request; later saves cannot dispatch another.
   const autoResume = useAppStore.getState().settings?.nativeChatResumeWorkOnRestart === true
   let read = await store.readNativeChatRestartOffer()
@@ -69,7 +82,7 @@ async function loadLaunchOffer(store: NativeChatRestartStore): Promise<void> {
     return
   }
   if (!autoResume) {
-    requestNativeChatResumeOnRestartDialog()
+    if (showDialog) requestNativeChatResumeOnRestartDialog()
     return
   }
   await store.continueNativeChatRestartOffer(allResumeSessionIds(offered), 'launch')

@@ -17,6 +17,11 @@ import type * as Os from 'node:os'
 import { join } from 'node:path'
 import type * as CodexFsUtils from '../codex-accounts/fs-utils'
 
+// Exercise upstream write-back separately from the fork's read-only preservation tests.
+vi.mock('../../shared/fork-background-policy', () => ({
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 // Bypass platform-specific socket paths so asserted config bytes stay host-independent.
 vi.mock('./codex-daemon-socket-path-guard', async (importOriginal) => ({
   ...(await importOriginal<object>()),

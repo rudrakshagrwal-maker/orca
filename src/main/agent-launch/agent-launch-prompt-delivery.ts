@@ -104,7 +104,13 @@ function launchSubmitText(intent: AgentLaunchIntent): string | undefined {
 /** Offer argv prompts; only the surface building the typed line can confirm that they fit. */
 export function argvLaunchPrompt(intent: AgentLaunchIntent): string | undefined {
   const text = launchSubmitText(intent)
-  return text && agentPromptRidesLaunchCommand(intent.agent) ? text : undefined
+  // RA: let the execution-host planner distinguish explicit OpenCode run from its TUI.
+  return text &&
+    (agentPromptRidesLaunchCommand(intent.agent) ||
+      intent.agent === 'opencode' ||
+      intent.agent === 'opencode2')
+    ? text
+    : undefined
 }
 
 export function launchCommandPrompt(

@@ -29,6 +29,9 @@ export function buildDefaultSettings(args: {
   voice: VoiceSettings
 }): GlobalSettings {
   return {
+    // RA: fresh profiles already use these defaults; migrate only older profiles.
+    raVsCodeFontDefaultsApplied: true,
+    raKeepAwakeDefaultApplied: true,
     workspaceDir: args.workspaceDir,
     worktreeVisibilityDefaults: { external: 'hide' },
     nestWorkspaces: true,
