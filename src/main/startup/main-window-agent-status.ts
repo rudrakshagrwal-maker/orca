@@ -5,6 +5,10 @@ import { getDashboardPopoutWindow } from '../window/dashboard-popout-window'
 import { stopSyntheticTitleSpinnerTimer } from './synthetic-title-runtime'
 import { mainProcessState as state } from './main-process-state'
 import { pickHostTurnEnd } from '../../shared/agent-status-types'
+import { installAgentTaskbarAttention } from '../window/agent-taskbar-attention'
+
+// RA: Release the window's local attention observer when its status listeners retire.
+let uninstallTaskbarAttention: (() => void) | null = null
 
 export type MainWindowAgentStatusOptions = {
   window: BrowserWindow
@@ -12,6 +16,9 @@ export type MainWindowAgentStatusOptions = {
 }
 
 export function installMainWindowAgentStatusListeners(options: MainWindowAgentStatusOptions): void {
+  // RA: Observe live local/relayed reports without replaying old permission prompts.
+  uninstallTaskbarAttention?.()
+  uninstallTaskbarAttention = installAgentTaskbarAttention(options.window, agentHookServer)
   agentHookServer.setListener(
     ({
       paneKey,
@@ -123,6 +130,9 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
 }
 
 export function clearMainWindowAgentStatusListeners(): void {
+  // RA: Do not retain a closed BrowserWindow through the attention listener.
+  uninstallTaskbarAttention?.()
+  uninstallTaskbarAttention = null
   // Detach window listeners before destroyed WebContents; only deliberate window recreation replays.
   agentHookServer.setListener(null)
   agentHookServer.setPaneStatusClearListener(null)
