@@ -35,7 +35,11 @@ import type { AgentStatusIpcPayload } from '../../../../../../shared/agent-statu
 import { toAgentStatusIpcPayload } from '../../../../../agent-hooks/server/server-status-identity'
 import type { EnrichedAgentHookEventPayload } from '../../../../../agent-hooks/server/server-types'
 import { registerAgentHookHandlers } from '../../../../../ipc/agent-hooks'
-import { installMainWindowAgentStatusListeners } from '../../../../../startup/main-window-agent-status'
+// RA: Retire the status bridge's window observers with this test's window.
+import {
+  clearMainWindowAgentStatusListeners,
+  installMainWindowAgentStatusListeners
+} from '../../../../../startup/main-window-agent-status'
 import { mainProcessState } from '../../../../../startup/main-process-state'
 import { agentHookServer } from '../../../../../agent-hooks/server'
 import { OrchestrationDb } from '../../../../orchestration/db'
@@ -234,6 +238,11 @@ describe('agent status identity across every producer and consumer path', () => 
       listeners.push(listener)
     }) as never)
     const window = {
+      // RA: The main-window status observer owns local taskbar attention too.
+      on: vi.fn(),
+      removeListener: vi.fn(),
+      isFocused: () => true,
+      flashFrame: vi.fn(),
       isDestroyed: () => false,
       // RA: status forwarding also registers the taskbar alert's focus handler.
       isFocused: () => false,
@@ -257,6 +266,8 @@ describe('agent status identity across every producer and consumer path', () => 
         listener(hookEntry())
       }
     } finally {
+      // RA: Release the attention subscription before restoring the previous window.
+      clearMainWindowAgentStatusListeners()
       mainProcessState.mainWindow = previousWindow
       mainProcessState.runtime = previousRuntime
     }

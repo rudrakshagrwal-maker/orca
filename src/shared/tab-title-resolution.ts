@@ -1,10 +1,13 @@
 import type { Tab } from './tab-types'
 import type { TerminalTab } from './terminal-tab-types'
 import { isMeaningfulOpenCodeTerminalTitle } from './opencode-terminal-title'
+import { resolveTerminalTitleAgentType } from './terminal-title-agent-type'
 
 export function resolveTerminalTabTitle(
   tab: Pick<TerminalTab, 'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title'> & {
     customTitle?: string | null
+    launchAgent?: TerminalTab['launchAgent']
+    ptyId?: TerminalTab['ptyId']
   },
   generatedTitlesEnabled: boolean,
   fallback = ''
@@ -12,6 +15,10 @@ export function resolveTerminalTabTitle(
   const liveTitle = tab.title?.trim() ?? ''
   return (
     tab.customTitle?.trim() ||
+    // RA: An agent's own OSC label outranks saved names and branch/path-bearing launch labels.
+    (tab.ptyId !== null &&
+      (tab.launchAgent || resolveTerminalTitleAgentType(liveTitle)) &&
+      liveTitle) ||
     tab.quickCommandLabel?.trim() ||
     (isMeaningfulOpenCodeTerminalTitle(liveTitle) ? liveTitle : '') ||
     tab.aiVaultTitle?.title.trim() ||
