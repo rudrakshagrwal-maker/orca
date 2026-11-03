@@ -79,6 +79,12 @@ export function prepareLoadedProfileSettings(
     raSettings.raVsCodeFontDefaultsApplied = true
     markNeedsSave()
   }
+  if (raSettings && raSettings.raKeepAwakeDefaultApplied !== true) {
+    raSettings.keepComputerAwakeWhileAgentsRun = true
+    if (raSettings.terminalDividerThicknessPx === 3) raSettings.terminalDividerThicknessPx = 1
+    raSettings.raKeepAwakeDefaultApplied = true
+    markNeedsSave()
+  }
   const migratedPortugueseUiLanguage = migratePortugueseUiLanguageOnLoad(parsed.settings)
   if (
     parsed.settings?.uiLanguage !== migratedPortugueseUiLanguage.uiLanguage ||

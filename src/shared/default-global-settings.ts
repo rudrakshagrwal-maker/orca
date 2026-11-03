@@ -97,7 +97,8 @@ export function buildDefaultSettings(args: {
     terminalInactivePaneOpacity: args.terminalInactivePaneOpacity,
     terminalActivePaneOpacity: 1,
     terminalPaneOpacityTransitionMs: 140,
-    terminalDividerThicknessPx: 3,
+    // RA: 1px split lines inside a tab.
+    terminalDividerThicknessPx: 1,
     // Why: Windows paste-on-right-click matches native convention; macOS/Linux keep right-click for the context menu.
     terminalRightClickToPaste: args.terminalRightClickToPaste,
     terminalRightClickToPasteDefaultedForPlatform: true,
@@ -251,7 +252,8 @@ export function buildDefaultSettings(args: {
     tabAutoGenerateTitle: false,
     confirmClosePinnedTab: true,
     editorPreviewTabsEnabled: true,
-    keepComputerAwakeWhileAgentsRun: false,
+    // RA: keep the laptop awake while agents work.
+    keepComputerAwakeWhileAgentsRun: true,
     // Why: 'auto' probes keyboard layout so non-US users can type Option chars like @/€/[ out of the box (issue #903). See src/renderer/src/lib/keyboard-layout/*.
     terminalMacOptionAsAlt: 'auto',
     terminalMacOptionAsAltMigrated: false,

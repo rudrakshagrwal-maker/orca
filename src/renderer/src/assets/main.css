@@ -421,8 +421,9 @@
   --markdown-search-match: #facc15;
   --markdown-search-match-active: #fb923c;
   /* Brighter than terminal defaults so the always-visible line clears 3:1 on `--card`. */
-  --split-divider: #71717a;
-  --split-divider-hover: #a1a1aa;
+  /* RA: thin, quiet dividers that match the borders. */
+  --split-divider: #1c1c1c;
+  --split-divider-hover: #3f3f46;
   /* RA: Keep the existing active indicator while both tab surfaces remain black. */
   --tab-active: var(--tab-bar, var(--card));
   --tab-inactive: var(--tab-bar, var(--card));
@@ -1036,7 +1037,7 @@ html.native-shell .app-layout {
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 3px;
+  width: 1px;
   transform: translateX(-50%);
 }
 
@@ -1044,7 +1045,7 @@ html.native-shell .app-layout {
   left: 0;
   right: 0;
   top: 50%;
-  height: 3px;
+  height: 1px;
   transform: translateY(-50%);
 }
 
