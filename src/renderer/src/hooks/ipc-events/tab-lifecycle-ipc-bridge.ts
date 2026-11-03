@@ -34,6 +34,8 @@ export function registerTabLifecycleIpcBridge(unsubs: (() => void)[]): void {
     window.api.ui.onCloseActiveTab((payload) => {
       dispatchWorkspaceTabCommand({
         type: 'close',
+        // RA: Guest Ctrl+W bypasses DOM handlers but must preserve the last tab too.
+        keepWorkspaceOpen: true,
         ...(payload?.sourceId
           ? { target: { kind: 'browser-source', sourceId: payload.sourceId } as const }
           : {})

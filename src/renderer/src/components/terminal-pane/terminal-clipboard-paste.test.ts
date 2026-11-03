@@ -7,6 +7,24 @@ import {
 } from './terminal-bracketed-paste'
 
 describe('terminal clipboard paste', () => {
+  // RA: The receiving shell must see a screenshot under a spaced temp directory as one path.
+  it.each([
+    ['C:\\Users\\Example User\\Temp\\shot.png', '"C:\\Users\\Example User\\Temp\\shot.png"'],
+    ['/tmp/example user/shot.png', "'/tmp/example user/shot.png'"]
+  ])('quotes generated image path %s', async (filePath, quotedPath) => {
+    const pasteText = vi.fn()
+    const result = await pasteTerminalClipboard({
+      readClipboardText: vi.fn().mockResolvedValue(''),
+      saveClipboardImageAsTempFile: vi.fn().mockResolvedValue(filePath),
+      pasteText
+    })
+    expect(result).toEqual({ status: 'pasted', kind: 'image-path' })
+    expect(pasteText).toHaveBeenCalledWith(quotedPath, {
+      forceBracketedPaste: true,
+      recoverImagePasteWebglAtlas: true
+    })
+  })
+
   it('forces bracketed paste for generated image-only clipboard paths', async () => {
     const pasteText = vi.fn()
 

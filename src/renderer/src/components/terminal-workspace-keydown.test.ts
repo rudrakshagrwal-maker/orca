@@ -196,6 +196,8 @@ describe('tab.close uses the unified active tab', () => {
       activeFileId: 'other-file',
       activeBrowserTabId: 'other-browser',
       getActiveTab: () => tab,
+      // RA: Existing close-routing cases have surviving terminal tabs.
+      tabsByWorktree: { [worktreeId]: [{ id: 'other-terminal' }, { id: 'survivor-terminal' }] },
       unifiedTabsByWorktree: { [worktreeId]: [tab] },
       openFiles: [],
       editorBufferIdOf: {},
@@ -267,6 +269,23 @@ describe('tab.close uses the unified active tab', () => {
     tab.contentType = 'terminal'
     expect(close('darwin', true).defaultPrevented).toBe(false)
     expect(mocks.closeTerminalTab).not.toHaveBeenCalled()
+  })
+
+  it('preserves the last workspace tab on Ctrl+W', () => {
+    mocks.state.tabsByWorktree = { [worktreeId]: [{ id: 'last-terminal' }] }
+    expect(close('win32').defaultPrevented).toBe(true)
+    expect(closeUnifiedTab).not.toHaveBeenCalled()
+    expect(mocks.closeTerminalTab).not.toHaveBeenCalled()
+  })
+
+  it('closes an editor when another unified tab remains without terminal mirrors', () => {
+    tab.contentType = 'editor'
+    mocks.state.tabsByWorktree = { [worktreeId]: [] }
+    mocks.state.unifiedTabsByWorktree = {
+      [worktreeId]: [tab, { ...tab, id: 'surviving-editor', entityId: 'another-file' }]
+    }
+    close('win32')
+    expect(closeUnifiedTab).toHaveBeenCalledWith(tab.id)
   })
 
   it('closes a terminal tab from its native chat overlay through terminal teardown', () => {
@@ -374,6 +393,20 @@ describe('shared tab navigation routing', () => {
     const repeat = nextTab(true)
     expect(repeat.defaultPrevented).toBe(true)
     expect(handleSwitchTabAcrossAllTypes).toHaveBeenCalledTimes(1)
+  })
+
+  // RA: Ctrl+Tab and its reverse use the same all-types route as tab-strip navigation.
+  it.each([false, true])('cycles in strip order with Shift=%s', (shiftKey) => {
+    const event = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      code: 'Tab',
+      ctrlKey: true,
+      shiftKey,
+      cancelable: true
+    })
+    handleTerminalWorkspaceKeyDown(event, controller, 'win32')
+    expect(event.defaultPrevented).toBe(true)
+    expect(handleSwitchTabAcrossAllTypes).toHaveBeenCalledExactlyOnceWith(shiftKey ? -1 : 1)
   })
 
   it('sends the keyboard and IPC navigation intent to the same workspace operation', () => {

@@ -1,4 +1,5 @@
 import type { KeybindingContext } from '../../../shared/keybindings'
+import { keepLastWorkspaceTabOpen } from './keep-last-workspace-tab-open'
 import { toVisibleTabType, type Tab } from '../../../shared/tab-types'
 import { useAppStore } from '@/store'
 import { guardPinnedTabClose, resolvePinnedTabLabel } from '@/store/pinned-tab-close-guard'
@@ -29,6 +30,8 @@ export type WorkspaceTabCommand =
       type: 'close'
       target?: WorkspaceTabTarget
       context?: KeybindingContext
+      // RA: Keyboard closes preserve the workspace's last tab, including browser guests.
+      keepWorkspaceOpen?: boolean
       skipEmptyCheck?: boolean
       bulk?: boolean
       floatingPanelGuestOwned?: boolean
@@ -120,6 +123,13 @@ export function dispatchWorkspaceTabCommand(command: WorkspaceTabCommand): boole
     if (!target) {
       return false
     }
+    // RA: Terminal focus must reach the split-pane owner before deciding whether its tab may close.
+    if (command.context === 'terminal' && target.tab?.contentType === 'terminal') {
+      return false
+    }
+    if (command.keepWorkspaceOpen && keepLastWorkspaceTabOpen(target.worktreeId)) {
+      return true
+    }
     if (!target.tab) {
       if (!target.browserWorkspaceId) {
         return false
@@ -137,9 +147,6 @@ export function dispatchWorkspaceTabCommand(command: WorkspaceTabCommand): boole
       return true
     }
     const tab = target.tab
-    if (command.context === 'terminal' && tab.contentType === 'terminal') {
-      return false
-    }
     const commands = createWorkspaceTabCloseCommands({
       worktreeId: target.worktreeId,
       groupTabs: state.unifiedTabsByWorktree[target.worktreeId] ?? []

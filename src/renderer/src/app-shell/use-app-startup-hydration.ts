@@ -4,6 +4,7 @@ import { restoreLocalStructuredChatsAtStartup } from '@/runtime/local-structured
 import { syncZoomCSSVar } from '@/lib/ui-zoom'
 import { installCodexDetachedPaneRestartExecutor } from '@/components/terminal-pane/codex-detached-pane-restart-scheduler'
 import { useAppStore } from '../store'
+import { openWorkspaceAtStartup } from './open-workspace-at-startup'
 import { reconcileHydratedWorkspaceTabModels } from './reconcile-hydrated-workspace-tab-models'
 import { useStartupActions } from './use-app-startup-actions'
 import { waitForNativeChatDraftsAtStartup } from './native-chat-draft-startup'
@@ -277,6 +278,11 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           await restoreLocalStructuredChatsAtStartup(useAppStore.getState().settings, (restore) =>
             timeRendererStartupStep('project-structured-session-tabs', restore)
           )
+          if (cancelled) {
+            return
+          }
+          // RA: Select Workspace only after persisted terminals and chats have restored.
+          await openWorkspaceAtStartup(() => cancelled)
           if (cancelled) {
             return
           }

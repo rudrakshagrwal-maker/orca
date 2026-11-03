@@ -197,7 +197,9 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'next', 'switch', 'cycle', 'all', 'any'],
-    defaultBindings: platformBindings(['Mod+Shift+BracketRight'])
+    // RA: Ctrl+Tab cycles in tab-strip order, including terminal focus.
+    defaultBindings: platformBindings(['Mod+Shift+BracketRight', 'Ctrl+Tab']),
+    allowInTerminal: true
   },
   {
     id: 'tab.previousAllTypes',
@@ -205,7 +207,9 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'previous', 'switch', 'cycle', 'all', 'any'],
-    defaultBindings: platformBindings(['Mod+Shift+BracketLeft'])
+    // RA: Shift reverses tab-strip cycling.
+    defaultBindings: platformBindings(['Mod+Shift+BracketLeft', 'Ctrl+Shift+Tab']),
+    allowInTerminal: true
   },
   {
     id: 'tab.previousRecent',
@@ -213,7 +217,8 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Tab Navigation',
     scope: 'tabs',
     searchKeywords: ['shortcut', 'tab', 'recent', 'mru', 'switch', 'last used'],
-    defaultBindings: platformBindings(['Ctrl+Tab']),
+    // RA: Recent-tab switching remains remappable without owning Ctrl+Tab.
+    defaultBindings: platformBindings([]),
     allowInTerminal: true
   },
   {
@@ -241,11 +246,11 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     scope: 'tabs',
     // Separate workspace/tab digit conflict groups allow modifier swaps; resolveWindowShortcutAction checks workspace ranges first.
     searchKeywords: ['shortcut', 'tab', 'select', 'switch', 'number', 'digit', '1-9', 'index'],
-    // Why: representative chord for the 1-9 range (see workspace.selectByIndex); each platform avoids the workspace-jump chord (Mod+1-9).
+    // RA: Windows uses Chrome's Ctrl+1-9; workspace selection moves to Alt+1-9.
     defaultBindings: {
       darwin: ['Ctrl+1'],
       linux: ['Alt+1'],
-      win32: ['Alt+1']
+      win32: ['Ctrl+1']
     }
   },
   {

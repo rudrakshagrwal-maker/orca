@@ -4,6 +4,8 @@ import {
 } from '../../../../shared/clipboard-text'
 import { TERMINAL_PASTE_MAX_BYTES } from './terminal-paste-limits'
 import type { TerminalPasteTextOptions } from './terminal-paste-model'
+import { shellEscapePath } from '../../../../shared/shell-path-quoting'
+import { isTerminalDropWindowsPathLike } from '../../../../shared/image-path-paste'
 
 type SaveClipboardImageAsTempFile = (args?: {
   connectionId?: string | null
@@ -77,7 +79,12 @@ export async function pasteTerminalClipboard({
     if (!filePath) {
       return { status: 'skipped', reason: 'empty' }
     }
-    const result = await pasteText(filePath, {
+    // RA: Temp folders may contain spaces; quote for the host path, including remote pastes.
+    const pastePath = shellEscapePath(
+      filePath,
+      isTerminalDropWindowsPathLike(filePath) ? 'windows' : 'posix'
+    )
+    const result = await pasteText(pastePath, {
       // Generated image paths must bypass the Ctrl+C stale-text path.
       forceBracketedPaste: true,
       recoverImagePasteWebglAtlas: true

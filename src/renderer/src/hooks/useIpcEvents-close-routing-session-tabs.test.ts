@@ -128,6 +128,8 @@ describe('useIpcEvents browser tab close routing', () => {
       closeActiveTabListenerRef,
       getState: () => ({
         recordClientHostedBrowserCloseIntents: vi.fn(),
+        // RA: Leave surviving tabs so this still exercises pin confirmation.
+        tabsByWorktree: { 'wt-1': [{ id: 'terminal-1' }, { id: 'terminal-2' }] },
         closeBrowserTab,
         requestPinnedTabCloseConfirm,
         unifiedTabsByWorktree: {

@@ -43,7 +43,7 @@ describe('digit-index shortcuts', () => {
       matchKeybindingDigitIndex('tab.selectByIndex', digitInput('3', { control: true }), 'darwin')
     ).toBe(2)
 
-    // Windows/Linux: workspace = Ctrl+1-9, tab = Alt+1-9.
+    // Linux: workspace = Ctrl+1-9, tab = Alt+1-9.
     expect(
       matchKeybindingDigitIndex(
         'workspace.selectByIndex',
@@ -54,6 +54,26 @@ describe('digit-index shortcuts', () => {
     expect(
       matchKeybindingDigitIndex('tab.selectByIndex', digitInput('4', { alt: true }), 'linux')
     ).toBe(3)
+    // RA: Windows follows Chrome for tabs and moves workspaces to Alt.
+    for (const digit of ['1', '5', '9']) {
+      expect(
+        matchKeybindingDigitIndex(
+          'tab.selectByIndex',
+          digitInput(digit, { control: true }),
+          'win32'
+        )
+      ).toBe(Number(digit) - 1)
+      expect(
+        matchKeybindingDigitIndex(
+          'workspace.selectByIndex',
+          digitInput(digit, { alt: true }),
+          'win32'
+        )
+      ).toBe(Number(digit) - 1)
+      expect(
+        matchKeybindingDigitIndex('tab.selectByIndex', digitInput(digit, { alt: true }), 'win32')
+      ).toBeNull()
+    }
   })
 
   it.each([

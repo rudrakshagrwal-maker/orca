@@ -114,6 +114,11 @@ export type KeybindingActionId =
   | 'terminal.clear'
   | 'terminal.focusNextPane'
   | 'terminal.focusPreviousPane'
+  // RA: Remappable directional split-pane navigation.
+  | 'terminal.focusPaneLeft'
+  | 'terminal.focusPaneRight'
+  | 'terminal.focusPaneUp'
+  | 'terminal.focusPaneDown'
   | 'terminal.equalizePaneSizes'
   | 'terminal.expandPane'
   | 'terminal.setTitle'

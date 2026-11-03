@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { toast } from 'sonner'
+import { keepLastWorkspaceTabOpen } from '@/lib/keep-last-workspace-tab-open'
 import { translate } from '@/i18n/i18n'
 import { canShowRightSidebarForView } from '@/lib/right-sidebar-visibility'
 import { getSelectedTextForFileSearch } from '../lib/file-search-selection'
@@ -199,6 +200,14 @@ export function useGlobalKeybindings(args: {
         })
       ) {
         return
+      }
+
+      // RA: Terminal focus closes splits first through the pane handler.
+      if (context !== 'terminal' && !floatingTerminalOpen && activeWorktreeId) {
+        if (matchShortcut('tab.close') && keepLastWorkspaceTabOpen(activeWorktreeId)) {
+          input.preventDefault()
+          return
+        }
       }
 
       // Reviewed plugin chords beat built-in defaults only in app focus; terminal/editor/browser retain their own authority.

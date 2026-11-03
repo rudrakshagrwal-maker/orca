@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { preparePendingSplitClose } from './pending-split-close-test-fixture'
+import { makeCloseTestTab, preparePendingSplitClose } from './pending-split-close-test-fixture'
 import type { sendLayoutCommandToOwner } from '@/runtime/layout-owner-command'
 import { LOCAL_LAYOUT_APPLY_ORIGIN } from '@/runtime/server-layout-apply-routes'
 
@@ -114,9 +114,13 @@ it('a layout-owner build closes as today, forgetting its close, when main lacks 
   expect(p.transports.has(1)).toBe(false)
 })
 
-it('a layout-owner build closes the tab when main refuses a second close as the last pane', async () => {
+// RA: A delayed main refusal must not close the workspace's last tab.
+it.each([1, 2])('handles last-pane refusal with %s workspace tabs', async (tabCount) => {
   mocks.layoutOwnerIsMain = true
   const p = await preparePendingSplitClose()
+  if (tabCount > 1) {
+    p.state.tabsByWorktree.workspace.push(makeCloseTestTab('survivor', null))
+  }
   p.actions.executeClosePane(1)
   p.actions.executeClosePane(2)
   const [first, second] = mocks.sendLayoutCommandToOwner.mock.calls.map(([, , on]) => on)
@@ -126,7 +130,7 @@ it('a layout-owner build closes the tab when main refuses a second close as the 
   first?.apply({}, LOCAL_LAYOUT_APPLY_ORIGIN)
   second?.refused?.('last_pane')
 
-  expect(p.controller.onCloseTab).toHaveBeenCalledOnce()
+  expect(p.controller.onCloseTab).toHaveBeenCalledTimes(tabCount > 1 ? 1 : 0)
 })
 
 it('a layout-owner build leaves an unmounted tab alone when main refuses its last pane', async () => {

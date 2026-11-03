@@ -278,28 +278,26 @@ export const KEYBINDING_DEFINITION_CORE_3: readonly KeybindingDefinition[] = [
     searchKeywords: ['shortcut', 'pane', 'focus', 'previous'],
     defaultBindings: platformBindings(['Mod+BracketLeft'])
   },
+  // RA: Directional pane focus owns Ctrl+Arrow before terminal word navigation.
+  ...([
+    ['terminal.focusPaneLeft', 'Focus pane left', 'left', 'Ctrl+ArrowLeft'],
+    ['terminal.focusPaneRight', 'Focus pane right', 'right', 'Ctrl+ArrowRight'],
+    ['terminal.focusPaneUp', 'Focus pane above', 'up', 'Ctrl+ArrowUp'],
+    ['terminal.focusPaneDown', 'Focus pane below', 'down', 'Ctrl+ArrowDown']
+  ] as const).map(([id, title, direction, binding]) => ({
+    id,
+    title,
+    group: 'Terminal Panes',
+    scope: 'terminal' as const,
+    searchKeywords: ['shortcut', 'pane', 'focus', direction],
+    defaultBindings: platformBindings([binding])
+  })),
   {
     id: 'terminal.equalizePaneSizes',
     title: 'Equalize pane sizes',
     group: 'Terminal Panes',
     scope: 'terminal',
     searchKeywords: ['shortcut', 'pane', 'split', 'equalize', 'resize', 'balance', 'size'],
-    defaultBindings: platformBindings([])
-  },
-  {
-    id: 'terminal.expandPane',
-    title: 'Expand / collapse pane',
-    group: 'Terminal Panes',
-    scope: 'terminal',
-    searchKeywords: ['shortcut', 'pane', 'expand', 'collapse'],
-    defaultBindings: platformBindings(['Mod+Shift+Enter'])
-  },
-  {
-    id: 'terminal.setTitle',
-    title: 'Set Title…',
-    group: 'Terminal Panes',
-    scope: 'terminal',
-    searchKeywords: ['shortcut', 'terminal', 'pane', 'set title', 'title', 'rename'],
     defaultBindings: platformBindings([])
   }
 ]

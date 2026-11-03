@@ -79,7 +79,8 @@ describe('KeybindingService tab-switch cohort seeding', () => {
 
       const overrides = service.getOverrides()
       expect(getEffectiveKeybindingsForAction('tab.nextAllTypes', platform, overrides)).toEqual([
-        'Mod+Shift+BracketRight'
+        'Mod+Shift+BracketRight',
+        'Ctrl+Tab'
       ])
       expect(getEffectiveKeybindingsForAction('tab.nextSameType', platform, overrides)).toEqual([
         'Mod+Alt+BracketRight'

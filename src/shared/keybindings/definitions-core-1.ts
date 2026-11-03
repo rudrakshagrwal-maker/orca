@@ -162,7 +162,8 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
       'index'
     ],
     // Why: one remappable row covers the whole 1-9 range (stored chord is a representative; any of 1-9 fires it).
-    defaultBindings: platformBindings(['Mod+1'])
+    // RA: Windows reserves Ctrl+1-9 for tabs, matching Chrome.
+    defaultBindings: { darwin: ['Mod+1'], linux: ['Mod+1'], win32: ['Alt+1'] }
   },
   {
     id: 'voice.dictation',

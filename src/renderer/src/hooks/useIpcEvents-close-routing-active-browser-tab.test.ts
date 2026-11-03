@@ -30,6 +30,8 @@ function activeBrowserWorkspace(handle: {
     activeTabType: 'browser',
     activeBrowserTabId: 'workspace-1',
     activeWorktreeId: 'wt-1',
+    // RA: Source-routing tests retain another tab after the keyboard close.
+    tabsByWorktree: { 'wt-1': [{ id: 'terminal-1' }, { id: 'terminal-2' }] },
     browserTabsByWorktree: { 'wt-1': [{ id: 'workspace-1' }] },
     browserPagesByWorkspace: { 'workspace-1': [{ id: 'page-1', workspaceId: 'workspace-1' }] },
     remoteBrowserPageHandlesByPageId: handle.environmentId
@@ -75,6 +77,21 @@ describe('useIpcEvents Close Tab on the active browser tab', () => {
     vi.unstubAllGlobals()
     vi.clearAllMocks()
     isWebRuntimeSessionActive.mockReturnValue(true)
+  })
+
+  it('keeps the last workspace tab when a browser guest forwards Ctrl+W', async () => {
+    const listenerRef: { current: CloseActiveTabListener | null } = { current: null }
+    await useIpcEventsForCloseRouting({
+      closeActiveTabListenerRef: listenerRef,
+      getState: () => ({
+        ...activeBrowserWorkspace({}),
+        tabsByWorktree: { 'wt-1': [] }
+      })
+    })
+    requireListener(listenerRef)({ sourceId: 'page-1' })
+    expect(closeBrowserTab).not.toHaveBeenCalled()
+    expect(closeUnifiedTab).not.toHaveBeenCalled()
+    expect(closeWebRuntimeSessionTab).not.toHaveBeenCalled()
   })
 
   // Staged pages lack host identity yet; inert remote close lets the in-flight snapshot recreate them.

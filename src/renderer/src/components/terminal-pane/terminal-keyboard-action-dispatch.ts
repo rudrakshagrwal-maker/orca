@@ -96,6 +96,11 @@ export function dispatchTerminalShortcutAction(
     }
     return
   }
+  // RA: Ctrl+Arrow never leaks word-jump bytes, even at an edge or on repeat.
+  if (action.type === 'focusPane' && action.direction !== 'next' && action.direction !== 'previous') {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+  }
   if (event.repeat) {
     return
   }
@@ -151,6 +156,42 @@ export function dispatchTerminalShortcutAction(
     const activeId = manager.getActivePane()?.id ?? panes[0].id
     const currentIdx = panes.findIndex((pane) => pane.id === activeId)
     if (currentIdx === -1) {
+      return
+    }
+    // RA: The manager contains only this tab's panes; pick the closest center in the requested direction.
+    if (action.direction !== 'next' && action.direction !== 'previous') {
+      const currentRect = panes[currentIdx].container.getBoundingClientRect()
+      const currentX = (currentRect.left + currentRect.right) / 2
+      const currentY = (currentRect.top + currentRect.bottom) / 2
+      let nearest: ManagedPane | undefined
+      let nearestDistance = Infinity
+      for (const pane of panes) {
+        if (pane.id === activeId) {
+          continue
+        }
+        const rect = pane.container.getBoundingClientRect()
+        if (rect.width <= 0 || rect.height <= 0) {
+          continue
+        }
+        const dx = (rect.left + rect.right) / 2 - currentX
+        const dy = (rect.top + rect.bottom) / 2 - currentY
+        const inDirection =
+          action.direction === 'left'
+            ? dx < 0
+            : action.direction === 'right'
+              ? dx > 0
+              : action.direction === 'up'
+                ? dy < 0
+                : dy > 0
+        const distance = dx * dx + dy * dy
+        if (inDirection && distance < nearestDistance) {
+          nearest = pane
+          nearestDistance = distance
+        }
+      }
+      if (nearest) {
+        manager.setActivePane(nearest.id, { focus: true })
+      }
       return
     }
     const dir = action.direction === 'next' ? 1 : -1

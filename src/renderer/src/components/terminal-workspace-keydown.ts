@@ -202,7 +202,8 @@ export function handleTerminalWorkspaceKeyDown(
     if (previewOwnsClose || floatingPanelOwnsEvent) {
       return
     }
-    if (dispatchWorkspaceTabCommand({ type: 'close', context })) {
+    // RA: This capture listener can run before the app-shell last-tab guard.
+    if (dispatchWorkspaceTabCommand({ type: 'close', context, keepWorkspaceOpen: true })) {
       event.preventDefault()
       notifyTerminalCapture('tab.close')
     }

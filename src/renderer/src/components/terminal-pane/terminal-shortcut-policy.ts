@@ -53,7 +53,8 @@ export type TerminalShortcutAction =
   | { type: 'selectAll' }
   | { type: 'toggleSearch' }
   | { type: 'clearActivePane' }
-  | { type: 'focusPane'; direction: 'next' | 'previous' }
+  // RA: Spatial directions share the existing focus dispatch.
+  | { type: 'focusPane'; direction: 'next' | 'previous' | 'left' | 'right' | 'up' | 'down' }
   | { type: 'equalizePaneSizes' }
   | { type: 'toggleExpandActivePane' }
   | { type: 'setTitle' }
@@ -114,6 +115,20 @@ export function resolveTerminalShortcutAction(
 
   if (matches('terminal.copySelection')) {
     return { type: 'copySelection' }
+  }
+
+  // RA: Resolve before ConPTY/readline word-jump fallbacks, including held repeats.
+  if (matches('terminal.focusPaneLeft')) {
+    return { type: 'focusPane', direction: 'left' }
+  }
+  if (matches('terminal.focusPaneRight')) {
+    return { type: 'focusPane', direction: 'right' }
+  }
+  if (matches('terminal.focusPaneUp')) {
+    return { type: 'focusPane', direction: 'up' }
+  }
+  if (matches('terminal.focusPaneDown')) {
+    return { type: 'focusPane', direction: 'down' }
   }
 
   if (!event.repeat) {

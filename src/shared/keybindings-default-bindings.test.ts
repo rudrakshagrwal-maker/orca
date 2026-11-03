@@ -217,10 +217,12 @@ describe('keybindings', () => {
   it('defaults tab-switch chords to the swapped convention for fresh installs', () => {
     // Fresh installs cycle all tabs with Shift+bracket, same-type tabs with Alt+bracket.
     expect(getEffectiveKeybindingsForAction('tab.nextAllTypes', 'darwin')).toEqual([
-      'Mod+Shift+BracketRight'
+      'Mod+Shift+BracketRight',
+      'Ctrl+Tab'
     ])
     expect(getEffectiveKeybindingsForAction('tab.previousAllTypes', 'darwin')).toEqual([
-      'Mod+Shift+BracketLeft'
+      'Mod+Shift+BracketLeft',
+      'Ctrl+Shift+Tab'
     ])
     expect(getEffectiveKeybindingsForAction('tab.nextSameType', 'darwin')).toEqual([
       'Mod+Alt+BracketRight'

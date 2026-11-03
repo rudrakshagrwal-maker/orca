@@ -135,7 +135,8 @@ describe('keybindings', () => {
     ).toBe(true)
     expect(
       keybindingMatchesAction(
-        'tab.previousRecent',
+        // RA: Ctrl+Tab selects the next tab in strip order, even with terminal-first policy.
+        'tab.nextAllTypes',
         { key: 'Tab', code: 'Tab', control: true, meta: false, alt: false, shift: false },
         'linux',
         undefined,

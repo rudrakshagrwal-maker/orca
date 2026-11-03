@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { keepLastWorkspaceTabOpen } from '@/lib/keep-last-workspace-tab-open'
 import { onActiveTerminalPaneCloseRequest } from './request-active-terminal-pane-close'
 import { useAppStore } from '../../store'
 import { retireUnboundRuntimeTerminalPane } from './retire-unbound-runtime-terminal-pane'
@@ -27,7 +28,7 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
   const {
     clearSessionRestoredBannerForPane,
     managerRef,
-    onCloseTab,
+    onCloseTab: closeTab,
     paneCwdRef,
     paneTransportsRef,
     pendingCloseConfirmation,
@@ -40,6 +41,11 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
     updateSettings,
     worktreeId
   } = controller
+  // RA: Recheck each tab-close fallback, including delayed main replies.
+  const onCloseTab = useCallback(
+    () => void (keepLastWorkspaceTabOpen(worktreeId) || closeTab()),
+    [closeTab, worktreeId]
+  )
   // The window's half of a split pane's close: its transport, status and pane go.
   const closePaneLocally = useCallback(
     (paneId: number, committedLeafId?: string) => {

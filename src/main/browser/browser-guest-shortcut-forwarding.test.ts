@@ -182,11 +182,13 @@ describe('setupGuestShortcutForwarding', () => {
     }
   )
 
-  it('commits Ctrl+Tab switching from focused guest pages on generic release events', () => {
+  it('commits explicitly rebound recent-tab switching on generic guest release events', () => {
     setupGuestShortcutForwarding({
       browserTabId,
       guest: makeGuest(),
-      resolveRenderer: () => makeRenderer()
+      resolveRenderer: () => makeRenderer(),
+      // RA: Held MRU switching is opt-in; defaults cycle in strip order.
+      getKeybindings: () => ({ 'tab.previousRecent': ['Ctrl+Tab'] })
     })
 
     const ctrlTabInput = { code: 'Tab', key: 'Tab', control: true, meta: false }

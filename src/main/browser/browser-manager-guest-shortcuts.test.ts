@@ -481,7 +481,7 @@ describe('browserManager', () => {
     expect(rendererSendMock).toHaveBeenNthCalledWith(2, 'ui:openQuickOpen')
   })
 
-  it('forwards browser guest Ctrl+Tab keydown and Ctrl release', () => {
+  it('forwards browser guest Ctrl+Tab to ordered cycling without waiting for Ctrl release', () => {
     const rendererSendMock = vi.fn()
     const guest = {
       id: 407,
@@ -547,11 +547,17 @@ describe('browserManager', () => {
       }
     )
 
-    // Preventing keydown loses the commit keyup in Electron.
-    expect(keyDownPreventDefault).not.toHaveBeenCalled()
-    expect(keyUpPreventDefault).toHaveBeenCalledTimes(1)
-    expect(rendererSendMock).toHaveBeenNthCalledWith(1, 'ui:ctrlTabKeyDown', { shiftKey: false })
-    expect(rendererSendMock).toHaveBeenNthCalledWith(2, 'ui:ctrlTabKeyUp')
+    // RA: Ordered cycling commits on keydown through the shared renderer shortcut owner.
+    expect(keyDownPreventDefault).toHaveBeenCalledTimes(1)
+    expect(keyUpPreventDefault).not.toHaveBeenCalled()
+    expect(rendererSendMock).toHaveBeenCalledExactlyOnceWith('ui:browserPageTabShortcut', {
+      key: 'Tab',
+      code: 'Tab',
+      meta: false,
+      control: true,
+      alt: false,
+      shift: false
+    })
   })
 
   it('respects disabled browser guest tab-switch bindings', () => {
@@ -580,6 +586,9 @@ describe('browserManager', () => {
     browserManager.setSettingsResolver(() => ({
       keybindings: {
         'tab.previousRecent': [],
+        // RA: Disable the new ordered default as well as MRU/terminal cycling.
+        'tab.nextAllTypes': [],
+        'tab.previousAllTypes': [],
         'tab.nextTerminal': [],
         'tab.previousTerminal': []
       }

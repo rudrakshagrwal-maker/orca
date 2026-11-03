@@ -193,6 +193,7 @@ describe('resolveWindowShortcutAction', () => {
         { context: 'terminal', terminalShortcutPolicy: 'terminal-first' }
       )
     ).toBeNull()
+    // RA: Ctrl+Tab now belongs to renderer tab-strip cycling, outside this allowlist.
     expect(
       resolveWindowShortcutAction(
         { code: 'Tab', key: 'Tab', meta: false, control: true, alt: false, shift: false },
@@ -200,7 +201,7 @@ describe('resolveWindowShortcutAction', () => {
         undefined,
         { context: 'terminal', terminalShortcutPolicy: 'terminal-first' }
       )
-    ).toEqual({ type: 'switchRecentTab' })
+    ).toBeNull()
     expect(
       resolveWindowShortcutAction(
         { code: 'Digit3', key: '3', meta: false, control: true, alt: false, shift: false },
@@ -294,8 +295,15 @@ describe('resolveWindowShortcutAction', () => {
       shiftKey: true
     }
 
-    expect(matchesRecentTabSwitcherChord(input, 'linux')).toBe(true)
-    expect(matchesRecentTabSwitcherChord(domInput, 'linux')).toBe(true)
+    // RA: The held MRU switcher requires an explicit override now.
+    expect(matchesRecentTabSwitcherChord(input, 'linux')).toBe(false)
+    expect(matchesRecentTabSwitcherChord(domInput, 'linux')).toBe(false)
+    expect(
+      matchesRecentTabSwitcherChord(input, 'linux', { 'tab.previousRecent': ['Ctrl+Tab'] })
+    ).toBe(true)
+    expect(
+      matchesRecentTabSwitcherChord(domInput, 'linux', { 'tab.previousRecent': ['Ctrl+Tab'] })
+    ).toBe(true)
     expect(matchesRecentTabSwitcherChord(input, 'linux', { 'tab.previousRecent': [] })).toBe(false)
     expect(
       matchesRecentTabSwitcherChord(input, 'linux', { 'tab.previousRecent': ['Ctrl+Alt+Tab'] })
@@ -313,7 +321,9 @@ describe('resolveWindowShortcutAction', () => {
       shiftKey: { value: true }
     })
 
-    expect(matchesRecentTabSwitcherChord(eventInput, 'linux')).toBe(true)
+    expect(
+      matchesRecentTabSwitcherChord(eventInput, 'linux', { 'tab.previousRecent': ['Ctrl+Tab'] })
+    ).toBe(true)
   })
 
   it('recognizes Ctrl+Tab commit releases across Electron surfaces', () => {

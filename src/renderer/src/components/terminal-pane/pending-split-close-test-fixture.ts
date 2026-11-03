@@ -7,7 +7,8 @@ import type { PtyConnectResult, PtyTransport } from './pty-transport-types'
 import type { TerminalPaneBindingController } from './use-terminal-pane-layout-bindings'
 import { installIpcPtyWindow, restorePtySpecWindow } from './pty-transport-test-harness'
 
-vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
+// RA: Last-tab protection reports an informational toast.
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), info: vi.fn() } }))
 
 const store = vi.hoisted((): { current: AppState | null } => ({ current: null }))
 vi.mock('../../store', () => ({ useAppStore: { getState: () => store.current } }))
