@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
+import { keepPinnedWorkspaceTabOpen } from '@/lib/keep-last-workspace-tab-open'
 import {
   FLOATING_WORKSPACE_GUEST_CLOSE_EVENT,
   FLOATING_WORKSPACE_GUEST_SELECT_INDEX_EVENT,
@@ -23,6 +25,10 @@ export function useFloatingTerminalGuestBridge({
     const handleGuestClose = (event: Event): void => {
       const detail = (event as CustomEvent<FloatingWorkspaceGuestCloseDetail>).detail
       if (detail) {
+        // RA: Browser-guest Ctrl+W must not open a pinned-close confirmation either.
+        if (keepPinnedWorkspaceTabOpen(FLOATING_TERMINAL_WORKTREE_ID, detail.sourceId)) {
+          return
+        }
         floatingShortcutListenersRef.current.closeFloatingItemConfirmed(detail.sourceId, {
           guestOwned: true
         })

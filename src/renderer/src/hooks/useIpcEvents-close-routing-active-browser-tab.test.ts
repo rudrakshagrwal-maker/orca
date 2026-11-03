@@ -94,6 +94,37 @@ describe('useIpcEvents Close Tab on the active browser tab', () => {
     expect(closeWebRuntimeSessionTab).not.toHaveBeenCalled()
   })
 
+  // RA: Pin protection is the same for local and remote browser-guest shortcuts.
+  it.each([undefined, 'env-a'])(
+    'keeps a pinned browser guest on host %s without prompting',
+    async (environmentId) => {
+      const listenerRef: { current: CloseActiveTabListener | null } = { current: null }
+      const requestPinnedTabCloseConfirm = vi.fn()
+      await useIpcEventsForCloseRouting({
+        closeActiveTabListenerRef: listenerRef,
+        getState: () => ({
+          ...activeBrowserWorkspace({ environmentId }),
+          unifiedTabsByWorktree: {
+            'wt-1': [
+              {
+                id: 'unified-1',
+                contentType: 'browser',
+                entityId: 'workspace-1',
+                isPinned: true
+              }
+            ]
+          },
+          requestPinnedTabCloseConfirm
+        })
+      })
+      requireListener(listenerRef)({ sourceId: 'page-1' })
+      expect(closeBrowserTab).not.toHaveBeenCalled()
+      expect(closeUnifiedTab).not.toHaveBeenCalled()
+      expect(closeWebRuntimeSessionTab).not.toHaveBeenCalled()
+      expect(requestPinnedTabCloseConfirm).not.toHaveBeenCalled()
+    }
+  )
+
   // Staged pages lack host identity yet; inert remote close lets the in-flight snapshot recreate them.
   it('unwinds a staged workspace as a cleanup close instead of closing it on the host', async () => {
     const listenerRef: { current: CloseActiveTabListener | null } = { current: null }

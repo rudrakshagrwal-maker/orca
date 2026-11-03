@@ -9,6 +9,7 @@ import {
 } from '@/lib/floating-workspace-terminal-actions'
 import { showTerminalShortcutCaptureNotification } from '@/lib/terminal-shortcut-capture-notification'
 import { dispatchWorkspaceTabCommand } from '@/lib/workspace-tab-commands'
+import { toast } from 'sonner'
 import type { Tab } from '../../../shared/tab-types'
 import { useRunningTerminalCloseConfirmStore } from '@/store/running-terminal-close-confirm'
 import { FLOATING_TERMINAL_WORKTREE_ID, getDefaultSettings } from '../../../shared/constants'
@@ -26,6 +27,8 @@ import type { TuiAgent } from '../../../shared/tui-agent'
 import type { TerminalAgentTabShortcut } from './terminal-agent-tab-shortcut'
 import { useTerminalBulkCloseActions } from './use-terminal-bulk-close-actions'
 import { makeOpenFile, makeUnifiedTab } from '../store/slices/store-session-test-harness'
+
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), error: vi.fn() } }))
 
 const confirmBulkClose = vi.hoisted(() => vi.fn<() => Promise<boolean>>())
 vi.mock('./confirmation-dialog-context', () => ({
@@ -297,24 +300,27 @@ describe('tab.close uses the unified active tab', () => {
     })
   })
 
-  it('waits for pinned-tab then active-work confirmation before closing', () => {
+  // RA: Ctrl+W must not offer a way around explicit pinning.
+  it.each(['win32', 'darwin', 'linux'] as const)(
+    'retains a pinned tab on %s without confirmation',
+    (platform) => {
+      tab.isPinned = true
+      mocks.structuredSessionBusy.mockReturnValue(true)
+      expect(close(platform).defaultPrevented).toBe(true)
+      expect(mocks.closeStructuredAgentSession).not.toHaveBeenCalled()
+      expect(closeUnifiedTab).not.toHaveBeenCalled()
+      expect(mocks.state.requestPinnedTabCloseConfirm).not.toHaveBeenCalled()
+      expect(useRunningTerminalCloseConfirmStore.getState().runningTerminalCloseConfirm).toBeNull()
+      expect(toast.info).toHaveBeenCalledWith('Pinned tab: unpin to close', { duration: 2000 })
+    }
+  )
+
+  it('does not delegate pinned terminal Ctrl+W to the split-pane closer', () => {
+    tab.contentType = 'terminal'
     tab.isPinned = true
-    mocks.structuredSessionBusy.mockReturnValue(true)
-    close()
-    expect(mocks.closeStructuredAgentSession).not.toHaveBeenCalled()
-    expect(closeUnifiedTab).not.toHaveBeenCalled()
-    const request = vi.mocked(mocks.state.requestPinnedTabCloseConfirm as ReturnType<typeof vi.fn>)
-      .mock.calls[0][0]
-    expect(useRunningTerminalCloseConfirmStore.getState().runningTerminalCloseConfirm).toBeNull()
-    request.onConfirm()
-    expect(closeUnifiedTab).not.toHaveBeenCalled()
-    expect(
-      useRunningTerminalCloseConfirmStore.getState().runningTerminalCloseConfirm
-    ).toMatchObject({
-      copyKind: 'chat-agent'
-    })
-    useRunningTerminalCloseConfirmStore.getState().confirmRunningTerminalClose()
-    expect(closeUnifiedTab).toHaveBeenCalledExactlyOnceWith(tab.id)
+    expect(close('win32', true).defaultPrevented).toBe(true)
+    expect(mocks.closeTerminalTab).not.toHaveBeenCalled()
+    expect(mocks.state.requestPinnedTabCloseConfirm).not.toHaveBeenCalled()
   })
 
   it('leaves the chord to an agent terminal preview dialog over a workspace editor', () => {

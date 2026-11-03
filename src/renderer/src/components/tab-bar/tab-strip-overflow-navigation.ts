@@ -15,11 +15,8 @@ import {
 import {
   findOffscreenOpenedTabStripSlot,
   findTabStripSlot,
-  getActiveTabDockSide,
   readTabStripSlotIds,
-  revealTabStripSlot,
-  updateTabStripDockAvailability,
-  type ActiveTabDockSide
+  revealTabStripSlot
 } from './tab-strip-slot-geometry'
 import { motionSafeScrollBehavior } from '@/hooks/usePrefersReducedMotion'
 import { useTabDragActive } from '../tab-group/tab-drag-context'
@@ -55,19 +52,18 @@ const EMPTY_TAB_STRIP_OVERFLOW_STATE: TabStripOverflowState = {
 
 export function useTabStripOverflowNavigation({
   activeVisibleTabId,
-  activeDockSlotId,
+  activeSlotId,
   layoutKey,
   worktreeId
 }: {
   activeVisibleTabId: string | null
   /** The slot drawn active; a client-hosted row can take it without `activeVisibleTabId` changing. */
-  activeDockSlotId: string | null
+  activeSlotId: string | null
   layoutKey: string
   worktreeId: string
 }): {
   tabStripRef: RefObject<HTMLDivElement | null>
   tabStripOverflowState: TabStripOverflowState
-  activeTabDockSide: ActiveTabDockSide | null
   scrollTabStrip: (direction: 'start' | 'end', behavior?: ScrollBehavior) => void
   subscribeToStripResize: (listener: () => void) => () => void
 } {
@@ -77,7 +73,7 @@ export function useTabStripOverflowNavigation({
   const prevStripRef = useRef<{ worktreeId: string; tabIds: ReadonlySet<string> } | null>(null)
   const stickToEndRef = useRef(false)
   const activeTabIdRef = useRef<string | null>(null)
-  const activeDockSlotIdRef = useRef<string | null>(null)
+  const activeSlotIdRef = useRef<string | null>(null)
   const hoverDeferredRevealIdsRef = useRef<Set<string>>(new Set())
   const scrollAnchorRef = useRef<{
     activeTabId: string | null
@@ -87,7 +83,6 @@ export function useTabStripOverflowNavigation({
   const [tabStripOverflowState, setTabStripOverflowState] = useState<TabStripOverflowState>(
     EMPTY_TAB_STRIP_OVERFLOW_STATE
   )
-  const [activeTabDockSide, setActiveTabDockSide] = useState<ActiveTabDockSide | null>(null)
   const updateTabStripOverflowState = useCallback((): void => {
     const el = tabStripRef.current
     if (!el) {
@@ -97,8 +92,6 @@ export function useTabStripOverflowNavigation({
     setTabStripOverflowState((previous) =>
       sameTabStripOverflowState(previous, next) ? previous : next
     )
-    updateTabStripDockAvailability(el)
-    setActiveTabDockSide(getActiveTabDockSide(el))
   }, [])
   const scrollTabStrip = useCallback(
     (direction: 'start' | 'end', behavior: ScrollBehavior = 'smooth'): void => {
@@ -159,15 +152,12 @@ export function useTabStripOverflowNavigation({
         el.scrollLeft = Math.max(0, el.scrollWidth - el.clientWidth)
       }
       // RA: A split resize can hide the active slot, including a client-hosted browser row.
-      if (
-        (viewportChanged || el.hasAttribute('data-active-tab-dock-disabled')) &&
-        !isTabStripPointerGestureActive()
-      ) {
-        const activeSlot = activeDockSlotIdRef.current
-          ? findTabStripSlot(el, activeDockSlotIdRef.current)
+      if (viewportChanged && !isTabStripPointerGestureActive()) {
+        const activeSlot = activeSlotIdRef.current
+          ? findTabStripSlot(el, activeSlotIdRef.current)
           : undefined
         if (activeSlot) {
-          revealTabStripSlot(el, activeSlot)
+          revealTabStripSlot(activeSlot)
           stickToEndRef.current = isTabStripScrolledToEnd(el)
         }
       }
@@ -205,7 +195,7 @@ export function useTabStripOverflowNavigation({
       if (!offscreenOpened) {
         return
       }
-      revealTabStripSlot(el, offscreenOpened)
+      revealTabStripSlot(offscreenOpened)
       stickToEndRef.current = isTabStripScrolledToEnd(el)
       updateTabStripOverflowState()
       recordScrollAnchor()
@@ -219,8 +209,8 @@ export function useTabStripOverflowNavigation({
     activeTabIdRef.current = activeVisibleTabId
   }, [activeVisibleTabId])
   useLayoutEffect(() => {
-    activeDockSlotIdRef.current = activeDockSlotId
-  }, [activeDockSlotId])
+    activeSlotIdRef.current = activeSlotId
+  }, [activeSlotId])
 
   useLayoutEffect(() => {
     const strip = tabStripRef.current
@@ -253,7 +243,7 @@ export function useTabStripOverflowNavigation({
     const recorded = scrollAnchorRef.current
     if (tabOpened && !pointerGestureActive) {
       if (recorded?.activeTabId === activeTabIdRef.current) {
-        // Preserve the viewed tab’s x through insertion; reveal only offscreen destinations while the active tab docks.
+        // RA: Preserve the viewed tab through insertion, then reveal offscreen destinations normally.
         if (recorded.anchor) {
           restoreTabStripScrollAnchor(strip, recorded.anchor)
         }
@@ -267,7 +257,7 @@ export function useTabStripOverflowNavigation({
         } else {
           const offscreenOpened = findOffscreenOpenedTabStripSlot(strip, prev.tabIds)
           if (offscreenOpened) {
-            revealTabStripSlot(strip, offscreenOpened)
+            revealTabStripSlot(offscreenOpened)
           }
         }
         stickToEndRef.current = isTabStripScrolledToEnd(strip)
@@ -292,11 +282,11 @@ export function useTabStripOverflowNavigation({
 
   useLayoutEffect(() => {
     const strip = tabStripRef.current
-    if (!strip || !activeDockSlotId) {
+    if (!strip || !activeSlotId) {
       recordScrollAnchor()
       return
     }
-    const activeSlot = findTabStripSlot(strip, activeDockSlotId)
+    const activeSlot = findTabStripSlot(strip, activeSlotId)
     if (!activeSlot) {
       recordScrollAnchor()
       return
@@ -307,17 +297,12 @@ export function useTabStripOverflowNavigation({
       recordScrollAnchor()
       return
     }
-    revealTabStripSlot(strip, activeSlot)
+    revealTabStripSlot(activeSlot)
     // Why: the scroll event lands after the resize observer, which would re-pin a stale end stick over this reveal.
     stickToEndRef.current = isTabStripScrolledToEnd(strip)
     requestAnimationFrame(updateTabStripOverflowState)
     recordScrollAnchor()
-  }, [activeDockSlotId, isTabDragActive, recordScrollAnchor, updateTabStripOverflowState])
-
-  // Dock ownership and drag transitions change sticky layout without scrolling or resizing.
-  useLayoutEffect(() => {
-    updateTabStripOverflowState()
-  }, [activeDockSlotId, isTabDragActive, updateTabStripOverflowState])
+  }, [activeSlotId, isTabDragActive, recordScrollAnchor, updateTabStripOverflowState])
 
   // Why share these observers: each one watches every tab, so a second set doubles that work.
   const subscribeToStripResize = useCallback((listener: () => void): (() => void) => {
@@ -330,7 +315,6 @@ export function useTabStripOverflowNavigation({
   return {
     tabStripRef,
     tabStripOverflowState,
-    activeTabDockSide,
     scrollTabStrip,
     subscribeToStripResize
   }

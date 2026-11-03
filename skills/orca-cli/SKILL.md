@@ -45,3 +45,6 @@ and retry. If it fails with `runtime_access_denied`, your sandbox blocked the co
 re-run it with escalated permissions, and do not run `ORCA open` or restart Orca. If
 `skills get` is unknown, explain that updating Orca restores the guide; use `--help` for
 read-only discovery and do not guess unsupported commands.
+
+## RA rule: link every helper lane
+When you start another agent (Codex or Claude) as a helper, start it from your own terminal with `orca agent launch` (it records you as the parent). If you opened it any other way, run `orca terminal set-parent --terminal <child> --parent $ORCA_TERMINAL_HANDLE` right after. Each helper gets its own new tab, never a split, unless the owner asks for split screen.

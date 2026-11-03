@@ -360,6 +360,9 @@ it('supports immediate same-row and cross-row selection after release-before-con
       useAppStore.getState().unifiedTabsByWorktree[GIT_KEY]?.find((tab) => tab.id === TAB)?.isPinned
     ).toBe(true)
   )
+  // RA: Pinning compacts the actual row; unpinning restores its visible label.
+  expect(source().closest('[data-tab-strip-slot]')?.classList.contains('w-10')).toBe(true)
+  expect(source().querySelector('.tab-label')).toBeNull()
   fireEvent.contextMenu(source(), pointer(2))
   const unpin = await screen.findByRole('menuitem', { name: 'Unpin Tab' })
   fireEvent.pointerDown(unpin, pointer())
@@ -371,6 +374,8 @@ it('supports immediate same-row and cross-row selection after release-before-con
       useAppStore.getState().unifiedTabsByWorktree[GIT_KEY]?.find((tab) => tab.id === TAB)?.isPinned
     ).toBe(false)
   )
+  expect(source().closest('[data-tab-strip-slot]')?.classList.contains('w-10')).toBe(false)
+  expect(source().querySelector('.tab-label')).not.toBeNull()
 })
 
 it('starts editor rename only after menu close autofocus and preserves ordinary dismissal', async () => {

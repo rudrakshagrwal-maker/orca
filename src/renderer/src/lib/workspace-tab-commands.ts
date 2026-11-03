@@ -1,5 +1,8 @@
 import type { KeybindingContext } from '../../../shared/keybindings'
-import { keepLastWorkspaceTabOpen } from './keep-last-workspace-tab-open'
+import {
+  keepLastWorkspaceTabOpen,
+  keepPinnedWorkspaceTabOpen
+} from './keep-last-workspace-tab-open'
 import { toVisibleTabType, type Tab } from '../../../shared/tab-types'
 import { useAppStore } from '@/store'
 import { guardPinnedTabClose, resolvePinnedTabLabel } from '@/store/pinned-tab-close-guard'
@@ -123,11 +126,19 @@ export function dispatchWorkspaceTabCommand(command: WorkspaceTabCommand): boole
     if (!target) {
       return false
     }
+    // RA: Pin protection applies before terminal focus delegates to the split-pane owner.
+    if (
+      command.keepWorkspaceOpen &&
+      target.tab &&
+      keepPinnedWorkspaceTabOpen(target.worktreeId, target.tab.id)
+    ) {
+      return true
+    }
     // RA: Terminal focus must reach the split-pane owner before deciding whether its tab may close.
     if (command.context === 'terminal' && target.tab?.contentType === 'terminal') {
       return false
     }
-    if (command.keepWorkspaceOpen && keepLastWorkspaceTabOpen(target.worktreeId)) {
+    if (command.keepWorkspaceOpen && keepLastWorkspaceTabOpen(target.worktreeId, target.tab?.id)) {
       return true
     }
     if (!target.tab) {

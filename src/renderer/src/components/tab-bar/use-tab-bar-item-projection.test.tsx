@@ -3,6 +3,7 @@
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import type { Tab } from '../../../../shared/tab-types'
 import type { TabBarProps } from './tab-bar-props'
 import { useTabBarItemProjection } from './use-tab-bar-item-projection'
 
@@ -67,6 +68,40 @@ function renderProjection(initialIds: string[]): {
 }
 
 describe('tab strip sortable ids', () => {
+  // RA: Projection must keep pin order even when persisted order or a drag interleaves the tabs.
+  it('sorts pinned tabs first stably and restores ordinary order when unpinned', () => {
+    const ids = ['term-1', 'term-2', 'term-3', 'term-4']
+    const props = buildProps(ids)
+    const tabs: Tab[] = ids.map((id, index) => ({
+      id: `unified-${id}`,
+      entityId: id,
+      groupId: 'group-1',
+      worktreeId: 'wt-1',
+      contentType: 'terminal',
+      label: id,
+      customLabel: null,
+      color: null,
+      sortOrder: index,
+      createdAt: 0,
+      isPinned: index === 1 || index === 3
+    }))
+    const { result, rerender } = renderHook(
+      (unifiedTabs: Tab[]) =>
+        useTabBarItemProjection({
+          props,
+          resolvedGroupId: 'group-1',
+          unifiedTabs,
+          unifiedTabByVisibleId: new Map(unifiedTabs.map((tab) => [tab.entityId, tab])),
+          generatedTabTitlesEnabled: false,
+          statusByRelativePath: new Map()
+        }),
+      { initialProps: tabs }
+    )
+    expect(result.current.sortableIds).toEqual(['term-2', 'term-4', 'term-1', 'term-3'])
+    rerender(tabs.map((tab) => ({ ...tab, isPinned: false })))
+    expect(result.current.sortableIds).toEqual(ids)
+  })
+
   it('hands dnd-kit the same array while the ids are unchanged', () => {
     const projection = renderProjection(['term-1', 'term-2'])
     const first = projection.sortableIds()

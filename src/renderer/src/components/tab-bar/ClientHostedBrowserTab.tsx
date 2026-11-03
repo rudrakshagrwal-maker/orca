@@ -31,7 +31,7 @@ export default function ClientHostedBrowserTab({
   onClose: () => void
   includeTopTabBorder?: boolean
 }): React.JSX.Element {
-  const slotProps = useTabStripSlotProps(row.browserPageId, isActive)
+  const slotProps = useTabStripSlotProps(row.browserPageId)
   const loading = row.loading && !row.hostAbsent
   const PageIcon = loading ? Loader2 : Laptop
   const label = getClientHostedBrowserRowLabel(row)

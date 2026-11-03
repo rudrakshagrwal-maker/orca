@@ -1,5 +1,3 @@
-import type { ActiveTabDockSide } from './tab-strip-slot-geometry'
-
 export type TabStripOverflowState = {
   hasOverflow: boolean
   canScrollStart: boolean
@@ -51,20 +49,17 @@ export function computeTabStripThumbLayout(
   }
 }
 
-/** `dockedSide` skips that edge's fade, which would otherwise wash out the active tab docked there. */
-export function getTabStripScrollMaskClassName(
-  metrics: TabStripOverflowState,
-  dockedSide: ActiveTabDockSide | null = null
-): string {
+// RA: Fades describe overflow on either side regardless of the active tab.
+export function getTabStripScrollMaskClassName(metrics: TabStripOverflowState): string {
   if (!metrics.hasOverflow) {
     return ''
   }
 
   const classes: string[] = []
-  if (metrics.canScrollStart && dockedSide !== 'start') {
+  if (metrics.canScrollStart) {
     classes.push('terminal-tab-strip--fade-start')
   }
-  if (metrics.canScrollEnd && dockedSide !== 'end') {
+  if (metrics.canScrollEnd) {
     classes.push('terminal-tab-strip--fade-end')
   }
   return classes.join(' ')

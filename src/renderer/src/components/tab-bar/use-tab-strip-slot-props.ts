@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-import { useTabDragActive } from '../tab-group/tab-drag-context'
 import {
   SUBAGENT_TAB_CONTAINER_WIDTH_CLASSES,
   TAB_CONTAINER_WIDTH_CLASSES
@@ -8,24 +7,22 @@ import {
 type TabStripSlotProps = {
   className: string
   'data-tab-strip-slot': string
-  'data-active-tab-dock': '' | undefined
 }
 
-/** Dock the active slot at viewport edges except during drag, when overlapping rects would corrupt drop targets. */
+// RA: Selection scrolls normally; only explicit pinning changes a slot's width.
 export function useTabStripSlotProps(
   tabId: string,
-  isActive: boolean,
+  isPinned = false,
   isSubagent = false
 ): TabStripSlotProps {
-  const isTabDragActive = useTabDragActive()
-  const docks = isActive && !isTabDragActive
   return {
-    // RA: Share docking and drag geometry with normal tabs.
     className: cn(
-      isSubagent ? SUBAGENT_TAB_CONTAINER_WIDTH_CLASSES : TAB_CONTAINER_WIDTH_CLASSES,
-      docks && 'sticky inset-x-0 z-10'
+      isPinned
+        ? 'w-10 min-w-10 max-w-10 flex-none'
+        : isSubagent
+          ? SUBAGENT_TAB_CONTAINER_WIDTH_CLASSES
+          : TAB_CONTAINER_WIDTH_CLASSES
     ),
-    'data-tab-strip-slot': tabId,
-    'data-active-tab-dock': docks ? '' : undefined
+    'data-tab-strip-slot': tabId
   }
 }

@@ -7,7 +7,6 @@ import { BrowserWebAuthnAccountDialog } from './components/browser-webauthn-acco
 import { BrowserExtensionInstallDialog } from './components/browser-extension-install-dialog'
 import { BrowserPagePrompts } from './components/browser-pane/browser-page-prompts'
 import { LinkRoutingPreferenceDialogProvider } from './components/link-routing-preference-dialog'
-import { SkillFreshnessNudge } from './components/skills/SkillFreshnessNudge'
 import PinnedTabCloseDialog from './components/terminal-pane/PinnedTabCloseDialog'
 import RunningTerminalCloseDialog from './components/terminal-pane/RunningTerminalCloseDialog'
 import WorktreeBaseFallbackDialog from './components/WorktreeBaseFallbackDialog'
@@ -123,7 +122,7 @@ function App(): React.JSX.Element {
         <PlainSshTerminalPanels />
         <PluginShotReplayMount />
       </TooltipProvider>
-      <SkillFreshnessNudge />
+      {/* RA: Skill updates remain user-invoked; never mount the automatic nudge. */}
       <WorktreeBaseFallbackDialog />
       <ClaudeAccountSwitchDialog />
       <PinnedTabCloseDialog />

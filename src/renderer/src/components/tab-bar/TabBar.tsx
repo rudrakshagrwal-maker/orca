@@ -91,7 +91,8 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
   })
   const tabStripNavigation = useTabStripOverflowNavigation({
     activeVisibleTabId: itemProjection.activeVisibleTabId,
-    activeDockSlotId: activeClientHostedBrowserRowId ?? itemProjection.activeVisibleTabId,
+    // RA: Client-hosted rows share normal scroll-to-selection behavior.
+    activeSlotId: activeClientHostedBrowserRowId ?? itemProjection.activeVisibleTabId,
     layoutKey: [
       itemProjection.tabStripLayoutKey,
       ...(props.clientHostedBrowserRows ?? []).map((row) => row.browserPageId)

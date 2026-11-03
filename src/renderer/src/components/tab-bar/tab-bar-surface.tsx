@@ -95,7 +95,6 @@ export function renderTabBarSurface({
   const {
     tabStripRef,
     tabStripOverflowState,
-    activeTabDockSide,
     scrollTabStrip,
     subscribeToStripResize
   } = tabStripNavigation
@@ -152,12 +151,12 @@ export function renderTabBarSurface({
         >
           <div
             ref={tabStripRef}
-            data-active-tab-docked={activeTabDockSide ?? undefined}
             // Why: only `border-r` here — a strip-level `border-l` would render a heavier L-corner than the first tab's own `border-l`.
             className={[
               'terminal-tab-strip flex h-full min-w-0 max-w-full flex-1 items-stretch overflow-x-auto overflow-y-hidden',
               'border-r border-border/70',
-              getTabStripScrollMaskClassName(tabStripOverflowState, activeTabDockSide)
+              // RA: Preserve both fade edges now that active tabs no longer dock.
+              getTabStripScrollMaskClassName(tabStripOverflowState)
             ]
               .filter(Boolean)
               .join(' ')}
