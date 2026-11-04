@@ -245,7 +245,7 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     if (saved.ptyId && this.ptysById.get(saved.ptyId)?.connected) return null
     const record = session?.sleepingAgentSessionsByPaneKey?.[`${tabId}:${leafId}`]
     const sleeping =
-      (record && isSleepingAgentSessionRecord(record)) ||
+      !!record ||
       [...this.terminalSleepStateByHostWorktree.values()].some(
         (state) => state.worktreeId === worktreeId && state.phase === 'sleeping'
       )
