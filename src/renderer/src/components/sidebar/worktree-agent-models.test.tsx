@@ -16,10 +16,7 @@ import {
   WorktreeCardDisplayMenuItem,
   WorktreeCardPropertiesMenuItem
 } from './worktree-card-option-items'
-import {
-  clearWorktreeAgentExpansionStateForTests,
-  seedWorktreeAgentExpansionStateForTests
-} from './worktree-card-agents-expansion-state'
+import { clearWorktreeAgentExpansionStateForTests } from './worktree-card-agents-expansion-state'
 import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -176,13 +173,20 @@ function expectVisibleModels(visible: boolean): void {
       }
       expect(container.querySelector('.compact-agent-summary-panel-expanded')).not.toBeNull()
     }
+    // RA: a hydrated UI snapshot can restore the branch as folded; open it before counting chips.
+    const disclosure = container.querySelector<HTMLButtonElement>(
+      'button[data-agent-child-disclosure-button][aria-expanded="false"], button[aria-label="Toggle helpers"][aria-expanded="false"]'
+    )
+    if (disclosure) act(() => disclosure.click())
     const tree = container.querySelector('[role="tree"]')
     expect(tree).not.toBeNull()
-    expect(tree?.querySelectorAll('span.font-mono[title]')).toHaveLength(visible ? 4 : 0)
-    expect(tree?.querySelectorAll('[title="reported-model"]')).toHaveLength(visible ? 3 : 0)
+    // RA: the plain full tree deliberately has no model chips.
+    const modelCount = visible && mode === 'compact' ? 1 : 0
+    expect(tree?.querySelectorAll('span.font-mono[title]')).toHaveLength(modelCount * 4)
+    expect(tree?.querySelectorAll('[title="reported-model"]')).toHaveLength(modelCount * 3)
     expect(
-      tree?.querySelectorAll('.worktree-agent-lineage-children [title="child-model"]')
-    ).toHaveLength(visible ? 1 : 0)
+      tree?.querySelectorAll('.ml-3 [title="child-model"]')
+    ).toHaveLength(modelCount)
     for (const control of controls()) {
       expect(control.getAttribute('aria-checked')).toBe(String(visible))
     }
@@ -197,12 +201,8 @@ beforeEach(() => {
   unsubs = []
   stateChanged = undefined
   clearWorktreeAgentExpansionStateForTests()
-  // Child lists start collapsed; open the subagent parent so its model chip is rendered.
-  seedWorktreeAgentExpansionStateForTests('folder-1', {
-    expandedLineageParents: new Set([`hook:${LEAF}`]),
-    expandedIdleChildGroups: new Set(),
-    compactRootListExpanded: false
-  })
+  // RA: parent disclosure is restored from the persisted UI store.
+  useAppStore.setState({ collapsedGroups: new Set([`ra:project-agent-open:hook:${LEAF}`]) })
   Object.defineProperty(window, 'api', {
     configurable: true,
     value: {

@@ -249,6 +249,8 @@ function setAgentLineageState(options: {
       parentPaneKey: PANE_ROOT
     })
   }
+  // RA: the plain full tree displays the terminal title rather than its prompt.
+  agentStatusByPaneKey[PANE_CHILD].terminalTitle = 'Child task'
   if (options.secondRootAgent) {
     agentStatusByPaneKey[PANE_ROOT_2] = makeAgentEntry(PANE_ROOT_2, 'SECOND_ROOT_PROMPT')
   }
@@ -391,7 +393,8 @@ function childWorktreeChip(container: HTMLElement): HTMLButtonElement | null {
 }
 
 function agentChildDisclosure(container: HTMLElement): HTMLButtonElement | null {
-  return findButtonByAriaLabel(container, /child agent/i)
+  // RA: the plain Projects tree uses the shared helper disclosure.
+  return findButtonByAriaLabel(container, /child agent|Toggle helpers/i)
 }
 
 function compactAgentSummary(container: HTMLElement): HTMLButtonElement | null {
@@ -450,7 +453,7 @@ describe('WorktreeCard agent-list <-> child-worktrees expansion coupling', () =>
     expect(container.textContent).toContain('Parent Terminal')
     expect(container.textContent).not.toContain('PARENT_AGENT_PROMPT')
     // Child agents stay collapsed until the user opens them; child worktrees stay open.
-    expect(container.textContent).not.toContain('CHILD_AGENT_PROMPT')
+    expect(container.textContent).not.toContain('Child task')
 
     expect(childWorktreeChip(container)).not.toBeNull()
     expect(agentChildDisclosure(container)).not.toBeNull()
@@ -470,10 +473,11 @@ describe('WorktreeCard agent-list <-> child-worktrees expansion coupling', () =>
     await click(agentChildDisclosure(container)!)
 
     expect(agentChildDisclosure(container)!.getAttribute('aria-expanded')).toBe('true')
-    expect(container.textContent).toContain('CHILD_AGENT_PROMPT')
+    expect(container.textContent).toContain('Child task')
     expect(childWorktreeChip(container)!.getAttribute('aria-expanded')).toBe('true')
     expect(childWorktreeCardPresent(container)).toBe(true)
-    expect((mockStore.state.collapsedGroups as Set<string>).size).toBe(0)
+    // RA: agent disclosure persists under a separate key from child-worktree folding.
+    expect(mockStore.state.collapsedGroups).toEqual(new Set([`ra:project-agent-open:${PANE_ROOT}`]))
   })
 
   it('[full mode] toggling CHILD WORKTREES still remounts the card but PRESERVES agent expansion (regression)', async () => {
@@ -494,7 +498,7 @@ describe('WorktreeCard agent-list <-> child-worktrees expansion coupling', () =>
     expect(childWorktreeCardPresent(container)).toBe(false)
 
     expect(agentChildDisclosure(container)!.getAttribute('aria-expanded')).toBe('true')
-    expect(container.textContent).toContain('CHILD_AGENT_PROMPT')
+    expect(container.textContent).toContain('Child task')
   })
 
   it('[compact mode] toggling CHILD WORKTREES preserves the compact agent summary expansion (regression)', async () => {

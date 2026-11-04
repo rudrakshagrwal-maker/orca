@@ -98,6 +98,7 @@ type Props = {
   // RA: reuse agent navigation and presentation in the global sidebar tree.
   sidebarTreeRow?: boolean
   sidebarWorkspaceName?: string
+  activationDisabled?: boolean // RA: closed lineage placeholders have no terminal to focus.
 }
 
 const DashboardAgentRow = React.memo(function DashboardAgentRow({
@@ -120,7 +121,8 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   sendTargetDisabledReason,
   onSendTargetClick,
   sidebarTreeRow = false,
-  sidebarWorkspaceName
+  sidebarWorkspaceName,
+  activationDisabled = false
 }: Props) {
   useUiLanguageRevision()
   const view = useClaudeAgentRowView(agent)
@@ -137,10 +139,11 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
   const handleActivate = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      if (activationDisabled) return // RA: never focus a child's tab through a closed parent.
       onActivate(agent.tab.id, agent.activationPaneKey ?? agent.paneKey)
       void viewClaudeAgentFromRow(agent)
     },
-    [onActivate, agent]
+    [onActivate, agent, activationDisabled]
   )
   const handleSendTargetClickCapture = useCallback(
     (e: React.MouseEvent) => {
@@ -251,6 +254,7 @@ const DashboardAgentRow = React.memo(function DashboardAgentRow({
         isUnvisited={isUnvisited}
         now={now}
         workspaceName={sidebarWorkspaceName}
+        activationDisabled={activationDisabled}
         childAgentCount={childAgentCount}
         childAgentsExpanded={childAgentsExpanded}
         onToggleChildAgents={onToggleChildAgents}

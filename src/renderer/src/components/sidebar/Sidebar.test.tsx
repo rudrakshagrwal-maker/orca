@@ -61,11 +61,6 @@ vi.mock('./WorktreeList', () => ({
 
 vi.mock('./WslMovedProjectsSection', () => ({ default: () => null }))
 
-// RA: sidebar shell tests isolate the global agent row subscriptions.
-vi.mock('./SidebarAgentSection', () => ({
-  default: () => <div data-testid="sidebar-agent-section" />
-}))
-
 vi.mock('./SidebarToolbar', () => ({
   default: () => <div data-testid="sidebar-toolbar" />
 }))
@@ -145,6 +140,14 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Sidebar', () => {
+  // RA: Projects owns the tree; mounting the sidebar cannot subscribe a second Agents section.
+  it('keeps the Projects list without a separate Agents section or splitter', () => {
+    setSidebarState(getDefaultSettings(tmpdir()))
+    const view = render(sidebarElement())
+    expect(view.getByTestId('worktree-list')).toBeDefined()
+    expect(view.queryByText('Agents')).toBeNull()
+    expect(view.queryByRole('separator', { name: 'Resize Agents section' })).toBeNull()
+  })
   it('shows a compact loading status until startup discovery finishes', () => {
     vi.useFakeTimers()
     try {

@@ -34,10 +34,10 @@ type MockAgentOptions = {
 function mockAgent({
   paneKey = 'tab-1:1',
   tabId = paneKey.split(':')[0],
-  agentType,
-  rowSource,
+  agentType = 'codex',
+  rowSource = 'live',
   state = 'working',
-  startedAt,
+  startedAt = 1000,
   prompt,
   lastAssistantMessage,
   stateStartedAt = 1000,
@@ -47,7 +47,7 @@ function mockAgent({
 }: MockAgentOptions = {}): unknown {
   return {
     paneKey,
-    tab: { id: tabId },
+    tab: { id: tabId, title: prompt ?? tabId, createdAt: startedAt }, // RA: shared tree reads real tab clocks/titles.
     agentType,
     rowSource,
     state,
@@ -57,7 +57,7 @@ function mockAgent({
       lastAssistantMessage,
       state,
       stateStartedAt,
-      stateHistory: prompt === undefined ? undefined : [],
+      stateHistory: [],
       terminalHandle,
       orchestration
     },
@@ -73,6 +73,14 @@ let mockAgentActivityDisplayMode: 'compact' | 'full' | undefined
 let mockPromptCacheTimerEnabled = true
 let mockPromptCacheTtlMs = 60_000
 let mockCacheTimerByKey: Record<string, number | null> = {}
+// RA: persisted disclosure is optional in legacy fixtures and authoritative when hydrated.
+let mockCollapsedGroups: Set<string> | undefined
+let capturedToggleChildren: (() => void) | undefined
+const toggleCollapsedGroup = (key: string): void => {
+  const next = new Set(mockCollapsedGroups)
+  if (!next.delete(key)) next.add(key)
+  mockCollapsedGroups = next
+}
 let capturedRowActivations: {
   paneKey: string
   onActivate: (tabId: string, paneKey: string) => void
@@ -87,6 +95,8 @@ vi.mock('@/store', () => ({
   useAppStore: (selector: (state: unknown) => unknown) =>
     selector({
       agentActivityDisplayMode: mockAgentActivityDisplayMode,
+      collapsedGroups: mockCollapsedGroups,
+      toggleCollapsedGroup: mockCollapsedGroups ? toggleCollapsedGroup : undefined,
       acknowledgedAgentsByPaneKey: {},
       retainedAgentsByPaneKey: {},
       cacheTimerByKey: mockCacheTimerByKey,
@@ -134,6 +144,8 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
     onSendTargetClick,
     childAgentCount,
     childAgentsExpanded,
+    collapsedChildAgentsState,
+    sidebarTreeRow,
     onToggleChildAgents,
     onActivate
   }: {
@@ -144,10 +156,13 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
     onSendTargetClick?: (paneKey: string) => void
     childAgentCount?: number
     childAgentsExpanded?: boolean
+    collapsedChildAgentsState?: string
+    sidebarTreeRow?: boolean
     onToggleChildAgents?: () => void
     onActivate: (tabId: string, paneKey: string) => void
   }) => {
     capturedRowActivations.push({ paneKey: agent.paneKey, onActivate })
+    if (onToggleChildAgents) capturedToggleChildren = onToggleChildAgents
     return (
       <div
         data-testid="agent-row"
@@ -156,6 +171,8 @@ vi.mock('@/components/dashboard/DashboardAgentRow', () => ({
         data-disabled-reason={sendTargetDisabledReason}
         data-has-send-handler={typeof onSendTargetClick === 'function' ? 'true' : 'false'}
         data-pane-key={agent.paneKey}
+        data-group-state={collapsedChildAgentsState}
+        data-sidebar-tree={sidebarTreeRow}
       >
         {agent.paneKey}
         {typeof childAgentCount === 'number' && childAgentCount > 0 ? (
@@ -196,6 +213,35 @@ describe('WorktreeCardAgents', () => {
     mockPromptCacheTtlMs = 60_000
     mockCacheTimerByKey = {}
     capturedRowActivations = []
+    mockCollapsedGroups = undefined
+    capturedToggleChildren = undefined
+  })
+
+  // RA: exercise the shared tree through the Projects card, including persisted folds.
+  it('renders nested start order and group urgency, then restores folds from UI state', async () => {
+    mockAgentActivityDisplayMode = 'full'
+    mockCollapsedGroups = new Set(['ra:project-agent-open:parent:1', 'ra:project-agent-open:child:1'])
+    mockAgents = [
+      mockAgent({ paneKey: 'later:1', startedAt: 400, orchestration: { parentPaneKey: 'parent:1' } }),
+      mockAgent({ paneKey: 'grandchild:1', state: 'blocked', startedAt: 300, orchestration: { parentPaneKey: 'child:1' } }),
+      mockAgent({ paneKey: 'child:1', startedAt: 200, orchestration: { parentPaneKey: 'parent:1' } }),
+      mockAgent({ paneKey: 'parent:1', startedAt: 100 })
+    ]
+    const { default: WorktreeCardAgents } = await import('./WorktreeCardAgents')
+    const markup = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-tree" />)
+    expect(markup).toContain('data-sidebar-tree="true"')
+    expect(markup).toContain('data-group-state="blocked"')
+    expect(markup).toContain('border-[#3f3f46]')
+    expect(markup.indexOf('data-pane-key="parent:1"')).toBeLessThan(markup.indexOf('data-pane-key="child:1"'))
+    expect(markup.indexOf('data-pane-key="grandchild:1"')).toBeLessThan(markup.indexOf('data-pane-key="later:1"'))
+    expect(markup).toContain('Hide 3 child agents')
+    // The last disclosure belongs to the nested parent; closing it leaves the root open.
+    expect(capturedToggleChildren).toBeTypeOf('function')
+    capturedToggleChildren?.()
+    const folded = renderToStaticMarkup(<WorktreeCardAgents worktreeId="wt-tree" />)
+    expect(folded).not.toContain('data-pane-key="grandchild:1"')
+    expect(folded).toContain('data-pane-key="later:1"')
+    expect(mockCollapsedGroups).toEqual(new Set(['ra:project-agent-open:parent:1']))
   })
 
   it('renders ordinary rows in full mode without a child disclosure', async () => {
@@ -826,7 +872,7 @@ describe('WorktreeCardAgents', () => {
     expect(markup).toContain('compact-agent-expansion-content flex flex-col gap-0.5 pt-0.5 pl-1')
   })
 
-  it('summarizes compact lineage by parent rows before revealing children', async () => {
+  it('counts all compact lineage rows before revealing children', async () => {
     mockAgentActivityDisplayMode = 'compact'
     mockAgents = [
       mockAgent({
@@ -875,7 +921,8 @@ describe('WorktreeCardAgents', () => {
 
     expect(markup).toContain('data-compact-agent-list="true"')
     expect(markup).toContain('role="tree"')
-    expect(markup).toContain('3 agents: 1 waiting, 1 working, 1 done')
+    // RA: the summary counts top-level agents and all their children.
+    expect(markup).toContain('5 agents: 1 waiting, 2 working, 2 done')
     expect(markup).not.toContain('title="Gemini waiting"')
     expect(markup).not.toContain('title="Codex working"')
     expect(markup).not.toContain('title="Codex done"')

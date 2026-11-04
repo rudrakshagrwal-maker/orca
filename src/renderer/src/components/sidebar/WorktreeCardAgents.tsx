@@ -19,7 +19,8 @@ import {
   CompactAgentRow,
   CompactAgentSummaryButton
 } from './worktree-card-compact-agents'
-import { buildAgentRowLineageTree } from '@/components/dashboard/agent-row-lineage-model'
+import { buildSidebarAgentTree } from './sidebar-agent-tree' // RA: one shared lineage builder.
+import { selectVisibleAgentOrchestration } from '@/runtime/visible-agent-orchestration'
 import { revealCompactAgentCard } from './worktree-sidebar-reveal'
 import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion-state'
 import { translate } from '@/i18n/i18n'
@@ -29,10 +30,6 @@ import { activateRetainedAgentRow } from './activate-retained-agent-row'
 import { selectAgentRowsUnread } from './worktree-card-agent-ack-inputs'
 import { opensClaudeParentConversation } from '@/lib/claude-agent-row-view'
 import { lineageAncestorPaneKeys } from './worktree-card-agent-lineage-disclosure'
-import {
-  ChildAgentsWithIdleGroup,
-  buildCollapsedChildAgentSignalStates
-} from './worktree-card-idle-child-agents'
 
 export const SUPPRESS_WORKTREE_LIST_SCROLL_ADJUSTMENT_EVENT =
   'orca-suppress-worktree-list-scroll-adjustment'
@@ -159,20 +156,26 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
   )
 
   const now = useNow(30_000)
-  const lineageTree = useMemo(() => buildAgentRowLineageTree(agents), [agents])
+  // RA: preserve missing ancestors and start order from the former Agents section.
+  const treeInputs = useAppStore(useShallow((s) => ({
+    tabsByWorktree: s.tabsByWorktree,
+    contexts: selectVisibleAgentOrchestration(s)
+  })))
+  const lineageTree = useMemo(
+    // RA: unread emphasis is projected above; avoid a global status subscription per card.
+    () => buildSidebarAgentTree(agents, {
+      ...treeInputs, agentStatusByPaneKey: {}, retainedAgentsByPaneKey: {}, acknowledgedAgentsByPaneKey: {}
+    }, treeInputs.contexts),
+    [agents, treeInputs]
+  )
   const { rootRows: rootAgents, childrenByParentPaneKey } = lineageTree
   const hasLineage = childrenByParentPaneKey.size > 0
-  const collapsedChildAgentSignalStates = useMemo(
-    () => buildCollapsedChildAgentSignalStates(childrenByParentPaneKey),
-    [childrenByParentPaneKey]
-  )
+  const collapsedChildAgentSignalStates = lineageTree.descendantStates
   // Persist disclosure outside component state so virtualizer/sibling-triggered remounts cannot reset it.
   const {
     expandedLineageParents,
-    expandedIdleChildGroups,
     compactRootListExpanded,
     toggleLineageParent: toggleLineageParentState,
-    toggleIdleChildGroup: toggleIdleChildGroupState,
     toggleCompactRootList
   } = useWorktreeAgentExpansionState(worktreeId)
 
@@ -198,13 +201,6 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
     },
     [toggleLineageParentState]
   )
-  const toggleIdleChildGroup = useCallback(
-    (parentPaneKey: string) => {
-      dispatchSuppressScrollAdjustment()
-      toggleIdleChildGroupState(parentPaneKey)
-    },
-    [toggleIdleChildGroupState]
-  )
 
   const sendTargetFor = (paneKey: string) =>
     isAgentSendTargetModeActive
@@ -228,20 +224,20 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
     paneKey === focusedAgentPaneKey || (!expanded && focusedAncestorPaneKeys.has(paneKey))
 
   const renderChildAgents = (
-    parent: DashboardAgentRowData,
     childAgents: DashboardAgentRowData[],
     renderChild: (childAgent: DashboardAgentRowData, idleGroupExpanded: boolean) => React.ReactNode
   ): React.ReactNode => (
-    <ChildAgentsWithIdleGroup
-      childAgents={childAgents}
-      // Picking shows every child flat; folding would hide send targets.
-      flat={isAgentSendTargetModeActive}
-      idleExpanded={expandedIdleChildGroups.has(parent.paneKey)}
-      onToggleIdle={() => toggleIdleChildGroup(parent.paneKey)}
-      layout={agentActivityDisplayMode === 'compact' ? 'compact' : 'full'}
-      ariaLevel={(parent.lineage?.depth ?? 0) + 2}
-      renderChild={renderChild}
-    />
+    // RA: do not regroup idle children; every depth stays in stable start order.
+    <>{childAgents.map((child, index) => (
+      <div key={child.paneKey} className="relative min-w-0">
+        <span aria-hidden className={cn(
+          'pointer-events-none absolute -left-2 top-0 border-l border-[#3f3f46]',
+          index === childAgents.length - 1 ? 'h-3.5' : 'bottom-0'
+        )} />
+        <span aria-hidden className="pointer-events-none absolute -left-2 top-3.5 w-2 border-t border-[#3f3f46]" />
+        {renderChild(child, true)}
+      </div>
+    ))}</>
   )
 
   const stopBubble = useCallback((e: React.MouseEvent) => {
@@ -268,6 +264,9 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
       <React.Fragment key={agent.paneKey}>
         <DashboardAgentRow
           agent={agent}
+          // RA: reuse the plain title/status/time row except in the send-target picker.
+          sidebarTreeRow={!isAgentSendTargetModeActive}
+          activationDisabled={lineageTree.closedParentPaneKeys.has(agent.paneKey)}
           showModel={showAgentModels}
           onDismiss={handleDismissAgent}
           onActivate={
@@ -280,10 +279,10 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
           stateDotSize="sm"
           // Row clicks already navigate to the agent, so a second expand glyph is redundant.
           hideExpand
-          childAgentCount={hasChildAgents ? childAgents.length : undefined}
+          childAgentCount={lineageTree.descendantCounts.get(agent.paneKey)}
           childAgentsExpanded={expanded}
           collapsedChildAgentsState={
-            hasChildAgents && !expanded
+            hasChildAgents
               ? collapsedChildAgentSignalStates.get(agent.paneKey)
               : undefined
           }
@@ -292,11 +291,10 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
           sendTargetStatus={sendTarget?.status}
           sendTargetDisabledReason={sendTarget?.disabledReason}
           onSendTargetClick={isAgentSendTargetModeActive ? handleSendTargetClick : undefined}
-          // RA: show the existing parent/child connector lines.
         />
         {hasChildAgents && expanded ? (
-          <div className="worktree-agent-lineage-children">
-            {renderChildAgents(agent, childAgents, (childAgent) =>
+          <div className="ml-3 pl-2">
+            {renderChildAgents(childAgents, (childAgent) =>
               renderAgentBranch(childAgent, descendantAncestorPaneKeys)
             )}
           </div>
@@ -325,6 +323,8 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
       <div key={agent.paneKey} className="min-w-0">
         <CompactAgentRow
           agent={agent}
+          // RA: a closed ancestor must never activate a surviving child's tab.
+          activationDisabled={lineageTree.closedParentPaneKeys.has(agent.paneKey)}
           showModel={showAgentModels}
           now={now}
           parentConversationDescription={
@@ -342,10 +342,10 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
           sendTargetStatus={sendTarget?.status}
           sendTargetDisabledReason={sendTarget?.disabledReason}
           onSendTargetClick={isAgentSendTargetModeActive ? handleSendTargetClick : undefined}
-          childAgentCount={hasChildAgents ? childAgents.length : undefined}
+          childAgentCount={lineageTree.descendantCounts.get(agent.paneKey)}
           childAgentsExpanded={expanded}
           collapsedChildAgentsState={
-            hasChildAgents && !expanded
+            hasChildAgents
               ? collapsedChildAgentSignalStates.get(agent.paneKey)
               : undefined
           }
@@ -355,8 +355,8 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
         />
         {hasChildAgents ? (
           <CompactAgentExpansion expanded={expanded}>
-            <div className="worktree-agent-lineage-children flex flex-col gap-0.5">
-              {renderChildAgents(agent, childAgents, (childAgent, idleGroupExpanded) =>
+            <div className="ml-3 flex flex-col gap-0.5 pl-2">
+              {renderChildAgents(childAgents, (childAgent, idleGroupExpanded) =>
                 renderCompactAgentBranch(
                   childAgent,
                   descendantAncestorPaneKeys,
@@ -371,11 +371,11 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
   }
 
   if (agentActivityDisplayMode === 'compact') {
-    const summaryAgents = hasLineage ? rootAgents : agents
+    const summaryAgents = agents // RA: the count and status summary include every child.
     // Collapse compact multi-agent lists except when their rows are the send-target picker.
-    const shouldUseSummaryRow = summaryAgents.length > 1 && !isAgentSendTargetModeActive
+    const shouldUseSummaryRow = rootAgents.length > 1 && !isAgentSendTargetModeActive
     const subjectLabel = translate('sidebar.agentSummary.agentCount', '{{count}} agents', {
-      count: hasLineage ? rootAgents.length : agents.length,
+      count: agents.length,
       defaultValue_one: '{{count}} agent'
     })
 

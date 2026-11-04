@@ -1,4 +1,8 @@
 import { useCallback, useState } from 'react'
+import { useAppStore } from '@/store'
+
+// RA: explicitly opened branches live in the existing persisted UI disclosure set.
+const LINEAGE_OPEN_PREFIX = 'ra:project-agent-open:'
 
 export type WorktreeAgentExpansionState = {
   // Child lists start collapsed so spawning subagents cannot grow the card and shift the sidebar.
@@ -65,6 +69,8 @@ export type WorktreeAgentExpansionControls = {
 
 /** Restore each worktree’s disclosures across virtualizer and sibling-lineage remounts. */
 export function useWorktreeAgentExpansionState(worktreeId: string): WorktreeAgentExpansionControls {
+  const persistedGroups = useAppStore((s) => s.collapsedGroups)
+  const togglePersistedGroup = useAppStore((s) => s.toggleCollapsedGroup)
   const [rendered, setRendered] = useState<{
     worktreeId: string
     state: WorktreeAgentExpansionState
@@ -84,10 +90,12 @@ export function useWorktreeAgentExpansionState(worktreeId: string): WorktreeAgen
 
   const toggleLineageParent = useCallback(
     (paneKey: string) => {
+      // RA: retain the session cache for callers without the hydrated UI store.
+      togglePersistedGroup?.(`${LINEAGE_OPEN_PREFIX}${paneKey}`)
       const base = readExpansionState(worktreeId)
       commit({ ...base, expandedLineageParents: toggleKey(base.expandedLineageParents, paneKey) })
     },
-    [commit, worktreeId]
+    [commit, worktreeId, togglePersistedGroup]
   )
 
   const toggleIdleChildGroup = useCallback(
@@ -107,7 +115,10 @@ export function useWorktreeAgentExpansionState(worktreeId: string): WorktreeAgen
   }, [commit, worktreeId])
 
   return {
-    expandedLineageParents: current.expandedLineageParents,
+    expandedLineageParents: persistedGroups
+      ? new Set([...persistedGroups].filter((key) => key.startsWith(LINEAGE_OPEN_PREFIX))
+          .map((key) => key.slice(LINEAGE_OPEN_PREFIX.length)))
+      : current.expandedLineageParents,
     expandedIdleChildGroups: current.expandedIdleChildGroups,
     compactRootListExpanded: current.compactRootListExpanded,
     toggleLineageParent,

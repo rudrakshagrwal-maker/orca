@@ -62,23 +62,27 @@ function renderRow(agent: DashboardAgentRowData): string {
 }
 
 // RA: compact sidebar rows use the status clock, not the session's start time.
-it('renders a compact orchestrator row with workspace, title, age and attention', () => {
+it('renders a crown-free tree row with title, age, disclosure and leading attention', () => {
   const markup = renderToStaticMarkup(
     <TooltipProvider>
       <DashboardAgentRow
         agent={makeAgent({ startedAt: 1 }, { state: 'blocked', updatedAt: NOW - 1 })}
         sidebarTreeRow
-        sidebarWorkspaceName="Orca"
         childAgentCount={2}
+        onToggleChildAgents={vi.fn()}
         onDismiss={vi.fn()}
         onActivate={vi.fn()}
         now={NOW}
       />
     </TooltipProvider>
   )
-  expect(markup).toContain('Orca')
   expect(markup).toContain('Terminal 1')
-  expect(markup).toContain('Orchestrator')
+  // RA: no branch prefix or crown, and folding exposes the full hidden count.
+  expect(markup).not.toContain('Orchestrator')
+  expect(markup).not.toContain('lucide-crown')
+  expect(markup).toContain('+2')
+  expect(markup).toContain('aria-expanded="false"')
+  expect(markup.indexOf('text-destructive')).toBeLessThan(markup.indexOf('Terminal 1'))
   expect(markup).toContain('1m')
   expect(markup).toContain('text-destructive')
   expect(markup).not.toContain('data-agent-row-tool-placeholder')

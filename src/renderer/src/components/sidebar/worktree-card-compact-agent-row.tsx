@@ -106,6 +106,7 @@ type CompactAgentRowProps = {
   hideIdentityIcon?: boolean
   cacheTimerActive?: boolean
   isUnvisited?: boolean
+  activationDisabled?: boolean // RA: retain closed ancestors without borrowing a child's terminal.
 }
 
 export const CompactAgentRow = React.memo(function CompactAgentRow({
@@ -124,7 +125,8 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   isFocusedPane = false,
   hideIdentityIcon = false,
   cacheTimerActive = true,
-  isUnvisited = false
+  isUnvisited = false,
+  activationDisabled = false
 }: CompactAgentRowProps) {
   const view = useClaudeAgentRowView(agent)
   const highlighted = view ? view.current && view.focused : isFocusedPane
@@ -135,7 +137,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   // Child agentType contains its name, not a provider; nesting conveys identity without a misleading letter icon.
   const hideIcon = hideIdentityIcon || agent.rowSource === 'subagent'
   const { presentation, dotStateOverride } = resolveRowProgramStatus(agent)
-  const dotState = dotStateOverride ?? getAgentDotState(agent)
+  const dotState = collapsedChildAgentsState ?? dotStateOverride ?? getAgentDotState(agent) // RA: group urgency belongs on the parent's glyph.
   const conversationName = useAgentRowConversationName(agent)
   const primary = getCompactAgentPrimary(agent, conversationName)
   const isLineageChild = agent.lineage?.depth === 1
@@ -169,11 +171,12 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
   const handleActivate = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      if (activationDisabled) return // RA: a placeholder is disclosure-only.
       // Child agents activate their spawning parent pane because they have no pane of their own.
       onActivate(agent.tab.id, agent.activationPaneKey ?? agent.paneKey)
       void viewClaudeAgentFromRow(agent)
     },
-    [agent, onActivate]
+    [agent, onActivate, activationDisabled]
   )
   const handleSendTargetClickCapture = useCallback(
     (e: React.MouseEvent) => {
@@ -303,6 +306,7 @@ export const CompactAgentRow = React.memo(function CompactAgentRow({
         isLineageChild && 'worktree-agent-lineage-child-row',
         'flex h-6 items-center gap-1',
         highlighted && 'bg-worktree-sidebar-accent',
+        activationDisabled && 'opacity-50', // RA: closed ancestors remain visible but dim.
         sendTargetStatus === 'sending' && 'cursor-progress opacity-75',
         sendTargetStatus === 'disabled' && 'cursor-default opacity-60'
       )}

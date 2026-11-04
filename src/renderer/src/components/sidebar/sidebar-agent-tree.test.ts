@@ -56,6 +56,9 @@ describe('sidebar agent tree', () => {
     expect(result.rootRows).toEqual([parent])
     expect(result.childrenByParentPaneKey.get(parent.paneKey)).toEqual([child])
     expect(result.childrenByParentPaneKey.get(child.paneKey)).toEqual([grandchild])
+    // RA: folded counts cover the whole subtree at every depth.
+    expect(result.descendantCounts.get(parent.paneKey)).toBe(2)
+    expect(result.descendantCounts.get(child.paneKey)).toBe(1)
     expect(result).not.toHaveProperty('groups')
   })
 

@@ -93,11 +93,24 @@ export function buildSidebarAgentTree(
       descendantStates.set(row.paneKey, own)
     }
   }
+  // RA: +N describes every hidden descendant, not just the next tree level.
+  const descendantCounts = new Map<string, number>()
+  const countDescendants = (paneKey: string): number => {
+    const cached = descendantCounts.get(paneKey)
+    if (cached !== undefined) return cached
+    descendantCounts.set(paneKey, 0)
+    const count = (tree.childrenByParentPaneKey.get(paneKey) ?? [])
+      .reduce((total, child) => total + 1 + countDescendants(child.paneKey), 0)
+    descendantCounts.set(paneKey, count)
+    return count
+  }
+  for (const paneKey of tree.childrenByParentPaneKey.keys()) countDescendants(paneKey)
   return {
     ...tree,
     unvisitedPaneKeys,
     closedParentPaneKeys,
     // RA: share the existing descendant urgency projection, including nested orchestrators.
-    descendantStates
+    descendantStates,
+    descendantCounts
   }
 }
