@@ -71,6 +71,25 @@ async function requestServer(client: RuntimeClient): Promise<string> {
   return (await client.call<{ server: string }>('status.get')).result.server
 }
 
+// RA: abbreviations resolve on the explicitly selected host before forwarding canonical argv.
+it('resolves a short terminal selector on the same paired server used for the read', async () => {
+  const root = serverProfileWith({})
+  const handle = 'term_bd3c1234-0000-4000-8000-000000000001'
+  transport.remotePreflight.mockResolvedValueOnce({
+    id: 'inventory', ok: true,
+    result: { terminals: [{ handle, title: 'Cook' }], totalCount: 1, truncated: false },
+    _meta: { runtimeId: 'runtime-remote' }
+  })
+  const client = new RuntimeClient(root, undefined, null, 'other-server', 'orca', ['terminal', 'read', '--terminal', 'cook'])
+  await client.call('terminal.read', { terminal: 'cook', limit: 20 })
+  expect(transport.local).not.toHaveBeenCalled()
+  // The transport mock does not run the status callback, so both requests use its preflight path.
+  expect(transport.remotePreflight.mock.calls.map((call) => [call[1], call[2]])).toEqual([
+    ['terminal.list', { limit: Number.MAX_SAFE_INTEGER, includeVisualLayouts: false, includePreview: false, snapshot: true }],
+    ['terminal.read', { terminal: handle, limit: 20 }]
+  ])
+})
+
 it("stays on its own server with an agent's empty selectors, and explicit flags still route", async () => {
   // Empty selectors prevent profile exports from routing the agent to another server.
   const root = serverProfileWith({

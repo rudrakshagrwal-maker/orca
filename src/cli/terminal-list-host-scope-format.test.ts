@@ -24,54 +24,71 @@ function listResult(overrides: Partial<RuntimeTerminalListResult> = {}): Runtime
   return { terminals: [terminal()], totalCount: 1, truncated: false, ...overrides }
 }
 
-describe('formatTerminalList host identity', () => {
-  it('prints the execution host each terminal runs on', () => {
-    const output = formatTerminalList(
-      listResult({ terminals: [terminal({ executionHostId: 'ssh:box-1' })] })
-    )
-
-    expect(output).toContain('host=ssh:box-1')
-  })
-
-  it('prints unverifiable, not local, for a row whose host the runtime could not name', () => {
-    const output = formatTerminalList(listResult({ terminals: [terminal()] }))
-
-    expect(output).toContain('host=unverifiable')
-    expect(output).not.toContain('host=local')
-  })
-})
-
 describe('formatTerminalList pane titles', () => {
   it("prints a pane's user name over the terminal title, and the title when the host sends none", () => {
     const named = formatTerminalList(listResult({ terminals: [terminal({ paneTitle: 'server' })] }))
-    expect(named).toContain('term_1  server  connected')
-    expect(formatTerminalList(listResult())).toContain('term_1  worker  connected')
+    // RA: short text rows keep unknown agent/state/age explicit.
+    expect(named).toContain('1  server  -  -  -')
+    expect(formatTerminalList(listResult())).toContain('1  worker  -  -  -')
   })
 })
 
-describe('formatTerminalList orphaned marker', () => {
-  it('marks only the terminal with no pane binding', () => {
+// RA: normal listings are compact; raw previews and layout topology need explicit flags.
+describe('formatTerminalList compact rows', () => {
+  it('aligns short handles, titles, agents, OSC states and tab ages, including sleepers', () => {
     const list = formatTerminalList(
-      listResult({ terminals: [terminal(), terminal({ handle: 'term_2', orphaned: true })] })
+      listResult({
+        terminals: [
+          terminal({
+            handle: 'term_bd3c1234-0000-4000-8000-000000000000',
+            title: 'cook',
+            agentIdentity: 'codex',
+            state: 'working',
+            createdAt: 1_000,
+            preview: 'raw output'
+          }),
+          terminal({
+            handle: 'term_abcd1234-0000-4000-8000-000000000000',
+            title: 'sleep\nnow',
+            connected: false,
+            agentIdentity: 'claude',
+            state: 'sleeping',
+            createdAt: 61_000
+          })
+        ],
+        totalCount: 2,
+        hostScope: { hostIds: ['local'], omittedHostIds: [] }
+      }),
+      { now: 121_000 }
     )
-    expect(list).toContain('term_1  worker  connected  host=')
-    expect(list).toContain('term_2  worker  connected  orphaned  host=')
+    expect(list.split('\n')).toEqual([
+      'bd3c1234  cook       codex   working   2m',
+      'abcd1234  sleep now  claude  sleeping  1m'
+    ])
+    expect(list).not.toContain('raw output')
+  })
+
+  it('shows previews only on request and suppresses ordinary scope boilerplate', () => {
+    const result = listResult({
+      terminals: [terminal({ preview: 'one\ntwo' })],
+      hostScope: { hostIds: ['local'], omittedHostIds: [] }
+    })
+    expect(formatTerminalList(result)).toBe('1  worker  -  -  -')
+    expect(formatTerminalList(result, { preview: true })).toContain('\npreview: one two')
   })
 })
 
-describe('formatTerminalList scope declaration', () => {
-  it('states the covered and omitted hosts', () => {
-    const output = formatTerminalList(
-      listResult({
-        hostScope: { hostIds: ['local'], omittedHostIds: ['ssh:box-1'] }
-      })
-    )
-
-    expect(output).toContain('scope: local')
-    expect(output).toContain('not covered: ssh:box-1')
+// RA: scope metadata remains intact for JSON but does not add rows to the compact view.
+describe('formatTerminalList scope metadata', () => {
+  it('omits metadata from text without changing the result', () => {
+    const result = listResult({ hostScope: { hostIds: ['local'], omittedHostIds: ['ssh:box-1'] } })
+    const before = JSON.stringify(result)
+    const output = formatTerminalList(result)
+    expect(output).toBe('1  worker  -  -  -')
+    expect(JSON.stringify(result)).toBe(before)
   })
 
-  it('keeps an empty listing self-describing instead of reading as absolute', () => {
+  it('prints a short empty result', () => {
     const output = formatTerminalList(
       listResult({
         terminals: [],
@@ -80,15 +97,12 @@ describe('formatTerminalList scope declaration', () => {
       })
     )
 
-    expect(output).toContain('No terminals listed')
-    expect(output).toContain('scope: local')
-    expect(output).toContain('not covered: ssh:box-1')
+    expect(output).toBe('No terminals listed.')
   })
 
-  it('says the scope is unverifiable when the host predates the field', () => {
+  it('supports hosts that predate scope metadata', () => {
     const output = formatTerminalList(listResult())
 
-    expect(output).toContain('scope: unverifiable')
-    expect(output).not.toContain('scope: local')
+    expect(output).toBe('1  worker  -  -  -')
   })
 })

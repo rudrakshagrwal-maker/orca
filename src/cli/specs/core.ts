@@ -173,9 +173,11 @@ export const CORE_COMMAND_SPECS: CommandSpec[] = [
     path: ['terminal', 'list'],
     summary: 'List live Orca-managed terminals',
     usage:
-      'orca terminal list [--worktree <selector>] [--limit <n>] [--include-visual-layouts] [--json]',
-    allowedFlags: [...GLOBAL_FLAGS, 'worktree', 'limit', 'include-visual-layouts'],
+      'orca terminal list [--worktree <selector>] [--limit <n>] [--layout] [--preview] [--include-visual-layouts] [--json]',
+    // RA: small saved-state text list; machine-readable behaviour remains compatible.
+    allowedFlags: [...GLOBAL_FLAGS, 'worktree', 'limit', 'include-visual-layouts', 'layout', 'preview'],
     notes: [
+      'Text lists all saved terminals, including sleeping panes, without refreshing process inventory. Use --worktree to narrow it; --layout and --preview add details.',
       'JSON omits visualLayouts by default; pass --include-visual-layouts when machine-readable tab and pane topology is required.'
     ]
   },

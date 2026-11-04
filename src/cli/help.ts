@@ -5,10 +5,16 @@ import { formatCommandScopedFlagHelp } from './command-scoped-flag-help'
 import { FLAG_HELP_TEXT } from './flag-help-text'
 import { ROOT_HELP_TEXT_PRIMARY } from './root-help-text-primary'
 import { ROOT_HELP_TEXT_SECONDARY } from './root-help-text-secondary'
+import { ROOT_SHORT_HELP } from './root-short-help'
 
 const ROOT_HELP_TEXT = [ROOT_HELP_TEXT_PRIMARY, ROOT_HELP_TEXT_SECONDARY].join('\n')
 
-export function printHelp(specs: CommandSpec[], commandPath: string[] = []): void {
+export function printHelp(specs: CommandSpec[], commandPath: string[] = [], all = false): void {
+  // RA: root help is intentionally small; group and command help stay complete.
+  if (commandPath.length === 0 && !all) {
+    console.log(ROOT_SHORT_HELP)
+    return
+  }
   const exactSpec = findCommandSpec(specs, commandPath)
   if (exactSpec) {
     console.log(formatCommandHelp(exactSpec))
@@ -26,7 +32,7 @@ export function printHelp(specs: CommandSpec[], commandPath: string[] = []): voi
     console.log(`Unknown command: ${commandPath.join(' ')}${recovery ? `\n${recovery}` : ''}\n`)
   }
 
-  console.log(ROOT_HELP_TEXT)
+  console.log(all ? formatGroupHelp(specs, []) : ROOT_HELP_TEXT)
 }
 
 export function formatCommandHelp(spec: CommandSpec): string {
@@ -64,7 +70,9 @@ export function formatCommandHelp(spec: CommandSpec): string {
 
 export function formatGroupHelp(specs: CommandSpec[], groupPath: string[]): string {
   const group = groupPath.join(' ')
-  const lines = [`orca ${group}`, '', `Usage: orca ${group} <command> [options]`, '', 'Commands:']
+  // RA: --all reuses the catalogue without doubled spaces or the long root tutorial.
+  const prefix = group ? `orca ${group}` : 'orca'
+  const lines = [prefix, '', `Usage: ${prefix} <command> [options]`, '', 'Commands:']
   for (const spec of specs) {
     if (
       spec.hidden === true ||
@@ -73,9 +81,9 @@ export function formatGroupHelp(specs: CommandSpec[], groupPath: string[]): stri
     ) {
       continue
     }
-    lines.push(`  ${spec.path.slice(groupPath.length).join(' ').padEnd(18)} ${spec.summary}`)
+    lines.push(`  ${spec.path.slice(groupPath.length).join(' ').padEnd(group ? 18 : 30)} ${spec.summary}`)
   }
-  lines.push('', `Run \`orca ${group} <command> --help\` for command-specific usage.`)
+  lines.push('', `Run \`${prefix} <command> --help\` for command-specific usage.`)
   return lines.join('\n')
 }
 

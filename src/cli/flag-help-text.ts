@@ -70,7 +70,9 @@ export const FLAG_HELP_TEXT: Record<string, string> = {
   surface:
     '--surface chat|terminal Start the agent as a chat or in a terminal, instead of your setting',
   shell: '--shell <shell>        Windows shell the terminal itself runs as',
-  terminal: '--terminal <handle>  Runtime-issued terminal handle',
+  terminal: '--terminal <handle>  Full handle, unique UUID prefix, or unique tab-title substring', // RA: short selectors.
+  layout: '--layout               Show the terminal layout tree', // RA: opt-in text detail.
+  preview: '--preview              Show terminal output previews', // RA: opt-in text detail.
   text: '--text <text>          Text payload to send or type',
   'text-stdin': '--text-stdin          Read text payload from stdin',
   'task-id': '--task-id <id>        Task id to include in orchestration payload JSON',

@@ -1,0 +1,5 @@
+#!/bin/sh
+# RA: prevent Git Bash from rewriting slash commands and POSIX paths before native argv handling.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL='*'
+exec "$(dirname "$0")/orca.exe" "$@"

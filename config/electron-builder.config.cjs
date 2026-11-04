@@ -534,6 +534,11 @@ module.exports = {
         from: 'resources/win32/bin/orca.cmd',
         to: 'bin/orca.cmd'
       },
+      // RA: extensionless POSIX launcher takes precedence in Git Bash.
+      {
+        from: 'resources/win32/bin/orca',
+        to: 'bin/orca'
+      },
       {
         from: 'native/windows-cli-launcher/.build/orca.exe',
         to: 'bin/orca.exe'

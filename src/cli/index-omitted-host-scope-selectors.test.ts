@@ -181,7 +181,7 @@ describe('omittedHostIds selector annotation', () => {
     ])
   })
 
-  it('says which omitted hosts are not selectable in the human listing', async () => {
+  it('keeps human rows compact without reading paired-host selectors', async () => {
     pairRuntimeEnvironment(listEnvironmentsMock, 'env-paired', 'm4air')
     queueFixtures(
       callMock,
@@ -200,8 +200,8 @@ describe('omittedHostIds selector annotation', () => {
     await main(['terminal', 'list'], '/tmp/repo')
 
     const printed = String(logSpy.mock.calls[0]?.[0])
-    expect(printed).toContain('runtime:env-paired (--environment m4air)')
-    expect(printed).toContain('runtime:env-retired (not selectable from this machine)')
+    // RA: detailed host coverage stays in JSON, with no annotation work for text rows.
+    expect(printed).toBe('1  worker  -  -  -')
   })
 
   it.each([
@@ -247,7 +247,7 @@ describe('omittedHostIds selector annotation', () => {
     }
   )
 
-  it('says this runtime reaches an omitted local or SSH host in the human listing', async () => {
+  it('keeps local and SSH scope metadata out of compact human rows', async () => {
     queueFixtures(
       callMock,
       okFixture('req_terminal_list', {
@@ -262,9 +262,7 @@ describe('omittedHostIds selector annotation', () => {
     await main(['terminal', 'list'], '/tmp/repo')
 
     const printed = String(logSpy.mock.calls[0]?.[0])
-    expect(printed).toContain('local (reached through this runtime; no flag selects it)')
-    expect(printed).toContain('ssh:box-1 (reached through this runtime; no flag selects it)')
-    expect(printed).not.toContain('--host')
+    expect(printed).toBe('1  worker  -  -  -')
   })
 
   it('never keeps a host id out of omittedHostIds', async () => {

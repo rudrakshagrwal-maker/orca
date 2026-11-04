@@ -17,6 +17,9 @@ export type {
 } from './runtime-terminal-send-contract'
 
 export type RuntimeTerminalSummary = {
+  // RA: display details are returned only for the CLI's opt-in saved-state listing.
+  createdAt?: number
+  state?: 'working' | 'idle' | 'waiting' | 'sleeping'
   handle: string
   ptyId: string | null
   incarnationId?: string | null

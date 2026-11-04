@@ -27,6 +27,8 @@ export const TERMINAL_QUERY_METHODS = [
         await runtime.placeUnshownLiveTerminalsOf(params.worktree)
       }
       const result = await runtime.listTerminals(params.worktree, params.limit, {
+        // RA: opt-in only, preserving existing RPC and JSON semantics.
+        snapshot: params.snapshot,
         handles: params.handles,
         requireFreshPtyLiveness: params.requireFreshPtyLiveness,
         includeVisualLayouts: params.includeVisualLayouts

@@ -267,7 +267,7 @@ describe('orca cli worktree awareness', () => {
     })
   })
 
-  it('requests visual layouts only for the human-readable terminal list', async () => {
+  it('omits visual layouts and previews from the saved-state human list by default', async () => {
     queueFixtures(
       callMock,
       worktreeListFixture([buildWorktree('/tmp/repo/feature', 'feature/foo')]),
@@ -280,7 +280,8 @@ describe('orca cli worktree awareness', () => {
     expect(callMock).toHaveBeenNthCalledWith(
       2,
       'terminal.list',
-      expect.objectContaining({ includeVisualLayouts: true })
+      // RA: text lists read saved state and only request explicitly enabled detail.
+      expect.objectContaining({ includeVisualLayouts: false, includePreview: false, snapshot: true })
     )
   })
 
@@ -318,6 +319,28 @@ describe('orca cli worktree awareness', () => {
       result: { visualLayouts }
     })
   })
+
+  // RA: default text lists need one RPC and detail flags must survive parsing.
+  it.each([
+    { argv: [], layout: false, preview: false },
+    { argv: ['--layout', '--preview'], layout: true, preview: true }
+  ])(
+    'requests only selected detail in a global saved-state list: $argv',
+    async ({ argv, layout, preview }) => {
+      queueFixtures(callMock, okFixture('req_term', { terminals: [], totalCount: 0, truncated: false }))
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+      await main(['terminal', 'list', ...argv], '/tmp/repo/feature/src')
+      expect(callMock.mock.calls).toEqual([
+        ['terminal.list', {
+          worktree: undefined,
+          limit: undefined,
+          includeVisualLayouts: layout,
+          snapshot: true,
+          includePreview: preview
+        }]
+      ])
+    }
+  )
 
   it.each(
     [[], ['--pairing-code', 'remote-runtime']].flatMap((remote) =>

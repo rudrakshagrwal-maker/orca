@@ -39,6 +39,7 @@ export const CLI_BOOLEAN_FLAGS = new Set([
   'keep-open',
   'json',
   'latest-json',
+  'layout', // RA: terminal list text details are explicit.
   'local',
   'messages',
   'me',
@@ -48,6 +49,7 @@ export const CLI_BOOLEAN_FLAGS = new Set([
   'screen',
   'parent-current',
   'provision',
+  'preview', // RA: terminal output tails are opt-in for text lists.
   'ready',
   'recipe-json',
   'reclaim-stale-lock',

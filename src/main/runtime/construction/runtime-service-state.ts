@@ -1,6 +1,8 @@
 import { readAgentOrchestrationProjectionRecords } from '../orchestration-fleet-agent-status-snapshot'
 import { CrewChanges } from '../orchestration/crew/crew-changes'
 import { OrchestrationStructuredMailboxPointerDelivery } from '../orchestration/structured-mailbox-pointer-delivery'
+import type { RuntimeTerminalSummary } from '../../../shared/runtime-types' // RA: strict display-state union.
+import { isSleepingAgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-resume'
 
 import { createStructuredMailboxPointerHost } from '../orchestration/structured-mailbox-pointer-host'
 import { localOrchestrationCliCommand } from '../orchestration/cli-command'
@@ -31,7 +33,8 @@ import {
   getAgentLaunchParents,
   getAgentOrchestratorContexts
 } from '../runtime-agent-launch-parents'
-import { RuntimeTerminalList } from '../runtime-terminal-list'
+import { RuntimeTerminalList, sleepingTerminalLeaf } from '../runtime-terminal-list'
+import type { RuntimeLeafRecord } from '../runtime-terminal-state-records'
 import { RuntimeManagedWorktreeQueries } from '../runtime-managed-worktree-queries'
 import { RuntimePtyForegroundAgent } from '../runtime-pty-foreground-agent'
 import { OpenCodeRunLifetimeStatus } from '../opencode-run-lifetime-status'
@@ -158,6 +161,51 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
   protected readonly agentOrchestrationProjection = this.agentProjections.orchestration
 
   protected readonly terminalList = new RuntimeTerminalList({
+    // RA: include sleeping tabs even when their saved panes have never mounted in this window.
+    getSleepingLeaves: () =>
+      [...this.mobileSessionTabsByWorktree.values()].flatMap((snapshot) =>
+        snapshot.tabs.flatMap((tab) => {
+          if (tab.type !== 'terminal') return []
+          const leaf = this.getSavedSleepingTerminalLeaf(
+            snapshot.worktree,
+            tab.parentTabId,
+            tab.leafId
+          )
+          return leaf ? [leaf] : []
+        })
+      ),
+    // RA: tab age and OSC-only activity for the human CLI, with no hooks or title inference.
+    displayDetails: (terminal) => {
+      const session = this.getWorkspaceSessionForWorktree(terminal.worktreeId)
+      const tab = session?.tabsByWorktree[terminal.worktreeId]?.find(
+        (item) => item.id === terminal.tabId
+      )
+      const record = session?.sleepingAgentSessionsByPaneKey?.[`${terminal.tabId}:${terminal.leafId}`]
+      const sleeping =
+        record && isSleepingAgentSessionRecord(record) && !terminal.connected ? record : null
+      const activity =
+        terminal.connected && terminal.ptyId
+          ? this.ptysById.get(terminal.ptyId)?.programActivity
+          : null
+      const savedSleeper = !terminal.connected
+        ? this.getSavedSleepingTerminalLeaf(terminal.worktreeId, terminal.tabId, terminal.leafId)
+        : null
+      const state: RuntimeTerminalSummary['state'] =
+        sleeping || savedSleeper
+          ? 'sleeping'
+          : activity === 'working'
+            ? 'working'
+            : activity === 'permission'
+              ? 'waiting'
+              : activity === 'idle'
+                ? 'idle'
+                : undefined
+      return {
+        ...(tab ? { createdAt: tab.createdAt } : {}),
+        ...(state ? { state } : {}),
+        ...(sleeping ? { agentIdentity: sleeping.agent } : {})
+      }
+    },
     getGraphEpoch: () => (this.graphStatus === 'ready' ? this.rendererGraphEpoch : null),
     assertGraphEpoch: (epoch) => this.assertStableReadyGraph(epoch),
     getExplicitWorktreeId: (selector) => this.getExplicitSessionWorktreeIdSelector(selector),
@@ -182,6 +230,30 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
     // Switch point: main lists every saved pane of a workspace it owns.
     ...(ORCA_LAYOUT_OWNER_IS_MAIN ? { listsEveryPane: (id) => mainListsEveryPane(this, id) } : {})
   })
+
+  // RA: validate against current saved state on each read so closing/waking a tab retires this view.
+  protected getSavedSleepingTerminalLeaf(
+    worktreeId: string,
+    tabId: string,
+    leafId: string
+  ): RuntimeLeafRecord | null {
+    const session = this.getWorkspaceSessionForWorktree(worktreeId)
+    const tab = session?.tabsByWorktree[worktreeId]?.find((item) => item.id === tabId)
+    const saved = this.mobileSessionTabsByWorktree.get(worktreeId)?.tabs.find(
+      (item) => item.type === 'terminal' && item.parentTabId === tabId && item.leafId === leafId
+    )
+    if (!tab || !saved || saved.type !== 'terminal') return null
+    if (saved.ptyId && this.ptysById.get(saved.ptyId)?.connected) return null
+    const record = session?.sleepingAgentSessionsByPaneKey?.[`${tabId}:${leafId}`]
+    const sleeping =
+      (record && isSleepingAgentSessionRecord(record)) ||
+      [...this.terminalSleepStateByHostWorktree.values()].some(
+        (state) => state.worktreeId === worktreeId && state.phase === 'sleeping'
+      )
+    return sleeping
+      ? sleepingTerminalLeaf({ worktreeId, tabId, leafId, title: tab.customTitle || saved.title })
+      : null
+  }
 
   protected readonly managedWorktreeQueries = new RuntimeManagedWorktreeQueries({
     getStore: () => this.store,

@@ -92,6 +92,8 @@ export const TerminalInspectProcess = TerminalHandle.extend({
 })
 
 export const TerminalListParams = z.object({
+  // RA: human listings read saved state without scanning git or probing PTY hosts.
+  snapshot: z.boolean().optional(),
   worktree: OptionalString,
   limit: OptionalFiniteNumber,
   handles: z
