@@ -2,7 +2,6 @@ import { readAgentOrchestrationProjectionRecords } from '../orchestration-fleet-
 import { CrewChanges } from '../orchestration/crew/crew-changes'
 import { OrchestrationStructuredMailboxPointerDelivery } from '../orchestration/structured-mailbox-pointer-delivery'
 import type { RuntimeTerminalSummary } from '../../../shared/runtime-types' // RA: strict display-state union.
-import { isSleepingAgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-resume'
 
 import { createStructuredMailboxPointerHost } from '../orchestration/structured-mailbox-pointer-host'
 import { localOrchestrationCliCommand } from '../orchestration/cli-command'
@@ -182,10 +181,10 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
       )
       const record = session?.sleepingAgentSessionsByPaneKey?.[`${terminal.tabId}:${terminal.leafId}`]
       const sleeping =
-        record && isSleepingAgentSessionRecord(record) && !terminal.connected ? record : null
+        record && !terminal.connected ? record : null // RA: session records are already typed
       const activity =
         terminal.connected && terminal.ptyId
-          ? this.ptysById.get(terminal.ptyId)?.programActivity
+          ? this.ptysById.get(terminal.ptyId)?.lastAgentStatus
           : null
       const savedSleeper = !terminal.connected
         ? this.getSavedSleepingTerminalLeaf(terminal.worktreeId, terminal.tabId, terminal.leafId)
