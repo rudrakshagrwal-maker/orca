@@ -94,11 +94,15 @@ const TRANSPORT_TABLE: readonly {
   },
   {
     agent: 'opencode',
-    mode: 'flag-prompt',
+    mode: 'stdin-after-start', // RA: auto-submit now pastes and submits after composer readiness.
     promptDelivery: 'auto-submit',
-    transport: 'argv',
+    transport: 'paste',
     submits: true
   },
+  // RA: both OpenCode executables preserve auto-submit and explicit draft intent.
+  { agent: 'opencode2', mode: 'stdin-after-start', promptDelivery: 'auto-submit', transport: 'paste', submits: true },
+  { agent: 'opencode', mode: 'stdin-after-start', promptDelivery: 'draft', transport: 'paste', submits: false },
+  { agent: 'opencode2', mode: 'stdin-after-start', promptDelivery: 'draft', transport: 'paste', submits: false },
   {
     agent: 'copilot',
     mode: 'flag-interactive',

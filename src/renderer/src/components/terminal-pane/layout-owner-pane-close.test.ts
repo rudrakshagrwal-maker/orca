@@ -2,6 +2,8 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { makeCloseTestTab, preparePendingSplitClose } from './pending-split-close-test-fixture'
 import type { sendLayoutCommandToOwner } from '@/runtime/layout-owner-command'
 import { LOCAL_LAYOUT_APPLY_ORIGIN } from '@/runtime/server-layout-apply-routes'
+import { flushPtySideEffects } from './pty-transport-test-harness'
+import type { PtyRunningWorkProbe } from '../terminal/pty-running-work-probe'
 
 const mocks = vi.hoisted(() => ({
   layoutOwnerIsMain: false,
@@ -131,6 +133,65 @@ it.each([1, 2])('handles last-pane refusal with %s workspace tabs', async (tabCo
   second?.refused?.('last_pane')
 
   expect(p.controller.onCloseTab).toHaveBeenCalledTimes(1)
+})
+
+// RA: main may answer after a sibling closes or the workspace loses its other tab.
+it.each(['last_pane', 'compatibility', 'frame'] as const)(
+  'rechecks keyboard last-tab protection after a delayed %s reply', async (reply) => {
+    mocks.layoutOwnerIsMain = true
+    const p = await preparePendingSplitClose()
+    p.state.tabsByWorktree.workspace.push(makeCloseTestTab('other-tab', null))
+    p.actions.executeClosePane(1, 'keyboard')
+    p.actions.executeClosePane(2, 'keyboard')
+    p.state.tabsByWorktree.workspace.pop()
+    const [first, second] = mocks.sendLayoutCommandToOwner.mock.calls.map(([, , on]) => on)
+    ;(await import('@/runtime/layout-frame-position')).noteLayoutFramePosition(1)
+    first?.apply({}, LOCAL_LAYOUT_APPLY_ORIGIN)
+    if (reply === 'last_pane') {
+      second?.refused?.('last_pane')
+    } else {
+      const manager = p.controller.managerRef.current
+      if (!manager) throw new Error('Missing test pane manager')
+      const survivor = manager.getPanes().find((pane) => pane.id === 2)
+      if (!survivor) throw new Error('Missing surviving pane')
+      vi.spyOn(manager, 'getPanes').mockReturnValue([survivor])
+      if (reply === 'compatibility') second?.asToday()
+      else p.actions.closePaneLocally(2, p.siblingLeafId)
+    }
+    expect(p.controller.onCloseTab).not.toHaveBeenCalled()
+  }
+)
+
+it('allows a delayed keyboard fallback when another workspace tab still exists', async () => {
+  mocks.layoutOwnerIsMain = true
+  const p = await preparePendingSplitClose()
+  p.state.tabsByWorktree.workspace.push(makeCloseTestTab('other-tab', null))
+  p.actions.executeClosePane(1, 'keyboard')
+  p.actions.executeClosePane(2, 'keyboard')
+  const [first, second] = mocks.sendLayoutCommandToOwner.mock.calls.map(([, , on]) => on)
+  ;(await import('@/runtime/layout-frame-position')).noteLayoutFramePosition(1)
+  first?.apply({}, LOCAL_LAYOUT_APPLY_ORIGIN)
+  second?.refused?.('last_pane')
+  expect(p.controller.onCloseTab).toHaveBeenCalledOnce()
+})
+
+// RA: running-process admission must carry keyboard intent into the later main reply too.
+it('retains keyboard protection across an outstanding running-work probe', async () => {
+  mocks.layoutOwnerIsMain = true
+  const p = await preparePendingSplitClose()
+  const { probePtyRunningWork } = await import('../terminal/pty-running-work-probe')
+  const probe = Promise.withResolvers<PtyRunningWorkProbe[]>()
+  vi.mocked(probePtyRunningWork).mockReturnValueOnce(probe.promise)
+  p.actions.handleRequestClosePane(1, 'keyboard')
+  p.actions.executeClosePane(2, 'keyboard')
+  probe.resolve([{ ptyId: 'pty-restored', verdict: 'exited', timedOut: false, remote: false }])
+  await flushPtySideEffects()
+  expect(mocks.sendLayoutCommandToOwner).toHaveBeenCalledTimes(2)
+  const [first, second] = mocks.sendLayoutCommandToOwner.mock.calls.map(([, , on]) => on)
+  ;(await import('@/runtime/layout-frame-position')).noteLayoutFramePosition(1)
+  first?.apply({}, LOCAL_LAYOUT_APPLY_ORIGIN)
+  second?.refused?.('last_pane')
+  expect(p.controller.onCloseTab).not.toHaveBeenCalled()
 })
 
 it('explicit Close closes the last terminal tab', async () => {

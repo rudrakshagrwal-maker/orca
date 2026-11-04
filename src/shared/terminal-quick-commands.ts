@@ -67,7 +67,9 @@ export function isTerminalAgentQuickCommand(
 export function supportsTerminalAgentQuickCommand(
   agent: unknown
 ): agent is TerminalAgentQuickCommand['agent'] {
-  return isTuiAgent(agent) && TUI_AGENT_CONFIG[agent].promptInjectionMode !== 'stdin-after-start'
+  // RA: OpenCode quick commands retain their submit-after-ready transport after reclassification.
+  return isTuiAgent(agent) && (agent === 'opencode' || agent === 'opencode2' ||
+    TUI_AGENT_CONFIG[agent].promptInjectionMode !== 'stdin-after-start')
 }
 
 export function getTerminalQuickCommandBody(command: TerminalQuickCommand): string {

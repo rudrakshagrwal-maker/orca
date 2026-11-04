@@ -153,6 +153,7 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
         throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
       }
       let terminal: RuntimeTerminalCreate
+      let promptCarried = true // RA: a clean launch must retain its post-ready prompt delivery.
       const executionOperationId = createHash('sha256')
         .update(this.runtimeId)
         .update('\0')
@@ -184,6 +185,7 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
           suppressStartupUpdatePrompt: request.promptDelivery === 'auto-submit',
           // TEMPORARY: see `startupPromptCarry`.
           startupPromptCarry: 'force-line',
+          onStartupPromptCarry: (carried) => { promptCarried = carried }, // RA: the resolver owns the carry verdict.
           ...(request.agentArgs !== undefined ? { agentArgs: request.agentArgs } : {}),
           launchPreferences: request.launchPreferences,
           // Account env is re-prepared per attempt; exclude from fingerprints and let first spawn win.
@@ -210,6 +212,14 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
           retainReplayFence = true
         }
         throw error
+      }
+      // RA: schedule once inside the operation ledger; replay cannot submit the prompt twice.
+      if (request.prompt?.trim() && !promptCarried && request.promptDelivery !== 'draft') {
+        void this.deliverStartupFollowup(
+          terminal.handle,
+          { agent: request.agent, prompt: request.prompt.trim() },
+          { agentLaunch: true, terminalCreation: terminal, ...(caller.signal ? { signal: caller.signal } : {}) }
+        )
       }
       return { terminal, disposition: 'created' }
     })()

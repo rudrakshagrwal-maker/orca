@@ -53,7 +53,7 @@ export type TerminalCreateOptions = {
   startupPrompt?: string
   /** TEMPORARY createAgentSession parity: draft populates the unsent composer via flag/env and bypasses typed-line carry; remove with unified delivery policy. */
   startupPromptDelivery?: 'auto-submit' | 'draft'
-  /** TEMPORARY createAgentSession parity: force-line carries any size or launches clean for post-start-only agents; remove when uncarried prompts gain later delivery. */
+  /** RA: createAgentSession carries any size or uses onStartupPromptCarry to schedule post-ready delivery. */
   startupPromptCarry?: 'force-line'
   /** Main-internal: whether `startupPrompt` rode the launch command. Called once the plan is built. */
   onStartupPromptCarry?: (carried: boolean) => void

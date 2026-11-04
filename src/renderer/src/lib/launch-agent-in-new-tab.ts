@@ -72,9 +72,10 @@ export function launchAgentInNewTabWithOutcome(
   const trimmedPrompt = prompt?.trim() ?? ''
   const hasPrompt = trimmedPrompt.length > 0
   const isFollowupPath = TUI_AGENT_CONFIG[agent].promptInjectionMode === 'stdin-after-start'
-  // Why: a followup-path agent gets its prompt pasted unsubmitted after start, so route it as a draft.
+  // RA: OpenCode auto-submit waits for the composer and submits; explicit drafts stay drafts.
   const routePromptDelivery =
-    hasPrompt && isFollowupPath && promptDelivery === 'auto-submit' ? 'draft' : promptDelivery
+    hasPrompt && isFollowupPath && agent !== 'opencode' && agent !== 'opencode2' &&
+    promptDelivery === 'auto-submit' ? 'draft' : promptDelivery
   // Resolve structured ownership first; only terminal routes plan CLI arguments.
   const route = routeNewTabLaunch(store, args, {
     agent,

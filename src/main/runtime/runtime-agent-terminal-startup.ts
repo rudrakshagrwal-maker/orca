@@ -168,7 +168,7 @@ async function buildRuntimeAgentTerminalStartupOptions(
   // Repo display metadata may belong to another host; use the already-resolved PTY route for launch.
   const isRemote = Boolean(workspace.connectionId)
   const forceLine = opts.startupPromptCarry === 'force-line'
-  // Create has no live PTY for later prompt delivery; refuse uncarryable text. force-line preserves createAgentSession's clean launch.
+  // RA: an uncarried prompt needs a caller to deliver after spawn; createAgentSession uses the carry callback.
   // RA: launch callers with a carry callback submit stdin prompts after readiness.
   if (
     opts.startupPrompt &&
@@ -230,7 +230,10 @@ async function buildRuntimeAgentTerminalStartupOptions(
     return opts
   }
   if (opts.startupPrompt) {
-    opts.onStartupPromptCarry?.(promptCarried)
+    // RA: force-line must report the actual plan, including OpenCode run's positional prompt.
+    const carried = forceLine && 'followupPrompt' in startupPlan
+      ? startupPlan.followupPrompt === null : promptCarried
+    opts.onStartupPromptCarry?.(carried)
   }
 
   // Account routing rides over the plan's own env, as a local launch's auth patch does.

@@ -26,8 +26,11 @@ import { noteAgentLaunchPaneClosedByUser } from '@/lib/agent-launch-pane-closes'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { sendUserPaneCloseToLayoutOwner } from './layout-owner-pane-close-command'
 
+type PaneCloseSource = 'explicit' | 'keyboard' // RA: keep keyboard protection through asynchronous close admission.
+
 export function useTerminalPaneCloseActions(controller: TerminalPaneBindingController) {
   const confirmedCloseRef = useRef<(() => void) | null>(null)
+  const closeSourcesByLeafRef = useRef(new Map<string, PaneCloseSource>()) // RA: frames arrive outside the requesting callback.
   const {
     clearSessionRestoredBannerForPane,
     managerRef,
@@ -44,6 +47,11 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
     updateSettings,
     worktreeId
   } = controller
+  // RA: every last-pane fallback rechecks the current tab inventory at the point of closure.
+  const closeTab = useCallback((source: PaneCloseSource): void => {
+    if (source === 'keyboard' && keepLastWorkspaceTabOpen(worktreeId, tabId)) return
+    onCloseTab()
+  }, [onCloseTab, tabId, worktreeId])
   // RA: explicit and lifecycle closes bypass the keyboard-only last-tab guard.
   // The window's half of a split pane's close: its transport, status and pane go.
   const closePaneLocally = useCallback(
@@ -53,9 +61,13 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
       if (!manager || (committedLeafId && manager.getLeafId(paneId) !== committedLeafId)) {
         return
       }
-      // A sibling went while main answered: this pane is now the tab's last, so the tab closes.
-      if (committedLeafId && manager.getPanes().length <= 1) {
-        onCloseTab()
+      // RA: a frame or compatibility reply retains the requesting close's provenance.
+      const closingLeafId = committedLeafId ?? manager.getLeafId(paneId)
+      const source = closingLeafId ? closeSourcesByLeafRef.current.get(closingLeafId) ?? 'explicit' : 'explicit'
+      if (closingLeafId) closeSourcesByLeafRef.current.delete(closingLeafId)
+      // A sibling went while main answered: this pane is now the tab's last.
+      if (manager.getPanes().length <= 1) {
+        closeTab(source)
         return
       }
       const ptyId = paneTransportsRef.current.get(paneId)?.getPtyId() ?? null
@@ -100,7 +112,7 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
     },
     [
       clearSessionRestoredBannerForPane,
-      onCloseTab,
+      closeTab,
       syncPanePtyLayoutBinding,
       syncPanePtyLayoutBindingForLeaf,
       tabId,
@@ -111,52 +123,56 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
     ]
   )
   const executeClosePane = useCallback(
-    (paneId: number) => {
+    (paneId: number, source: PaneCloseSource = 'explicit') => {
       const manager = managerRef.current
       if (!manager) {
         return
       }
       if (manager.getPanes().length <= 1) {
-        onCloseTab()
+        closeTab(source)
         return
       }
       const leafId = manager.getLeafId(paneId)
+      if (leafId) closeSourcesByLeafRef.current.set(leafId, source) // RA: preserve intent until the frame removes this leaf.
       // Switch point: main closes the pane first; the window removes it when main's frame does.
       if (
         ORCA_LAYOUT_OWNER_IS_MAIN &&
         leafId &&
         sendUserPaneCloseToLayoutOwner(
           { worktreeId, tabId, leafId, paneId },
-          { getManager: () => managerRef.current, closeTab: onCloseTab, closePaneLocally }
+          { getManager: () => managerRef.current, closeTab: () => {
+            closeSourcesByLeafRef.current.delete(leafId)
+            closeTab(source)
+          }, closePaneLocally }
         )
       ) {
         return
       }
       closePaneLocally(paneId)
     },
-    [closePaneLocally, onCloseTab, tabId, worktreeId, managerRef]
+    [closePaneLocally, closeTab, tabId, worktreeId, managerRef]
   )
   const getCloseDialogCopyKind = useCallback(
     (paneId: number) => resolveLeafCloseCopyKind(tabId, managerRef.current?.getLeafId(paneId)),
     [tabId, managerRef]
   )
   const handleRequestClosePane = useCallback(
-    (paneId: number) => {
+    (paneId: number, source: PaneCloseSource = 'explicit') => {
       if ((managerRef.current?.getPanes().length ?? 0) <= 1) {
-        executeClosePane(paneId)
+        executeClosePane(paneId, source)
         return
       }
       const transport = paneTransportsRef.current.get(paneId)
       const pending = capturePendingTerminalPaneClose(controller, paneId, useAppStore.getState)
       const ptyId = transport?.getPtyId() ?? pending?.ptyId
       if (!ptyId) {
-        executeClosePane(paneId)
+        executeClosePane(paneId, source)
         return
       }
       const settings = useAppStore.getState().settings
       const close = (): void => {
         if (!pending || pending.isCurrent()) {
-          executeClosePane(paneId)
+          executeClosePane(paneId, source)
         }
       }
       let decided = false
@@ -221,7 +237,7 @@ export function useTerminalPaneCloseActions(controller: TerminalPaneBindingContr
     }
     const pane = manager?.getActivePane() ?? manager?.getPanes()[0]
     if (pane) {
-      handleRequestClosePane(pane.id)
+      handleRequestClosePane(pane.id, 'keyboard') // RA: probes and confirmations retain keyboard intent.
     }
   }, [handleRequestClosePane, managerRef, tabId, worktreeId])
   useEffect(

@@ -287,6 +287,38 @@ describe('agent-session execution namespace', () => {
 })
 
 describe('agent-session create operation ledger', () => {
+  // RA: use the real host resolver so dropped OpenCode followups cannot hide behind a mocked create.
+  it.each([
+    { agent: 'opencode' as const, agentArgs: undefined, followup: true },
+    { agent: 'opencode2' as const, agentArgs: undefined, followup: true },
+    { agent: 'opencode' as const, agentArgs: 'run', followup: false }
+  ])('delivers an uncarried $agent prompt once, args=$agentArgs', async ({ agent, agentArgs, followup }) => {
+    const runtime = createRuntime({
+      supportsAgentSessionClaims: () => true,
+      supportsAgentSessionCreateOperations: () => true
+    })
+    let planned: TerminalCreateOptions | undefined
+    const create = vi.spyOn(runtime, 'createTerminal').mockImplementation(async (selector = '', opts = {}) => {
+      const scope = await runtime.resolveTerminalWorkspaceLaunchScope(selector)
+      planned = await runtime.resolveAgentTerminalCreateOptions(scope, opts)
+      return terminal()
+    })
+    const deliver = vi.spyOn(runtime, 'deliverStartupFollowup').mockResolvedValue(true)
+    const signal = new AbortController().signal
+    const launch = request(operationId(), { agent, agentArgs, promptDelivery: 'auto-submit' })
+    await runtime.createAgentSession(launch, { clientId: 'device-a', signal })
+    await runtime.createAgentSession(launch, { clientId: 'device-a', signal })
+    expect(create).toHaveBeenCalledOnce()
+    expect(planned?.command).toContain(agent)
+    expect(planned?.command?.includes('do the thing')).toBe(!followup)
+    if (followup) {
+      expect(deliver).toHaveBeenCalledExactlyOnceWith('term_operation', { agent, prompt: 'do the thing' },
+        { agentLaunch: true, terminalCreation: terminal(), signal })
+    } else {
+      expect(deliver).not.toHaveBeenCalled()
+    }
+  })
+
   it.each(['auto-submit', 'draft', undefined] as const)(
     'suppresses startup updates only for auto-submitted launches: %s',
     async (promptDelivery) => {

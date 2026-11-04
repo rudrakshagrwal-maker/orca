@@ -66,7 +66,8 @@ export function planLaunchAgentStartupPrompt(args: {
     }
   }
   if (hasPrompt && isFollowupPath) {
-    return pasteAfterReady(false)
+    // RA: OpenCode's bare TUI needs paste-and-submit for ordinary auto-submit launches.
+    return pasteAfterReady(base.agent === 'opencode' || base.agent === 'opencode2')
   }
   return {
     startupPlan: buildAgentStartupPlan({
