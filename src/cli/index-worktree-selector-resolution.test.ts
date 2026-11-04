@@ -41,7 +41,8 @@ vi.mock('child_process', async () => {
   return createChildProcessModuleMock(spawnMock)
 })
 
-import { main, normalizeWorktreeSelector } from './index'
+import { main } from './index'
+import { normalizeWorktreeSelector } from './selectors' // RA: keep selectors out of root startup.
 import { buildWorktree, okFixture, queueFixtures, worktreeListFixture } from './test-fixtures'
 import { useWorktreeAwarenessEnvironment } from './index-test-harness'
 

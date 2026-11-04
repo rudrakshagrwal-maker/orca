@@ -1,6 +1,6 @@
 import { PTY_LIVE_NOTE, describeUnconfirmedCloseStop } from '../shared/pty-liveness-verdict'
 import { describeTerminalWaitBlockedReason } from '../shared/terminal-wait-blocked-reason-legacy-alias'
-import { formatListingHostScope, type WithAnnotatedHostScope } from './omitted-host-scope-selectors'
+import type { WithAnnotatedHostScope } from './omitted-host-scope-selectors'
 import type {
   RuntimeTerminalClose,
   RuntimeTerminalCreate,
@@ -20,24 +20,52 @@ import type {
 } from '../shared/runtime-types'
 
 export function formatTerminalList(
-  result: WithAnnotatedHostScope<RuntimeTerminalListResult>
+  result: WithAnnotatedHostScope<RuntimeTerminalListResult>,
+  options: { layout?: boolean; preview?: boolean; now?: number } = {}
 ): string {
-  const scope = formatListingHostScope(result.hostScope)
+  // RA: keep ordinary lists to one aligned line per terminal; JSON retains all host metadata.
   if (result.terminals.length === 0) {
-    return `No terminals listed.\n${scope}`
+    return 'No terminals listed.'
   }
-  const body = result.terminals
-    .map(
-      (terminal) =>
-        `${terminal.handle}  ${terminal.paneTitle ?? terminal.title ?? '(untitled)'}  ${terminal.connected ? 'connected' : 'disconnected'}${terminal.orphaned ? '  orphaned' : ''}  host=${terminal.executionHostId ?? 'unverifiable'}  ${terminal.worktreePath}\n${terminal.preview ? `preview: ${terminal.preview}` : 'preview: <empty>'}`
-    )
-    .join('\n\n')
-  const visualLayout = formatTerminalVisualLayouts(result.visualLayouts)
+  const now = options.now ?? Date.now()
+  const rows = result.terminals.map((terminal) => [
+    terminal.handle.replace(/^term_/i, '').replace(/-/g, '').slice(0, 8),
+    singleLine(terminal.paneTitle ?? terminal.title ?? '(untitled)'),
+    terminal.agentIdentity ?? '-',
+    terminal.state ?? '-',
+    terminal.createdAt === undefined ? '-' : formatTerminalAge(now - terminal.createdAt)
+  ])
+  const widths = rows[0].map((_, column) => Math.max(...rows.map((row) => row[column].length)))
+  const body = rows
+    .map((row, index) => {
+      const line = row
+        .map((value, column) =>
+          column === row.length - 1 ? value : value.padEnd(widths[column])
+        )
+        .join('  ')
+      return options.preview
+        ? `${line}\npreview: ${singleLine(result.terminals[index].preview || '<empty>')}`
+        : line
+    })
+    .join('\n')
+  const visualLayout = options.layout ? formatTerminalVisualLayouts(result.visualLayouts) : null
   const bodyWithLayout = visualLayout ? `${body}\n\nvisual layout:\n${visualLayout}` : body
-  const bodyWithScope = `${bodyWithLayout}\n\n${scope}`
   return result.truncated
-    ? `${bodyWithScope}\ntruncated: showing ${result.terminals.length} of ${result.totalCount}`
-    : bodyWithScope
+    ? `${bodyWithLayout}\ntruncated: showing ${result.terminals.length} of ${result.totalCount}`
+    : bodyWithLayout
+}
+
+// RA: titles and previews cannot inject extra rows into an aligned listing.
+function singleLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function formatTerminalAge(milliseconds: number): string {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000))
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
+  return `${Math.floor(seconds / 86400)}d`
 }
 
 function formatTerminalVisualLayouts(

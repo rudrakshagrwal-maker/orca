@@ -1,0 +1,25 @@
+// RA: keep the default entrypoint small and disclose the full catalogue explicitly.
+export const ROOT_SHORT_HELP = [
+  'orca',
+  '',
+  'Usage: orca <command> [options]',
+  '',
+  '  open              Open Orca',
+  '  status            App and runtime status',
+  '  terminal list     List terminals, including sleeping tabs',
+  '  terminal read     Read terminal output',
+  '  terminal send     Send text or keys',
+  '  terminal wait     Wait for exit or idle',
+  '  terminal close    Close a terminal or tab',
+  '  terminal create   Open a terminal',
+  '  terminal focus    Focus a terminal',
+  '  terminal rename   Name a tab',
+  '  agent launch      Launch an agent',
+  '  worktree list     List worktrees',
+  '  worktree create   Create a worktree',
+  '  project           Project commands',
+  '  help              Command help',
+  '',
+  'orca help --all for everything',
+  'Run orca <command> --help for options.'
+].join('\n')

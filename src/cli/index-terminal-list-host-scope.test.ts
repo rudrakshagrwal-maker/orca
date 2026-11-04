@@ -98,7 +98,7 @@ describe('orca terminal list host scope', () => {
     })
   })
 
-  it('prints the execution host and scope in human output', async () => {
+  it('prints only compact rows in human output', async () => {
     queueFixtures(
       callMock,
       okFixture('req_terminal_list', {
@@ -113,13 +113,12 @@ describe('orca terminal list host scope', () => {
     await main(['terminal', 'list'], '/tmp/repo')
 
     expect(callMock.mock.calls).toEqual([
-      ['terminal.list', { worktree: undefined, limit: undefined, includeVisualLayouts: true }]
+      // RA: one saved-state RPC, with no preceding worktree lookup or implicit detail.
+      ['terminal.list', { worktree: undefined, limit: undefined, includeVisualLayouts: false, snapshot: true, includePreview: false }]
     ])
 
     const printed = String(logSpy.mock.calls[0]?.[0])
-    expect(printed).toBe(
-      'term_remote  worker  connected  host=ssh:box-1  /remote/wt\npreview: <empty>\n\nscope: ssh:box-1 — not covered: local (reached through this runtime; no flag selects it)'
-    )
+    expect(printed).toBe('remote  worker  -  -  -') // RA: host metadata stays in JSON.
   })
 
   it('does not claim a local scope when the host never reported one', async () => {
@@ -132,12 +131,10 @@ describe('orca terminal list host scope', () => {
     await main(['terminal', 'list'], '/tmp/repo')
 
     expect(callMock.mock.calls).toEqual([
-      ['terminal.list', { worktree: undefined, limit: undefined, includeVisualLayouts: true }]
+      ['terminal.list', { worktree: undefined, limit: undefined, includeVisualLayouts: false, snapshot: true, includePreview: false }]
     ])
 
     const printed = String(logSpy.mock.calls[0]?.[0])
-    expect(printed).toBe(
-      'No terminals listed.\nscope: unverifiable — this host does not report which hosts it lists'
-    )
+    expect(printed).toBe('No terminals listed.')
   })
 })

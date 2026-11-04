@@ -204,6 +204,7 @@ export abstract class OrcaRuntimeWithSubscribeToTerminalResize extends OrcaRunti
     worktreeSelector?: string,
     limit = DEFAULT_TERMINAL_LIST_LIMIT,
     opts: {
+      snapshot?: boolean // RA: saved-state CLI listing.
       handles?: readonly string[]
       requireFreshPtyLiveness?: boolean
       includeVisualLayouts?: boolean

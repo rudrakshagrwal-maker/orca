@@ -18,6 +18,19 @@ const {
 } = require('../packaged-runtime-node-modules.cjs')
 
 describe('packaged runtime resources', () => {
+  // RA: Windows ships a POSIX entrypoint beside the native launcher, preserving slash arguments.
+  it('packages the Git Bash CLI shim beside orca.exe', async () => {
+    expect(electronBuilderConfig.win.extraResources).toContainEqual({
+      from: 'resources/win32/bin/orca', to: 'bin/orca'
+    })
+    const shim = await readFile(join(projectRoot, 'resources/win32/bin/orca'), 'utf8')
+    expect(shim.startsWith('#!/bin/sh\n')).toBe(true)
+    expect(shim).not.toContain('\r')
+    expect(shim).toContain('export MSYS_NO_PATHCONV=1')
+    expect(shim).toContain("export MSYS2_ARG_CONV_EXCL='*'")
+    expect(shim).toContain('exec "$(dirname "$0")/orca.exe" "$@"')
+  })
+
   it('verifies packaged main runtime deps from Windows-style asar entries', async () => {
     const resourcesDir = await mkdtemp(join(tmpdir(), 'orca-runtime-deps-'))
     try {

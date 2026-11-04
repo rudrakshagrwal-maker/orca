@@ -15,6 +15,11 @@ import {
 } from './runtime-worktree-path-identity'
 
 type RuntimeTerminalListDependencies = {
+  getSleepingLeaves?(): Iterable<RuntimeLeafRecord> // RA: saved tabs may have no window pane.
+  // RA: display facts come from saved tabs and OSC 7501, never an extra process probe.
+  displayDetails?(
+    terminal: RuntimeTerminalSummary
+  ): Pick<RuntimeTerminalSummary, 'createdAt' | 'state' | 'agentIdentity'>
   getGraphEpoch(): number | null
   assertGraphEpoch(epoch: number): void
   getExplicitWorktreeId(selector: string): string | null
@@ -58,6 +63,7 @@ export class RuntimeTerminalList {
     worktreeSelector: string | undefined,
     limit: number,
     opts: {
+      snapshot?: boolean // RA: opt-in saved-state listing, never fresh liveness evidence.
       handles?: readonly string[]
       requireFreshPtyLiveness?: boolean
       includeVisualLayouts?: boolean
@@ -94,7 +100,20 @@ export class RuntimeTerminalList {
         ? new Map([[target.id, target]])
         : targetId
           ? new Map<string, ResolvedWorktree>()
-          : await this.deps.getWorktreeMap()
+          : opts.snapshot
+            ? new Map(
+                [
+                  ...new Set([
+                    ...[...this.deps.getLeaves()].map((leaf) => leaf.worktreeId),
+                    ...[...this.deps.getPtys()].map((pty) => pty.worktreeId),
+                    ...this.deps.getSnapshots().keys()
+                  ])
+                ].flatMap((id) => {
+                  const worktree = this.deps.buildWorktreeFromId(id)
+                  return worktree ? [[id, worktree] as const] : []
+                })
+              )
+            : await this.deps.getWorktreeMap()
     if (graphEpoch !== null) {
       this.deps.assertGraphEpoch(graphEpoch)
     }
@@ -106,7 +125,11 @@ export class RuntimeTerminalList {
           : targetId
             ? []
             : [...worktreesById.values()]
-    const inventory = await this.deps.refreshPtys(resolvedWorktrees, targetId)
+    // RA: only fresh inventory callers pay for host discovery and timeout/retry budgets.
+    const inventory =
+      opts.snapshot && !opts.requireFreshPtyLiveness
+        ? null
+        : await this.deps.refreshPtys(resolvedWorktrees, targetId)
     const refreshedPtyIds = inventory ? new Set(inventory.livePtyIds) : null
     if (opts.requireFreshPtyLiveness && !refreshedPtyIds) {
       throw new Error('terminal_liveness_unavailable')
@@ -118,6 +141,7 @@ export class RuntimeTerminalList {
     )
     const terminals: RuntimeTerminalSummary[] = []
     const leafPtyIds = new Set<string>()
+    const leafKeys = new Set<string>() // RA: deduplicate saved sleepers against published panes.
     if (graphEpoch !== null) {
       for (const leaf of this.deps.getLeaves()) {
         if (targetId && leaf.worktreeId !== targetId) {
@@ -128,6 +152,7 @@ export class RuntimeTerminalList {
         }
         if (
           !leaf.ptyId &&
+          !opts.snapshot && // RA: retain sleeping panes even beside a live sibling.
           liveWorktreeIds.has(leaf.worktreeId) &&
           !(ORCA_LAYOUT_OWNER_IS_MAIN && this.deps.listsEveryPane?.(leaf.worktreeId))
         ) {
@@ -136,7 +161,18 @@ export class RuntimeTerminalList {
         if (leaf.ptyId) {
           leafPtyIds.add(leaf.ptyId)
         }
+        leafKeys.add(`${leaf.tabId}:${leaf.leafId}`)
         terminals.push(this.deps.buildLeafSummary(leaf, worktreesById, provenLivePtyIds))
+      }
+    }
+    // RA: a read-only saved leaf issues an ordinary handle without mounting or starting a PTY.
+    if (opts.snapshot && !opts.requireFreshPtyLiveness) {
+      for (const leaf of this.deps.getSleepingLeaves?.() ?? []) {
+        if ((targetId && leaf.worktreeId !== targetId) || leafKeys.has(`${leaf.tabId}:${leaf.leafId}`)) {
+          continue
+        }
+        leafKeys.add(`${leaf.tabId}:${leaf.leafId}`)
+        terminals.push(this.deps.buildLeafSummary(leaf, worktreesById, null))
       }
     }
     for (const pty of ptys) {
@@ -155,7 +191,10 @@ export class RuntimeTerminalList {
     const matching = requestedHandles
       ? terminals.filter((terminal) => requestedHandles.has(terminal.handle))
       : terminals
-    const listed = matching.slice(0, limit)
+    const listed = matching.slice(0, limit).map((terminal) =>
+      // RA: existing JSON/RPC callers keep exactly their previous row shape.
+      opts.snapshot ? { ...terminal, ...this.deps.displayDetails?.(terminal) } : terminal
+    )
     const snapshots = this.deps.getSnapshots()
     const visualLayouts =
       opts.includeVisualLayouts === false
@@ -188,5 +227,38 @@ export class RuntimeTerminalList {
       totalCount: matching.length,
       truncated: matching.length > limit
     }
+  }
+}
+
+// RA: dormant saved panes have identity and title but no process, output or writable transport.
+export function sleepingTerminalLeaf(
+  pane: Pick<RuntimeLeafRecord, 'worktreeId' | 'tabId' | 'leafId' | 'title'>
+): RuntimeLeafRecord {
+  return {
+    ...pane,
+    paneTitle: pane.title ?? null,
+    paneRuntimeId: -1,
+    ptyId: null,
+    ptyGeneration: 0,
+    connected: false,
+    writable: false,
+    lastOutputAt: null,
+    lastExitCode: null,
+    lastExitCause: null,
+    lastAgentStatus: null,
+    lastAgentStatusObservedLive: false,
+    lastOscTitle: null,
+    lastOscTitleAt: null,
+    paneTitleUpdatedAt: 0,
+    tailBuffer: [],
+    tailTranscriptBuffer: [],
+    tailTranscriptChars: 0,
+    tailPartialLine: '',
+    tailPendingAnsi: '',
+    tailRedrawCursor: null,
+    tailTruncated: false,
+    tailLinesTotal: 0,
+    preview: '',
+    waitBlockedAt: null
   }
 }

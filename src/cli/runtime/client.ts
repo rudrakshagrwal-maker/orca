@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import type { CliStatusResult, RuntimeStatus } from '../../shared/runtime-types'
+import type {
+  CliStatusResult,
+  RuntimeStatus,
+  RuntimeTerminalListResult
+} from '../../shared/runtime-types'
 import { runtimeHostConnectionState } from '../../shared/runtime-host-connection-state'
 import {
   isDurableMutation,
@@ -49,6 +53,7 @@ import {
   resolveWorkerStartReadinessTimeoutMs
 } from '../../shared/orchestration-timing-budgets'
 import { MAX_TIMER_DELAY_MS } from '../../shared/timer-delay'
+import { TerminalHandleSelector } from '../terminal-handle-selector'
 import {
   buildOrchestrationRecoveryCommand,
   resolveOrchestrationCliExecutable
@@ -61,6 +66,17 @@ const AGENT_LAUNCH_METHODS: ReadonlySet<string> = new Set(['agent.launch', 'agen
 const loadWebSocketTransport = async () => await import('./websocket-transport.js')
 
 export class RuntimeClient {
+  // RA: full handles cost no lookup; abbreviated flags share a single saved-state inventory RPC.
+  private readonly terminalSelectors = new TerminalHandleSelector(async () =>
+    (
+      await this.call<RuntimeTerminalListResult>('terminal.list', {
+        limit: Number.MAX_SAFE_INTEGER,
+        includeVisualLayouts: false,
+        includePreview: false,
+        snapshot: true
+      })
+    ).result
+  )
   readonly userDataPath: string
   private readonly remote: PairedRuntimeConnection | null
   readonly environmentSelector: string | null
@@ -101,6 +117,8 @@ export class RuntimeClient {
     params?: unknown,
     options?: RuntimeCallOptions
   ): Promise<RuntimeRpcSuccess<TResult>> {
+    // RA: normalize at the transport boundary so every terminal-bearing handler benefits.
+    if (this.originalArgs) params = await this.terminalSelectors.params(method, params)
     const effectiveTimeoutMs = options?.timeoutMs ?? this.resolveMethodTimeoutMs(method, params)
     const orchestrationMutation = isOrchestrationMutation(method, params)
     const terminalPromptMutation = isTerminalPromptMutation(method, params)

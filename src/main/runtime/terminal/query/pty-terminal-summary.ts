@@ -124,7 +124,12 @@ export abstract class OrcaRuntimeWithBuildPtyTerminalSummary extends OrcaRuntime
       throw new Error('terminal_handle_stale')
     }
 
-    const leaf = this.leaves.get(this.getLeafKey(record.tabId, record.leafId))
+    // RA: a saved sleeping handle can name its dormant pane without inventing a live transport.
+    const leaf =
+      this.leaves.get(this.getLeafKey(record.tabId, record.leafId)) ??
+      (record.ptyId === null
+        ? this.getSavedSleepingTerminalLeaf(record.worktreeId, record.tabId, record.leafId)
+        : null)
     if (!leaf || leaf.ptyId !== record.ptyId || leaf.ptyGeneration !== record.ptyGeneration) {
       throw new Error('terminal_handle_stale')
     }

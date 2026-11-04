@@ -80,14 +80,25 @@ export const TERMINAL_HANDLERS: Record<string, CommandHandler> = {
     const result = await client.call<WithAnnotatedHostScope<RuntimeTerminalListResult>>(
       'terminal.list',
       {
-        worktree: await getOptionalWorktreeSelector(flags, 'worktree', cwd, client),
+        // RA: human list defaults to all saved tabs, avoiding a preliminary worktree.list RPC.
+        worktree:
+          json || flags.has('worktree')
+            ? await getOptionalWorktreeSelector(flags, 'worktree', cwd, client)
+            : undefined,
         limit: getOptionalPositiveIntegerFlag(flags, 'limit'),
-        // Omit topology from JSON unless requested to keep agent responses small.
-        includeVisualLayouts: !json || flags.has('include-visual-layouts')
+        // RA: preserve JSON requests; text opts into expensive detail only when requested.
+        includeVisualLayouts: json ? flags.has('include-visual-layouts') : flags.has('layout'),
+        ...(!json ? { snapshot: true, includePreview: flags.has('preview') } : {})
       }
     )
-    await annotateOmittedHostScope(result.result)
-    printResult(result, json, formatTerminalList)
+    // RA: selector annotations are machine metadata and need no store imports for text output.
+    if (json) await annotateOmittedHostScope(result.result)
+    printResult(result, json, (value) =>
+      formatTerminalList(value, {
+        layout: flags.has('layout'),
+        preview: flags.has('preview')
+      })
+    )
   },
   'terminal show': async ({ flags, client, cwd, json }) => {
     const result = await client.call<{ terminal: RuntimeTerminalShow }>('terminal.show', {

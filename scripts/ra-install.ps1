@@ -70,6 +70,21 @@ if (-not (Test-Path -LiteralPath $appPath -PathType Leaf)) {
 }
 
 $shell = New-Object -ComObject WScript.Shell
+# RA: expose the native CLI and Git Bash shim for this user, with no admin or agent-config edits.
+$binDir = Join-Path $installDir 'resources\bin'
+if (-not (Test-Path -LiteralPath (Join-Path $binDir 'orca.exe') -PathType Leaf)) {
+    throw "Orca CLI was not installed in $binDir."
+}
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+$pathEntries = @($userPath -split ';' | Where-Object { $_ })
+if (-not ($pathEntries | Where-Object { [Environment]::ExpandEnvironmentVariables($_).Trim().Trim('"').TrimEnd('\') -ieq $binDir.TrimEnd('\') })) {
+    [Environment]::SetEnvironmentVariable('Path', (($pathEntries + $binDir) -join ';'), 'User')
+}
+# RA: the app reopened below must also inherit the new CLI path immediately.
+if (-not (($env:Path -split ';') | Where-Object { $_.Trim().Trim('"').TrimEnd('\') -ieq $binDir.TrimEnd('\') })) {
+    $env:Path = $env:Path.TrimEnd(';') + ';' + $binDir
+}
+
 $shortcutFolders = @(
     [Environment]::GetFolderPath('Programs'),
     [Environment]::GetFolderPath('DesktopDirectory')

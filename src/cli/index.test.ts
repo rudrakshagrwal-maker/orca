@@ -41,7 +41,8 @@ vi.mock('child_process', async () => {
   return createChildProcessModuleMock(spawnMock)
 })
 
-import { COMMAND_SPECS, main } from './index'
+import { main } from './index'
+import { COMMAND_SPECS } from './specs' // RA: entrypoint no longer eagerly exports the catalogue.
 import { GLOBAL_FLAGS, specPaths } from './args'
 import { okFixture, queueFixtures } from './test-fixtures'
 
@@ -588,13 +589,22 @@ describe('nested command group help', () => {
 
 describe('orca help', () => {
   it('progressively discloses Linear commands', async () => {
+    callMock.mockClear() // RA: verify help never sends a runtime request.
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
     await main(['--help'], '/tmp/repo')
 
     const rootHelp = String(logSpy.mock.calls[0][0])
-    expect(rootHelp).toContain('linear')
+    expect(rootHelp).toContain('orca help --all for everything') // RA: optional integrations live in full help.
     expect(rootHelp).not.toContain('linear issue')
+
+    // RA: the complete integration catalogue is explicitly available and remains runtime-free.
+    logSpy.mockClear()
+    await main(['help', '--all'], '/tmp/repo')
+    const allHelp = String(logSpy.mock.calls[0][0])
+    expect(allHelp).toContain('linear issue')
+    expect(allHelp).toContain('account list')
+    expect(callMock).not.toHaveBeenCalled()
 
     logSpy.mockClear()
     await main(['linear', '--help'], '/tmp/repo')

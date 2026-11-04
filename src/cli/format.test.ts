@@ -345,7 +345,7 @@ describe('formatTerminalList', () => {
           }
         }
       ]
-    } as never)
+    } as never, { layout: true }) // RA: layouts are opt-in text detail.
 
     expect(output).toContain('visual layout:')
     expect(output).toContain('/repo')
