@@ -135,7 +135,8 @@ export function getAgentOrchestratorContexts(runtime: object): Record<string, Ag
   const store = persistenceByRuntime.get(runtime)?.getStore()
   const contexts: Record<string, AgentStatusOrchestrationContext> = {}
   for (const host of store?.getWorkspaceSessionHostIds?.() ?? [LOCAL_EXECUTION_HOST_ID]) {
-    const session = store?.getWorkspaceSession(host)
+    // RA: lightweight runtime stores may omit the session reader itself.
+    const session = store?.getWorkspaceSession?.(host)
     for (const paneKey of Object.keys(session?.terminalOrchestratorTitlesByPaneKey ?? {})) {
       contexts[paneKey] = { ...contexts[paneKey], hasLaunchedHelpers: true }
     }
@@ -158,7 +159,10 @@ export function setAgentLaunchParent(runtime: object, child: string, parent: str
   const links = new Map<string, string>()
   const store = persistence?.getStore()
   for (const host of store?.getWorkspaceSessionHostIds?.() ?? [LOCAL_EXECUTION_HOST_ID]) {
-    for (const [pane, ancestor] of Object.entries(store?.getWorkspaceSession(host).terminalLaunchParentsByPaneKey ?? {})) {
+    // RA: a store without session persistence still supports in-memory parent attachment.
+    for (const [pane, ancestor] of Object.entries(
+      store?.getWorkspaceSession?.(host)?.terminalLaunchParentsByPaneKey ?? {}
+    )) {
       links.set(pane, ancestor)
     }
   }

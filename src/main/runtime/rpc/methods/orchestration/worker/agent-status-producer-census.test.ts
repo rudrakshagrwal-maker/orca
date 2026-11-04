@@ -238,17 +238,12 @@ describe('agent status identity across every producer and consumer path', () => 
       listeners.push(listener)
     }) as never)
     const window = {
-      // RA: The main-window status observer owns local taskbar attention too.
+      // RA: keep one focused observer fake; taskbar permission edges have their own tests.
       on: vi.fn(),
       removeListener: vi.fn(),
       isFocused: () => true,
       flashFrame: vi.fn(),
       isDestroyed: () => false,
-      // RA: status forwarding also registers the taskbar alert's focus handler.
-      isFocused: () => false,
-      on: vi.fn(),
-      removeListener: vi.fn(),
-      flashFrame: vi.fn(),
       webContents: {
         send: (channel: string, payload: AgentStatusIpcPayload) => sent.push({ channel, payload })
       }

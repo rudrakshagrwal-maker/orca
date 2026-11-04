@@ -6,11 +6,15 @@ import { createAgentPermissionTaskbarAlert } from './agent-permission-taskbar-al
 function fixture(platform: NodeJS.Platform = 'win32') {
   let focused = false
   const window = Object.assign(new EventEmitter(), {
-    isDestroyed: () => false,
+    isDestroyed: (): boolean => false, // RA: later test transitions must allow true too.
     isFocused: () => focused,
     flashFrame: vi.fn()
   })
-  const alert = createAgentPermissionTaskbarAlert(window as Parameters<typeof createAgentPermissionTaskbarAlert>[0], platform)
+  // RA: EventEmitter implements the exercised methods, not Electron's full overload surface.
+  const alert = createAgentPermissionTaskbarAlert(
+    window as unknown as Parameters<typeof createAgentPermissionTaskbarAlert>[0],
+    platform
+  )
   return { window, alert, focus: () => { focused = true; window.emit('focus') } }
 }
 
