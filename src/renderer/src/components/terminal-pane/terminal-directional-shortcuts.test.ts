@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './terminal-shortcut-policy'
+import { setRightCtrlHeldForTest } from './right-ctrl-held'
 
 function event(overrides: Partial<TerminalShortcutEvent>): TerminalShortcutEvent {
   return {
@@ -16,6 +17,9 @@ function event(overrides: Partial<TerminalShortcutEvent>): TerminalShortcutEvent
 
 // RA: Pane navigation wins over ConPTY/readline word jumps for local, remote and repeated input.
 describe('directional pane shortcuts', () => {
+  beforeEach(() => setRightCtrlHeldForTest(true))
+  afterEach(() => setRightCtrlHeldForTest(false))
+
   it.each([
     ['ArrowLeft', 'left'],
     ['ArrowRight', 'right'],
@@ -77,5 +81,13 @@ describe('directional pane shortcuts', () => {
         { 'terminal.focusPaneLeft': ['Ctrl+Shift+H'] }
       )
     ).toEqual({ type: 'focusPane', direction: 'left' })
+  })
+
+  // RA: Left Ctrl+Arrow keeps word-jump; only Right Ctrl moves panes.
+  it('leaves Left Ctrl+Arrow to word-jump on Windows and Linux', () => {
+    setRightCtrlHeldForTest(false)
+    const arrow = event({ key: 'ArrowLeft', code: 'ArrowLeft', ctrlKey: true })
+    expect(resolveTerminalShortcutAction(arrow, false, 'false', 0, true, undefined, () => true)).toBeNull()
+    expect(resolveTerminalShortcutAction(arrow, false)).toEqual({ type: 'sendInput', data: '\x1bb' })
   })
 })

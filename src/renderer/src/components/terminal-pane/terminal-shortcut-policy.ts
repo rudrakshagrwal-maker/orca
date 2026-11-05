@@ -11,6 +11,7 @@ import {
   encodeTerminalShiftEnter,
   TERMINAL_CTRL_BACKSPACE_INPUT
 } from '../../../../shared/terminal-modified-enter-encoding'
+import { isRightCtrlHeld } from './right-ctrl-held'
 import type { WindowsShiftEnterEncoding } from './terminal-windows-shift-enter'
 import {
   resolveTerminalOptionShortcutAction,
@@ -118,17 +119,22 @@ export function resolveTerminalShortcutAction(
   }
 
   // RA: Resolve before ConPTY/readline word-jump fallbacks, including held repeats.
-  if (matches('terminal.focusPaneLeft')) {
-    return { type: 'focusPane', direction: 'left' }
-  }
-  if (matches('terminal.focusPaneRight')) {
-    return { type: 'focusPane', direction: 'right' }
-  }
-  if (matches('terminal.focusPaneUp')) {
-    return { type: 'focusPane', direction: 'up' }
-  }
-  if (matches('terminal.focusPaneDown')) {
-    return { type: 'focusPane', direction: 'down' }
+  // RA: On Windows/Linux only Right Ctrl+Arrow moves panes; Left Ctrl+Arrow falls through to word-jump.
+  const leftCtrlArrow =
+    !isMac && event.ctrlKey && event.key.startsWith('Arrow') && !isRightCtrlHeld()
+  if (!leftCtrlArrow) {
+    if (matches('terminal.focusPaneLeft')) {
+      return { type: 'focusPane', direction: 'left' }
+    }
+    if (matches('terminal.focusPaneRight')) {
+      return { type: 'focusPane', direction: 'right' }
+    }
+    if (matches('terminal.focusPaneUp')) {
+      return { type: 'focusPane', direction: 'up' }
+    }
+    if (matches('terminal.focusPaneDown')) {
+      return { type: 'focusPane', direction: 'down' }
+    }
   }
 
   if (!event.repeat) {
