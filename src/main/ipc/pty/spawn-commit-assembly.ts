@@ -4,6 +4,7 @@ import { isValidTerminalTabId } from '../../../shared/terminal-tab-id'
 import type { AgentSessionClaimedSpawnResult } from '../../../shared/agent-session/agent-session-host-authority'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import type { TuiAgent } from '../../../shared/tui-agent'
+import type { AgentProviderSessionMetadata } from '../../../shared/agent-session/lifecycle/agent-session-resume'
 import type { Store, PtyBindingSourceExpectation } from '../../persistence/loading-store/store'
 import type { OrcaRuntimeService } from '../../runtime/orca-runtime'
 import type { PtyRegistrationClaim } from '../../runtime/runtime-terminal-state-records'
@@ -71,6 +72,8 @@ export type PtySpawnCommitState = {
   spawnRequestedAt?: number
   reattachedCodexHomeRoutes: Map<string, CodexPaneHomeRoute | null>
   launchCommand: string | undefined
+  /** RA: see PtySpawnHostEnv.claudeLaunchSession. */
+  claudeLaunchSession?: AgentProviderSessionMetadata
   preSpawnHiddenMarkId: string | null
   replacedPaneOwner?: ReplacedPaneOwner | null
   agentTeamsLeaderHandle?: string | null

@@ -40,6 +40,7 @@ export async function assemblePtyIpcSpawnCodexEnv(ctx: PtyIpcSpawnState): Promis
     }
   }
   ctx.launchCommand = hostEnv.launchCommand
+  ctx.claudeLaunchSession = hostEnv.claudeLaunchSession
   ctx.baseEnv = hostEnv.baseEnv
   ctx.env = hostEnv.env
   ctx.selectedCodexHomePath = hostEnv.selectedCodexHomePath

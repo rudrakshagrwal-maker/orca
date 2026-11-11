@@ -64,6 +64,8 @@ export type RuntimePtySpawnState = {
   resumeAdmission: ResumeSpawnAdmission | null
   codexSelectionTarget: CodexAccountSelectionTarget
   launchCommand: string | undefined
+  /** RA: see PtySpawnHostEnv.claudeLaunchSession. */
+  claudeLaunchSession?: AgentProviderSessionMetadata
   claudeAuth: ClaudeRuntimeAuthPreparation | null
   shouldPersistHostSessionBinding: boolean
   hostSessionBinding:

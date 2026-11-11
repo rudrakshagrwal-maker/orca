@@ -9,7 +9,10 @@ import type {
 } from '../../../providers/pty-provider-contract'
 import type { CodexPaneHomeRoute } from '../../../codex/codex-pane-account-registry'
 import type { CodexAccountSelectionTarget } from '../../../codex-accounts/runtime-selection'
-import type { SleepingAgentLaunchConfig } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
+import type {
+  AgentProviderSessionMetadata,
+  SleepingAgentLaunchConfig
+} from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import type { ResumeSpawnAdmission } from '../host-env/saved-resume-admission'
 import type { ClaudeRuntimeAuthPreparation } from '../../../claude-accounts/runtime-auth-service'
 import { type PtySpawnTiming, createPtySpawnTiming } from '../pty-spawn-timing'
@@ -89,6 +92,8 @@ export type PtyIpcSpawnState = {
   /** The host's verdict on the spawn's resume; a refused one starts the pane's plain shell. */
   resumeAdmission: ResumeSpawnAdmission | null
   launchCommand: string | undefined
+  /** RA: see PtySpawnHostEnv.claudeLaunchSession. */
+  claudeLaunchSession?: AgentProviderSessionMetadata
   env: Record<string, string> | undefined
   selectedCodexHomePath: string | null
   spawnEnv: Record<string, string> | undefined

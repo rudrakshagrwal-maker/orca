@@ -32,6 +32,8 @@ export async function spawnPtyFromRuntimeController(
       launchConfig: ctx.args.launchConfig,
       suppressRefusedLaunch: () => {
         ctx.launchCommand = undefined
+        // RA: a suppressed launch runs no Claude, so it holds no named session.
+        ctx.claudeLaunchSession = undefined
         ctx.env = ctx.spawnOptions.env
       },
       paneKey: ctx.spawnIdentityPaneKey,

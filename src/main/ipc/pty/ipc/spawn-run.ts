@@ -67,6 +67,8 @@ export async function runPtyIpcSpawn(deps: PtySpawnIpcDeps, request: PtySpawnIpc
       launchConfig: ctx.effectiveLaunchConfig,
       suppressRefusedLaunch: () => {
         ctx.launchCommand = undefined
+        // RA: a suppressed launch runs no Claude, so it holds no named session.
+        ctx.claudeLaunchSession = undefined
         ctx.env = ctx.baseEnv = ctx.spawnEnv = ctx.spawnOptions.env
         ctx.effectiveLaunchConfig = undefined
       },

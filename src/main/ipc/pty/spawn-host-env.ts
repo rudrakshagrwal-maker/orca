@@ -1,4 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { getClaudeAgentViewService } from '../../claude/agent-view/agent-view-service'
+import { withClaudeLaunchSessionId } from '../../../shared/agent-resume-launch-command'
+import { resolveStartupShell } from '../../../shared/tui-agent-startup-shell'
+import { resolveLocalWindowsAgentStartupShell } from '../../../shared/windows-terminal-shell'
 import type { AgentProviderSessionMetadata } from '../../../shared/agent-session/lifecycle/agent-session-resume'
 import { getAppEnvironment } from '../../../shared/app-environment'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
@@ -64,6 +68,40 @@ export type PtySpawnHostEnv = {
   codexResumeHomeSelected: boolean
   skipCodexHomeEnv: boolean
   stripInheritedOrcaCodexHome: boolean
+  /** RA: the session a fresh Claude launch was named with (`--session-id`); seeded as its resume identity. */
+  claudeLaunchSession?: AgentProviderSessionMetadata
+}
+
+/** RA: a fresh Claude launch gets its own session id, so restore resumes this pane's session, not the folder's newest. */
+function nameFreshClaudeLaunch(args: {
+  launchAgent: TuiAgent | undefined
+  launchCommand: string | undefined
+  resumeProviderSession: AgentProviderSessionMetadata | undefined
+  preAdopted: boolean
+  runtime: CodexAccountSelectionTarget['runtime']
+  shellOverride: string | undefined
+  terminalWindowsShell: GlobalSettings['terminalWindowsShell'] | undefined
+}): { launchCommand: string; claudeLaunchSession: AgentProviderSessionMetadata } | null {
+  if (
+    args.launchAgent !== 'claude' ||
+    !args.launchCommand ||
+    args.resumeProviderSession ||
+    args.preAdopted
+  ) {
+    return null
+  }
+  const isWsl = args.runtime === 'wsl'
+  const shell = resolveStartupShell(
+    isWsl ? 'linux' : process.platform,
+    resolveLocalWindowsAgentStartupShell({
+      platform: process.platform,
+      isRemote: isWsl,
+      terminalWindowsShell: args.shellOverride ?? args.terminalWindowsShell
+    })
+  )
+  const id = randomUUID()
+  const launchCommand = withClaudeLaunchSessionId(args.launchCommand, id, shell)
+  return launchCommand ? { launchCommand, claudeLaunchSession: { key: 'session_id', id } } : null
 }
 
 type PtySpawnHostEnvArgs = {
@@ -134,7 +172,17 @@ async function resolvePtySpawnHostEnvForAct(args: PtySpawnHostEnvArgs): Promise<
   // Time provenance/hook repair, auth selection and env assembly separately to attribute their different costs.
   args.mark?.('codex_resume')
   const codexResumeHome = codexResumeLaunch.codexResumeHome
-  const launchCommand = codexResumeLaunch.command
+  // RA: no Claude hook reports session ids, so Orca names the session itself.
+  const namedClaudeLaunch = nameFreshClaudeLaunch({
+    launchAgent: args.launchAgent,
+    launchCommand: codexResumeLaunch.command,
+    resumeProviderSession: args.resumeProviderSession,
+    preAdopted: args.preAdopted,
+    runtime: target.runtime,
+    shellOverride: args.shellOverride,
+    terminalWindowsShell: deps.getSettings?.()?.terminalWindowsShell
+  })
+  const launchCommand = namedClaudeLaunch?.launchCommand ?? codexResumeLaunch.command
   const baseEnv = deps.stripSequencedStartupResumeArgv(args.env, codexResumeLaunch)
   const launchesCodex = args.launchAgent === 'codex'
   const selectLaunchCodexHome = async (): Promise<string | null> =>
@@ -200,7 +248,8 @@ async function resolvePtySpawnHostEnvForAct(args: PtySpawnHostEnvArgs): Promise<
         selectedCodexHomePath,
         skipCodexHomeEnv,
         settings: ptySettings
-      })
+      }),
+    ...(namedClaudeLaunch ? { claudeLaunchSession: namedClaudeLaunch.claudeLaunchSession } : {})
   }
   const sessionId = args.sessionId
   if (

@@ -100,7 +100,8 @@ export function publishCommittedPtySpawn(input: PtySpawnCommitInput): PtySpawnOu
   seedResumeLaunchIdentityFromSpawn({
     paneKey: input.paneKey,
     launchAgent: args.launchAgent,
-    resumeProviderSession: args.resumeProviderSession,
+    // RA: a fresh Claude launch seeds the session Orca named it with.
+    resumeProviderSession: args.resumeProviderSession ?? state.claudeLaunchSession,
     connectionId: args.connectionId,
     worktreeId: args.worktreeId,
     launchedAt: state.codexHomeLaunchStartedAt,

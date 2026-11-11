@@ -13,8 +13,39 @@ function isClaudeResumeSelector(token: string): boolean {
   if (token === '--continue' || token.startsWith('--continue=')) {
     return true
   }
+  // RA: a launch-named session (--session-id, see withClaudeLaunchSessionId) cannot ride along with --resume.
+  if (token === '--session-id' || token.startsWith('--session-id=')) {
+    return true
+  }
   // Joined -rID is ambiguous with dash-leading option values such as --agent -review; strip only exact selector shapes and append otherwise.
   return token === '-r' || token.startsWith('-r=') || token === '-c' || token.startsWith('-c=')
+}
+
+/** RA: name a fresh Claude launch's session so a restored pane resumes exactly it, with no hook.
+ *  Null when the command already picks a session, or claude cannot be found in command position. */
+export function withClaudeLaunchSessionId(
+  command: string,
+  sessionId: string,
+  shell: AgentStartupShell
+): string | null {
+  const tokenized = tokenizeStartupCommand(command, shell)
+  if (!tokenized.ok) {
+    return null
+  }
+  const claudeIndex = findClaudeExecutableIndex(tokenized.tokens, shell)
+  if (claudeIndex === -1) {
+    return null
+  }
+  for (let i = claudeIndex + 1; i < tokenized.tokens.length; i += 1) {
+    const token = tokenized.tokens[i]
+    if (token === '--') {
+      break
+    }
+    if (isClaudeResumeSelector(token)) {
+      return null
+    }
+  }
+  return buildClaudeResumeLaunchCommand(command, ['--session-id', sessionId], shell)
 }
 
 function isClaudeExecutableToken(token: string): boolean {
@@ -124,7 +155,11 @@ export function buildClaudeResumeLaunchCommand(
     }
     let end = spans[i].end
     const next = tokens[i + 1]
-    if ((token === '--resume' || token === '-r') && next !== undefined && !next.startsWith('-')) {
+    if (
+      (token === '--resume' || token === '-r' || token === '--session-id') &&
+      next !== undefined &&
+      !next.startsWith('-')
+    ) {
       // A stale session locator rides along with its selector.
       end = spans[i + 1].end
       i += 1

@@ -174,6 +174,7 @@ export async function prepareRuntimePtySpawn(
     }
   }
   ctx.launchCommand = hostEnv.launchCommand
+  ctx.claudeLaunchSession = hostEnv.claudeLaunchSession
   ctx.codexResumeArgvDropped = hostEnv.codexResumeLaunch.droppedResumeArgv
   ctx.codexResumeUnavailable = hostEnv.codexResumeLaunch.notifyResumeUnavailable
   ctx.env = hostEnv.env
