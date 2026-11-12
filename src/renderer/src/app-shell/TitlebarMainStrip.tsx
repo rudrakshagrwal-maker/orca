@@ -1,4 +1,3 @@
-import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { Minimize2, PanelRight } from 'lucide-react'
 import { useTranslate } from '@/i18n/use-translate'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -15,7 +14,7 @@ export function RightSidebarToggle(): React.JSX.Element | null {
   const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar)
   const rightSidebarShortcutLabel = useShortcutLabel('sidebar.right.toggle')
   // RA: source control, search and plugin panels are absent in the terminal-only fork.
-  if (backgroundJobsDisabled()) return null
+  // RA: explicit panel navigation is available without background services.
   return (
     <Tooltip>
       <TooltipTrigger asChild>

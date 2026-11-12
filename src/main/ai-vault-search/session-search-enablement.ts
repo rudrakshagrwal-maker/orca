@@ -1,7 +1,6 @@
-import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { changedAiVaultSearchSettings } from '../../shared/ai-vault/search/ai-vault-search-settings'
 import type { GlobalSettings } from '../../shared/global-settings-types'
-import { updateSessionSearchInService } from '../ai-vault/scan-service/session-scanner-service-spawn'
+import { activateAiVaultScannerService, updateSessionSearchInService } from '../ai-vault/scan-service/session-scanner-service-spawn'
 import { createChildSessionSearchService } from './session-search-child-service'
 import { installSessionSearchPolicySource } from './session-search-policy'
 import {
@@ -23,10 +22,9 @@ export function installChildSessionSearchService(args: {
   /** How a Workspace or Project scope becomes this host's own paths. */
   getScopeCatalog?: SessionSearchScopeCatalogSource
 }): { dispose(): void } | null {
-  // RA: never initialize the AI Vault scanner/indexer.
-  if (backgroundJobsDisabled()) {
-    return null
-  }
+  // RA: the composition root installs this only on first history/search use.
+  activateAiVaultScannerService()
+  if (installed) return null
   if (!isSqliteAvailable()) {
     return null
   }
@@ -35,7 +33,7 @@ export function installChildSessionSearchService(args: {
   installSessionSearchPolicySource(args.getSettings)
   installSessionSearchScopeCatalogSource(args.getScopeCatalog ?? null)
   setSessionSearchService(createChildSessionSearchService())
-  pushSessionSearchPolicy()
+  // RA: first scan/query supplies policy; registration never spawns an indexer.
   return {
     dispose: () => {
       installed = false

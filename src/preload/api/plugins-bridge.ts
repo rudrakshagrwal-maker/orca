@@ -1,3 +1,4 @@
+import { invokeRestoredFeature } from './restored-feature-invoke' // RA: first-use gate.
 import { ipcRenderer } from 'electron'
 import { subscribePluginPanelPush } from './plugin-panel-push-bridge'
 import type {
@@ -26,69 +27,69 @@ import type {
 } from '../api-types'
 
 export const pluginsApi = {
-  list: (): Promise<PluginHostListEntry[]> => ipcRenderer.invoke('plugins:list'),
-  listLanguagePacks: () => ipcRenderer.invoke('plugins:listLanguagePacks'),
-  listThemes: () => ipcRenderer.invoke('plugins:listThemes'),
-  listTerminalThemes: () => ipcRenderer.invoke('plugins:listTerminalThemes'),
-  listIconThemes: () => ipcRenderer.invoke('plugins:listIconThemes'),
-  loadIconTheme: (id) => ipcRenderer.invoke('plugins:loadIconTheme', id),
-  listSyntaxes: () => ipcRenderer.invoke('plugins:listSyntaxes'),
-  loadSyntax: (id) => ipcRenderer.invoke('plugins:loadSyntax', id),
+  list: (): Promise<PluginHostListEntry[]> => invokeRestoredFeature('plugins', 'plugins:list'),
+  listLanguagePacks: () => invokeRestoredFeature('plugins', 'plugins:listLanguagePacks'),
+  listThemes: () => invokeRestoredFeature('plugins', 'plugins:listThemes'),
+  listTerminalThemes: () => invokeRestoredFeature('plugins', 'plugins:listTerminalThemes'),
+  listIconThemes: () => invokeRestoredFeature('plugins', 'plugins:listIconThemes'),
+  loadIconTheme: (id) => invokeRestoredFeature('plugins', 'plugins:loadIconTheme', id),
+  listSyntaxes: () => invokeRestoredFeature('plugins', 'plugins:listSyntaxes'),
+  loadSyntax: (id) => invokeRestoredFeature('plugins', 'plugins:loadSyntax', id),
   consent: (args: PluginConsentRequest): Promise<PluginHostListEntry[]> =>
-    ipcRenderer.invoke('plugins:consent', args),
+    invokeRestoredFeature('plugins', 'plugins:consent', args),
   setEnabled: (args: { pluginKey: string; enabled: boolean }): Promise<PluginHostListEntry[]> =>
-    ipcRenderer.invoke('plugins:setEnabled', args),
+    invokeRestoredFeature('plugins', 'plugins:setEnabled', args),
   readPanelEntry: (args: {
     pluginKey: string
     panelId: string
     theme?: PluginFrameTheme
-  }): Promise<PluginFrameEntry | null> => ipcRenderer.invoke('plugins:readPanelEntry', args),
+  }): Promise<PluginFrameEntry | null> => invokeRestoredFeature('plugins', 'plugins:readPanelEntry', args),
   readCustomEditorEntry: (args: {
     pluginKey: string
     editorId: string
     theme?: PluginFrameTheme
-  }): Promise<PluginFrameEntry | null> => ipcRenderer.invoke('plugins:readCustomEditorEntry', args),
+  }): Promise<PluginFrameEntry | null> => invokeRestoredFeature('plugins', 'plugins:readCustomEditorEntry', args),
   readNewFileTemplate: (args: { pluginKey: string; newFileId: string }): Promise<string | null> =>
-    ipcRenderer.invoke('plugins:readNewFileTemplate', args),
+    invokeRestoredFeature('plugins', 'plugins:readNewFileTemplate', args),
   invokeCommand: (args: {
     pluginKey: string
     commandId: string
     args?: unknown
     timeoutMs?: number
-  }) => ipcRenderer.invoke('plugins:invokeCommand', args),
+  }) => invokeRestoredFeature('plugins', 'plugins:invokeCommand', args),
   panelAction: (args: {
     sessionToken: string
     action: string
     params?: unknown
-  }): Promise<PluginHostCallOutcome> => ipcRenderer.invoke('plugins:panelAction', args),
-  panelState: (args) => ipcRenderer.invoke('plugins:panelState', args),
+  }): Promise<PluginHostCallOutcome> => invokeRestoredFeature('plugins', 'plugins:panelAction', args),
+  panelState: (args) => invokeRestoredFeature('plugins', 'plugins:panelState', args),
   subscribePanelPush: subscribePluginPanelPush,
-  getSettings: (args) => ipcRenderer.invoke('plugins:getSettings', args),
-  setSetting: (args) => ipcRenderer.invoke('plugins:setSetting', args),
-  panelImage: (args) => ipcRenderer.invoke('plugins:panelImage', args),
-  resolveGitSource: (args) => ipcRenderer.invoke('plugins:resolveGitSource', args),
+  getSettings: (args) => invokeRestoredFeature('plugins', 'plugins:getSettings', args),
+  setSetting: (args) => invokeRestoredFeature('plugins', 'plugins:setSetting', args),
+  panelImage: (args) => invokeRestoredFeature('plugins', 'plugins:panelImage', args),
+  resolveGitSource: (args) => invokeRestoredFeature('plugins', 'plugins:resolveGitSource', args),
   install: (source: PluginHostInstallSource): Promise<PluginHostInstallResult> =>
-    ipcRenderer.invoke('plugins:install', source),
-  listMarketplaces: () => ipcRenderer.invoke('plugins:listMarketplaces'),
-  addMarketplace: (source) => ipcRenderer.invoke('plugins:addMarketplace', source),
-  removeMarketplace: (args) => ipcRenderer.invoke('plugins:removeMarketplace', args),
-  refreshMarketplaces: (args = {}) => ipcRenderer.invoke('plugins:refreshMarketplaces', args),
-  listMarketplacePlugins: () => ipcRenderer.invoke('plugins:listMarketplacePlugins'),
+    invokeRestoredFeature('plugins', 'plugins:install', source),
+  listMarketplaces: () => invokeRestoredFeature('plugins', 'plugins:listMarketplaces'),
+  addMarketplace: (source) => invokeRestoredFeature('plugins', 'plugins:addMarketplace', source),
+  removeMarketplace: (args) => invokeRestoredFeature('plugins', 'plugins:removeMarketplace', args),
+  refreshMarketplaces: (args = {}) => invokeRestoredFeature('plugins', 'plugins:refreshMarketplaces', args),
+  listMarketplacePlugins: () => invokeRestoredFeature('plugins', 'plugins:listMarketplacePlugins'),
   suggestForFileType: (fileType, purpose) =>
-    ipcRenderer.invoke('plugins:suggestForFileType', fileType, purpose),
-  previewMarketplacePlugin: (args) => ipcRenderer.invoke('plugins:previewMarketplacePlugin', args),
+    invokeRestoredFeature('plugins', 'plugins:suggestForFileType', fileType, purpose),
+  previewMarketplacePlugin: (args) => invokeRestoredFeature('plugins', 'plugins:previewMarketplacePlugin', args),
   installMarketplacePlugin: (preview) =>
-    ipcRenderer.invoke('plugins:installMarketplacePlugin', preview),
-  previewMarketplaceUpdate: (args) => ipcRenderer.invoke('plugins:previewMarketplaceUpdate', args),
+    invokeRestoredFeature('plugins', 'plugins:installMarketplacePlugin', preview),
+  previewMarketplaceUpdate: (args) => invokeRestoredFeature('plugins', 'plugins:previewMarketplaceUpdate', args),
   rollbackMarketplacePlugin: (args) =>
-    ipcRenderer.invoke('plugins:rollbackMarketplacePlugin', args),
-  getRollbackVersion: (args) => ipcRenderer.invoke('plugins:getRollbackVersion', args),
-  getInstalledManifest: (args) => ipcRenderer.invoke('plugins:getInstalledManifest', args),
+    invokeRestoredFeature('plugins', 'plugins:rollbackMarketplacePlugin', args),
+  getRollbackVersion: (args) => invokeRestoredFeature('plugins', 'plugins:getRollbackVersion', args),
+  getInstalledManifest: (args) => invokeRestoredFeature('plugins', 'plugins:getInstalledManifest', args),
   remove: (args: { pluginKey: string }): Promise<PluginHostListEntry[]> =>
-    ipcRenderer.invoke('plugins:remove', args),
+    invokeRestoredFeature('plugins', 'plugins:remove', args),
   getLogs: (args: { pluginKey: string }): Promise<PluginHostLogLine[]> =>
-    ipcRenderer.invoke('plugins:getLogs', args),
-  refresh: (): Promise<PluginHostListEntry[]> => ipcRenderer.invoke('plugins:refresh'),
+    invokeRestoredFeature('plugins', 'plugins:getLogs', args),
+  refresh: (): Promise<PluginHostListEntry[]> => invokeRestoredFeature('plugins', 'plugins:refresh'),
   onChanged: (callback): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, change: PluginChangeEvent): void =>
       callback(change)
@@ -106,9 +107,9 @@ export const pluginsApi = {
     }
   },
   answerViewRequest: (reply) => ipcRenderer.send(PLUGIN_VIEW_REPLY_CHANNEL, reply),
-  getAutoUpdateState: () => ipcRenderer.invoke('plugins:getAutoUpdateState'),
-  takeUpdateReviewNotices: () => ipcRenderer.invoke('plugins:takeUpdateReviewNotices'),
-  getInstallCounts: () => ipcRenderer.invoke('plugins:getInstallCounts'),
+  getAutoUpdateState: () => invokeRestoredFeature('plugins', 'plugins:getAutoUpdateState'),
+  takeUpdateReviewNotices: () => invokeRestoredFeature('plugins', 'plugins:takeUpdateReviewNotices'),
+  getInstallCounts: () => invokeRestoredFeature('plugins', 'plugins:getInstallCounts'),
   onInstallCountsChanged: (callback): (() => void) => {
     const listener = (): void => callback()
     ipcRenderer.on('plugins:installCountsChanged', listener)
@@ -116,8 +117,8 @@ export const pluginsApi = {
       ipcRenderer.removeListener('plugins:installCountsChanged', listener)
     }
   },
-  statusBarState: () => ipcRenderer.invoke('plugins:statusBarState'),
-  editorSaveHook: (event) => ipcRenderer.invoke('plugins:editorSaveHook', event),
+  statusBarState: () => invokeRestoredFeature('plugins', 'plugins:statusBarState'),
+  editorSaveHook: (event) => invokeRestoredFeature('plugins', 'plugins:editorSaveHook', event),
   onStatusBarChanged: (callback): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, overrides: PluginStatusBarOverrides) =>
       callback(overrides)

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { loadRestoredFeatureMethods } from '../runtime/rpc/methods/restored-feature-methods' // RA: same lazy providers as desktop RPC.
 import { RpcDispatcher, type DispatcherOptions } from '../runtime/rpc/dispatcher'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type { PluginRuntimeRpc } from './workers/plugin-host-workspace-method-bindings'
@@ -23,7 +24,7 @@ export function pluginRuntimeRpc(
 ): PluginRuntimeRpc {
   let dispatcher: RpcDispatcher | null = null
   return async (method, params, options = {}) => {
-    dispatcher ??= new RpcDispatcher({ runtime, methods })
+    dispatcher ??= new RpcDispatcher({ runtime, methods, loadMethods: loadRestoredFeatureMethods })
     // The dispatcher maps a throw to an error answer; keep the original so its code reaches the plugin.
     let refusal: unknown = null
     const response = await dispatcher.dispatch(

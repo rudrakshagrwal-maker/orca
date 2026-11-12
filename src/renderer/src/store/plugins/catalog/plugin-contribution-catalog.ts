@@ -1,4 +1,4 @@
-import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
+import { deferUntilPluginsOpened } from './plugin-first-use' // RA: first-use catalog.
 import { useEffect, useMemo } from 'react'
 import { create } from 'zustand'
 import { ensurePluginAutoUpdatesWatched } from '../updates/plugin-auto-updates'
@@ -65,11 +65,6 @@ export const usePluginPanelsStore = create<PluginPanelsState>()((set) => ({
   panelErrors: {},
   fetchStatus: 'idle',
   fetchPlugins: async () => {
-    // RA: retained palette/font hooks must not wake the plugin catalog.
-    if (backgroundJobsDisabled()) {
-      set({ fetchStatus: 'ready', plugins: [], panelErrors: {} })
-      return
-    }
     const generation = ++pluginListGeneration
     clearPluginListRetryTimer()
     // Older paired preload, or a browser client (no `list`): no plugins, so files open in Source.
@@ -145,7 +140,7 @@ let changeSubscriptionStarted = false
 
 /** Install startup fetch/change subscription once; safe for repeated callers. */
 export function ensurePluginPanelsLoaded(): void {
-  if (backgroundJobsDisabled()) return
+  if (deferUntilPluginsOpened(ensurePluginPanelsLoaded)) return
   const { fetchStatus, fetchPlugins } = usePluginPanelsStore.getState()
   if (fetchStatus === 'idle') {
     void fetchPlugins()

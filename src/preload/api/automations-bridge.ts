@@ -1,3 +1,4 @@
+import { invokeRestoredFeature } from './restored-feature-invoke' // RA: first-use gate.
 import type { ExecutionHostId } from '../../shared/execution-host'
 import { ipcRenderer } from 'electron'
 import type { ExternalAutomationManagerResult, PreloadApi } from '../api-types'
@@ -12,16 +13,16 @@ export const automationsApi = {
   listExternalManagerForOwner: (
     request: ScopedExternalManagerListRequest
   ): Promise<ExternalAutomationManagerResult> =>
-    ipcRenderer.invoke('automations:listExternalManagerForOwner', request),
+    invokeRestoredFeature('automations', 'automations:listExternalManagerForOwner', request),
   runExternalActionForOwner: (request: ScopedExternalManagerActionRequest): Promise<void> =>
-    ipcRenderer.invoke('automations:runExternalActionForOwner', request),
+    invokeRestoredFeature('automations', 'automations:runExternalActionForOwner', request),
   retainExternalScopes: (request: { owners: readonly AutomationOwnerRef[] }): Promise<void> =>
-    ipcRenderer.invoke('automations:retainExternalScopes', request),
+    invokeRestoredFeature('automations', 'automations:retainExternalScopes', request),
   snapshotWorkspaceName: (args: {
     workspaceId: string
     hostId: ExecutionHostId
     displayName: string
-  }): Promise<number> => ipcRenderer.invoke('automations:snapshotWorkspaceName', args),
+  }): Promise<number> => invokeRestoredFeature('automations', 'automations:snapshotWorkspaceName', args),
   onChanged: (callback: (payload: AutomationsChangedPayload) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: AutomationsChangedPayload) =>
       callback(payload)

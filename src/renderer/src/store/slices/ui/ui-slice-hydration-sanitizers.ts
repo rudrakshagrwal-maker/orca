@@ -178,7 +178,7 @@ export function sanitizeWorkspaceCleanupDismissals(
 
 export function sanitizeHydratedActiveView(value: PersistedUIState['activeView']): TopLevelView {
   // RA: old page selections cannot restore a disabled feature.
-  if (backgroundJobsDisabled() && value !== 'settings') return 'terminal'
+  if (backgroundJobsDisabled() && !['settings', 'terminal', 'tasks', 'automations'].includes(String(value))) return 'terminal'
   // Why: older data (pre-activeView) or a view a different build doesn't have falls back to terminal rather than rendering nothing.
   if (!isTopLevelView(value)) {
     return 'terminal'

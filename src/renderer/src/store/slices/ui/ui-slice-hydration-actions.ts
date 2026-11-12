@@ -130,7 +130,7 @@ export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Par
             typeof ui.sidebarAgentsHeight === 'number' && Number.isFinite(ui.sidebarAgentsHeight)
               ? Math.max(90, ui.sidebarAgentsHeight)
               : null,
-          rightSidebarOpen: typeof ui.rightSidebarOpen === 'boolean' ? ui.rightSidebarOpen : true,
+          rightSidebarOpen: typeof ui.rightSidebarOpen === 'boolean' ? ui.rightSidebarOpen : false, // RA: first run loads no panels.
           ...normalizeRightSidebarRoute(ui.rightSidebarTab, ui.rightSidebarExplorerView),
           activityBarPosition: sanitizeActivityBarPosition(ui.activityBarPosition),
           groupBy: (ui.groupBy as UISlice['groupBy'] | 'parent') === 'parent' ? 'repo' : ui.groupBy,

@@ -1,11 +1,17 @@
 import { CommitMessageAiPane } from '../source-control/CommitMessageAiPane'
 import { GitPane } from '../source-control/GitPane'
 import { GitProviderApiBudgetPane } from '../source-control/GitProviderApiBudgetPane'
-import { TasksPane } from '../tasks/TasksPane'
+import { Suspense } from 'react'
+import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
 import { SettingsSection } from '../section-layout/SettingsSection'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 import type { SettingsRenderContext } from './settings-render-context'
+
+// RA: opening General settings does not import task providers.
+const TasksPane = lazy(() =>
+  import('../tasks/TasksPane').then((module) => ({ default: module.TasksPane }))
+)
 
 export function renderGitSettingsSection(
   context: SettingsRenderContext,
@@ -71,7 +77,9 @@ export function renderTasksSettingsSection(
       searchEntries={navigation.getSectionSearchEntries('tasks')}
     >
       {view.isSectionMounted('tasks') ? (
-        <TasksPane settings={model.settings} updateSettings={model.updateSettings} />
+        <Suspense fallback={null}>
+          <TasksPane settings={model.settings} updateSettings={model.updateSettings} />
+        </Suspense>
       ) : null}
     </SettingsSection>
   )

@@ -39,6 +39,28 @@ export function installGuardedLinkProviderRegistration(terminal: Terminal): void
   let providerCount = 0
   terminal.registerLinkProvider = (provider: ILinkProvider) => {
     providerCount += 1
-    return register(guardLinkProvider(provider, `provider-${providerCount}`))
+    const guarded = guardLinkProvider(provider, `provider-${providerCount}`)
+    return register({
+      provideLinks(line, callback) {
+        // RA: hidden terminals never perform link detection, including async provider work.
+        if (linkDetectionSuspended.has(terminal)) {
+          callback(undefined)
+          return
+        }
+        guarded.provideLinks(line, (links) =>
+          callback(linkDetectionSuspended.has(terminal) ? undefined : links)
+        )
+      }
+    })
+  }
+}
+
+// RA: one bit per live terminal; no visibility observer or worker per link provider.
+const linkDetectionSuspended = new WeakSet<Terminal>()
+export function setTerminalLinkDetectionSuspended(terminal: Terminal, suspended: boolean): void {
+  if (suspended) {
+    linkDetectionSuspended.add(terminal)
+  } else {
+    linkDetectionSuspended.delete(terminal)
   }
 }

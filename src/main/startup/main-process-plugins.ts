@@ -54,10 +54,7 @@ const PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS = 60_000
 const PLUGIN_MARKETPLACE_SEED_STARTUP_DELAY_MS = 15_000
 
 export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService): Promise<void> {
-  // RA: no marketplace, kill-list, install counts, plugin workers or periodic remote fetches.
-  if (backgroundJobsDisabled()) {
-    return
-  }
+  // RA: called only by the first-use gate; periodic remote collection remains disabled.
   const store = state.store
   const keybindings = state.keybindings
   if (!store || !keybindings) {
@@ -92,7 +89,7 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     hostVersion: pluginHostVersion(app.getVersion())
   })
   const requestOfficialMarketplaceSeed = (): void => {
-    if (store.getSettings().pluginSystemEnabled !== true) {
+    if (backgroundJobsDisabled() || store.getSettings().pluginSystemEnabled !== true) {
       return
     }
     void state.pluginMarketplaceService
@@ -172,7 +169,7 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     isKillListed: (pluginKey) => Boolean(state.pluginKillListService?.find(pluginKey))
   })
   // Why packaged only (like the safety list): dev and e2e runs must not update fixtures unasked.
-  const autoUpdateScheduled = app.isPackaged || process.env.ORCA_PLUGIN_AUTO_UPDATE === '1'
+  const autoUpdateScheduled = !backgroundJobsDisabled() && (app.isPackaged || process.env.ORCA_PLUGIN_AUTO_UPDATE === '1')
   const syncPluginAutoUpdate = (runNow: boolean): void => {
     if (!autoUpdateScheduled) {
       return
@@ -227,14 +224,14 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
       requestBundledPluginBootstrap()
       requestOfficialMarketplaceSeed()
     }
-    if (app.isPackaged && updates.pluginSystemEnabled === true) {
+    if (!backgroundJobsDisabled() && app.isPackaged && updates.pluginSystemEnabled === true) {
       void state.pluginKillListService
         ?.refresh()
         .catch((error) =>
           console.warn('[plugins] failed to refresh plugin safety list; using cached state:', error)
         )
     }
-    if (app.isPackaged && updates.pluginSystemEnabled !== undefined) {
+    if (!backgroundJobsDisabled() && app.isPackaged && updates.pluginSystemEnabled !== undefined) {
       state.pluginKillListService?.syncPeriodicRefresh(updates.pluginSystemEnabled === true)
     }
     if (updates.pluginSystemEnabled !== undefined || updates.pluginUpdatePolicy !== undefined) {
@@ -263,10 +260,12 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
         installedPlugins: state.pluginService?.getDiscovered().length ?? 0
       })
       // Why delayed: catalog fetches and git checkouts must not compete with startup.
-      setTimeout(() => syncPluginAutoUpdate(true), PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS).unref?.()
+      if (!backgroundJobsDisabled()) {
+        setTimeout(() => syncPluginAutoUpdate(true), PLUGIN_AUTO_UPDATE_STARTUP_DELAY_MS).unref?.()
+      }
     })
     .catch((error) => console.warn('[plugins] failed to initialize plugin service:', error))
-  if (app.isPackaged && store.getSettings().pluginSystemEnabled === true) {
+  if (!backgroundJobsDisabled() && app.isPackaged && store.getSettings().pluginSystemEnabled === true) {
     void state.pluginKillListService
       .refresh()
       .catch((error) =>
@@ -295,11 +294,11 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     }
   })
   requestBundledPluginBootstrap()
-  setTimeout(() => {
-    if (net.isOnline()) {
-      requestOfficialMarketplaceSeed()
-    }
-  }, PLUGIN_MARKETPLACE_SEED_STARTUP_DELAY_MS).unref?.()
+  if (!backgroundJobsDisabled()) {
+    setTimeout(() => {
+      if (net.isOnline()) requestOfficialMarketplaceSeed()
+    }, PLUGIN_MARKETPLACE_SEED_STARTUP_DELAY_MS).unref?.()
+  }
   // Filter hook/worktree events server-side by each plugin subscription.
   const forwardAgentStatus = createPluginAgentStatusForwarder(pluginDelegate, pluginService)
   agentHookServer.subscribeEnrichedStatus((enriched) => {

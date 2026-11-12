@@ -1,4 +1,5 @@
-import { GitGraphTab } from './git-graph/git-graph-tab'
+import { backgroundJobsDisabled } from '../../../../shared/fork-background-policy'
+import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
 import { useAppStore } from '@/store'
 import type { ActivePluginCustomEditor } from '@/store/plugins/file-editors/plugin-custom-editors'
 import type { MarkdownViewMode, OpenFile } from '@/store/slices/editor/types/open-file'
@@ -21,6 +22,8 @@ import type { MarkdownRenderState } from './markdown/render-mode/markdown-render
 
 // Retry is a user act: it may start a stopped WSL distro.
 const USER_RETRY = { wakeWslDistro: true }
+// RA: restoring the editor must not import or reopen the cut graph renderer.
+const GitGraphTab = lazy(() => import('./git-graph/git-graph-tab').then((module) => ({ default: module.GitGraphTab })))
 
 const noopCloseMarkdownTableOfContents = (): void => {}
 
@@ -135,7 +138,7 @@ export function EditorContent({
       activeFile.diffSource === 'combined-commit')
 
   if (activeFile.mode === 'git-graph') {
-    return <GitGraphTab key={activeFile.worktreeId} worktreeId={activeFile.worktreeId} />
+    return backgroundJobsDisabled() ? <></> : <GitGraphTab key={activeFile.worktreeId} worktreeId={activeFile.worktreeId} />
   }
 
   if (activeFile.mode === 'check-details') {

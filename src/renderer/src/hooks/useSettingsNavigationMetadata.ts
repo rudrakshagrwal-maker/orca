@@ -117,9 +117,9 @@ export function buildSettingsNavigationMetadata(
     ...buildRemoteSettingsSections(options, runtimeEnvironmentsSearchEntry, reposById, t)
   ].filter(
     (section) =>
-      !['privacy', 'plugins', 'orca-account', 'mobile', 'setup-guide'].includes(section.id) &&
-      // RA: settings retain terminal, launch, host and orchestration controls only.
-      (!backgroundJobsDisabled() || ['agents', 'orchestration', 'general', 'terminal', 'quick-commands', 'appearance', 'shortcuts', 'ssh', 'servers'].includes(section.id) || section.id.startsWith('repo-'))
+      !['privacy', 'orca-account', 'mobile', 'setup-guide'].includes(section.id) &&
+      // RA: restored features expose only their own settings, with the remaining cuts preserved.
+      (!backgroundJobsDisabled() || ['plugins', 'tasks', 'git', 'automations', 'session-history', 'agents', 'orchestration', 'general', 'terminal', 'quick-commands', 'appearance', 'shortcuts', 'ssh', 'servers'].includes(section.id) || section.id.startsWith('repo-'))
   )
 }
 

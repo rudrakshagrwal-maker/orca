@@ -112,7 +112,7 @@ export function createUiViewActions(set: UISliceSet, get: UISliceGet): Partial<U
     // RA: stop disabled page routes before they open windows or load feature bundles.
     ...(backgroundJobsDisabled() ? {
       openActivityPage: () => {},
-      openAutomationsPage: () => {},
+      // RA: automations retain their explicit, lazy page action.
       openSpacePage: () => {},
       openSkillsPage: () => {},
       openSkillShare: () => {},

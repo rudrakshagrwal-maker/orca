@@ -16,7 +16,6 @@ import {
 } from './terminal-input/terminal-linkifier-hover-reset-on-mouseleave'
 import { installTerminalLinkifierHoverResetOnWrite } from './terminal-input/terminal-linkifier-hover-reset-on-write'
 import { attachDomRendererFocusClassSync } from './pane-focus/pane-dom-focus-class-sync'
-import { attachDomBlockFill } from './terminal-rendering/terminal-dom-block-fill'
 import {
   attachWebgl,
   cancelPendingWebglRefresh,
@@ -92,7 +91,7 @@ export function openTerminal(
   pane.compositionHandler = installTerminalImeCandidateAnchor(terminal)
 
   pane.focusClassSyncCleanup = attachDomRendererFocusClassSync(terminal.element)
-  pane.domBlockFillCleanup = attachDomBlockFill(terminal)
+  // RA: no per-pane block-fill decoration overlay; xterm owns cursor and selection.
 
   // Configure the first atlas with ligatures instead of immediately rebuilding it.
   if (ligatures) {

@@ -1,3 +1,4 @@
+import { invokeRestoredFeature } from './restored-feature-invoke' // RA: first-use gate.
 import { createSessionSearchClient } from '../../shared/ai-vault/search/ai-vault-search-client'
 import type {
   AiVaultSearchRequest,
@@ -30,8 +31,8 @@ function searchClient(
   return createSessionSearchClient(
     (method, params) =>
       method === 'aiVault.searchSessions'
-        ? ipcRenderer.invoke('aiVault:searchSessions', params, executionHostScope)
-        : ipcRenderer.invoke('aiVault:searchStatus', executionHostScope),
+        ? invokeRestoredFeature('session-search', 'aiVault:searchSessions', params, executionHostScope)
+        : invokeRestoredFeature('session-search', 'aiVault:searchStatus', executionHostScope),
     'ipc'
   )
 }
@@ -45,9 +46,9 @@ export const aiVaultApi = {
     executionHostId: ExecutionHostId,
     enabled: boolean
   ): Promise<AiVaultSearchStatus> =>
-    ipcRenderer.invoke('aiVault:setSearchEnabled', executionHostId, enabled),
-  clearSearchIndex: (): Promise<void> => ipcRenderer.invoke('aiVault:clearSearchIndex'),
-  listSessions: (args?: AiVaultListArgs) => ipcRenderer.invoke('aiVault:listSessions', args),
+    invokeRestoredFeature('session-search', 'aiVault:setSearchEnabled', executionHostId, enabled),
+  clearSearchIndex: (): Promise<void> => invokeRestoredFeature('session-search', 'aiVault:clearSearchIndex'),
+  listSessions: (args?: AiVaultListArgs) => invokeRestoredFeature('session-search', 'aiVault:listSessions', args),
   resolveSessionTitles: (args: AiVaultSessionTitlesArgs) =>
     ipcRenderer.invoke('aiVault:resolveSessionTitles', args),
   cancelListSessions: (args: { requestToken: string }): Promise<void> =>

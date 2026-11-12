@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { deferUntilPluginsOpened } from './plugin-first-use' // RA: no ambient discovery.
 import { create } from 'zustand'
 import type { PluginsApi } from '../../../../../preload/api/plugin-host-api'
 import { structuralValuesEqual } from '../../../../../shared/structural-value-equality'
@@ -80,6 +81,7 @@ export function createPluginContentListStore<Entry extends { id: string }>(optio
   }
 
   function ensureLoaded(): void {
+    if (deferUntilPluginsOpened(ensureLoaded)) return
     const state = useStore.getState()
     const joinable =
       latestRequestStartedAt !== null &&

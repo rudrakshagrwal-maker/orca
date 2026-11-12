@@ -1,4 +1,3 @@
-import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { SYNC_FIT_PANES_EVENT } from '@/constants/terminal'
@@ -20,8 +19,8 @@ export type AppChromeLayout = ReturnType<typeof useAppChromeLayout>
 export function useAppChromeLayout() {
   const activeView = useAppStore((s) => s.activeView)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
-  // RA: disabled panels reserve no space, including after old saved UI state hydrates.
-  const rightSidebarOpen = useAppStore((s) => !backgroundJobsDisabled() && s.rightSidebarOpen)
+  // RA: restored panels reserve space only while explicitly open.
+  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen)
   const rightSidebarTab = useAppStore((s) => s.rightSidebarTab)
   const rightSidebarExplorerView = useAppStore((s) => s.rightSidebarExplorerView)
   const isFullScreen = useAppStore((s) => s.isFullScreen)
@@ -126,7 +125,7 @@ export function useAppChromeLayout() {
     shouldMountTerminalWorkbench,
     showSidebar,
     // Keep the pending composer in the same viewport as the workspace it hands off to.
-    showRightSidebarControls: !backgroundJobsDisabled() && canShowRightSidebarForView(activeView),
+    showRightSidebarControls: canShowRightSidebarForView(activeView),
     showTitlebarAppName: settings?.showTitlebarAppName !== false,
     showTitlebarExpandButton: workspaceChromeActive && !hasTabBar && effectiveActiveTabExpanded,
     sidebarOpen,

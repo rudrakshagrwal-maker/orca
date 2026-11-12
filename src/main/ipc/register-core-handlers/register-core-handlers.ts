@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { registerRestoredFeatureActivation } from '../../startup/restored-feature-activation' // RA: inert first-use IPC.
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
 import { registerWslMoveWiring } from '../wsl/wsl-move-driver-wiring'
@@ -132,6 +133,7 @@ export function registerCoreHandlers(
     return
   }
   registered = true
+  registerRestoredFeatureActivation()
 
   registerAppHandlers(store, {
     quitResumeRecordsFor: (session) => runtime.quitResumeRecordsFor(session),

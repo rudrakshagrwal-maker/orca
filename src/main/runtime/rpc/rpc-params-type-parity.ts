@@ -4,8 +4,9 @@ import type {
 } from '../../../shared/rpc-contract/rpc-params-catalog.generated'
 import type { RpcAnyMethodDeclaration } from './core'
 import type { ALL_RPC_METHODS } from './methods/rpc-method-registry'
+import type { RestoredRpcDeclaration } from './methods/restored-feature-methods'
 
-type RegisteredMethod = (typeof ALL_RPC_METHODS)[number]
+type RegisteredMethod = (typeof ALL_RPC_METHODS)[number] | RestoredRpcDeclaration // RA: lazy groups retain schema parity.
 
 // These schemas reach into src/main and have no shared catalog entry.
 // RA: the emulator RPC group is cut from the fork registry.

@@ -94,7 +94,8 @@ export function bindLiveDataCallback(session: ConnectPanePtySession): void {
           executionHostId: session.transport.getExecutionHostId?.() ?? undefined
         })
       }
-      session.commandLifecycle.handlePtyData(data)
+      // RA: main retains shell facts; hidden renderers perform no shell-integration scan.
+      if (session.deps.isVisibleRef.current) session.commandLifecycle.handlePtyData(data)
     }
     session.commandCodeOutputStatusDetector?.observe(data)
     const codexBackfillNotice = session.codexBackfillErrorDetector?.observe(data)

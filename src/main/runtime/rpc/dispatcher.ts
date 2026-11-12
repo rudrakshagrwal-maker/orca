@@ -40,6 +40,8 @@ export type DispatcherOptions = {
   methods: readonly RpcAnyMethodDeclaration[]
   /** Pins every call to this scope, for in-process bridges that relay a non-owner caller. */
   callerScope?: RpcCallerScope
+  // RA: only production composition roots opt into restored lazy provider methods.
+  loadMethods?: (name: string) => Promise<readonly RpcAnyMethodDeclaration[]>
 }
 
 type AdmittedUnaryCall = {
@@ -51,14 +53,16 @@ type AdmittedUnaryCall = {
 
 export class RpcDispatcher {
   private readonly runtime: OrcaRuntimeService
-  private readonly registry: RpcRegistry
+  private registry: RpcRegistry
+  private readonly loadMethods: DispatcherOptions['loadMethods']
   private readonly orchestrationMutations: OrchestrationMutationExecutor
   private readonly legacyOrchestration: OrchestrationLegacyCompatibility
   private readonly pinnedCallerScope: RpcCallerScope | undefined
 
-  constructor({ runtime, methods, callerScope }: DispatcherOptions) {
+  constructor({ runtime, methods, callerScope, loadMethods }: DispatcherOptions) {
     this.runtime = runtime
     this.pinnedCallerScope = callerScope
+    this.loadMethods = loadMethods
     this.registry = buildRegistry(withoutMethodsThisHostDoesNotServe(methods))
     this.orchestrationMutations = getOrchestrationMutationExecutor(runtime)
     this.legacyOrchestration = new OrchestrationLegacyCompatibility(runtime)
@@ -188,6 +192,16 @@ export class RpcDispatcher {
     meta: RpcEnvelopeMeta,
     isTransportSupported: (method: RpcMethod | RpcStreamingMethod) => method is M
   ) {
+    if (!this.registry.has(request.method) && this.loadMethods) {
+      return this.loadMethods(request.method).then((methods) => {
+        // RA: merge after await so simultaneous first requests cannot discard another group.
+        this.registry = new Map([...this.registry, ...buildRegistry(methods)])
+        return admitRpcRequest(
+          { runtime: this.runtime, registry: this.registry, meta, pinnedCallerScope: this.pinnedCallerScope },
+          request, options, isTransportSupported
+        )
+      }, (error) => ({ rejected: mapDispatcherError(request, meta, error) }))
+    }
     return admitRpcRequest(
       {
         runtime: this.runtime,

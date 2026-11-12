@@ -94,12 +94,13 @@ function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element 
   return (
     <>
       {activeView === 'settings' ? <Settings /> : null}
+      {/* RA: only explicit restored pages may load their bundles. */}
+      {activeView === 'tasks' ? <TaskPage /> : null}
+      {activeView === 'automations' ? <AutomationsPage /> : null}
       {!backgroundJobsDisabled() ? (
         <>
         {activeView === 'skills' ? <SkillsPage /> : null}
         {activeView === 'artifacts' ? <ArtifactsPage /> : null}
-        {activeView === 'tasks' ? <TaskPage /> : null}
-        {activeView === 'automations' ? <AutomationsPage /> : null}
         {activeView === 'activity' ? <ActivityPrototypePage /> : null}
         {activeView === 'space' ? <WorkspaceSpacePage /> : null}
         {activeView === 'mobile' ? <MobilePage /> : null}
@@ -270,7 +271,7 @@ export function AppWorkspaceShell(props: {
           </div>
         </div>
         {/* Retain the shell for stable layout while heavy panels disconnect; tasks can unmount it. */}
-        {!backgroundJobsDisabled() && layout.showRightSidebarControls ? (
+        {layout.showRightSidebarControls && layout.rightSidebarOpen ? (
           <RecoverableRenderErrorBoundary
             boundaryId="right-sidebar"
             surface="right-sidebar"
@@ -285,7 +286,7 @@ export function AppWorkspaceShell(props: {
               'Retry the sidebar or switch tabs to reload this surface.'
             )}
           >
-            <RightSidebar />
+            <Suspense fallback={null}><RightSidebar /></Suspense>
           </RecoverableRenderErrorBoundary>
         ) : null}
       </div>

@@ -15,6 +15,7 @@ import { openTerminal } from './pane-lifecycle'
 import { createPaneDOM } from '@/lib/pane-manager/pane-dom-creation'
 import { shouldFollowMouseFocus } from './pane-focus/focus-follows-mouse'
 import { toPublicPane } from './pane-public-view'
+import { setTerminalLinkDetectionSuspended } from './terminal-input/terminal-link-provider-guard'
 
 export function applyManagedPaneStyles(host: PaneManagerHost): void {
   applyPaneOpacity(host.panes.values(), host.getActivePaneId(), host.getStyleOptions())
@@ -93,6 +94,7 @@ export function createManagedPaneInternal(
   )
   // A pane mounted behind a hidden surface defers WebGL, so its DOM blink stays focus-gated and needs no suspension.
   pane.webglAttachmentDeferred = host.isRenderingSuspended()
+  setTerminalLinkDetectionSuspended(pane.terminal, host.isRenderingSuspended()) // RA: hidden at birth.
   host.panes.set(id, pane)
   host.identities.register(id, leafId)
   return pane

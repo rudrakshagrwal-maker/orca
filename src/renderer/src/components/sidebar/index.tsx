@@ -36,7 +36,7 @@ const ForgetSshWorkspaceDialog = lazyWithRetry(
   () => import('./workspace-actions/deletion/ForgetSshWorkspaceDialog')
 )
 const AgentDashboardSidebarHost = lazyWithRetry(() => import('./AgentDashboardSidebarHost'))
-// RA: board rendering is not part of the terminal/workspace card shell.
+// RA: the board bundle loads only when its drawer is opened.
 const WorkspaceKanbanDrawer = lazyWithRetry(() => import('./workspace-board/surface/WorkspaceKanbanDrawer'))
 
 const MIN_WIDTH = 220
@@ -230,7 +230,7 @@ function Sidebar({
         {activeModal === 'confirm-orca-yaml-hooks' ? <OrcaYamlTrustDialog /> : null}
         {activeModal === 'forget-ssh-workspace' ? <ForgetSshWorkspaceDialog /> : null}
       </React.Suspense>
-      {!backgroundJobsDisabled() && sidebarOpen ? (
+      {sidebarOpen && workspaceBoardRenderedOpen ? (
         <React.Suspense fallback={null}>
         <WorkspaceKanbanDrawer
           leftSidebarStyle={leftSidebarStyle}

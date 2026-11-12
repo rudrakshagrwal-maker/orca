@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../../../../../shared/fork-background-policy'
 import { useEffect, useState } from 'react'
 import { SquareArrowOutUpRight } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -13,7 +14,12 @@ import { toSourceControlRowOpenEvent, type SourceControlRowOpenEvent } from '../
 import { useTranslate } from '@/i18n/use-translate'
 import { CommitsHeaderIconButton } from './commits-header-icon-button'
 
-export function GitGraphOpenButton({
+// RA: keep the graph control and capability probe out of restored source control.
+export function GitGraphOpenButton(props: Parameters<typeof EnabledGitGraphOpenButton>[0]) {
+  return backgroundJobsDisabled() ? null : <EnabledGitGraphOpenButton {...props} />
+}
+
+function EnabledGitGraphOpenButton({
   worktreeId,
   onOpen
 }: {

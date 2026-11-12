@@ -27,7 +27,7 @@ export function createUiTaskActions(set: UISliceSet, get: UISliceGet): Partial<U
     previousViewBeforeMobile: 'terminal',
     previousViewBeforeArtifacts: 'terminal',
     // RA: keyboard/history routes only select surfaces present in this build.
-    setActiveView: (view) => set({ activeView: backgroundJobsDisabled() && view !== 'settings' ? 'terminal' : view }),
+    setActiveView: (view) => set({ activeView: backgroundJobsDisabled() && !['settings', 'terminal', 'tasks', 'automations'].includes(view) ? 'terminal' : view }),
     taskPageData: {},
     taskResumeState: undefined,
     taskListPosition: null,
@@ -35,7 +35,7 @@ export function createUiTaskActions(set: UISliceSet, get: UISliceGet): Partial<U
     newWorkspaceDraft: null,
     openTaskPage: (data = {}, options = {}) => {
       // RA: stop before provider prefetch, including task shortcuts and deep links.
-      if (backgroundJobsDisabled()) return
+      // RA: task provider prefetch begins only on explicit board navigation.
       if (options.recordTasksInteraction !== false) {
         const wasTasksPreviouslyInteracted = hasFeatureInteraction(
           get().featureInteractions,

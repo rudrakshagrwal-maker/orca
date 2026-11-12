@@ -1,4 +1,5 @@
 import type { ManagedPaneInternal } from '../pane-manager-types'
+import { setTerminalLinkDetectionSuspended } from '../terminal-input/terminal-link-provider-guard'
 import {
   resumeTerminalCursorBlink,
   suspendTerminalCursorBlink
@@ -69,6 +70,7 @@ export function suspendPaneRendering(
   const suspended = Array.from(panes)
   // Blur both suspension branches: opacity:0 startup probes can retain focus even though display:none/inert normally blur and disposal stops blink.
   for (const pane of suspended) {
+    setTerminalLinkDetectionSuspended(pane.terminal, true) // RA: pause hidden link work immediately.
     pane.webglAttachmentDeferred = true
     pane.terminal.blur()
     // Live WebGL needs blink suspension; DOM blink stops on blur without rewriting xterm's stylesheet.
@@ -93,6 +95,7 @@ export function resumePaneRendering(
     releaseHiddenWebglRetention(retentionOwner)
   }
   for (const pane of panes) {
+    setTerminalLinkDetectionSuspended(pane.terminal, false) // RA: resume only with the visible renderer.
     clearTerminalWebglAttachBackoff(pane)
     // Restore blink before constructing WebGL so its first frame samples the right option.
     resumeTerminalCursorBlink(pane.terminal)

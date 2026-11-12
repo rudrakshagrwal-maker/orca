@@ -1,30 +1,30 @@
-import { ipcRenderer } from 'electron'
+import { invokeRestoredFeature } from './restored-feature-invoke' // RA: first-use gate.
 import type { LinearProjectDetail } from '../../shared/linear/project-types'
 import type { PreloadApi } from '../api-types'
 
 export const linearApi = {
-  connect: (args: { apiKey: string }) => ipcRenderer.invoke('linear:connect', args),
+  connect: (args: { apiKey: string }) => invokeRestoredFeature('task-providers', 'linear:connect', args),
 
   disconnect: (args?: { workspaceId?: string }): Promise<void> =>
-    ipcRenderer.invoke('linear:disconnect', args),
+    invokeRestoredFeature('task-providers', 'linear:disconnect', args),
 
   selectWorkspace: (args: { workspaceId: string }) =>
-    ipcRenderer.invoke('linear:selectWorkspace', args),
+    invokeRestoredFeature('task-providers', 'linear:selectWorkspace', args),
 
-  status: () => ipcRenderer.invoke('linear:status'),
+  status: () => invokeRestoredFeature('task-providers', 'linear:status'),
 
   testConnection: (args?: { workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:testConnection', args),
+    invokeRestoredFeature('task-providers', 'linear:testConnection', args),
 
   searchIssues: (args: { query: string; limit?: number; workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:searchIssues', args),
+    invokeRestoredFeature('task-providers', 'linear:searchIssues', args),
 
   listIssues: (args?: {
     filter?: 'assigned' | 'created' | 'all' | 'completed'
     limit?: number
     workspaceId?: string
     attributeFilter?: unknown
-  }) => ipcRenderer.invoke('linear:listIssues', args),
+  }) => invokeRestoredFeature('task-providers', 'linear:listIssues', args),
 
   createIssue: (args: {
     teamId: string
@@ -40,36 +40,36 @@ export const linearApi = {
   }): Promise<
     | { ok: true; id: string; identifier: string; title: string; url: string }
     | { ok: false; error: string }
-  > => ipcRenderer.invoke('linear:createIssue', args),
+  > => invokeRestoredFeature('task-providers', 'linear:createIssue', args),
 
   getIssue: (args: { id: string; workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:getIssue', args),
+    invokeRestoredFeature('task-providers', 'linear:getIssue', args),
 
   updateIssue: (args: {
     id: string
     updates: unknown
     workspaceId?: string
   }): Promise<{ ok: true } | { ok: false; error: string }> =>
-    ipcRenderer.invoke('linear:updateIssue', args),
+    invokeRestoredFeature('task-providers', 'linear:updateIssue', args),
 
   addIssueComment: (args: {
     issueId: string
     body: string
     workspaceId?: string
   }): Promise<{ ok: true; id: string } | { ok: false; error: string }> =>
-    ipcRenderer.invoke('linear:addIssueComment', args),
+    invokeRestoredFeature('task-providers', 'linear:addIssueComment', args),
 
   issueComments: (args: { issueId: string; workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:issueComments', args),
+    invokeRestoredFeature('task-providers', 'linear:issueComments', args),
 
-  listTeams: (args?: { workspaceId?: string }) => ipcRenderer.invoke('linear:listTeams', args),
+  listTeams: (args?: { workspaceId?: string }) => invokeRestoredFeature('task-providers', 'linear:listTeams', args),
 
   listProjects: (args?: {
     query?: string
     limit?: number
     workspaceId?: string
     force?: boolean
-  }) => ipcRenderer.invoke('linear:listProjects', args),
+  }) => invokeRestoredFeature('task-providers', 'linear:listProjects', args),
 
   createProject: (args: {
     name: string
@@ -84,48 +84,48 @@ export const linearApi = {
     startDate?: string
     targetDate?: string
   }): Promise<{ ok: true; project: LinearProjectDetail } | { ok: false; error: string }> =>
-    ipcRenderer.invoke('linear:createProject', args),
+    invokeRestoredFeature('task-providers', 'linear:createProject', args),
 
   getProject: (args: { id: string; workspaceId: string; force?: boolean }) =>
-    ipcRenderer.invoke('linear:getProject', args),
+    invokeRestoredFeature('task-providers', 'linear:getProject', args),
 
   listProjectIssues: (args: {
     projectId: string
     limit?: number
     workspaceId: string
     force?: boolean
-  }) => ipcRenderer.invoke('linear:listProjectIssues', args),
+  }) => invokeRestoredFeature('task-providers', 'linear:listProjectIssues', args),
 
   listCustomViews: (args: {
     model: string
     limit?: number
     workspaceId?: string
     force?: boolean
-  }) => ipcRenderer.invoke('linear:listCustomViews', args),
+  }) => invokeRestoredFeature('task-providers', 'linear:listCustomViews', args),
 
   getCustomView: (args: { viewId: string; model: string; workspaceId: string; force?: boolean }) =>
-    ipcRenderer.invoke('linear:getCustomView', args),
+    invokeRestoredFeature('task-providers', 'linear:getCustomView', args),
 
   listCustomViewIssues: (args: {
     viewId: string
     limit?: number
     workspaceId: string
     force?: boolean
-  }) => ipcRenderer.invoke('linear:listCustomViewIssues', args),
+  }) => invokeRestoredFeature('task-providers', 'linear:listCustomViewIssues', args),
 
   listCustomViewProjects: (args: {
     viewId: string
     limit?: number
     workspaceId: string
     force?: boolean
-  }) => ipcRenderer.invoke('linear:listCustomViewProjects', args),
+  }) => invokeRestoredFeature('task-providers', 'linear:listCustomViewProjects', args),
 
   teamStates: (args: { teamId: string; workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:teamStates', args),
+    invokeRestoredFeature('task-providers', 'linear:teamStates', args),
 
   teamLabels: (args: { teamId: string; workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:teamLabels', args),
+    invokeRestoredFeature('task-providers', 'linear:teamLabels', args),
 
   teamMembers: (args: { teamId: string; workspaceId?: string }) =>
-    ipcRenderer.invoke('linear:teamMembers', args)
+    invokeRestoredFeature('task-providers', 'linear:teamMembers', args)
 } satisfies PreloadApi['linear']

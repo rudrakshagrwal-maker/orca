@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { captureWorktreeOperationGenerationSnapshot } from '../../workspace/ownership/worktree-operation-generation'
@@ -122,6 +123,8 @@ export async function openGitGraph(
   // Lazy so a split is created only when a new tab actually opens.
   resolveTargetGroupId?: () => string | undefined
 ): Promise<void> {
+  // RA: source control/editor restoration does not restore Git Graph.
+  if (backgroundJobsDisabled()) return
   const supported = await probeGitGraphSupport(worktreeId)
   if (!supported) {
     return

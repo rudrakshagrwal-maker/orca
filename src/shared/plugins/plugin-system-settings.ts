@@ -1,4 +1,3 @@
-import { backgroundJobsDisabled } from '../fork-background-policy'
 /** The plugin system's switches, approvals and dev paths, composed into GlobalSettings. */
 export type PluginSystemSettings = {
   /** Master switch for the plugin system. RA: off by default; false means no
@@ -31,10 +30,7 @@ type PluginSystemDefaultOnSettings = Pick<
 export function normalizePluginSystemEnabledDefaultOn(
   settings: Partial<PluginSystemDefaultOnSettings> | undefined
 ): Required<PluginSystemDefaultOnSettings> {
-  // RA: preserve agent configuration across every direct entry point.
-  if (backgroundJobsDisabled()) {
-    return { pluginSystemEnabled: false, pluginSystemDefaultedOn: true }
-  }
+  // RA: keep explicit opt-in while first-use gates prevent startup discovery/workers.
   return {
     // RA: Missing or legacy settings must not enable marketplace fetches on startup.
     pluginSystemEnabled: settings?.pluginSystemEnabled === true,

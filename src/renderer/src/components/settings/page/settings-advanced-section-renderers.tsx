@@ -1,11 +1,17 @@
 import { lazy, Suspense } from 'react'
 import { AdvancedPane } from '../advanced/AdvancedPane'
 import { ExperimentalPane } from '../advanced/ExperimentalPane'
-import { PluginsSettingsSection } from '../../plugins/list/PluginsSettingsSection'
 import { SettingsSection } from '../section-layout/SettingsSection'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 import type { SettingsRenderContext } from './settings-render-context'
+
+// RA: plugin settings and store chunks remain absent until selected.
+const PluginsSettingsSection = lazy(() =>
+  import('../../plugins/list/PluginsSettingsSection').then((module) => ({
+    default: module.PluginsSettingsSection
+  }))
+)
 
 const DevToolsPane = import.meta.env.DEV
   ? lazy(() =>
@@ -98,11 +104,13 @@ export function renderPluginsSettingsSection(
   context: SettingsRenderContext
 ): React.JSX.Element | null {
   const { model, view } = context
-  return model.showDesktopOnlySettings ? (
-    <PluginsSettingsSection
-      mounted={view.isSectionMounted('plugins')}
-      settings={model.settings}
-      updateSettings={model.updateSettingsOrThrow}
-    />
+  return model.showDesktopOnlySettings && view.isSectionMounted('plugins') ? (
+    <Suspense fallback={null}>
+      <PluginsSettingsSection
+        mounted={view.isSectionMounted('plugins')}
+        settings={model.settings}
+        updateSettings={model.updateSettingsOrThrow}
+      />
+    </Suspense>
   ) : null
 }

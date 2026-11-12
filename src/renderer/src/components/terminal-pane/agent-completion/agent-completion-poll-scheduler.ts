@@ -1,4 +1,5 @@
 import type { AgentCompletionCoordinatorOptions } from './agent-completion-coordinator-types'
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import type { InspectionPriority } from './process-inspection/agent-process-inspection-queue'
 import type { PendingTitleController } from './agent-completion-pending-title'
 import type { ProcessMonitorState } from './agent-completion-process-types'
@@ -27,6 +28,8 @@ export function createAgentCompletionPollScheduler(args: {
   }
 
   function shouldRunCadenceInspection(): boolean {
+    // RA: terminal identity follows PTY/hook events, never per-pane status polling.
+    if (backgroundJobsDisabled() || options.shouldPollProcessCadence?.() === false) return false
     const ptyId = options.getPtyId()
     if (ptyId && options.isRemotePtyId?.(ptyId) === true) {
       return false
@@ -67,6 +70,10 @@ export function createAgentCompletionPollScheduler(args: {
   }
 
   function scheduleNextPoll(): void {
+    if (!shouldRunCadenceInspection()) {
+      clearPollTimer()
+      return
+    }
     if (state.disposed || !state.pollTrackingStarted || !options.isLive() || pendingTitle.get()) {
       return
     }

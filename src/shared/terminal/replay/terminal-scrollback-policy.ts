@@ -1,8 +1,8 @@
-export const DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT = 5_000
+export const DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT = 1_000 // RA: VS Code default; user setting stays editable.
 export const DESKTOP_TERMINAL_SCROLLBACK_ROWS_MIN = 1_000
 // RA: clamp restored settings too, so older profiles cannot retain 50,000 rows per tab.
 export const DESKTOP_TERMINAL_SCROLLBACK_ROWS_MAX = 5_000
-export const DESKTOP_TERMINAL_SCROLLBACK_ROW_PRESETS = [5_000] as const
+export const DESKTOP_TERMINAL_SCROLLBACK_ROW_PRESETS = [1_000, 2_000, 5_000] as const
 
 export const LEGACY_TERMINAL_SCROLLBACK_BYTES_1_MB = 1_000_000
 
