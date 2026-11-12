@@ -461,7 +461,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       )
       const confirmRead = createDeferred<string>()
       vi.mocked(window.api.pty.confirmForegroundProcess).mockReturnValue(confirmRead.promise)
-      const dataCallbackRef: { current: ((data: string) => void) | null } = { current: null }
+      const dataCallbackRef: { current: ConnectCallbacks['onData'] | null } = { current: null }
       const ptyId = 'pty-stale-mode-queued-output'
       const transport = createMockTransport(ptyId)
       transport.connect.mockImplementation(
@@ -490,8 +490,8 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       await flushAsyncTicks()
       expect(window.api.pty.confirmForegroundProcess).toHaveBeenCalled()
 
-      // Hidden-pane output sits in the background queue when the shell proof lands.
-      dataCallbackRef.current?.('\x1b[>5u')
+      // RA: background delivery queues output while the visible shell confirmation is pending.
+      dataCallbackRef.current?.('\x1b[>5u', { background: true })
       expect(writes.some((w) => w.includes('\x1b[>5u'))).toBe(false)
       confirmRead.resolve('bash')
       await flushAsyncTicks()

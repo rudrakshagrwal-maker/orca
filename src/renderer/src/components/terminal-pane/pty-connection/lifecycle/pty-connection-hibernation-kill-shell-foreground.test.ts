@@ -149,6 +149,7 @@ describe('shell showing through a hibernation kill', () => {
   async function connectHibernatingPane(suppressExit: boolean): Promise<{
     finishCommand: () => void
     exitPty: () => void
+    hidePane: () => void
     rebindPty: (id: string | null) => void
     paneKey: string
     record: SleepingAgentSessionRecord
@@ -168,11 +169,12 @@ describe('shell showing through a hibernation kill', () => {
     })
     transportFactoryQueue.push(transport)
     const paneKey = makePaneKey('tab-1', LEAF_1)
+    const isVisibleRef = { current: true }
     const args = mockPanePtyArgs(
       createPane(1),
       createManager(1),
       createDeps({
-        isVisibleRef: { current: true },
+        isVisibleRef,
         consumeSuppressedPtyExit: vi.fn((id: string) => {
           const suppressed = mockStoreState.suppressedPtyExitIds[id] === true
           delete mockStoreState.suppressedPtyExitIds[id]
@@ -209,6 +211,9 @@ describe('shell showing through a hibernation kill', () => {
     return {
       paneKey,
       record,
+      hidePane: () => {
+        isVisibleRef.current = false
+      },
       finishCommand: () => dataCallbackRef.current?.('\x1b]133;D;0\x07'),
       rebindPty: (id: string | null) => transport.getPtyId.mockReturnValue(id),
       exitPty: () => {
@@ -248,6 +253,8 @@ describe('shell showing through a hibernation kill', () => {
       expect(window.api.pty.confirmForegroundProcess).toHaveBeenCalledExactlyOnceWith(
         'pty-hibernating'
       )
+      // RA: begin confirmation visibly, then hide before exit so reveal wake stays armed.
+      pane.hidePane()
       pane.exitPty()
       pane.rebindPty(boundPtyId)
       await flushAsyncTicks()

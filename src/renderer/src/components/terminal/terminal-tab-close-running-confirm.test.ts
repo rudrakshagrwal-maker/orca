@@ -191,8 +191,7 @@ describe('closeTerminalTab running-process confirmation', () => {
   // Only an actual pin prompt supersedes process confirmation; disabling pin confirmation still requires the busy-command prompt.
   it('still asks about a running command on a pinned tab when pin confirmation is off', async () => {
     const state = busyTabState({
-      settings: { activeRuntimeEnvironmentId: null, confirmClosePinnedTab: false },
-      ...terminalOwnerRows(null)
+      settings: { activeRuntimeEnvironmentId: null, confirmClosePinnedTab: false }
     })
     ;(state.unifiedTabsByWorktree as Record<string, { isPinned: boolean }[]>)[
       'wt-1'
@@ -213,8 +212,7 @@ describe('closeTerminalTab running-process confirmation', () => {
 
   it('rejects a pinned tab for a CLI close even when pin confirmation is off', () => {
     const state = busyTabState({
-      settings: { activeRuntimeEnvironmentId: null, confirmClosePinnedTab: false },
-      ...terminalOwnerRows(null)
+      settings: { activeRuntimeEnvironmentId: null, confirmClosePinnedTab: false }
     })
     ;(state.unifiedTabsByWorktree as Record<string, { isPinned: boolean }[]>)[
       'wt-1'

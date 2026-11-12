@@ -5,7 +5,6 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { runProcess } from '@orca/process-host'
 import { inheritOmpLaunchEnvironment } from '../../src/main/ipc/pty/host-env/omp-launch-environment'
 import { resetLoginShellEnvironmentCacheForTests } from '../../src/main/startup/login-shell-environment'
-import { PiTitlebarExtensionService } from '../../src/main/pi/titlebar-extension-service'
 const fixture = { home: '', shell: '' }
 const shells = ['bash', 'zsh', 'fish'].map((name) => {
   const path = (process.env.PATH ?? '')
@@ -46,15 +45,12 @@ function prepare(shell) {
 for (const shell of shells) {
   for (const config of [undefined, '.pane-omp', '']) {
     it.skipIf(process.platform === 'win32' || !shell.path)(
-      `${shell.name}: local installer agrees with the launched shell, pane=${JSON.stringify(config)}`,
+      `${shell.name}: local launch environment agrees with the launched shell, pane=${JSON.stringify(config)}`,
       async () => {
         prepare(shell)
         const env = config === undefined ? {} : { PI_CONFIG_DIR: config }
+        // RA: retain launch-root coverage without the disabled extension installer.
         await inheritOmpLaunchEnvironment(env, { launchAgent: 'omp', explicitEnv: { ...env } })
-        const service = new PiTitlebarExtensionService()
-        const managed = service.buildPtyEnv('root-proof', undefined, 'omp', {
-          configDirName: env.PI_CONFIG_DIR
-        })
         const result = await runProcess({
           program: shell.path,
           args: ['-ilc', 'printf "ROOT=%s\\n" "$PI_CONFIG_DIR"'],
@@ -62,12 +58,8 @@ for (const shell of shells) {
         })
         expect(result.code).toBe(0)
         const actual = result.stdout.match(/ROOT=([^\r\n]*)/)?.[1]
-        if (config === '') {
-          expect(actual).toBe('.omp')
-        }
-        expect(managed.ORCA_OMP_SOURCE_AGENT_DIR).toBe(
-          join(fixture.home, actual || '.omp', 'agent')
-        )
+        expect(actual).toBe(config === undefined ? '.profile-omp' : config || '.omp')
+        expect(env.PI_CONFIG_DIR).toBe(actual)
       }
     )
   }

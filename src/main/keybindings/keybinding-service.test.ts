@@ -225,7 +225,7 @@ describe('KeybindingService profile defaults', () => {
       const reset = older.setActionBindings('tab.nextSameType', null)
       expect(
         getEffectiveKeybindingsForAction('tab.nextSameType', platform, reset.overrides)
-      ).toEqual(['Mod+Alt+BracketRight'])
+      ).toEqual(platform === 'win32' ? [] : ['Mod+Alt+BracketRight'])
       expect(new KeybindingService({ homePath: home, platform }).getOverrides()).toEqual({
         'tab.nextSameType': platform === 'win32' ? [] : ['Mod+Alt+BracketRight'],
         'tab.nextAllTypes': []

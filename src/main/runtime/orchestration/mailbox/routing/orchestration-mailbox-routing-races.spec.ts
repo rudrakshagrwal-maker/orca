@@ -55,7 +55,7 @@ describe('orchestration mailbox routing races', () => {
     db.close()
   })
 
-  it('drains current and stored Run handles in one check', async () => {
+  it('keeps a previous coordinator Run mailbox out of a replacement check', async () => {
     const db = createDatabase('orca-mailbox-split-run-handles-')
     const harness = createRuntime(db)
     const run = db.createRun({
@@ -74,9 +74,9 @@ describe('orchestration mailbox routing races', () => {
 
     const checked = await checkBoundMailbox(harness.runtime)
 
-    // RA: a same-pane replacement does not inherit its predecessor's direct mailbox.
+    // RA: a same-pane replacement does not inherit its predecessor's Run mailbox.
     expect(checked.messages).toEqual([expect.objectContaining({ id: current.id })])
-    expect(db.getUnreadMessages('term_previous_coordinator').map((row) => row.id)).toContain(previous.id)
+    expect(db.getUnreadMessages(`run:${run.id}`).map((row) => row.id)).toEqual([previous.id])
     db.close()
   })
 

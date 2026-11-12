@@ -479,14 +479,17 @@ describe('orchestration.send group addresses', () => {
         'term_coord',
         coordinatorPaneKey
       )
-      dispatchWorker('term_a')
-      const sibling = dispatchWorker('term_b')
+      const workerA = dispatchWorker('term_a')
+      const workerB = dispatchWorker('term_b')
+      // RA: only the owning coordinator may broadcast to these workers.
       const result = (await call('orchestration.send', {
-        from: 'term_a',
+        from: 'term_coord',
         to,
-        subject: 'siblings only'
+        subject: 'workers only'
       })) as GroupReceipt
-      expect(result.messages.map((m) => m.to_handle)).toEqual([`dispatch:${sibling}`])
+      expect(result.messages.map((m) => m.to_handle).sort()).toEqual(
+        [`dispatch:${workerA}`, `dispatch:${workerB}`].sort()
+      )
       expect(db.getUnreadMessages(`run:${activeRunId}`)).toHaveLength(0)
     }
   )

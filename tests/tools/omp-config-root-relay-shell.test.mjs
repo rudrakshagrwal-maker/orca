@@ -4,7 +4,6 @@ import { delimiter, join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import { runProcess } from '@orca/process-host'
 import { resetLoginShellEnvironmentCacheForTests } from '../../src/main/startup/login-shell-environment'
-import { PluginOverlayManager } from '../../src/wsl-guest/plugin-overlay'
 import { resolveOmpConfigDirName } from '../../src/wsl-guest/plugin-overlay-env'
 import { __resetShellStartupEnvCache } from '../../src/main/pty/shell-startup/shell-startup-env'
 const fixture = { home: '', shell: '' }
@@ -59,9 +58,7 @@ for (const shell of shells) {
         if (configDirName !== undefined) {
           env.PI_CONFIG_DIR = configDirName
         }
-        const manager = new PluginOverlayManager({ homeDir: fixture.home })
-        manager.setSources({ ompExtensionSource: 'export default function() {}' })
-        const installed = manager.materializePi('pane', undefined, 'omp', { configDirName })
+        // RA: retain launch-root coverage without disabled relay extension materialization.
         const result = await runProcess({
           program: shell.path,
           args: ['-ilc', 'printf "ROOT=%s\\n" "$PI_CONFIG_DIR"'],
@@ -70,7 +67,7 @@ for (const shell of shells) {
         expect(result.code).toBe(0)
         const actual = result.stdout.match(/ROOT=([^\r\n]*)/)?.[1]
         expect(actual).toBe(config === undefined ? '.profile-omp' : config || '.omp')
-        expect(installed?.sourceAgentDir).toBe(join(fixture.home, actual || '.omp', 'agent'))
+        expect(env.PI_CONFIG_DIR).toBe(actual)
       }
     )
   }
