@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { join } from 'node:path'
 import { findDuplicateTomlDeclarations } from '../../configuration/toml/config-toml-duplicate-declarations-test-fixture'
 
 import './config-toml-trust'
