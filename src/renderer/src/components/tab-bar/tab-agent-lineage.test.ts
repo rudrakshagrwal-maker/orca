@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { AppState } from '@/store/types'
-import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
-import { selectTabIsSubagent } from './tab-agent-lineage'
+import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
+import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import { selectTabAgentParents, selectTabIsSubagent } from './tab-agent-lineage'
 
 const childPane = makePaneKey('child', '22222222-2222-4222-8222-222222222222')
 const parentPane = makePaneKey('parent', '33333333-3333-4333-8333-333333333333')
@@ -44,6 +44,27 @@ function state(overrides: Partial<AppState> = {}): AppState {
 
 // RA: Exercise real selectors for launch-only, retained and early runtime ancestry.
 describe('subagent tab lineage', () => {
+  it('resolves launch parent handles and immediately applies pushed re-parenting', () => {
+    const current = state({
+      tabsByWorktree: { [childTab.worktreeId]: [childTab, { ...childTab, id: 'parent' }] },
+      agentStatusByPaneKey: {
+        [parentPane]: entry({ paneKey: parentPane, terminalHandle: 'term-parent' }),
+        [childPane]: entry({ orchestration: { parentTerminalHandle: 'term-parent' } })
+      }
+    })
+    expect([...selectTabAgentParents(current, childTab.worktreeId)]).toEqual([['child', 'parent']])
+    const reparented = {
+      ...current,
+      runtimeAgentOrchestrationByPaneKey: {
+        [childPane]: {
+          parentPaneKey: makePaneKey('new-parent', '44444444-4444-4444-8444-444444444444')
+        }
+      }
+    }
+    expect([...selectTabAgentParents(reparented, childTab.worktreeId)]).toEqual([
+      ['child', 'new-parent']
+    ])
+  })
   it('recognizes a parent handle without a task, dispatch or mounted parent', () => {
     const current = state({
       agentStatusByPaneKey: {

@@ -1,6 +1,4 @@
 import { TerminalLegacyTerminalPanes } from './TerminalLegacyTerminalPanes'
-import { TerminalLegacyBrowserPanes } from './TerminalLegacyBrowserPanes'
-import { TerminalLegacyEditorSurface } from './TerminalLegacyEditorSurface'
 import type { TerminalController } from './use-terminal-controller'
 
 export function TerminalLegacyWorkspaceSurface({
@@ -14,8 +12,7 @@ export function TerminalLegacyWorkspaceSurface({
   return (
     <>
       <TerminalLegacyTerminalPanes controller={controller} />
-      <TerminalLegacyBrowserPanes controller={controller} />
-      <TerminalLegacyEditorSurface controller={controller} />
+      {/* RA: only terminal surfaces mount, including legacy restored workspaces. */}
     </>
   )
 }

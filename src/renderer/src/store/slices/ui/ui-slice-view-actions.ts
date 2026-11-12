@@ -1,5 +1,6 @@
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
-import { rewindHistoryIndexPastView } from '../worktree-nav-history'
+import { rewindHistoryIndexPastView } from './workspace-navigation-history'
 
 export function createUiViewActions(set: UISliceSet, get: UISliceGet): Partial<UISlice> {
   return {
@@ -107,6 +108,17 @@ export function createUiViewActions(set: UISliceSet, get: UISliceGet): Partial<U
         activeView: state.previousViewBeforeMobile
       })),
     setNewWorkspaceDraft: (draft) => set({ newWorkspaceDraft: draft }),
-    clearNewWorkspaceDraft: () => set({ newWorkspaceDraft: null })
+    clearNewWorkspaceDraft: () => set({ newWorkspaceDraft: null }),
+    // RA: stop disabled page routes before they open windows or load feature bundles.
+    ...(backgroundJobsDisabled() ? {
+      openActivityPage: () => {},
+      openAutomationsPage: () => {},
+      openSpacePage: () => {},
+      openSkillsPage: () => {},
+      openSkillShare: () => {},
+      openSkillsSharedLinks: () => {},
+      openArtifactsPage: () => {},
+      openMobilePage: () => {}
+    } : {})
   }
 }

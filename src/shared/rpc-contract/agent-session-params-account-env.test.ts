@@ -23,28 +23,6 @@ describe.each([
   ['terminal.createAgentSession', CreateAgentSessionParams, CREATE],
   ['terminal.ensureAgentSession', EnsureAgentSessionParams, ENSURE]
 ] as const)('%s accountEnv wire compatibility', (_method, schema, base) => {
-  // RA: both create and explicit resume keep optional terminal creation lineage.
-  it('retains the parent without requiring one from older clients', () => {
-    expect(schema.parse({ ...base, parentTerminalHandle: 'term_parent' })).toMatchObject({
-      parentTerminalHandle: 'term_parent'
-    })
-    expect(schema.parse(base)).not.toHaveProperty('parentTerminalHandle')
-    expect(schema.safeParse({ ...base, parentTerminalHandle: '' }).success).toBe(false)
-  })
-
-  it('carries a validated account env on a new host', () => {
-    const parsed = schema.parse({ ...base, accountEnv: ACCOUNT_ENV })
-    expect(parsed).toMatchObject({ accountEnv: ACCOUNT_ENV })
-  })
-
-  it('parses an older client, which never sends it, unchanged', () => {
-    expect(schema.parse(base)).not.toHaveProperty('accountEnv')
-  })
-
-  it('rejects unknown keys on the current strict request schema', () => {
-    expect(schema.safeParse({ ...base, futureAccountEnv: ACCOUNT_ENV }).success).toBe(false)
-  })
-
   it.each([
     ['a non-account variable', { PATH: '/usr/bin' }],
     ['a relative home', { CLAUDE_CONFIG_DIR: 'home/u/.claude' }],

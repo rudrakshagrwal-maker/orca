@@ -1,9 +1,12 @@
 /** Pin the pre-launch transport predicate to buildAgentStartupPlan’s followupPrompt verdict for every agent so table drift cannot lose prompts. */
 
 import { describe, expect, it } from 'vitest'
-import { TUI_AGENT_CONFIG } from './tui-agent-config'
-import { agentPromptRidesLaunchCommand, buildAgentStartupPlan } from './tui-agent-startup'
-import type { TuiAgent } from './tui-agent'
+import { TUI_AGENT_CONFIG } from './agent-launch/catalog/tui-agent-config'
+import {
+  agentPromptRidesLaunchCommand,
+  buildAgentStartupPlan
+} from './agent-launch/startup/tui-agent-startup'
+import type { TuiAgent } from './agent-launch/catalog/tui-agent'
 import { getOpenCodeCliCapabilities } from './opencode-cli-version'
 
 // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the config is declared as a total record over TuiAgent, so its own keys are that union.

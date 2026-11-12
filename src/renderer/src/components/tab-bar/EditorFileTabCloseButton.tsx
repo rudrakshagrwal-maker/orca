@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { translate } from '@/i18n/i18n'
+import { useTranslate } from '@/i18n/use-translate'
 
 export function EditorFileTabCloseButton({
   showsSelectionChrome,
@@ -8,6 +8,7 @@ export function EditorFileTabCloseButton({
   showsSelectionChrome: boolean
   onClose: () => void
 }): React.JSX.Element {
+  const t = useTranslate()
   return (
     <button
       // RA: Active tabs always expose close, including dirty files; inactive buttons take no title space.
@@ -17,10 +18,7 @@ export function EditorFileTabCloseButton({
       type="button"
       // Share the real close affordance with simulator tabs so E2E exercises their actual button.
       data-tab-close-button="true"
-      aria-label={translate(
-        'auto.components.tab.bar.EditorFileTabCloseButton.4655cf570e',
-        'Close tab'
-      )}
+      aria-label={t('auto.components.tab.bar.EditorFileTabCloseButton.4655cf570e', 'Close tab')}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation()

@@ -1,17 +1,22 @@
-import { normalizeExplorerDisplayRootByWorktree } from '../../../../../shared/file-explorer-display-root'
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
+import { normalizeExplorerDisplayRootByWorktree } from '../../../../../shared/file-listing/file-explorer-display-root'
 import type { AppState } from '../../types'
 import type { PersistedTrustedOrcaHooks } from '../../../../../shared/orca-yaml-hook-types'
 import type { PersistedUIState } from '../../../../../shared/persisted-ui-state-types'
 import type {
+  ActivityBarPosition,
   TaskViewPresetId,
   TopLevelView,
   VisibleWorkspaceHostIds,
   StatusBarItem
 } from '../../../../../shared/ui-chrome-types'
-import type { WorkspaceCleanupDismissal } from '../../../../../shared/workspace-cleanup'
-import { WORKSPACE_CLEANUP_CLASSIFIER_VERSION } from '../../../../../shared/workspace-cleanup'
+
+import {
+  type WorkspaceCleanupDismissal,
+  WORKSPACE_CLEANUP_CLASSIFIER_VERSION
+} from '../../../../../shared/workspace-cleanup/workspace-cleanup'
 import { isTopLevelView } from '../../../../../shared/top-level-view'
-import { AGENT_STATUS_HYDRATE_MAX_AGE_MS } from '../../../../../shared/agent-status-freshness'
+import { AGENT_STATUS_HYDRATE_MAX_AGE_MS } from '../../../../../shared/agent-status/contracts/agent-status-freshness'
 import { resolveVisibleWorkspaceHostIds } from '../../../../../shared/workspace-view/workspace-host-visibility'
 import { persistedUIValuesEqual } from '../../../../../shared/persisted-ui-equality'
 import { DEFAULT_STATUS_BAR_ITEMS } from '../../../../../shared/constants'
@@ -102,6 +107,11 @@ export function sanitizePersistedSidebarWidth(
   return Math.min(maxWidth, Math.max(MIN_SIDEBAR_WIDTH, width))
 }
 
+// Any other value would hide the activity bar entirely, since the layout renders only Top or Side.
+export function sanitizeActivityBarPosition(position: unknown): ActivityBarPosition {
+  return position === 'side' ? 'side' : 'top'
+}
+
 export function sanitizePaneKeyTimestampRecord(
   value: unknown,
   maxAgeMs: number = AGENT_STATUS_HYDRATE_MAX_AGE_MS
@@ -167,6 +177,8 @@ export function sanitizeWorkspaceCleanupDismissals(
 }
 
 export function sanitizeHydratedActiveView(value: PersistedUIState['activeView']): TopLevelView {
+  // RA: old page selections cannot restore a disabled feature.
+  if (backgroundJobsDisabled() && value !== 'settings') return 'terminal'
   // Why: older data (pre-activeView) or a view a different build doesn't have falls back to terminal rather than rendering nothing.
   if (!isTopLevelView(value)) {
     return 'terminal'

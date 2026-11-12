@@ -1,8 +1,8 @@
-import type { AgentLaunchOutcome } from '../../shared/agent-launch-intent'
-import type { RuntimeStore } from './runtime-store-contract'
+import type { AgentLaunchOutcome } from '../../shared/agent-launch/contracts/agent-launch-intent'
+import type { RuntimeStore } from './construction/runtime-store-contract'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import { reconcileTerminalLaunchParents } from '../../shared/terminal-launch-lineage'
-import type { AgentStatusOrchestrationContext } from '../../shared/agent-status-types'
+import type { AgentStatusOrchestrationContext } from '../../shared/agent-status/contracts/agent-status-types'
 
 export type AgentLaunchParent = {
   parentTerminalHandle: string

@@ -1,4 +1,4 @@
-import type { MessageType } from '../../types'
+import type { MessageType } from '../orchestration-records'
 import type { OrchestrationDb } from '../orchestration-db'
 import { ORCHESTRATION_DELIVERY_BATCH_LIMIT, type MailboxRoutingPage } from './mailbox-routing-page'
 import { activeDispatchOwnsAddressSql } from '../runs/run-coordinator-mail-routing'
@@ -133,47 +133,11 @@ export function routeUnreadDispatchMailboxToRunMailbox(
   runId: string,
   throughSequence?: number
 ): MailboxRoutingPage {
-  const dispatchMailbox = `dispatch:${dispatchId}`
-  this.db.exec('BEGIN IMMEDIATE')
-  try {
-    const throughClause = throughSequence === undefined ? '' : ' AND sequence <= ?'
-    const params: (string | number)[] = [runId, dispatchMailbox]
-    if (throughSequence !== undefined) {
-      params.push(throughSequence)
-    }
-    params.push(ORCHESTRATION_DELIVERY_BATCH_LIMIT + 1)
-    const rows = this.db
-      .prepare(
-        `SELECT id, type FROM messages INDEXED BY idx_messages_unread_current_inbox
-         WHERE run_id = ? AND to_handle = ? AND read = 0
-           AND delivery_contract = 'current_delivery'${throughClause}
-         ORDER BY sequence LIMIT ?`
-      )
-      .all(...params) as { id: string; type: MessageType }[]
-    const page = rows.slice(0, ORCHESTRATION_DELIVERY_BATCH_LIMIT)
-    if (page.length === 0) {
-      this.db.exec('COMMIT')
-      return { routedCount: 0, hasMore: false, types: [] }
-    }
-    const placeholders = page.map(() => '?').join(',')
-    const result = this.db
-      .prepare(
-        `UPDATE messages INDEXED BY idx_messages_id SET to_handle = ?
-         WHERE run_id = ? AND to_handle = ? AND read = 0
-           AND delivery_contract = 'current_delivery'
-           AND id IN (${placeholders})`
-      )
-      .run(`run:${runId}`, runId, dispatchMailbox, ...page.map((row) => row.id))
-    this.db.exec('COMMIT')
-    return {
-      routedCount: Number(result.changes),
-      hasMore: rows.length > ORCHESTRATION_DELIVERY_BATCH_LIMIT,
-      types: [...new Set(page.map((row) => row.type))]
-    }
-  } catch (error) {
-    this.db.exec('ROLLBACK')
-    throw error
-  }
+  // RA: an inactive parent retains its own mailbox; never hand its helper mail to a different coordinator.
+  void dispatchId
+  void runId
+  void throughSequence
+  return { routedCount: 0, hasMore: false, types: [] }
 }
 
 export function getLatestUnreadMessageSequence(

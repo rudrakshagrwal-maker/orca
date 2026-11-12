@@ -5,13 +5,21 @@ import {
   normalizeTerminalQuickCommands,
   parseNormalizedTerminalQuickCommands,
   terminalQuickCommandMatchesRepo
-} from './terminal-quick-commands'
+} from './terminal/quick-commands/terminal-quick-commands'
 
 describe('terminal quick commands', () => {
   // RA: saved OpenCode commands survive settings normalization and RPC parsing intact.
   it.each(['opencode', 'opencode2'] as const)('retains saved %s prompts', (agent) => {
-    const commands = [{ id: 'saved', label: 'Review', action: 'agent-prompt' as const,
-      agent, prompt: 'Review this diff', scope: { type: 'global' as const } }]
+    const commands = [
+      {
+        id: 'saved',
+        label: 'Review',
+        action: 'agent-prompt' as const,
+        agent,
+        prompt: 'Review this diff',
+        scope: { type: 'global' as const }
+      }
+    ]
     expect(normalizeTerminalQuickCommands(commands)).toEqual(commands)
     expect(parseNormalizedTerminalQuickCommands(commands)).toEqual(commands)
   })

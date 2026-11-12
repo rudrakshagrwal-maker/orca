@@ -1,4 +1,4 @@
-import { LEGACY_RUN_ID } from '../contract-constants'
+import { ORCHESTRATION_LEGACY_RUN_ID as LEGACY_RUN_ID } from '../../../../../shared/orchestration/orchestration-rpc-contract'
 
 export function createCoreTablesSql(): string {
   return `
@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS runs (
   home_database         TEXT NOT NULL DEFAULT 'this_database',
   coordinator_handle    TEXT,
   coordinator_pane_key  TEXT,
+  coordinator_process_incarnation TEXT,
+  coordinator_agent_session_id TEXT,
   -- Bare Orca session id the coordinator is addressed by, when it has one (today only structured
   -- sessions); for a /clear'd chat, its lineage root's.
   coordinator_orca_session_id TEXT,

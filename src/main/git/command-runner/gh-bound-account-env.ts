@@ -1,3 +1,4 @@
+// RA: Node20 dynamic imports require the emitted .js extension.
 import { normalizeGhAccountBinding } from '../../../shared/github/account-binding'
 import type { GhExecOptions } from './gh-exec-file'
 import { collectGhArgvHostSignals } from './gh-host-args'
@@ -38,7 +39,7 @@ export async function resolveBoundGhExecEnv(
     createGhBoundAccountHostMismatchError,
     createGhBoundAccountUnavailableError,
     resolveGhAccountToken
-  } = await import('../../github/gh-account-token')
+  } = await import('../../github/gh-account-token.js')
   const normalized = normalizeGhAccountBinding(binding)
   if (!normalized) {
     throw createGhBoundAccountUnavailableError(binding)

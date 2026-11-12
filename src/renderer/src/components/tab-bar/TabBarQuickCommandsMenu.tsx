@@ -12,12 +12,12 @@ import { TabBarQuickCommandsList } from './TabBarQuickCommandsList'
 import {
   getTerminalQuickCommandBody,
   isTerminalAgentQuickCommand
-} from '../../../../shared/terminal-quick-commands'
-import { getAgentLabel } from '@/lib/agent-catalog'
+} from '../../../../shared/terminal/quick-commands/terminal-quick-commands'
+import { getAgentLabel } from '@/lib/agent-catalog/agent-catalog'
 import { TabBarQuickCommandItem } from './TabBarQuickCommandItem'
-import { cn } from '@/lib/utils'
-import { translate } from '@/i18n/i18n'
-import { useImeEnterGestureOwnership } from '@/lib/ime-composition-keyboard-event'
+import { cn } from '@/lib/class-names'
+import { useTranslate } from '@/i18n/use-translate'
+import { useImeEnterGestureOwnership } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import { useShortcutKeyComboDetails } from '@/hooks/useShortcutLabel'
 import { useTabBarQuickCommandsShortcut } from './tab-bar-quick-commands-shortcut'
 import { TabBarQuickCommandAddActions } from './TabBarQuickCommandAddActions'
@@ -57,6 +57,7 @@ export function TabBarQuickCommandsMenu({
   onMenuOpen,
   onRunCommand
 }: TabBarQuickCommandsMenuProps): React.JSX.Element {
+  const t = useTranslate()
   const openMenuShortcutCombos = useShortcutKeyComboDetails('tab.openQuickCommandsMenu')
   const [menuOpen, setMenuOpen] = useState(false)
   const [moreCommandsTooltipOpen, setMoreCommandsTooltipOpen] = useState(false)
@@ -205,7 +206,7 @@ export function TabBarQuickCommandsMenu({
       }}
     />
   )
-  const moreCommandsLabel = translate(
+  const moreCommandsLabel = t(
     'auto.components.tab.bar.TabBarQuickCommandsButton.b82e237a4b',
     'More quick commands'
   )
@@ -228,12 +229,12 @@ export function TabBarQuickCommandsMenu({
             )}
             aria-label={
               mostRecent
-                ? translate(
+                ? t(
                     'auto.components.tab.bar.TabBarQuickCommandsButton.b775303755',
                     'Run quick command: {{value0}}',
                     { value0: mostRecent.command.label }
                   )
-                : translate(
+                : t(
                     'auto.components.tab.bar.TabBarQuickCommandsButton.85482c57bc',
                     'Run quick command'
                   )
@@ -243,14 +244,14 @@ export function TabBarQuickCommandsMenu({
             {/* RA: Measure each split strip independently. */}
             <span className="hidden max-w-[160px] truncate text-[12px] font-medium @[901px]/tab-strip:inline">
               {mostRecent?.command.label ??
-                translate('auto.components.tab.bar.TabBarQuickCommandsButton.7b1c9d6ae1', 'Run')}
+                t('auto.components.tab.bar.TabBarQuickCommandsButton.7b1c9d6ae1', 'Run')}
             </span>
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom" sideOffset={6}>
           {mostRecent
             ? isTerminalAgentQuickCommand(mostRecent.command)
-              ? translate(
+              ? t(
                   'auto.components.tab.bar.TabBarQuickCommandsButton.77ac113df0',
                   'Start {{value0}}: {{value1}}',
                   {
@@ -258,12 +259,12 @@ export function TabBarQuickCommandsMenu({
                     value1: getTerminalQuickCommandBody(mostRecent.command)
                   }
                 )
-              : translate(
+              : t(
                   'auto.components.tab.bar.TabBarQuickCommandsButton.37e1bb90ce',
                   'Run: {{value0}}',
                   { value0: getTerminalQuickCommandBody(mostRecent.command) }
                 )
-            : translate(
+            : t(
                 'auto.components.tab.bar.TabBarQuickCommandsButton.85482c57bc',
                 'Run quick command'
               )}
@@ -345,7 +346,7 @@ export function TabBarQuickCommandsMenu({
               <CommandInput
                 ref={searchInputRef}
                 autoFocus
-                placeholder={translate(
+                placeholder={t(
                   'auto.components.tab.bar.TabBarQuickCommandsButton.f3a8c2d1e7',
                   'Search quick commands...'
                 )}

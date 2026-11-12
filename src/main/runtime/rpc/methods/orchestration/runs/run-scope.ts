@@ -1,32 +1,32 @@
-import type { OrchestrationCompatibilityEvidence } from '../../../../../../shared/orchestration-compatibility-evidence'
-import { orchestrationSkillRecoveryData } from '../../../../../../shared/orchestration-rpc-contract'
+import type { OrchestrationCompatibilityEvidence } from '../../../../../../shared/orchestration/orchestration-compatibility-evidence'
+import { orchestrationSkillRecoveryData } from '../../../../../../shared/orchestration/orchestration-rpc-contract'
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
-import type { RunRow } from '../../../../orchestration/types'
-import type {
-  OrcaRuntimeService,
-  OrchestrationCompatibilityCallerAuthority
-} from '../../../../orca-runtime'
+import type { RunRow } from '../../../../orchestration/db/orchestration-records'
+import type { OrcaRuntimeService } from '../../../../orca-runtime'
+import type { OrchestrationCompatibilityCallerAuthority } from '../../../../orchestration/terminal-authority/orchestration-compatibility-authority'
 import {
   hasRunBindingKey,
   mailboxAddressOf,
   runCoordinatorKey,
-  type OrchestrationCallerIdentity,
-  type OrchestrationSessionCaller
-} from '../../../../orchestration/orchestration-caller-identity'
-import { resolveDeclaredCallerParty } from '../../../../orchestration/orchestration-party'
+  type OrchestrationEntryCaller
+} from '../../../../orchestration/addressing/orchestration-caller-identity'
+import type { OrchestrationPartyIdentity as OrchestrationCallerIdentity } from '../../../../../../shared/orchestration/mailbox/orchestration-party-identity'
+import { resolveDeclaredCallerParty } from '../../../../orchestration/addressing/orchestration-party'
 import {
   findCallerWorkerDispatches,
   unboundWorkerMessage,
   workerRunBindingRefusal
 } from '../../../../orchestration/db/runs/worker-run-binding'
-import type { OrchestrationDb } from '../../../../orchestration/db'
+import type { OrchestrationDb } from '../../../../orchestration/db/orchestration-db'
+import type { OrchestrationCoordinatorKey } from '../../../../orchestration/addressing/orchestration-caller-identity'
+import { assertLifecycleCallerIsNotAnotherParty } from '../messaging/lifecycle-caller-fence'
 
 export type RunScopeParams = {
   runId?: string
   callerTerminalHandle?: string
   callerPaneKey?: string
   /** Resolved at the dispatch entry; when set it is the caller, whatever the declared handle. */
-  callerSession: OrchestrationSessionCaller | undefined
+  callerSession: OrchestrationEntryCaller | undefined
   requireCurrentConsumer: boolean
   legacyCoordinatorRunId?: string
   // Attest user-supplied handles against this trusted handle.
@@ -42,6 +42,31 @@ export function assertCallerHandleMatchesEvidence(
   if (!callerEvidence) {
     return
   }
+  const sourceHandle = callerEvidence.paneKey
+    ? runtime.getTerminalHandleForPaneKey(callerEvidence.paneKey)
+    : callerEvidence.terminalHandle
+  if (
+    sourceHandle &&
+    sourceHandle !== callerTerminalHandle &&
+    runtime.getLiveTerminalPaneKey(sourceHandle)
+  ) {
+    const sourceProcess = runtime.getTerminalProcessIncarnation(sourceHandle)
+    if (
+      !sourceProcess ||
+      sourceProcess !== runtime.getTerminalProcessIncarnation(callerTerminalHandle)
+    ) {
+      throw new OrchestrationError(
+        'consumer_fenced',
+        `${callerTerminalHandle} belongs to another coordinator; this command came from ${sourceHandle}. No effects were applied.`,
+        { effectsApplied: false }
+      )
+    }
+  }
+  assertLifecycleCallerIsNotAnotherParty(runtime, {
+    from: callerTerminalHandle,
+    fromPaneKey: runtime.getTerminalPaneKey(callerTerminalHandle) ?? undefined,
+    evidence: callerEvidence
+  })
   const attested = runtime.verifyOrchestrationCompatibilityCaller(callerEvidence)
   if (attested && attested.terminalHandle !== callerTerminalHandle) {
     throw new OrchestrationError(
@@ -58,21 +83,25 @@ export function orchestrationCallerIdentity(
   caller: {
     handle: string
     paneKey: string | null | undefined
-    session: OrchestrationSessionCaller | undefined
+    session: OrchestrationEntryCaller | undefined
   }
-): OrchestrationCallerIdentity {
+): OrchestrationCallerIdentity & OrchestrationCoordinatorKey {
   if (caller.session) {
     return caller.session
   }
   const party = resolveDeclaredCallerParty(caller.handle, runtime.getOrchestrationDb())
-  return { ...party, paneKey: caller.paneKey ?? null }
+  return {
+    ...party,
+    paneKey: caller.paneKey ?? null,
+    ...(party.terminalHandle ? runtime.getTerminalCoordinatorIdentity(party.terminalHandle) : {})
+  }
 }
 
 export type OrchestrationCallerParams = {
   callerTerminalHandle: string
   callerEvidence?: OrchestrationCompatibilityEvidence
   callerAuthority?: OrchestrationCompatibilityCallerAuthority
-  callerSession: OrchestrationSessionCaller | undefined
+  callerSession: OrchestrationEntryCaller | undefined
   /** Preserve legacy callers that treated a missing pane as an ordinary fence. */
   requireStablePane?: boolean
   /** Only skip attestation when the caller does it after the legacy-takeover check (run-use); omitting that reopens impersonation. */
@@ -132,7 +161,7 @@ function unboundCallerError(
     return new OrchestrationError(
       'consumer_fenced',
       holder
-        ? `This caller is not bound to Run ${explicit.id}, which is bound to ${holder}. Nothing changed.`
+        ? `Run ${explicit.id} belongs to another coordinator (${holder}). Nothing changed.`
         : `This caller does not coordinate Run ${explicit.id}, which has no coordinator now. Nothing changed.`
     )
   }
@@ -146,6 +175,8 @@ function unboundCallerError(
 
 // Why: task and gate mutations must share one Run-binding rule.
 export function resolveRunScope(runtime: OrcaRuntimeService, params: RunScopeParams): RunRow {
+  // RA: an authenticated structured coordinator has a session address even without a PTY.
+  const callerHandle = params.callerSession?.address ?? params.callerTerminalHandle
   const db = runtime.getOrchestrationDb()
   const explicit = params.runId ? db.getRun(params.runId) : undefined
   if (params.runId && (!explicit || explicit.legacy === 1)) {
@@ -155,23 +186,25 @@ export function resolveRunScope(runtime: OrcaRuntimeService, params: RunScopePar
   if (!params.requireCurrentConsumer && explicit) {
     return explicit
   }
-  if (!params.callerTerminalHandle) {
+  if (!callerHandle) {
     throw new OrchestrationError(
       'run_required',
       `${COORDINATOR_RUN_REQUIRED} A worker never binds a Run: its mail arrives through plain \`orchestration check\`, and it reports with \`orchestration send\`. No effects were applied.`,
       orchestrationSkillRecoveryData()
     )
   }
-  assertCallerHandleMatchesEvidence(runtime, params.callerTerminalHandle, params.callerEvidence)
+  if (!params.callerSession) {
+    assertCallerHandleMatchesEvidence(runtime, callerHandle, params.callerEvidence)
+  }
   if (explicit && params.legacyCoordinatorRunId === explicit.id) {
     return explicit
   }
   const caller = orchestrationCallerIdentity(runtime, {
-    handle: params.callerTerminalHandle,
+    handle: callerHandle,
     session: params.callerSession,
     paneKey:
       params.callerSession === undefined
-        ? (params.callerPaneKey ?? runtime.getTerminalPaneKey(params.callerTerminalHandle))
+        ? (params.callerPaneKey ?? runtime.getTerminalPaneKey(callerHandle))
         : undefined
   })
   if (!hasRunBindingKey(caller)) {

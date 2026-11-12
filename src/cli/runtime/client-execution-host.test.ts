@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { RuntimeClient } from './client'
 import { addEnvironmentFromPairingCode } from './environments'
-import { encodePairingOffer } from '../../shared/pairing'
+import { encodePairingOffer } from '../../shared/remote-runtime/pairing/pairing'
 import { getRuntimeMetadataPath, type RuntimeMetadata } from '../../shared/runtime-bootstrap'
 
 const transport = vi.hoisted(() => ({ local: vi.fn(), remote: vi.fn(), remotePreflight: vi.fn() }))
@@ -76,16 +76,30 @@ it('resolves a short terminal selector on the same paired server used for the re
   const root = serverProfileWith({})
   const handle = 'term_bd3c1234-0000-4000-8000-000000000001'
   transport.remotePreflight.mockResolvedValueOnce({
-    id: 'inventory', ok: true,
+    id: 'inventory',
+    ok: true,
     result: { terminals: [{ handle, title: 'Cook' }], totalCount: 1, truncated: false },
     _meta: { runtimeId: 'runtime-remote' }
   })
-  const client = new RuntimeClient(root, undefined, null, 'other-server', 'orca', ['terminal', 'read', '--terminal', 'cook'])
+  const client = new RuntimeClient(root, undefined, null, 'other-server', 'orca', [
+    'terminal',
+    'read',
+    '--terminal',
+    'cook'
+  ])
   await client.call('terminal.read', { terminal: 'cook', limit: 20 })
   expect(transport.local).not.toHaveBeenCalled()
   // The transport mock does not run the status callback, so both requests use its preflight path.
   expect(transport.remotePreflight.mock.calls.map((call) => [call[1], call[2]])).toEqual([
-    ['terminal.list', { limit: Number.MAX_SAFE_INTEGER, includeVisualLayouts: false, includePreview: false, snapshot: true }],
+    [
+      'terminal.list',
+      {
+        limit: Number.MAX_SAFE_INTEGER,
+        includeVisualLayouts: false,
+        includePreview: false,
+        snapshot: true
+      }
+    ],
     ['terminal.read', { terminal: handle, limit: 20 }]
   ])
 })

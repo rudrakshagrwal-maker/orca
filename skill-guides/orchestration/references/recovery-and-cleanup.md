@@ -1,4 +1,15 @@
-# Recovery and cleanup
+# RA: Recovery and cleanup
+
+Recovery follows the goal's round cap and hard stops. Do not start extra
+attempts to hide a failed round. Reuse a proven finished worker with `send`
+before starting another. Every new task/fix report still needs reviewer approval
+and coordinator goal checks. Reviewers never authorize hard stops.
+
+Never type into or close a terminal you did not start. Before killing a process
+or committing, trace it to your own worker using the Dispatch and exact process
+identity. Scope a commit to that worker's files and authorized branch. Never
+collect another worker's changes. Do not delete worktrees or coordination state
+without RA's approval. Close settled idle workers with guarded `worker-release`.
 
 Act only on proof. `worker-list --run <run_id> --include-remote` gives
 each worker's liveness and `next`; follow it.
@@ -7,7 +18,7 @@ Retry a failed or stopped attempt on the same Task; `--spec` would create a new
 one. Placement is not inherited:
 
 ```text
-ORCA orchestration worker-start --task <task_id> --retry-of <dispatch_id> --worktree <placement> --agent <agent>
+ORCA orchestration worker-start --task <task_id> --retry-of <dispatch_id> --worktree <placement> --agent codex
 ```
 
 `worker-stop` exits 1 with `stop_unknown` when it cannot prove the agent
@@ -64,7 +75,7 @@ Reopen and start the same Task in its owning Run:
 
 ```text
 ORCA orchestration task-update --id <task_id> --status ready --run <owning_run_id>
-ORCA orchestration worker-start --task <task_id> --run <owning_run_id> --worktree <placement> --agent <agent>
+ORCA orchestration worker-start --task <task_id> --run <owning_run_id> --worktree <placement> --agent codex
 ```
 
 This fresh series starts at zero. The broken Dispatch and its failure count stay

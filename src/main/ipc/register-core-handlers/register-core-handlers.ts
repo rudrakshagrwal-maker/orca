@@ -1,8 +1,8 @@
 import { app } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
-import { registerWslMoveWiring } from '../wsl-move-driver-wiring'
-import { registerWslDriveProjectHandlers } from '../wsl-drive-project-handlers'
+import { registerWslMoveWiring } from '../wsl/wsl-move-driver-wiring'
+import { registerWslDriveProjectHandlers } from '../wsl/wsl-drive-project-handlers'
 import { installProjectRuntimeGitRouter } from '../../workspaces/execution-host/project-runtime-git-router'
 import { registerCliHandlers } from '../cli'
 import { registerPreflightHandlers } from '../preflight'
@@ -12,16 +12,8 @@ import type { StatsCollector } from '../../stats/collector'
 import { registerFilesystemHandlers } from '../filesystem/filesystem'
 import type { CommitMessageAgentEnvironmentResolvers } from '../../text-generation/commit-message-agent-environment'
 import { registerFilesystemWatcherHandlers } from '../filesystem/watchers/filesystem-watcher-handlers'
-import { registerUsageProviderHandlers } from '../usage-provider-handlers'
-import { registerGitHubHandlers } from '../github'
-import { registerGitLabHandlers } from '../gitlab'
-import { registerHostedReviewHandlers } from '../hosted-review'
-import { registerLinearHandlers } from '../linear/register-handlers'
-import { registerJiraHandlers } from '../jira/register-handlers'
-import { registerJiraIssueSummaryGenerationHandlers } from '../jira/issue-summary-generation'
-import { registerBitbucketHandlers } from '../bitbucket'
 import { registerFeedbackHandlers } from '../feedback'
-import { registerCrashReportingHandlers } from '../crash-reporting'
+import { registerCrashReportingHandlers } from '../crash-reporting/crash-reporting'
 import { registerExportHandlers } from '../export'
 import { registerStatsHandlers } from '../stats'
 import { registerMemoryHandlers } from '../memory'
@@ -31,54 +23,24 @@ import {
   invalidateRuntimeEnvironmentTransport,
   registerRuntimeEnvironmentHandlers
 } from '../runtime-environments/runtime-environments'
-import { registerWslHostHandlers } from '../wsl-host-handlers'
-import { registerEphemeralVmHandlers } from '../ephemeral-vm'
-import { registerAiVaultHandlers } from '../ai-vault'
-import { registerAiVaultSearchHandlers } from '../ai-vault-search'
-import { registerNativeChatHandlers } from '../native-chat'
-import { registerNotificationHandlers } from '../notifications'
-import { registerNotebookHandlers } from '../notebook'
-import { registerOnboardingHandlers } from '../onboarding'
-import { registerDashboardPopoutHandlers } from '../dashboard-popout'
-import { registerWorkspaceSpaceWindowHandlers } from '../workspace-space/workspace-space-window'
+import { registerWslHostHandlers } from '../wsl/wsl-host-handlers'
+import { registerAiVaultHandlers } from '../ai-vault/ai-vault'
 import { registerTerminalPreviewHandlers } from '../terminal-preview'
 import { registerDeveloperPermissionHandlers } from '../developer-permissions'
-import { registerComputerUsePermissionHandlers } from '../computer-use-permissions'
-import { setAgentBrowserBridgeRef, registerBrowserHandlers } from '../browser'
-import { setTrustedBrowserRendererWebContentsId } from '../browser-renderer-trust'
 import { registerSessionHandlers } from '../session'
 import { registerSettingsHandlers } from '../settings'
 import { registerDiagnosticsHandlers } from '../diagnostics'
-import { registerSkillsHandlers } from '../skills'
-import { registerSkillDeleteIpcHandlers } from '../skill-delete/handlers'
-import { registerWorkspaceSpaceHandlers } from '../workspace-space/workspace-space'
-import { registerWorkspacePortHandlers } from '../workspace-ports'
-import { registerLinkPreviewHandlers } from '../link-preview'
-import { registerLocalhostWorktreeLabelHandlers } from '../localhost-worktree-labels'
-import { registerAutomationHandlers } from '../automations'
 import { registerKeybindingHandlers } from '../keybindings'
 import { registerTelemetryHandlers } from '../telemetry'
 import { registerShellHandlers } from '../shell'
-import { registerPetHandlers } from '../pet'
-import { registerPluginHandlers } from '../plugins'
 import { registerUIHandlers, setTrustedUIRendererWebContentsId } from '../ui'
-import { registerEmulatorFrameStreamHandlers } from '../emulator-frame-stream'
-import { registerEmulatorVideoStreamHandlers } from '../emulator-video-stream'
-import { registerEmulatorScrcpyTouchHandler } from '../emulator-scrcpy-touch'
-import { registerEmulatorScrcpyKeyboardHandler } from '../emulator-scrcpy-keyboard'
-import { registerSpeechHandlers } from '../speech'
 import { registerTerminalRenderDesyncEvidenceHandler } from '../terminal-render-desync-evidence'
-import { registerOrcaProfileHandlers } from '../orca-profiles'
+import { registerOrcaProfileHandlers } from '../profiles/orca-profiles'
 import { registerCodexAccountHandlers } from '../codex-accounts'
 import { registerAgentHookHandlers } from '../agent-hooks'
 import { registerCodexConfigSyncHandlers } from '../codex-config-sync'
 import { getPtyIdForPaneKey } from '../pty/pane/key-state'
 import { registerClaudeAccountHandlers } from '../claude-accounts'
-import { registerOpenCodeGoCredentialsHandlers } from '../opencode-go-credentials'
-import { registerMiniMaxCredentialsHandlers } from '../minimax-credentials'
-import { registerZcodePlanCredentialsHandlers } from '../zcode-plan-credentials'
-import { registerGrokAccountHandlers } from '../grok-accounts'
-import { registerCursorAccountHandlers } from '../cursor-accounts'
 import { registerUpdaterHandlers } from '../../window/attach-main-window-services'
 import {
   registerClipboardHandlers,
@@ -89,17 +51,17 @@ import type { ClaudeUsageStore } from '../../claude-usage/store'
 import type { CodexUsageStore } from '../../codex-usage/store'
 import type { OpenCodeUsageStore } from '../../opencode-usage/store'
 import type { MuseUsageStore } from '../../muse-usage/store'
-import type { RateLimitService } from '../../rate-limits/service'
+import type { RateLimitService } from '../../rate-limits/service/rate-limit-service'
 import type { CodexAccountService } from '../../codex-accounts/service'
 import type { ClaudeAccountService } from '../../claude-accounts/service'
 import type { AutomationService } from '../../automations/service'
 import type { AgentAwakeService } from '../../power/agent-awake-service'
-import type { CrashReportStore } from '../../crash-reporting/crash-report-store'
+import type { CrashReportStore } from '../../crash-reporting/reports/crash-report-store'
 import type { KeybindingService } from '../../keybindings/keybinding-service'
 import type {
   AiVaultPrepareSessionResumeArgs,
   AiVaultPrepareSessionResumeResult
-} from '../../../shared/ai-vault-resume-preparation'
+} from '../../../shared/ai-vault/resume/ai-vault-resume-preparation'
 import {
   getSavedRuntimeAiVaultHostInfos,
   deleteRuntimeAiVaultSession,
@@ -107,10 +69,8 @@ import {
   resolveRuntimeAiVaultSessionTitles,
   scanRuntimeAiVaultSessions
 } from '../../ai-vault/runtime-session-scanner'
-import { callRuntimeSessionSearch } from '../../ai-vault/runtime-session-search-call'
-import { configureRuntimeAiVaultSessionDelete } from '../ai-vault-delete'
+import { configureRuntimeAiVaultSessionDelete } from '../ai-vault/ai-vault-delete'
 import { ensureStructuredAgentSessionHostUnlessRefused } from '../../runtime/agent-session/structured-agent-session-host-refusal'
-import { getAgentSessionAttachmentStore } from '../../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
 import type { PluginService } from '../../plugins/plugin-service'
 import type { PluginMarketplaceHandlerServices } from '../plugin-marketplaces'
 import { settleWithinMs } from '../../startup/quit/quit-teardown-deadline'
@@ -147,28 +107,27 @@ export function registerCoreHandlers(
   store: Store,
   runtime: OrcaRuntimeService,
   stats: StatsCollector,
-  claudeUsage: ClaudeUsageStore,
-  codexUsage: CodexUsageStore,
-  openCodeUsage: OpenCodeUsageStore,
-  museUsage: MuseUsageStore,
+  _claudeUsage: ClaudeUsageStore,
+  _codexUsage: CodexUsageStore,
+  _openCodeUsage: OpenCodeUsageStore,
+  _museUsage: MuseUsageStore,
   codexAccounts: CodexAccountService,
   claudeAccounts: ClaudeAccountService,
   rateLimits: RateLimitService,
   mainWindowWebContentsId: number | null = null,
-  automations?: AutomationService,
+  _automations?: AutomationService,
   commitMessageAgentEnv?: CommitMessageAgentEnvironmentResolvers,
   agentAwakeService?: AgentAwakeService,
   crashReports?: CrashReportStore,
   keybindings?: KeybindingService,
   lifecycleOptions: CoreHandlerLifecycleOptions = {},
-  pluginService?: PluginService,
-  marketplaceServices?: PluginMarketplaceHandlerServices
+  _pluginService?: PluginService,
+  _marketplaceServices?: PluginMarketplaceHandlerServices
 ): void {
   // macOS activation can replace the window without ending the app; refresh trusted IDs but register IPC once.
-  setTrustedBrowserRendererWebContentsId(mainWindowWebContentsId)
   setTrustedClipboardRendererWebContentsId(mainWindowWebContentsId)
   setTrustedUIRendererWebContentsId(mainWindowWebContentsId)
-  setAgentBrowserBridgeRef(runtime.getAgentBrowserBridge())
+  // RA: disabled IPC implementations are not imported or registered at startup.
   if (registered) {
     return
   }
@@ -188,24 +147,11 @@ export function registerCoreHandlers(
   })
   registerCliHandlers()
   registerPreflightHandlers(store)
-  registerUsageProviderHandlers({ claudeUsage, codexUsage, openCodeUsage, museUsage })
   registerCodexAccountHandlers(codexAccounts, () => store.getSettings())
   registerAgentHookHandlers(runtime, { getPtyIdForPaneKey })
   registerCodexConfigSyncHandlers(codexAccounts.runtimeHomeService)
   registerClaudeAccountHandlers(claudeAccounts)
-  registerOpenCodeGoCredentialsHandlers(rateLimits)
-  registerMiniMaxCredentialsHandlers(rateLimits)
-  registerZcodePlanCredentialsHandlers(rateLimits)
-  registerGrokAccountHandlers()
-  registerCursorAccountHandlers()
   registerRateLimitHandlers(rateLimits, codexAccounts)
-  registerGitHubHandlers(store, stats)
-  registerGitLabHandlers(store)
-  registerHostedReviewHandlers(store, stats)
-  registerLinearHandlers()
-  registerJiraHandlers()
-  registerJiraIssueSummaryGenerationHandlers(store, commitMessageAgentEnv)
-  registerBitbucketHandlers()
   registerFeedbackHandlers()
   if (crashReports) {
     registerCrashReportingHandlers(crashReports)
@@ -213,30 +159,15 @@ export function registerCoreHandlers(
   registerExportHandlers()
   registerStatsHandlers(stats)
   registerMemoryHandlers(store)
-  registerNotificationHandlers(store, runtime)
-  registerNotebookHandlers(store)
-  registerOnboardingHandlers(store)
-  registerDashboardPopoutHandlers(store, keybindings)
-  registerWorkspaceSpaceWindowHandlers(store)
   registerTerminalPreviewHandlers(runtime)
   registerDeveloperPermissionHandlers()
   // Diagnostics and telemetry register independent channels and keep separate data paths.
   registerDiagnosticsHandlers()
   registerTerminalRenderDesyncEvidenceHandler()
-  registerComputerUsePermissionHandlers()
   registerSettingsHandlers(store, agentAwakeService)
-  registerSkillsHandlers(store, runtime)
-  registerSkillDeleteIpcHandlers(store, runtime)
-  if (automations) {
-    registerAutomationHandlers(store, automations)
-  }
+  // RA: keybindings cannot wake the disabled plugin or automation runtimes.
   if (keybindings) {
-    registerKeybindingHandlers(keybindings, () => {
-      void pluginService?.reconcileActivationState()
-    })
-  }
-  if (pluginService) {
-    registerPluginHandlers(store, pluginService, marketplaceServices)
+    registerKeybindingHandlers(keybindings)
   }
   registerTelemetryHandlers(store)
   registerOrcaProfileHandlers(store, {
@@ -245,19 +176,9 @@ export function registerCoreHandlers(
     onBeforeSignOut: lifecycleOptions.onBeforeOrcaProfileSignOut,
     onAfterSignOut: lifecycleOptions.onAfterOrcaProfileSignOut
   })
-  registerBrowserHandlers()
   registerShellHandlers(store)
-  registerPetHandlers()
   registerSessionHandlers(store, runtime)
   registerUIHandlers(store, { isDashboardPopoutRenderer })
-  registerEmulatorFrameStreamHandlers()
-  registerEmulatorVideoStreamHandlers()
-  registerEmulatorScrcpyTouchHandler()
-  registerEmulatorScrcpyKeyboardHandler()
-  registerWorkspaceSpaceHandlers(store)
-  registerWorkspacePortHandlers(store)
-  registerLinkPreviewHandlers()
-  registerLocalhostWorktreeLabelHandlers(store)
   registerFilesystemHandlers(store, commitMessageAgentEnv)
   registerFilesystemWatcherHandlers()
   registerRuntimeHandlers(runtime)
@@ -270,15 +191,9 @@ export function registerCoreHandlers(
   registerWslMoveWiring(store, runtime)
   registerWslDriveProjectHandlers(store, runtime)
   installProjectRuntimeGitRouter(store)
-  registerEphemeralVmHandlers(store, pluginService)
   // Session history and terminal resume are not chats; a refused host leaves nothing to check.
   const ensureStructuredSessionOwnership = () =>
     ensureStructuredAgentSessionHostUnlessRefused(() => runtime.ensureStructuredAgentSessionHost())
-  registerAiVaultSearchHandlers({
-    callRuntimeSearch: (environmentId, method, params) =>
-      callRuntimeSessionSearch(getRuntimeEnvironmentRegistryRoot(), environmentId, method, params),
-    ensureStructuredSessionOwnership
-  })
   registerAiVaultHandlers({
     getUserDataPath: () => app.getPath('userData'),
     ensureStructuredSessionOwnership,
@@ -296,9 +211,12 @@ export function registerCoreHandlers(
   configureRuntimeAiVaultSessionDelete((environmentId, args) =>
     deleteRuntimeAiVaultSession(getRuntimeEnvironmentRegistryRoot(), environmentId, args)
   )
-  registerNativeChatHandlers()
   registerClipboardHandlers(store, {
     localChatAttachmentStore: async () => {
+      // RA: clipboard support must not eagerly load chat attachment storage.
+      const { getAgentSessionAttachmentStore } = await import(
+        '../../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
+      )
       await ensureStructuredAgentSessionHostUnlessRefused(() =>
         runtime.ensureStructuredAgentSessionHost()
       )
@@ -306,5 +224,4 @@ export function registerCoreHandlers(
     }
   })
   registerUpdaterHandlers(store)
-  registerSpeechHandlers(store)
 }

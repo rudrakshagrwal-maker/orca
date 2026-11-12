@@ -1,17 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import type {
-  CliStatusResult,
-  RuntimeStatus,
-  RuntimeTerminalListResult
-} from '../../shared/runtime-types'
-import { runtimeHostConnectionState } from '../../shared/runtime-host-connection-state'
+import type * as Runtime from '../../shared/runtime-types'
+import { runtimeHostConnectionState } from '../../shared/remote-runtime/host-status/runtime-host-connection-state'
 import {
   isDurableMutation,
   isOrchestrationMutation,
   isTerminalPromptMutation,
   orchestrationMigrationData
-} from '../../shared/orchestration-rpc-contract'
-import type { PairedRuntimeConnection } from '../../shared/paired-runtime-connection'
+} from '../../shared/orchestration/orchestration-rpc-contract'
+import type { PairedRuntimeConnection } from '../../shared/remote-runtime/pairing/paired-runtime-connection'
 import { openLocalOrca } from './open-local-orca'
 import { getDefaultUserDataPath, readMetadata } from './metadata'
 import {
@@ -21,37 +17,30 @@ import {
   projectRemoteAppStatus
 } from './status'
 import { sendRequest } from './transport'
-import { attachMutationRecovery } from './client-error-recovery'
+import { attachMutationRecovery, isRequestUnsent } from './client-error-recovery'
 import {
   RuntimeClientError,
   RuntimeRpcFailureError,
   type RuntimeRpcSuccess,
   type RuntimeCallOptions
 } from './types'
-import {
-  attachDurableMutationRecovery,
-  attachLegacyTerminalPromptRecovery,
-  attachUnverifiedTerminalPromptRecovery,
-  didAnotherRuntimeHandleTerminalPrompt
-} from './terminal-prompt-mutation-recovery'
-import { markEnvironmentUsed } from './environments'
+import * as prompt from './terminal-prompt-mutation-recovery'
+import { attachDurableMutationRecovery } from './terminal-prompt-mutation-recovery'
+import { recordRuntimeEnvironmentUsage } from '../../shared/remote-runtime/host-store/runtime-environment-usage-record'
 import { createRuntimeSourceFence, type RuntimeSourceFence } from './runtime-source-fence'
 import { resolveRemoteConnection } from './runtime-remote-pairing'
 import {
   ORCHESTRATION_CONTRACT_RUNTIME_CAPABILITY,
   ORCHESTRATION_CONTRACT_VERSION
-} from '../../shared/protocol-version'
+} from '../../shared/orchestration/orchestration-runtime-capabilities'
 import { RemoteRuntimeCompatGate } from './remote-runtime-compat-gate'
-import {
-  createAgentLaunchCallerEvidence,
-  createOrchestrationCompatibilityEnvelope
-} from './orchestration-compatibility-envelope'
+import { OrchestrationRequestEvidence } from './orchestration-compatibility-envelope'
 import { getTimeoutMsParam, isWaitingCheck } from './runtime-request-timeout'
 import {
   isWorkerStartTimeoutWithinTimerLimit,
   resolveWorkerStartClientTimeoutMs,
   resolveWorkerStartReadinessTimeoutMs
-} from '../../shared/orchestration-timing-budgets'
+} from '../../shared/orchestration/orchestration-timing-budgets'
 import { MAX_TIMER_DELAY_MS } from '../../shared/timer-delay'
 import { TerminalHandleSelector } from '../terminal-handle-selector'
 import {
@@ -61,21 +50,18 @@ import {
 
 const LONG_POLL_CLIENT_GRACE_MS = 10_000
 // The host records the launched agent in the caller's chat; older hosts ignore the evidence.
-const AGENT_LAUNCH_METHODS: ReadonlySet<string> = new Set(['agent.launch', 'agent.launchReplay'])
 
 const loadWebSocketTransport = async () => await import('./websocket-transport.js')
 
 export class RuntimeClient {
   // RA: full handles cost no lookup; abbreviated flags share a single saved-state inventory RPC.
-  private readonly terminalSelectors = new TerminalHandleSelector(async () =>
-    (
-      await this.call<RuntimeTerminalListResult>('terminal.list', {
-        limit: Number.MAX_SAFE_INTEGER,
-        includeVisualLayouts: false,
-        includePreview: false,
-        snapshot: true
-      })
-    ).result
+  private readonly terminalSelectors = new TerminalHandleSelector(() =>
+    this.call<Runtime.RuntimeTerminalListResult>('terminal.list', {
+      limit: Number.MAX_SAFE_INTEGER,
+      includeVisualLayouts: false,
+      includePreview: false,
+      snapshot: true
+    }).then(({ result }) => result)
   )
   readonly userDataPath: string
   private readonly remote: PairedRuntimeConnection | null
@@ -84,10 +70,7 @@ export class RuntimeClient {
   private readonly originalArgs: readonly string[] | undefined
   private readonly remoteCompat: RemoteRuntimeCompatGate
   private orchestrationContractCheck: Promise<void> | null = null
-  private readonly orchestrationCompatibility = createOrchestrationCompatibilityEnvelope(
-    process.env
-  )
-  private readonly agentLaunchCaller = createAgentLaunchCallerEvidence(process.env)
+  private readonly requestEvidence = new OrchestrationRequestEvidence(process.env)
   private readonly runtimeSourceFence: RuntimeSourceFence
 
   // Browser session cold starts can take 15–30 seconds; allow time for initialization.
@@ -118,7 +101,9 @@ export class RuntimeClient {
     options?: RuntimeCallOptions
   ): Promise<RuntimeRpcSuccess<TResult>> {
     // RA: normalize at the transport boundary so every terminal-bearing handler benefits.
-    if (this.originalArgs) params = await this.terminalSelectors.params(method, params)
+    if (this.originalArgs) {
+      params = await this.terminalSelectors.params(method, params)
+    }
     const effectiveTimeoutMs = options?.timeoutMs ?? this.resolveMethodTimeoutMs(method, params)
     const orchestrationMutation = isOrchestrationMutation(method, params)
     const terminalPromptMutation = isTerminalPromptMutation(method, params)
@@ -132,18 +117,18 @@ export class RuntimeClient {
       : undefined
     const recover = (error: unknown, targetRuntimeId: string | null) => {
       if (legacyTerminalPrompt) {
-        return attachLegacyTerminalPromptRecovery(error)
+        return prompt.attachLegacyTerminalPromptRecovery(error)
       }
       if (
         terminalPromptMutation &&
         options?.terminalPromptPreflight &&
-        didAnotherRuntimeHandleTerminalPrompt(
+        prompt.didAnotherRuntimeHandleTerminalPrompt(
           error,
           options.terminalPromptPreflight.runtimeId,
           targetRuntimeId
         )
       ) {
-        return attachUnverifiedTerminalPromptRecovery(error)
+        return prompt.attachUnverifiedTerminalPromptRecovery(error)
       }
       return attachDurableMutationRecovery(error, orchestrationRequestId, originalCommand, method)
     }
@@ -157,15 +142,11 @@ export class RuntimeClient {
           : error
       }
     }
-    const compatibilityEnvelope = method.startsWith('orchestration.')
-      ? {
-          ...this.orchestrationCompatibility,
-          compatibilityInvocationId:
-            orchestrationRequestId ?? this.orchestrationCompatibility.compatibilityInvocationId
-        }
-      : AGENT_LAUNCH_METHODS.has(method) && !this.remote && this.agentLaunchCaller
-        ? { orchestrationCompatibilityEvidence: this.agentLaunchCaller }
-        : {}
+    const compatibilityEnvelope = this.requestEvidence.envelopeFor(method, {
+      remote: this.remote !== null,
+      mutation: orchestrationMutation,
+      requestId: orchestrationRequestId
+    })
     const envelope = {
       orchestrationCapability: options?.orchestrationCapability,
       orchestrationContractVersion: method.startsWith('orchestration.')
@@ -194,7 +175,7 @@ export class RuntimeClient {
         throw recover(new RuntimeRpcFailureError(response), null)
       }
       if (this.environmentSelector) {
-        markEnvironmentUsed(this.userDataPath, this.environmentSelector, {
+        recordRuntimeEnvironmentUsage(this.userDataPath, this.environmentSelector, {
           runtimeId: response._meta.runtimeId
         })
       }
@@ -215,7 +196,8 @@ export class RuntimeClient {
         options?.requestSelection ? { requestSelection: options.requestSelection } : undefined
       )
     } catch (error) {
-      throw recover(error, metadata.runtimeId ?? null)
+      // A pre-send refusal has no outcome to recover; retry advice would resend the same bytes.
+      throw isRequestUnsent(error) ? error : recover(error, metadata.runtimeId ?? null)
     }
     if (response.ok === false) {
       throw recover(new RuntimeRpcFailureError(response), metadata.runtimeId ?? null)
@@ -253,9 +235,9 @@ export class RuntimeClient {
     return this.requestTimeoutMs
   }
 
-  async getCliStatus(): Promise<RuntimeRpcSuccess<CliStatusResult>> {
+  async getCliStatus(): Promise<RuntimeRpcSuccess<Runtime.CliStatusResult>> {
     if (this.remote) {
-      const response = await this.call<RuntimeStatus>('status.get')
+      const response = await this.call<Runtime.RuntimeStatus>('status.get')
       this.remoteCompat.noteVerifiedStatus(response.result)
       const graphState = response.result.graphStatus
       return {
@@ -318,7 +300,9 @@ export class RuntimeClient {
   }
 
   private async checkOrchestrationContractCompatibility(timeoutMs: number): Promise<void> {
-    const response = await this.call<RuntimeStatus>('status.get', undefined, { timeoutMs })
+    const response = await this.call<Runtime.RuntimeStatus>('status.get', undefined, {
+      timeoutMs
+    })
     if (this.remote) {
       this.remoteCompat.noteVerifiedStatus(response.result)
     }
@@ -331,7 +315,7 @@ export class RuntimeClient {
     }
   }
 
-  async openOrca(timeoutMs = 15_000): Promise<RuntimeRpcSuccess<CliStatusResult>> {
+  async openOrca(timeoutMs = 15_000): Promise<RuntimeRpcSuccess<Runtime.CliStatusResult>> {
     return this.remote ? this.getCliStatus() : openLocalOrca(() => this.getCliStatus(), timeoutMs)
   }
 }

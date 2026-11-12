@@ -1,34 +1,8 @@
-import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { app } from 'electron'
 import { KeybindingService } from '../keybindings/keybinding-service'
 import { createProviderAccountServices } from '../providers/accounts/provider-account-services'
-import { createCodexSessionMigrationScheduler } from '../codex/codex-session-migration-scheduler'
-import { startCodexSessionBackfillInBackground } from '../codex/codex-session-backfill'
-import { startCodexSessionIndexHealInBackground } from '../codex/codex-session-index-heal'
-import { startCodexStateDbBackfillRecoveryInBackground } from '../codex/codex-state-db-backfill-recovery'
-import { getOrcaManagedCodexHomePath } from '../codex/codex-home-paths'
-import {
-  hasOpenCodeGoApiKey,
-  readOpenCodeGoApiKey,
-  saveOpenCodeGoApiKey
-} from '../opencode/opencode-go-api-key-store'
-import { agentHookServer } from '../agent-hooks/server'
-import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source-home'
-import { browserManager } from '../browser/browser-manager'
-import { prewarmStructuredAgentModelCatalogs } from '../runtime/structured-agent-model-catalog-wiring'
+import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
 import { mainProcessState as state } from './main-process-state'
-
-// Settings that change which account or binary a new chat's agent runs under.
-const MODEL_CATALOG_ACCOUNT_SETTINGS = [
-  'activeCodexManagedAccountId',
-  'activeCodexManagedAccountIdsByRuntime',
-  'codexManagedAccounts',
-  'activeClaudeManagedAccountId',
-  'activeClaudeManagedAccountIdsByRuntime',
-  'claudeManagedAccounts',
-  'agentDefaultEnv',
-  'agentCmdOverrides'
-] as const
 
 export function initializeMainProcessAccountServices(): void {
   const store = state.store
@@ -41,21 +15,8 @@ export function initializeMainProcessAccountServices(): void {
   ) {
     throw new Error('Usage stores must be initialized before account services')
   }
-  state.codexSessionMigration = createCodexSessionMigrationScheduler({
-    isEligible: () =>
-      !backgroundJobsDisabled() &&
-      state.codexRuntimeHome?.isHostSystemDefaultSessionMigrationEligible() === true,
-    isQuitting: () => state.isQuitting,
-    resolveSystemCodexHomePathOverride: () =>
-      resolveHostCodexSessionSourceHome(store.getSettings()),
-    prepareScheduledRun: (scanDates) =>
-      state.codexRuntimeHome?.prepareHostSystemDefaultSessionMigrationPass(scanDates),
-    finishScheduledRun: () => state.codexRuntimeHome?.finishHostSystemDefaultSessionMigrationPass(),
-    startBackfill: startCodexSessionBackfillInBackground,
-    startIndexHeal: startCodexSessionIndexHealInBackground
-  })
+  // RA: terminal auth never imports session migration, model discovery or unused providers.
   const services = createProviderAccountServices(store, {
-    codexAccountLifecycle: { onHostSystemDefaultSelected: state.codexSessionMigration.requestRun },
     setClaudeStatusLineListener: (listener) => agentHookServer.setClaudeStatusLineListener(listener)
   })
   state.rateLimits = services.rateLimits
@@ -63,29 +24,13 @@ export function initializeMainProcessAccountServices(): void {
   state.codexAccounts = services.codexAccounts
   state.claudeRuntimeAuth = services.claudeRuntimeAuth
   state.claudeAccounts = services.claudeAccounts
-  // RA: no background scans, foreign session migrations or index repair.
-  if (!backgroundJobsDisabled()) {
-    void startCodexStateDbBackfillRecoveryInBackground(getOrcaManagedCodexHomePath())
-    state.codexSessionMigration.scheduleInitialRun()
-  }
-  store.onSettingsChanged((updates) => {
-    // An account switch would otherwise leave the next chat's picker on a cold catalog.
-    if (!backgroundJobsDisabled() && MODEL_CATALOG_ACCOUNT_SETTINGS.some((key) => key in updates)) {
-      prewarmStructuredAgentModelCatalogs()
-    }
-  })
-  store.migrateLegacyOpenCodeGoApiKey({
-    has: hasOpenCodeGoApiKey,
-    read: readOpenCodeGoApiKey,
-    save: saveOpenCodeGoApiKey
-  })
   state.keybindings = new KeybindingService({
     homePath: app.getPath('home'),
     getLegacyOverrides: () => store.getSettings().keybindings,
-    legacyTabSwitchSeed: {
-      isPending: () => store.getSettings().tabSwitchKeybindingSeed === 'pending',
-      markSeeded: () => store.updateSettings({ tabSwitchKeybindingSeed: 'done' })
-    }
+    legacyTabSwitchDefaults: store.getSettings().tabSwitchKeybindingSeed === 'legacy',
+    legacySearchDefaults:
+      (process.platform === 'darwin'
+        ? store.getSettings().searchKeybindingSeed
+        : store.getSettings().nonMacSearchKeybindingSeed) === 'legacy'
   })
-  browserManager.setSettingsResolver(() => ({ keybindings: state.keybindings?.getOverrides() }))
 }

@@ -2,14 +2,14 @@ import { ChevronRight } from 'lucide-react' // RA: disclosure without orchestrat
 import type { MouseEvent } from 'react'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
 import { AgentStateDot, type AgentDotState } from '@/components/AgentStateDot'
-import { AgentTypeIcon } from '@/lib/agent-type-icon'
-import { cn } from '@/lib/utils'
+import { AgentTypeIcon } from '@/components/agent/icons/agent-type-icon'
+import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
+import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { resolveRuntimePaneTitleForLeaf } from '../../../../shared/runtime-pane-title-leaf-id'
-import { agentTerminalTitle } from '../../../../shared/agent-title-decoration'
-import { formatCompactDuration } from '../../../../shared/agent-row-decay-state'
+import { agentTerminalTitle } from '../../../../shared/agent-status/title/agent-title-decoration'
+import { formatCompactDuration } from '../../../../shared/agent-status/presentation/agent-row-decay-state'
 
 type Props = {
   agent: DashboardAgentRow

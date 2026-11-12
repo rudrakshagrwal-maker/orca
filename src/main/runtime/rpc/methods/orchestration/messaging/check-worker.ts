@@ -1,14 +1,15 @@
-import type { MessageRow, MessageType, OrchestrationDb } from '../../../../orchestration/db'
+import type { MessageRow, MessageType } from '../../../../orchestration/db/orchestration-records'
+import type { OrchestrationDb } from '../../../../orchestration/db/orchestration-db'
 import type { MailboxDeliveryBatch } from '../../../../orchestration/db/messages/role-mailbox-delivery'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
-import { formatMessageBanner } from '../../../../orchestration/formatter'
+import { formatMessageBanner } from '../../../../orchestration/mailbox/formatting/message-formatting'
 import { acknowledgedOnlyReceipt, deliveryReceipt, exposeMessages } from './mailbox-message-receipt'
-import { routeAllMailboxPages } from '../schemas'
+import { routeAllMailboxPages } from './mailbox-page-routing'
 import { asDispatchFence, callerHoldsDispatchPane, dispatchFenced } from './dispatch-mailbox-fence'
 import { interruptedAcknowledgedCheck } from '../routing'
 import { currentDispatchAssigneeRun } from './recipient-routing'
-import type { CheckParams } from '../schemas'
+import type { CheckParams } from '../../../../../../shared/rpc-contract/orchestration-params'
 import type { z } from 'zod'
 
 type CheckParamsInput = z.infer<typeof CheckParams>
@@ -87,7 +88,15 @@ export async function checkWorkerMailbox(args: {
       const current = db.getActiveDispatchForIdentity(handle, paneKey)
       if (current?.id === activeDispatch.id) {
         // Re-attachment during awaits can retain the id while changing the pane.
-        if (callerHoldsDispatchPane(current, paneKey)) {
+        if (
+          callerHoldsDispatchPane(current, paneKey) &&
+          (!current.process_incarnation ||
+            db.isDispatchProcessCurrent({
+              dispatchId: current.id,
+              paneKey: paneKey ?? null,
+              processIncarnation: runtime.getTerminalProcessIncarnation(handle)
+            }))
+        ) {
           return
         }
         throw dispatchFenced()

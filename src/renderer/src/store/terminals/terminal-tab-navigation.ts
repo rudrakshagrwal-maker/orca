@@ -1,7 +1,10 @@
-import { resolveActiveTabOwnerWorktreeId } from '../slices/active-tab-owner-worktree'
-import { getTerminalTabOwnerWorktreeId } from '../slices/terminal-tab-owner-index'
+import { resolveActiveTabOwnerWorktreeId } from './active-tab-owner-worktree'
+import { getTerminalTabOwnerWorktreeId } from './terminal-tab-owner-index'
 import type { TerminalSlice, TerminalStoreGet, TerminalStoreSet } from './terminal-state'
-import { ownsGlobalSelection } from '../global-selection-owner'
+import { ownsGlobalSelection } from '../workspaces/selection/global-selection-owner'
+import { replaceTabBuckets } from '../keyed-record-transitions'
+import { selectTabAgentParents } from '@/components/tab-bar/tab-agent-lineage'
+import { orderAgentLineage } from '@/components/tab-bar/agent-lineage-order'
 
 export function createTerminalTabNavigationActions(
   set: TerminalStoreSet,
@@ -26,11 +29,13 @@ export function createTerminalTabNavigationActions(
           ...missingTabs
         ].map((tab, i) => ({ ...tab, sortOrder: i }))
         return {
-          tabsByWorktree: { ...s.tabsByWorktree, [worktreeId]: reordered }
+          tabsByWorktree: replaceTabBuckets(s.tabsByWorktree, [[worktreeId, reordered]])
         }
       })
     },
     setTabBarOrder: (worktreeId, order) => {
+      // RA: launch insertion and persisted terminal order obey the same parent groups.
+      order = orderAgentLineage(order, selectTabAgentParents(get(), worktreeId))
       set((s) => {
         const newTabBarOrder = { ...s.tabBarOrderByWorktree, [worktreeId]: order }
         // Keep terminal tab sortOrder in sync for persistence
@@ -48,7 +53,7 @@ export function createTerminalTabNavigationActions(
         ].map((tab, i) => ({ ...tab, sortOrder: i }))
         return {
           tabBarOrderByWorktree: newTabBarOrder,
-          tabsByWorktree: { ...s.tabsByWorktree, [worktreeId]: updatedTabs }
+          tabsByWorktree: replaceTabBuckets(s.tabsByWorktree, [[worktreeId, updatedTabs]])
         }
       })
     },

@@ -1,5 +1,5 @@
-import type { WorkspaceSessionState } from './workspace-session-state-types'
-import { isTerminalLeafId, makePaneKey, parsePaneKey } from './stable-pane-id'
+import type { WorkspaceSessionState } from './workspace-session/workspace-session-state-types'
+import { isTerminalLeafId, makePaneKey, parsePaneKey } from './workspace-layout/stable-pane-id'
 import {
   collectLayoutLeafIdsInOrder,
   resolveRootlessTerminalLayoutLeafId

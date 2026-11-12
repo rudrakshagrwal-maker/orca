@@ -1,4 +1,5 @@
-import type { HookDefinition } from '../agent-hooks/installer-utils'
+import type { HookDefinition } from '../agent-hooks/installation/configuration/hook-config-schema'
+import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import {
   claudeKnowsHookEvent,
   claudeKnowsStatusLine,
@@ -81,10 +82,17 @@ const CLAUDE_ELICITATION_EVENTS = [
   }
 ] as const
 
+// A batch end releases a permission wait Claude denied itself, which fires no Post* hook.
+const CLAUDE_POST_TOOL_BATCH_EVENT = {
+  eventName: 'PostToolBatch',
+  definition: { hooks: [{ type: 'command', command: '' }] }
+} as const
+
 export const CLAUDE_MANAGED_EVENTS = [
   ...CLAUDE_EVENTS,
   ...CLAUDE_ELICITATION_EVENTS,
-  CLAUDE_SESSION_END_EVENT
+  CLAUDE_SESSION_END_EVENT,
+  CLAUDE_POST_TOOL_BATCH_EVENT
 ] as const
 
 export type ManagedHookEvent = {
@@ -103,6 +111,21 @@ export type ClaudeManagedHookPlan = {
 export function getClaudeManagedHookPlan(
   claudeVersion: string | null | undefined
 ): ClaudeManagedHookPlan {
+  // RA: one observer command on four events, never tool decisions or a statusline.
+  if (preserveGlobalAgentConfiguration()) {
+    const names = new Set(['SessionStart', 'UserPromptSubmit', 'Stop', 'Notification'])
+    return {
+      install: [
+        ...CLAUDE_MANAGED_EVENTS.filter((event) => names.has(event.eventName)),
+        {
+          eventName: 'Notification',
+          definition: {}
+        }
+      ],
+      retire: CLAUDE_MANAGED_EVENTS.filter((event) => !names.has(event.eventName)),
+      statusLine: 'leave'
+    }
+  }
   const install = CLAUDE_MANAGED_EVENTS.filter(
     (event) =>
       claudeKnowsHookEvent(claudeVersion, event.eventName) &&
@@ -123,6 +146,6 @@ export function getClaudeManagedHookPlan(
 // OpenClaude statusline data would be misattributed to Claude; leave its slot alone.
 export const OPENCLAUDE_MANAGED_HOOK_PLAN: ClaudeManagedHookPlan = {
   install: CLAUDE_EVENTS,
-  retire: [CLAUDE_SESSION_END_EVENT],
+  retire: [CLAUDE_SESSION_END_EVENT, CLAUDE_POST_TOOL_BATCH_EVENT],
   statusLine: 'leave'
 }

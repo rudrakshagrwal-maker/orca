@@ -1,5 +1,10 @@
 import type { AttemptObservationStorageRow } from './attempt-observation-store'
-import type { DispatchContextRow, RemoteDispatchAttachmentRow, RunRow, TaskRow } from '../types'
+import type {
+  DispatchContextRow,
+  RemoteDispatchAttachmentRow,
+  RunRow,
+  TaskRow
+} from './orchestration-records'
 
 // Explicit projections enable SyncDatabase caching; type exhaustiveness and schema tests prevent column drift.
 
@@ -9,6 +14,8 @@ export const RUN_COLUMNS = [
   'home_database',
   'coordinator_handle',
   'coordinator_pane_key',
+  'coordinator_process_incarnation',
+  'coordinator_agent_session_id',
   'coordinator_orca_session_id',
   'coordinator_orca_session_id_generation',
   'consumer_generation',
@@ -51,6 +58,8 @@ export const DISPATCH_CONTEXT_COLUMNS = [
   'creator_dispatch_id',
   'creator_handle',
   'creator_pane_key',
+  'creator_process_incarnation',
+  'creator_agent_session_id',
   'creator_orca_session_id',
   'host_scope',
   'status',

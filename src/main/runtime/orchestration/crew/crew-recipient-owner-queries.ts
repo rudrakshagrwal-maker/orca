@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { isOrcaSessionId, type OrcaSessionId } from '../../../../shared/orca-session-address'
-import type { OrchestrationDb } from '../db'
+import type { OrchestrationDb } from '../db/orchestration-db'
 import {
   RUN_PANE_KEY_MATCH_SUFFIX_SQL,
   DISPATCH_PANE_KEY_MATCH_SUFFIX_SQL
@@ -15,6 +15,10 @@ const Run = z.object({
   id: z.string(),
   legacy: z.number(),
   home_database: z.string(),
+  // RA: retain the coordinator identity required by parent-only mailbox routing.
+  coordinator_handle: nullable,
+  coordinator_process_incarnation: nullable.optional(),
+  coordinator_agent_session_id: nullable.optional(),
   coordinator_pane_key: nullable,
   coordinator_orca_session_id: sessionId.nullable(),
   coordinator_orca_session_id_generation: z.number().nullable(),
@@ -89,7 +93,9 @@ const Identity = z.object({
 })
 
 export type CrewRecipientRun = z.infer<typeof Run>
-const runColumns = `r.id, r.legacy, r.home_database, r.coordinator_pane_key, r.coordinator_orca_session_id,
+// RA: return identity fields as well as the pane so replacement processes stay fenced.
+const runColumns = `r.id, r.legacy, r.home_database, r.coordinator_handle,
+  r.coordinator_process_incarnation, r.coordinator_agent_session_id, r.coordinator_pane_key, r.coordinator_orca_session_id,
   r.coordinator_orca_session_id_generation, r.consumer_generation`
 
 const dispatchColumns = `d.id, d.run_id, d.contract_version, d.status, d.follow_up_of_dispatch_id,

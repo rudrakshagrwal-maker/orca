@@ -30,8 +30,8 @@ vi.mock('./app-window-chrome', () => ({
     return mocks.platform
   }
 }))
-vi.mock('@/lib/desktop-window-chrome', () => ({ isPairedWebClientWindow: () => mocks.pairedWeb }))
-vi.mock('@/lib/worktree-activation', () => ({
+vi.mock('@/app-shell/chrome/desktop-window-chrome', () => ({ isPairedWebClientWindow: () => mocks.pairedWeb }))
+vi.mock('@/lib/workspace/activation/worktree-activation', () => ({
   activateAndRevealWorktree: mocks.activateAndRevealWorktree
 }))
 

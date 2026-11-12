@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { backgroundJobsDisabled, preserveGlobalAgentConfiguration } from './fork-background-policy'
-import { isAgentStatusHooksEnabled } from './agent-status-hooks-setting'
+import { isAgentStatusHooksEnabledForAgent } from './agent-hook-listener/configuration/agent-status-hooks-setting'
 import { getDefaultSettings } from './constants'
 import { getDefaultOnboardingState, ONBOARDING_FINAL_STEP } from './onboarding-defaults'
 import { normalizePluginSystemEnabledDefaultOn } from './plugins/plugin-system-settings'
@@ -9,7 +9,9 @@ import { normalizePluginSystemEnabledDefaultOn } from './plugins/plugin-system-s
 it('disables collection and config writes even when an old profile enabled hooks/plugins', () => {
   expect(backgroundJobsDisabled()).toBe(true)
   expect(preserveGlobalAgentConfiguration()).toBe(true)
-  expect(isAgentStatusHooksEnabled({ agentStatusHooksEnabled: true })).toBe(false)
+  // RA: the approved Claude observer is the sole per-agent exception.
+  expect(isAgentStatusHooksEnabledForAgent({ agentStatusHooksEnabled: true }, 'claude')).toBe(true)
+  expect(isAgentStatusHooksEnabledForAgent({ agentStatusHooksEnabled: true }, 'codex')).toBe(false)
   expect(
     normalizePluginSystemEnabledDefaultOn({
       pluginSystemEnabled: true,
@@ -17,7 +19,7 @@ it('disables collection and config writes even when an old profile enabled hooks
     }).pluginSystemEnabled
   ).toBe(false)
   expect(getDefaultSettings('/tmp')).toMatchObject({
-    agentStatusHooksEnabled: false,
+    agentStatusHooksEnabled: true,
     pluginSystemEnabled: false,
     showMobileButton: false
   })

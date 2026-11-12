@@ -1,5 +1,5 @@
 import type { DispatchCreator } from '../../../../orchestration/db/dispatch-depth'
-import type { OrchestrationSessionCaller } from '../../../../orchestration/orchestration-caller-identity'
+import type { OrchestrationEntryCaller } from '../../../../orchestration/addressing/orchestration-caller-identity'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import { orchestrationCallerIdentity } from './run-scope'
 
@@ -7,7 +7,7 @@ import { orchestrationCallerIdentity } from './run-scope'
 export function resolveDispatchCreator(
   runtime: OrcaRuntimeService,
   callerHandle: string | undefined,
-  callerSession: OrchestrationSessionCaller | undefined
+  callerSession: OrchestrationEntryCaller | undefined
 ): DispatchCreator {
   if (!callerHandle) {
     // No declared caller resolves no parent; retain legacy Run-binding depth zero.
@@ -33,7 +33,11 @@ export function resolveDispatchCreator(
       caller.paneKey ??
       runtime.getTerminalPaneKey(caller.terminalHandle) ??
       undefined,
-    processIncarnation: authority?.processIncarnation ?? undefined,
+    processIncarnation:
+      authority?.processIncarnation ??
+      runtime.getTerminalProcessIncarnation(caller.terminalHandle) ??
+      undefined,
+    agentSessionId: runtime.getTerminalCoordinatorIdentity(caller.terminalHandle).agentSessionId,
     ...(caller.orcaSessionId ? { orcaSessionId: caller.orcaSessionId } : {})
   }
 }

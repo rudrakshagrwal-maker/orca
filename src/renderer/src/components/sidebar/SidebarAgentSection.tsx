@@ -2,11 +2,11 @@ import React, { useMemo, useRef } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
-import { getWorktreeMapFromState } from '@/store/selectors'
+import { useWorktreeMap } from '@/store/slices/worktrees/listing/use-worktree-catalog'
 import {
   selectDetectedWorktreesByRepo,
   selectFolderWorkspaces
-} from '@/store/workspace-record-selectors'
+} from '@/store/workspaces/catalog/workspace-record-fields'
 import DashboardAgentRow from '@/components/dashboard/DashboardAgentRow'
 import type { DashboardAgentRow as AgentRow } from '@/components/dashboard/useDashboardData'
 import {
@@ -17,7 +17,7 @@ import {
 } from '@/components/dashboard/worktree-agent-rows-cache'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useNow } from '@/hooks/use-now'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
@@ -25,14 +25,14 @@ import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import {
   EMPTY_WORKTREE_AGENT_ORCHESTRATION,
   selectWorktreeAgentOrchestrationIndex
-} from './worktree-agent-orchestration-index'
-import { activateWorktreeAgentPane } from './use-worktree-agent-activation'
-import { activateRetainedAgentRow } from './activate-retained-agent-row'
+} from './workspace-card/activity/worktree-agent-orchestration-index'
+import { activateWorktreeAgentPane } from './workspace-card/activity/use-worktree-agent-activation'
+import { activateRetainedAgentRow } from './workspace-card/activity/activate-retained-agent-row'
 import { buildSidebarAgentTree } from './sidebar-agent-tree'
-import { getFocusedAgentPaneKeyForWorktree } from './focused-agent-row-highlight'
+import { getFocusedAgentPaneKeyForWorktree } from './workspace-card/activity/focused-agent-row-highlight'
 import { useSidebarAgentSectionResize, SIDEBAR_AGENTS_MIN_HEIGHT } from './use-sidebar-agent-section-resize'
 import { AgentStateDot } from '@/components/AgentStateDot'
-import { selectVisibleAgentOrchestration } from '@/runtime/visible-agent-orchestration'
+import { selectVisibleAgentOrchestration } from '@/runtime/agent-orchestration/visible-agent-orchestration'
 
 const COLLAPSE_KEY = 'ra:sidebar-agents'
 
@@ -94,7 +94,8 @@ function SidebarAgentSectionBody(): React.JSX.Element {
       agentStatusEpoch: s.agentStatusEpoch
     }))
   )
-  const worktreeMap = useAppStore(getWorktreeMapFromState)
+  // RA: use upstream's cached catalog hook after the selector module was split.
+  const worktreeMap = useWorktreeMap()
   const folderWorkspaces = useAppStore(selectFolderWorkspaces)
   const detectedWorktreesByRepo = useAppStore(selectDetectedWorktreesByRepo)
   const acknowledgedAgentsByPaneKey = useAppStore((s) => s.acknowledgedAgentsByPaneKey)

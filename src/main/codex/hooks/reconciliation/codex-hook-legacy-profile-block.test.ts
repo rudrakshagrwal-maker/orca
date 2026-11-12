@@ -1,0 +1,33 @@
+// RA: retained mutation internals are tested only under an explicitly unblocked policy.
+vi.mock('../../../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
+import { describe, expect, it, vi } from 'vitest'
+import { stripLegacyManagedProfileBlock } from './codex-hook-legacy-cleanup'
+
+const START = '# BEGIN ORCA AGENT STATUS HOOKS'
+const END = '# END ORCA AGENT STATUS HOOKS'
+
+describe('legacy Codex managed profile block', () => {
+  it('rejoins a CRLF config with CRLF', () => {
+    const content = `model = "o3"\r\n\r\n${START}\r\n[[hooks]]\r\n${END}\r\n\r\ntail = true\r\n`
+    const next = stripLegacyManagedProfileBlock(content)
+    expect(next).toBe('model = "o3"\r\n\r\ntail = true\r\n')
+    expect(next).not.toMatch(/[^\r]\n/)
+  })
+
+  it('removes a complete block that sits below an orphaned marker', () => {
+    const content = `${START}\nstray = 1\n\n${START}\n[[hooks]]\nx = 1\n${END}\n\ntail = true\n`
+    const next = stripLegacyManagedProfileBlock(content)
+    expect(next).not.toContain('[[hooks]]')
+    expect(next).toContain('stray = 1')
+    expect(next).toContain('tail = true')
+  })
+
+  it('fails closed when the end marker was hand-deleted', () => {
+    const content = `model = "o3"\n${START}\n[[hooks]]\nx = 1\n\n[user.table]\nkeep = "mine"\n`
+    expect(stripLegacyManagedProfileBlock(content)).toBe(content)
+  })
+})

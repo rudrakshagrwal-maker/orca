@@ -1,5 +1,5 @@
-import { app } from 'electron'
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
+import { app } from 'electron'
 import { totalmem } from 'node:os'
 
 const RENDERER_HEAP_ENV_VAR = 'ORCA_RENDERER_HEAP_MB'
@@ -66,8 +66,12 @@ export function enableRendererHeapHeadroom(
 ): void {
   const totalMemoryBytes = options.totalMemoryBytes ?? totalmem()
   const envOverride = (options.env ?? process.env)[RENDERER_HEAP_ENV_VAR]
-  // RA: leave Chromium's heap policy alone unless the operator explicitly overrides it.
-  if (backgroundJobsDisabled() && typeof parseRendererHeapOverrideMb(envOverride) !== 'number') {
+  // RA: cap future renderer isolates; main needs this flag on the executable's launch argv.
+  if (backgroundJobsDisabled()) {
+    const flags = app.commandLine.getSwitchValue('js-flags')
+      .replace(/--max-old-space-size(?:=|\s+)\d+/g, '')
+      .trim()
+    app.commandLine.appendSwitch('js-flags', `${flags} --max-old-space-size=768`.trim())
     return
   }
   const ceilingMb = computeRendererHeapCeilingMb(totalMemoryBytes, envOverride)

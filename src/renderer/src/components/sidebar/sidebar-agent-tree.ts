@@ -5,11 +5,11 @@ import {
   readAgentRowTurnRecords
 } from '@/components/dashboard/dashboard-row-bucket'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
-import type { AgentStatusOrchestrationContext } from '../../../../shared/agent-status-types'
-import { buildCollapsedChildAgentSignalStates } from './worktree-card-idle-child-agents'
-import { getAgentDotState, SUMMARY_STATE_ORDER } from './worktree-card-agent-summary'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { parsePaneKey } from '../../../../shared/stable-pane-id'
+import type { AgentStatusOrchestrationContext } from '../../../../shared/agent-status/contracts/agent-status-types'
+import { buildCollapsedChildAgentSignalStates } from './workspace-card/activity/worktree-card-idle-child-agents'
+import { getAgentDotState, SUMMARY_STATE_ORDER } from './workspace-card/activity/worktree-card-agent-summary'
+import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
+import { parsePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 
 // RA: start order is independent of status, turn timestamps and acknowledgements.
 export function buildSidebarAgentTree(

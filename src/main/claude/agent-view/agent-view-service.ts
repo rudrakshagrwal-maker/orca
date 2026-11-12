@@ -1,11 +1,12 @@
 import { homedir } from 'node:os'
+import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { join, resolve } from 'node:path'
 import { getAppEnvironment } from '../../../shared/app-environment'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
-import { isAgentStatusHooksEnabledForAgent } from '../../../shared/agent-status-hooks-setting'
-import { getAgentLaunchExecutableName } from '../../../shared/agent-command-line-intent'
+import { isAgentStatusHooksEnabledForAgent } from '../../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
+import { getAgentLaunchExecutableName } from '../../../shared/agent-launch/startup/agent-command-line-intent'
 import { withTimeout } from '../../../shared/promise-timeout-fallback'
-import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import { listClaudeProfileHomesAsync } from '../../claude-accounts/claude-profile-homes'
 import { resolveLoginShellEnvironment } from '../../startup/login-shell-environment'
 import { reconcileClaudeAgentViewConfig } from './agent-view-config'
@@ -48,6 +49,8 @@ export class ClaudeAgentViewService {
   ) {}
 
   reconcile(settings: NavigationSettings): Promise<void> {
+    // RA: disabling hooks must not run plugin removal against the user's Claude settings.
+    if (preserveGlobalAgentConfiguration()) return Promise.resolve()
     const enabled =
       settings.claudeSubagentNavigationEnabled !== false &&
       isAgentStatusHooksEnabledForAgent(settings, 'claude')
@@ -86,6 +89,8 @@ export class ClaudeAgentViewService {
   }
 
   prepareProfile(configDir: string): Promise<void> {
+    // RA: account launch cannot write a navigation plugin into any agent profile.
+    if (preserveGlobalAgentConfiguration()) return Promise.resolve()
     const dir = resolve(configDir)
     if (this.configs.has(dir)) {
       return this.tail

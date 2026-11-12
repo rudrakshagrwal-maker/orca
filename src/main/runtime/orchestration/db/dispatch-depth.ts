@@ -1,9 +1,9 @@
 import { createDispatchCreatorEvaluation } from './dispatch-creator-evaluation'
-import { requireOrchestrationAdmission } from '../orchestration-admission'
-export { isSelfCreatedDispatch, AmbiguousDispatchParentError } from './dispatch-creator-evaluation'
+import { requireOrchestrationAdmission } from '../addressing/orchestration-admission'
+
 import type { OrchestrationDb } from './orchestration-db'
 import type { OrcaSessionId } from '../../../../shared/orca-session-address'
-import type { DispatchContextRow, RemoteDispatchAttachmentRow } from '../types'
+import type { DispatchContextRow, RemoteDispatchAttachmentRow } from './orchestration-records'
 import { potentiallyLiveRemoteAttachmentSql } from './federation/remote-attachment-liveness'
 import {
   DISPATCH_CONTEXT_COLUMN_LIST,
@@ -19,6 +19,7 @@ export type DispatchCreator =
       paneKey?: string
       /** Remote attachment matching requires the exact incarnation; local rows do not. */
       processIncarnation?: string
+      agentSessionId?: string | null
       /** A structured worker's bare Orca session id, recorded beside its handle. */
       orcaSessionId?: OrcaSessionId | null
     }
@@ -27,21 +28,33 @@ export type DispatchCreator =
 
 /** Creator identity to persist on a new row, so depth can later tell delegation from bookkeeping. */
 export function recordedCreatorIdentity(creator: DispatchCreator): {
+  creatorProcessIncarnation: string | null
+  creatorAgentSessionId: string | null
   creatorHandle: string | null
   creatorPaneKey: string | null
   creatorOrcaSessionId: OrcaSessionId | null
 } {
   if (creator.kind === 'system') {
-    return { creatorHandle: null, creatorPaneKey: null, creatorOrcaSessionId: null }
+    return {
+      creatorHandle: null,
+      creatorPaneKey: null,
+      creatorOrcaSessionId: null,
+      creatorProcessIncarnation: null,
+      creatorAgentSessionId: null
+    }
   }
   if (creator.kind === 'session') {
     return {
+      creatorProcessIncarnation: null,
+      creatorAgentSessionId: null,
       creatorHandle: null,
       creatorPaneKey: null,
       creatorOrcaSessionId: creator.orcaSessionId
     }
   }
   return {
+    creatorProcessIncarnation: creator.processIncarnation ?? null,
+    creatorAgentSessionId: creator.agentSessionId ?? null,
     creatorHandle: creator.handle,
     creatorPaneKey: creator.paneKey ?? null,
     creatorOrcaSessionId: creator.orcaSessionId ?? null

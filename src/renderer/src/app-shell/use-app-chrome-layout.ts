@@ -1,13 +1,14 @@
+import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { SYNC_FIT_PANES_EVENT } from '@/constants/terminal'
-import { canShowRightSidebarForView } from '@/lib/right-sidebar-visibility'
-import { resolveLeftSidebarStyleVariables } from '@/lib/left-sidebar-appearance'
-import { resolveLeftTitlebarChromeLayout } from '@/lib/titlebar-left-chrome'
-import { shouldShowWorktreeCreationSurface } from '@/lib/worktree-creation-surface'
-import { useAppStore } from '../store'
+import { canShowRightSidebarForView } from '@/components/right-sidebar/visibility/right-sidebar-visibility'
+import { resolveLeftSidebarStyleVariables } from '@/app-shell/appearance/left-sidebar-appearance'
+import { resolveLeftTitlebarChromeLayout } from '@/app-shell/chrome/titlebar-left-chrome'
+import { selectWorktreeCreationSurfaceShown } from '@/lib/workspace/creation/worktree-creation-surface'
+import { useAppStore } from '../store/index'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../shared/constants'
-import { selectActiveTerminalChromeState } from '../store/active-terminal-chrome-selector'
+import { selectActiveTerminalChromeState } from './active-terminal-chrome-selector'
 import {
   hasRequestedBackgroundTerminalWorktreeMount,
   subscribeBackgroundTerminalWorktreeMountRequests
@@ -19,18 +20,13 @@ export type AppChromeLayout = ReturnType<typeof useAppChromeLayout>
 export function useAppChromeLayout() {
   const activeView = useAppStore((s) => s.activeView)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
-  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen)
+  // RA: disabled panels reserve no space, including after old saved UI state hydrates.
+  const rightSidebarOpen = useAppStore((s) => !backgroundJobsDisabled() && s.rightSidebarOpen)
   const rightSidebarTab = useAppStore((s) => s.rightSidebarTab)
   const rightSidebarExplorerView = useAppStore((s) => s.rightSidebarExplorerView)
   const isFullScreen = useAppStore((s) => s.isFullScreen)
   const settings = useAppStore((s) => s.settings)
   const activePendingCreationId = useAppStore((s) => s.activePendingCreationId)
-  // Pending creation owns the tab strip immediately; a delayed loader gate swaps it mid-create.
-  const activePendingCreationExists = useAppStore(
-    (s) =>
-      s.activePendingCreationId !== null &&
-      s.pendingWorktreeCreations[s.activePendingCreationId] !== undefined
-  )
   // Booleans only: App owns this hook, and raw active ids would re-render the whole app on every workspace switch.
   const { hasActiveWorktree, hasTabBar, activeTabCanExpand, effectiveActiveTabExpanded } =
     useAppStore(
@@ -66,11 +62,7 @@ export function useAppChromeLayout() {
   // Lazy-mount for tabs, then retain hidden panes through temporary null selection during sleep/shutdown.
   const shouldMountTerminalWorkbench = canMountTerminalWorkbenchNow || hasMountedTerminalWorkbench
   // Creation owns faux chrome throughout; retain the previous workspace without its real chrome.
-  const creationLayoutActive = shouldShowWorktreeCreationSurface({
-    activeView,
-    activePendingCreationId,
-    hasActivePendingCreation: activePendingCreationExists
-  })
+  const creationLayoutActive = useAppStore(selectWorktreeCreationSurfaceShown)
   const workspaceChromeActive =
     activeView === 'terminal' && hasActiveWorktree && !creationLayoutActive
   // Activity/Space own full pages and hide the workspace sidebar.
@@ -134,7 +126,7 @@ export function useAppChromeLayout() {
     shouldMountTerminalWorkbench,
     showSidebar,
     // Keep the pending composer in the same viewport as the workspace it hands off to.
-    showRightSidebarControls: canShowRightSidebarForView(activeView),
+    showRightSidebarControls: !backgroundJobsDisabled() && canShowRightSidebarForView(activeView),
     showTitlebarAppName: settings?.showTitlebarAppName !== false,
     showTitlebarExpandButton: workspaceChromeActive && !hasTabBar && effectiveActiveTabExpanded,
     sidebarOpen,

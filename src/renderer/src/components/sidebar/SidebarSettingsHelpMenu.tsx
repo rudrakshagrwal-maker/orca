@@ -10,7 +10,7 @@ import {
   Settings
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAppStore } from '@/store'
+import { useAppStore } from '@/store/index'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -23,10 +23,9 @@ import {
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useShortcutKeyDetails } from '@/hooks/useShortcutLabel'
 import { ShortcutKeyCombo } from '@/components/ShortcutKeyCombo'
-import { translate } from '@/i18n/i18n'
-import { openAppHttpLink } from '@/lib/app-http-link-open'
+import { useTranslate } from '@/i18n/use-translate'
+import { openAppHttpLink } from '@/lib/browser/navigation/app-http-link-open'
 
-// RA: feedback is not mounted or preloaded.
 const DOCS_URL = 'https://www.onorca.dev/docs'
 const CHANGELOG_URL = 'https://onorca.dev/changelog'
 const GITHUB_URL = 'https://github.com/stablyai/orca'
@@ -68,6 +67,7 @@ function ExternalMenuItem({
 }
 
 export function SidebarSettingsHelpMenu(): React.JSX.Element {
+  const t = useTranslate()
   const openSettingsPage = useAppStore((s) => s.openSettingsPage)
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
 
@@ -85,17 +85,12 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
       return
     }
     setIsRestartingOrca(true)
-    toast.info(
-      translate('auto.components.sidebar.SidebarSettingsHelpMenu.5161eef55d', 'Restarting Orca…')
-    )
+    toast.info(t('auto.components.sidebar.SidebarSettingsHelpMenu.5161eef55d', 'Restarting Orca…'))
     void window.api.app.restart().catch((error) => {
       if (mountedRef.current) {
         setIsRestartingOrca(false)
         toast.error(
-          translate(
-            'auto.components.sidebar.SidebarSettingsHelpMenu.4e8f5710d3',
-            "Couldn't restart Orca."
-          ),
+          t('auto.components.sidebar.SidebarSettingsHelpMenu.4e8f5710d3', "Couldn't restart Orca."),
           {
             description: error instanceof Error ? error.message : undefined
           }
@@ -118,7 +113,7 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
               variant="ghost"
               size="icon-xs"
               type="button"
-              aria-label={translate(
+              aria-label={t(
                 'auto.components.sidebar.SidebarSettingsHelpMenu.a428c25998',
                 'Settings'
               )}
@@ -129,7 +124,7 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top" sideOffset={4} className="flex items-center gap-1.5">
-            {translate('auto.components.sidebar.SidebarSettingsHelpMenu.a428c25998', 'Settings')}
+            {t('auto.components.sidebar.SidebarSettingsHelpMenu.a428c25998', 'Settings')}
             {settingsShortcut.keys.length > 0 ? (
               <ShortcutKeyCombo
                 keys={settingsShortcut.keys}
@@ -149,7 +144,7 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
                   variant="ghost"
                   size="icon-xs"
                   type="button"
-                  aria-label={translate(
+                  aria-label={t(
                     'auto.components.sidebar.SidebarSettingsHelpMenu.2991a0106c',
                     'Help'
                   )}
@@ -160,13 +155,13 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
               </DropdownMenuTrigger>
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={4}>
-              {translate('auto.components.sidebar.SidebarSettingsHelpMenu.2991a0106c', 'Help')}
+              {t('auto.components.sidebar.SidebarSettingsHelpMenu.2991a0106c', 'Help')}
             </TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="top" align="start" sideOffset={8} className="w-52">
             <DropdownMenuItem onSelect={openShortcutsSettings}>
               <Keyboard className="size-3.5" />
-              {translate(
+              {t(
                 'auto.components.sidebar.SidebarSettingsHelpMenu.e565171a7c',
                 'Keyboard Shortcuts'
               )}
@@ -174,48 +169,36 @@ export function SidebarSettingsHelpMenu(): React.JSX.Element {
             <DropdownMenuSeparator />
             {/* RA: no feedback, onboarding or milestone checklist entries. */}
             <ExternalMenuItem
-              label={translate(
-                'auto.components.sidebar.SidebarSettingsHelpMenu.cdc87f897e',
-                'Docs'
-              )}
+              label={t('auto.components.sidebar.SidebarSettingsHelpMenu.cdc87f897e', 'Docs')}
               url={DOCS_URL}
               icon={<BookOpen className="size-3.5" />}
             />
             <ExternalMenuItem
-              label={translate(
-                'auto.components.sidebar.SidebarSettingsHelpMenu.5f83d86d92',
-                'Changelog'
-              )}
+              label={t('auto.components.sidebar.SidebarSettingsHelpMenu.5f83d86d92', 'Changelog')}
               url={CHANGELOG_URL}
               icon={<ScrollText className="size-3.5" />}
             />
             <DropdownMenuSeparator />
             <ExternalMenuItem
-              label={translate(
-                'auto.components.sidebar.SidebarSettingsHelpMenu.5687ab246a',
-                'GitHub'
-              )}
+              label={t('auto.components.sidebar.SidebarSettingsHelpMenu.5687ab246a', 'GitHub')}
               url={GITHUB_URL}
               icon={<Github className="size-3.5" />}
             />
             <DropdownMenuItem onSelect={() => openAppHttpLink(DISCORD_URL)}>
               <DiscordIcon />
-              {translate('auto.components.sidebar.SidebarSettingsHelpMenu.eb9884e55b', 'Discord')}
+              {t('auto.components.sidebar.SidebarSettingsHelpMenu.eb9884e55b', 'Discord')}
               <ExternalLink className="ml-auto size-3 text-muted-foreground" />
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openAppHttpLink(X_URL)}>
               <XIcon />
-              {translate('auto.components.sidebar.SidebarSettingsHelpMenu.c4f8e1b72a', 'X')}
+              {t('auto.components.sidebar.SidebarSettingsHelpMenu.c4f8e1b72a', 'X')}
               <ExternalLink className="ml-auto size-3 text-muted-foreground" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {/* RA: no update-check entry. */}
             <DropdownMenuItem onSelect={handleRestartOrca} disabled={isRestartingOrca}>
               <RotateCw className="size-3.5" />
-              {translate(
-                'auto.components.sidebar.SidebarSettingsHelpMenu.ad3d3ed7f1',
-                'Restart Orca'
-              )}
+              {t('auto.components.sidebar.SidebarSettingsHelpMenu.ad3d3ed7f1', 'Restart Orca')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

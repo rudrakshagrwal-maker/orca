@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { RateLimitServiceFetchQueue } from './service-fetch-queue'
 import {
   ACTIVE_FAILURE_REFETCH_MS,
@@ -8,9 +9,9 @@ import {
   normalizePollingInterval,
   type ActiveProviderState,
   type ActiveRateLimitProvider,
-  type ActiveWindowRefreshPlan,
-  type ProviderRateLimits
+  type ActiveWindowRefreshPlan
 } from './service-types'
+import type { ProviderRateLimits } from '../../../shared/rate-limit-types'
 
 export abstract class RateLimitServicePolling extends RateLimitServiceFetchQueue {
   setPollingInterval(ms: number): void {
@@ -23,6 +24,8 @@ export abstract class RateLimitServicePolling extends RateLimitServiceFetchQueue
 
   protected startTimer(): void {
     this.stopTimer()
+    // RA: no quota polling timer, including starts requested after settings changes.
+    if (backgroundJobsDisabled()) return
     this.timer = setInterval(() => {
       if (!this.shouldBackgroundPoll()) {
         return
@@ -40,9 +43,11 @@ export abstract class RateLimitServicePolling extends RateLimitServiceFetchQueue
 
   protected scheduleDeferredStartupRefresh(): void {
     this.clearDeferredStartupRefresh()
+    // RA: hidden usage features must not trigger a startup fetch.
+    if (backgroundJobsDisabled()) return
     this.deferredStartupRefreshTimer = setTimeout(() => {
       this.deferredStartupRefreshTimer = null
-      void this.refreshIfWindowActive()
+      void this.refreshIfWatched()
     }, DEFERRED_STARTUP_ACTIVE_REFRESH_MS)
   }
 
@@ -54,6 +59,12 @@ export abstract class RateLimitServicePolling extends RateLimitServiceFetchQueue
   }
 
   protected shouldBackgroundPoll(): boolean {
+    // RA: subscriptions cannot reactivate provider polling.
+    if (backgroundJobsDisabled()) return false
+    // Poll only while someone watches: a paired client's stream, or the focused desktop window.
+    if (this.usageViewers > 0) {
+      return true
+    }
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
       return false
     }
@@ -76,12 +87,17 @@ export abstract class RateLimitServicePolling extends RateLimitServiceFetchQueue
       grok: this.state.grok,
       antigravity: this.state.antigravity,
       cursor: this.state.cursor,
-      zcode: this.state.zcode
+      zcode: this.state.zcode,
+      muse: this.state.muse
     }
-    return Object.entries(byProvider).map(([provider, limits]) => ({
-      provider: provider as ActiveRateLimitProvider,
-      limits
-    }))
+    // A hidden Muse meter keeps an idle snapshot, which must not force a full refresh on every focus.
+    const museEnabled = this.museUsageEnabledResolver?.() ?? true
+    return Object.entries(byProvider)
+      .filter(([provider]) => provider !== 'muse' || museEnabled)
+      .map(([provider, limits]) => ({
+        provider: provider as ActiveRateLimitProvider,
+        limits
+      }))
   }
 
   protected getActiveWindowRefreshPlan(now: number): ActiveWindowRefreshPlan {
@@ -174,7 +190,7 @@ export abstract class RateLimitServicePolling extends RateLimitServiceFetchQueue
     }
   }
 
-  protected async refreshIfWindowActive(): Promise<void> {
+  protected async refreshIfWatched(): Promise<void> {
     if (!this.shouldBackgroundPoll()) {
       return
     }

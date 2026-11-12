@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises'
+import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { join } from 'node:path'
 import { getAppEnvironment } from '../../../shared/app-environment'
 import { readFetchResponseTextWithinLimit } from '../../../shared/fetch-response-body'
@@ -184,8 +185,10 @@ export class AgentStateRulesLiveUpdater {
       })
       if (!response.ok) {
         await response.body?.cancel().catch(() => undefined)
-        // Re-uploads can briefly return 404; retain the last good rules.
-        warn(`download failed: HTTP ${response.status}`)
+        // 404 is the normal state until rules are published (or mid re-upload); keep the last good rules.
+        if (response.status !== 404) {
+          warn(`download failed: HTTP ${response.status}`)
+        }
         return null
       }
       return await readFetchResponseTextWithinLimit(response, AGENT_STATE_RULES_BUNDLE_MAX_BYTES)
@@ -227,6 +230,8 @@ export function startAgentStateRulesLiveUpdates(
   store: SettingsStore,
   onActivated: AgentStateRulesLiveUpdateDeps['onActivated']
 ): void {
+  // RA: OSC 7501 status needs no downloaded classification rules or background fetches.
+  if (backgroundJobsDisabled()) return
   const environment = getAppEnvironment()
   const updater = new AgentStateRulesLiveUpdater({
     userDataPath: environment.getPath('userData'),

@@ -6,6 +6,18 @@
   WriteRegExpandStr HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation "$LOCALAPPDATA\Programs\Orca-RA"
 !macroend
 
+; RA: V8 reads the main-process ceiling before app code, so cap installed launch links.
+!macro customInstall
+  ${if} ${FileExists} "$newStartMenuLink"
+    CreateShortCut "$newStartMenuLink" "$appExe" "--js-flags=--max-old-space-size=768" "$appExe" 0 "" "" "${APP_DESCRIPTION}"
+    WinShell::SetLnkAUMI "$newStartMenuLink" "${APP_ID}"
+  ${endIf}
+  ${if} ${FileExists} "$newDesktopLink"
+    CreateShortCut "$newDesktopLink" "$appExe" "--js-flags=--max-old-space-size=768" "$appExe" 0 "" "" "${APP_DESCRIPTION}"
+    WinShell::SetLnkAUMI "$newDesktopLink" "${APP_ID}"
+  ${endIf}
+!macroend
+
 ; RA: Keep electron-builder's path-scoped process check, but fail rather than kill by image name.
 !include "getProcessInfo.nsh"
 Var pid

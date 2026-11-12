@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { RuntimeTerminalList, sleepingTerminalLeaf } from './runtime-terminal-list'
+import { RuntimeTerminalList, sleepingTerminalLeaf } from './terminal/query/runtime-terminal-list'
 import type { RuntimeTerminalSummary } from '../../shared/runtime-types'
-import type { RuntimeLeafRecord, RuntimePtyWorktreeRecord } from './runtime-terminal-state-records'
-import type { ResolvedWorktree } from './runtime-worktree-path-identity'
+import type { RuntimeLeafRecord, RuntimePtyWorktreeRecord } from './terminal/records/runtime-terminal-state-records'
+import type { ResolvedWorktree } from './workspaces/catalog/runtime-worktree-path-identity'
 
 const WORKTREE = 'repo::/repo'
 const worktree = { id: WORKTREE, path: '/repo', branch: 'main' } as ResolvedWorktree

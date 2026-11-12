@@ -1,4 +1,6 @@
-import { normalizeExplorerDisplayRootByWorktree } from '../../../shared/file-explorer-display-root'
+import { normalizeSidebarCollapsedGroups } from '../../../shared/sidebar-agent-disclosure'
+import { normalizeGitGraphFilters } from '../../../shared/git/history/git-graph-filters'
+import { normalizeExplorerDisplayRootByWorktree } from '../../../shared/file-listing/file-explorer-display-root'
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import {
   getDefaultUIState,
@@ -12,6 +14,7 @@ import {
 } from '../../../shared/workspace-statuses'
 import { normalizeUsagePercentageDisplay } from '../../../shared/usage-percentage-display'
 import { normalizeStatusBarUsageMode } from '../../../shared/status-bar-usage-mode'
+import { normalizeStatusBarUsageFormat } from '../../../shared/status-bar-usage-format'
 import { clampMarkdownTocPanelWidth } from '../../../shared/markdown-toc-panel-width'
 import { clampCombinedDiffFileTreeWidth } from '../../../shared/combined-diff-file-tree-width'
 import {
@@ -25,7 +28,7 @@ import { normalizeBrowserPageZoomLevel } from '../../../shared/browser-page-zoom
 import { normalizeFeatureTipIds } from '../../../shared/feature-tips'
 import { normalizeContextualTourIds } from '../../../shared/contextual-tours'
 import { normalizeFeatureInteractions } from '../../../shared/feature-interactions'
-import { mergeWorkspaceCleanupUIState } from '../../../shared/workspace-cleanup-ui-state'
+import { mergeWorkspaceCleanupUIState } from '../../../shared/workspace-cleanup/workspace-cleanup-ui-state'
 import { persistedUIValuesEqual } from '../../../shared/persisted-ui-equality'
 import {
   PROTECTED_SECRET_SLOT,
@@ -108,6 +111,9 @@ export function updatePersistedUI(
   const nextUI = {
     ...currentUI,
     ...durableUpdates,
+    collapsedGroups: normalizeSidebarCollapsedGroups(
+      durableUpdates.collapsedGroups ?? currentUI.collapsedGroups
+    ),
     workspaceCleanup: mergeWorkspaceCleanupUIState(
       currentUI.workspaceCleanup,
       durableUpdates.workspaceCleanup
@@ -152,6 +158,9 @@ export function updatePersistedUI(
     statusBarUsageMode: normalizeStatusBarUsageMode(
       sanitizedUpdates.statusBarUsageMode ?? operations.state.ui?.statusBarUsageMode
     ),
+    statusBarUsageFormat: normalizeStatusBarUsageFormat(
+      sanitizedUpdates.statusBarUsageFormat ?? operations.state.ui?.statusBarUsageFormat
+    ),
     markdownTocPanelWidth: clampMarkdownTocPanelWidth(
       sanitizedUpdates.markdownTocPanelWidth ?? operations.state.ui?.markdownTocPanelWidth
     ),
@@ -190,6 +199,10 @@ export function updatePersistedUI(
         : normalizeExplorerDisplayRootByWorktree(
             operations.state.ui?.explorerDisplayRootByWorktree
           ),
+    gitGraphFiltersByWorktree:
+      sanitizedUpdates.gitGraphFiltersByWorktree !== undefined
+        ? normalizeGitGraphFilters(sanitizedUpdates.gitGraphFiltersByWorktree)
+        : operations.state.ui?.gitGraphFiltersByWorktree,
     showDotfilesByWorktree:
       sanitizedUpdates.showDotfilesByWorktree !== undefined
         ? normalizeShowDotfilesByWorktree(sanitizedUpdates.showDotfilesByWorktree)

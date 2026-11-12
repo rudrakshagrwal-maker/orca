@@ -7,6 +7,8 @@ import { RuntimeClientError } from './types'
 
 export function getExecutableAppArgs(executable: string): string[] {
   const args = process.env.ORCA_APP_EXECUTABLE_NEEDS_APP_ROOT === '1' ? [resolveAppRoot()] : []
+  // RA: main V8 must receive its ceiling before Electron loads the application.
+  args.unshift('--js-flags=--max-old-space-size=768')
   if (needsElectronNoSandbox(executable)) {
     args.push('--no-sandbox')
   }

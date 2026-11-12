@@ -1,6 +1,6 @@
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
-import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
-import { paneIsCoveredByNativeChat } from './native-chat-covered-pane'
+import { activateTabAndFocusPane } from '@/lib/workspace/tabs/activate-tab-and-focus-pane'
+import { paneIsCoveredByNativeChat } from './chat/native-chat-covered-pane'
 
 type PaneDirection = 'left' | 'right' | 'up' | 'down'
 

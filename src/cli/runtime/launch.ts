@@ -109,10 +109,12 @@ export function launchOrcaApp(): void {
 
 /** Nondefault profiles need a new instance: open drops env and only new instances receive --args. */
 export function getMacOpenArgs(appBundlePath: string, userDataPath: string): string[] {
+  // RA: Launch Services must also pass the heap ceiling when it starts a fresh main process.
+  const args = [appBundlePath, '--args', '--js-flags=--max-old-space-size=768']
   if (isSameUserDataPath(userDataPath, getPlatformUserDataPath())) {
-    return [appBundlePath]
+    return args
   }
-  return ['-n', appBundlePath, '--args', `--user-data-dir=${userDataPath}`]
+  return ['-n', ...args, `--user-data-dir=${userDataPath}`]
 }
 
 function spawnDetached(command: string, args: string[], options: SpawnOptions): void {

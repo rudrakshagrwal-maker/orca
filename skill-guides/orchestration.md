@@ -1,115 +1,118 @@
 ---
 name: orchestration
 description: >-
-  Run work in separate Orca worker agents and get their results back. Use when
-  the user asks for Orca workers or supervision (monitor, task DAGs, ask/reply,
-  decision gates), or when the work needs something your own subagents cannot
-  give: a different agent (such as Codex from Claude) or its own Orca workspace.
-  "Have Codex (or Claude) review this and report back" means an Orca worker of
-  that agent, even when you have your own model subagents.
-  Also use when you are a dispatched worker (a prompt with Task and Dispatch
-  IDs: ask, worker_done). Otherwise prefer your own subagents,
-  including for long or parallel work. Use `orca-cli` to hand work off with
-  nothing expected back ("hand off", "handover", "give this to another agent",
-  "another worktree"), and for terminal control, shell commands, worktree
-  management, and reading or waiting on terminals.
+  Coordinate bounded goal loops with Orca workers, review gates, and checked outcomes.
+  Use for worker supervision or dispatched worker ask/worker_done reports.
+  Use orca-cli for handoffs without a report back and ordinary terminal control.
 ---
 
-# Orca orchestration
+# RA: Orca orchestration
 
-If your prompt has a preamble with Task and Dispatch IDs, you are a worker:
-follow the preamble. To ask your coordinator, run `ask`, then end your turn;
-Orca wakes you with the answer. To hand work off with nothing back, use `orca-cli`.
+Claude coordinates. Codex does code and research. Hermes or Sonnet reviews.
+`ORCA` means the executable that served this guide; use it for every command.
+A worker follows its Task/Dispatch preamble: `ask`, end the turn, report with `worker_done`.
 
-## Recipe
+## 1. Goal
 
-`ORCA` stands for the executable you used to run `skills get`; type it in its
-place and use it for every command.
+Before dispatch, write `.orca-goals/<name>/goal.md` in the workspace.
+In a Git workspace, first ensure `.orca-goals/` is ignored by the project's
+ignore rules and verify with `git check-ignore .orca-goals/<name>/goal.md`.
+Folder workspaces need no Git setup. Keep goal files local and untracked.
+Use this shape, replacing each criterion with an exact check:
 
 ```text
-ORCA orchestration worker-start --spec "<task>" --worktree current --agent codex
+Outcome: <observable result>
+Done:
+- [ ] <command> exits 0
+- [ ] <file> exists and contains <required result>
+- [ ] <measured number> meets <threshold>
+Hard stops: deploy, push to main, external messages, money, deletes: ask RA.
+Round: 1; cap: 3
+Ledger: <existing session ledger path>
 ```
 
-- Start every independent worker, then **end your turn**. "Report back" and
-  "tell me when it's done" still mean end your turn; Orca wakes you and you
-  report then.
-- If a receipt has `next`, follow it. When Orca has nothing for you, end your
-  turn.
-- `--worktree current` uses your workspace. Use a new one only when the user
-  asks or sharing would conflict:
-  `--worktree new-top-level --repo id:<repoId> --name <short-name>`
-  (`ORCA repo list --json` gives the id). If nothing needs to come back to you
-  (the user will work in those chats), don't start workers; per workspace run
-  `ORCA worktree create --name <name> --no-parent --agent <agent> --prompt "<brief>" --json`
-  and end your turn.
-- Add `--model` only if the user named one.
-- If `worker-start` fails, do not rerun it; read `failedStage` and load
-  `references/recovery-and-cleanup.md`.
-- To talk to a worker, use
-  `ORCA orchestration send --to dispatch:<dispatch_id> --subject "<topic>" --body "<message>"`
-  in any state: a working worker gets it when its current turn ends; a finished
-  or closed one gets it as a follow-up Task and reports with `worker_done`. The
-  receipt says which.
-  Except on a paired server: a finished worker there refuses `send`, so start
-  new work there with `worker-start --on <server>` (load
-  `references/placement-and-remote.md` first).
+The cap is 3 unless RA sets another. One dispatch/review/check cycle is one round.
+Record results and evidence paths in this file.
 
-Never:
+## 2. Split
 
-- Poll or run watch scripts: a script's plain `check` takes your mail, so it is
-  hidden from you and Orca has nothing to wake you with. Orca wakes you.
-- Steer through a worker's terminal; use `send`.
-- Make checkouts yourself; let `worker-start` create a worker's workspace.
+Split only independent work. Each spec names the target, change, allowed files,
+constraints, evidence of done, goal path, and hard stops. Evidence files must also be disjoint.
+Two workers never share files. Sequence overlapping work after the earlier
+worker settles. Reviewers read files; they send fixes back instead of editing.
 
-## When Orca wakes you
+## 3. Dispatch
 
-- In a chat, each message arrives whole as its own message: act on it. A wake
-  that names a `check` command (a terminal, or one message too large for a chat
-  message) means run that command. Answer a `question` with
-  `ORCA orchestration reply --id <message_id> --body "<answer>"` when the answer
-  follows from the task or the user's instructions; otherwise ask the user first.
-- An `escalation` with `stopReason` means the worker stopped without
-  `worker_done`: steer it with `send`, stop and retry it, or tell the user.
-- A `worker_done` settles its Task; never mark a reported failure completed.
-- When every worker has settled, report to the user per Task: outcome,
-  evidence, open blockers.
-- Lost track? `ORCA orchestration inbox --terminal run:<run_id> --limit 50`
-  shows mail `check` already handled.
+For a new goal: `ORCA orchestration run-create --objective "<goal>"`.
+Reuse a finished worker with `send` before starting another:
 
-Finished workers close on their own unless `worker-list` gives one a `next`; follow
-it. Kept-open workers, including new-workspace ones, stay open for the user.
-`send` reopens a closed worker when you need it again.
-Start a worker in your workspace with `--keep-open` when the user will keep using
-its chat after it reports: they want to watch it or talk to it. To keep one already
-started, run
-`ORCA orchestration worker-keep-open --dispatch <dispatch_id>`.
+```text
+ORCA orchestration send --to dispatch:<worker_id> --subject "Next task" --body "<self-contained spec>"
+ORCA orchestration worker-start --spec "<self-contained spec>" --worktree current --agent codex
+```
 
-## Task spec
+Run the appropriate command, not both. Start independent tasks, then end your
+turn. No polling, watch scripts, or terminal steering. Orca wakes you.
+Start from the coordinator's Orca session: each worker gets its own linked tab.
+Follow the receipt's `next`, including link repair.
+On a failed start, do not repeat it; load the recovery reference.
 
-Make each spec self-contained: the target, the change, constraints, what the
-worker may edit, and the evidence that proves it is done. Say whether a
-non-zero exit means the Task failed or capturing it is the deliverable. Send
-fixes to a worker unless the user gave them to you.
+## 4. Review gate
 
-Fetch this guide once. Summarize the worker's evidence; rerun checks only for a
-gap or contradiction.
+Send every task `worker_done`, including failures and fix reports, to a
+read-only reviewer before accepting it. Reuse the reviewer with `send`.
+If none exists, start one with the goal, task spec, report, diff, and evidence:
 
-## Safety
+```text
+ORCA orchestration worker-start --spec "<read-only review spec; PASS or REJECT with evidence>" --worktree current --agent hermes
+```
 
-Silence, a timeout, or `unverifiable` liveness alone never proves exit or authorizes
-autonomous recovery. For explicit user cancellation or assignment abandonment,
-load `references/recovery-and-cleanup.md`: requesting a guarded stop or fencing an
-assignment does not prove its agent stopped.
+Sonnet alternative: `--agent claude --model <installed_sonnet_model_id>`.
+Use an enabled reviewer; if neither is available, report a blocked review.
+Then end your turn. A reviewer verdict returns to the coordinator as a gate
+decision. PASS permits goal checks. REJECT goes back to the same task worker:
 
-## References
+```text
+ORCA orchestration send --to dispatch:<worker_id> --subject "Fix review findings" --body "<findings, failing criteria, allowed files, evidence required>"
+```
 
-`ORCA skills get orchestration --reference references/<file>.md`
+Batch rejections into the next round; never start a fix beyond the cap.
+`worker_done` settles an Orca Task; it does not mean coordinator acceptance.
 
-| Situation                                      | Reference                                 |
-| ---------------------------------------------- | ----------------------------------------- |
-| Task DAGs, several Runs                        | `references/coordinator-loop.md`          |
-| Child worktrees, SSH, WSL, a connected server  | `references/placement-and-remote.md`      |
-| Group messages                                 | `references/messaging-and-gates.md`       |
-| A failed or unknown worker; retry, stop, reset | `references/recovery-and-cleanup.md`      |
-| Custom argv or terminal layout                 | `references/low-level-topology.md`        |
-| Legacy labels, adopted Runs, takeover          | `references/legacy-contract-migration.md` |
+## 5. Check the goal
+
+The coordinator runs every done-criterion itself, including browser checks.
+Record commands, exit codes, files, and numbers in `goal.md`; claims or PASS cannot replace checks.
+All pass: mark the goal DONE in the file, report to RA per task (outcome,
+evidence, blockers), and close settled owned workers with
+`ORCA orchestration worker-release --dispatch <dispatch_id>`; follow `next`.
+Any fail, including review rejection: record the failures, advance the round,
+and send only the failing criteria back through split, dispatch, and review.
+Rerun all goal checks after fixes. At the cap, stop dispatching, report what
+remains and why, and release settled idle workers. Never claim success early.
+There is no goal-complete CLI command; the checked goal file records closure.
+
+## 6. Ledger
+
+After acceptance, append one line per landed task to the existing session ledger:
+`HH:MM · STATE · <task>: <outcome>; evidence <path>; blockers <none or reason>`.
+Use local time; default ledger: `.orca-goals/<name>/ledger.md`.
+
+## House rules
+
+- Servers, builds, and long commands run in the background, never as tabs. Tabs are for agents.
+- Max 10 live workers, including reviewers. Reuse finished workers; close settled idle ones.
+- Never type into or close a terminal you did not start. Trace a process or commit to your own worker first.
+- Codex on this laptop cannot launch Playwright/Chromium. The coordinator owns browser checks.
+- Windows: pass Windows paths (`C:\...`) to Codex `-C` and `--add-dir`.
+- No tracking or phone-home. Never write hooks/plugins into any agent config. Status uses OSC 7501 only.
+- Ask RA before hard stops. Orca coordination mail is allowed; messages outside this workflow need approval.
+
+## Wakes and rare cases
+
+Run `check` only when a wake names it; handle the whole batch. Answer within scope:
+`ORCA orchestration reply --id <message_id> --body "<answer>"`.
+Load `ORCA skills get orchestration --reference references/<file>.md` as needed:
+`coordinator-loop.md` for DAGs; `placement-and-remote.md` for worktrees/servers;
+`messaging-and-gates.md` for mail; `recovery-and-cleanup.md` for unknown workers;
+`low-level-topology.md` for custom tabs. Never treat silence as proof of exit.

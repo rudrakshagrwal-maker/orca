@@ -10,8 +10,13 @@
 }
 
 .pane-manager-root {
-  width: 100% !important;
-  height: 100% !important;
+  /* RA: inset-0 owns sizing; padding must stay inside the retained group body. */
+  box-sizing: border-box;
+}
+
+/* RA: Inner split cards have a black gap from their containing group on every side. */
+.pane-manager-root:has(> .pane-split) {
+  padding: 5px;
 }
 
 /* RA: each terminal leaf clips its canvas inside the owner's 8px card, including inner splits. */
@@ -23,9 +28,20 @@
   box-sizing: border-box;
 }
 
+/* RA: An unsplit terminal shares the group's frame and tab strip, avoiding nested borders. */
+[data-retained-pane-host] .pane-manager-root > .pane.ra-terminal-card {
+  border: 0;
+  border-radius: 0;
+}
+
 /* RA: retain a black gap without consuming extra flex space or moving divider hit targets. */
 .pane-manager-root .pane-divider {
   background: var(--background) !important;
+}
+
+/* RA: Pane borders define the gap, including while its resize target is hovered. */
+.pane-manager-root .pane-divider::after {
+  content: none;
 }
 
 /* RA: five-pixel card gaps remain draggable on both split axes. */
@@ -169,7 +185,7 @@
   opacity: 0.4 !important;
 }
 
-.pane.pane-focus-rim-flash::before {
+.pane-focus-rim-flash::before {
   content: '';
   position: absolute;
   inset: 1px;
@@ -215,7 +231,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane.pane-focus-rim-flash::before {
+  .pane-focus-rim-flash::before {
     animation: none;
   }
 }

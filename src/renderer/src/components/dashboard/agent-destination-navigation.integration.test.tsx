@@ -1,24 +1,25 @@
+import type * as RuntimeRpcCallModule from '@/runtime/rpc/calls/runtime-rpc-call'
 // @vitest-environment happy-dom
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store'
-import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
 import {
   makeCreatedAgentWorktree,
   seedAlreadyActiveWorktree
-} from '@/lib/worktree-activation-created-agent.test-fixture'
+} from '@/lib/workspace/activation/worktree-activation-created-agent.test-fixture'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { Tab } from '../../../../shared/tab-types'
-import type * as RuntimeRpcClient from '@/runtime/runtime-rpc-client'
-import type * as WebRuntimeSessionEnvironment from '@/runtime/web-runtime-session-environment'
+
+import type * as WebRuntimeSessionEnvironment from '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment'
 import { AgentKanbanBoard } from '../dashboard-popout/AgentKanbanBoard'
-import WorktreeCardAgents from '../sidebar/WorktreeCardAgents'
+import WorktreeCardAgents from '../sidebar/workspace-card/activity/WorktreeCardAgents'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { buildDashboardSnapshot } from './build-dashboard-snapshot'
 import { revealDashboardAgent } from './reveal-dashboard-agent'
-import { activateRetainedAgentRow } from '../sidebar/activate-retained-agent-row'
+import { activateRetainedAgentRow } from '../sidebar/workspace-card/activity/activate-retained-agent-row'
 
 const effects = vi.hoisted(() => ({
   rpc: vi.fn(async () => ({ ok: true })),
@@ -29,19 +30,22 @@ const effects = vi.hoisted(() => ({
     error: { code: 'unavailable', message: 'Unit-test transport boundary' }
   }))
 }))
-vi.mock('@/runtime/runtime-rpc-client', async (importOriginal) => ({
-  ...(await importOriginal<typeof RuntimeRpcClient>()),
+vi.mock('@/runtime/rpc/calls/runtime-rpc-call', async (importOriginal) => ({
+  ...(await importOriginal<typeof RuntimeRpcCallModule>()),
   callRuntimeRpc: effects.rpc
 }))
-vi.mock('@/components/native-chat/use-native-chat-composer-reveal-focus', () => ({
+vi.mock('@/components/native-chat/composer/focus/native-chat-composer-focus-intent', () => ({
   requestNativeChatComposerFocus: effects.composerFocus
 }))
 vi.mock('../dashboard-popout/AgentTerminalPreview', () => ({ AgentTerminalPreview: () => null }))
-vi.mock('@/runtime/web-runtime-session-environment', async (importOriginal) => ({
-  ...(await importOriginal<typeof WebRuntimeSessionEnvironment>()),
-  captureRuntimeEnvironmentCall: (environmentId: string) => (args: unknown) =>
-    effects.environmentCall(environmentId, args)
-}))
+vi.mock(
+  '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment',
+  async (importOriginal) => ({
+    ...(await importOriginal<typeof WebRuntimeSessionEnvironment>()),
+    captureRuntimeEnvironmentCall: (environmentId: string) => (args: unknown) =>
+      effects.environmentCall(environmentId, args)
+  })
+)
 
 const initialState = useAppStore.getState()
 const LEAF = '11111111-1111-4111-8111-111111111111'
@@ -230,12 +234,10 @@ describe('Dashboard and retained sidebar destination contract', () => {
           <WorktreeCardAgents worktreeId={worktree.id} />
         </TooltipProvider>
       )
-      const row = sidebar.container.querySelector('.compact-agent-row')
-      if (!row) {
-        throw new Error('Expected the retained sidebar row')
-      }
+      // RA: ordinary cards show live tabs; retained history stays in its explicit activation path.
+      expect(sidebar.container.querySelector('.compact-agent-row')).toBeNull()
       effects.environmentCall.mockClear()
-      fireEvent.click(row)
+      activateRetainedAgentRow(worktree.id, tabId, paneKey)
       await assertDestination()
 
       // Keep the exact tab alive while its workspace disappears: neither entry may focus or notify it.
@@ -257,11 +259,8 @@ describe('Dashboard and retained sidebar destination contract', () => {
           <WorktreeCardAgents worktreeId={worktree.id} />
         </TooltipProvider>
       )
-      const missingRow = missing.container.querySelector('.compact-agent-row')
-      if (!missingRow) {
-        throw new Error('Expected the retained row after workspace removal')
-      }
-      fireEvent.click(missingRow)
+      expect(missing.container.querySelector('.compact-agent-row')).toBeNull()
+      activateRetainedAgentRow(worktree.id, tabId, paneKey)
       expect(useAppStore.getState()).toMatchObject({
         activeWorktreeId: null,
         activeTabId: null,

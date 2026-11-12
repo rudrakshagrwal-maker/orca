@@ -1,5 +1,5 @@
 import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
-import { materializeOmpFreshConfig } from '../../shared/omp-fresh-config'
+import { materializeOmpFreshConfig } from '../../shared/agent-launch/startup/omp-fresh-config'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -17,7 +17,7 @@ import { ORCA_PI_EXTENSION_FILE, getPiTitlebarExtensionSource } from './titlebar
 import {
   isSafeDescendCandidate as sharedIsSafeDescendCandidate,
   safeRemoveOverlay
-} from '../pty/overlay-mirror'
+} from '../pty/scrollback/overlay-mirror'
 import { migrateLegacyOmpOverlayState } from './legacy-omp-overlay-migration'
 import type { PiAgentKind } from '../../shared/pi-agent-kind'
 
@@ -88,16 +88,17 @@ export class PiTitlebarExtensionService {
     safeRemoveOverlay(overlayDir, this.getOverlayRoot(kind))
   }
 
-  private canOverwriteManagedExtension(path: string): boolean {
-    try {
-      return readFileSync(path, 'utf8').includes(ORCA_MANAGED_EXTENSION_MARKER)
-    } catch {
-      return true
-    }
-  }
-
   private writeManagedExtension(path: string, source: string): ManagedExtensionWriteResult {
-    if (existsSync(path) && !this.canOverwriteManagedExtension(path)) {
+    let installed: string | undefined
+    try {
+      installed = readFileSync(path, 'utf8')
+    } catch {
+      installed = undefined
+    }
+    if (installed === source) {
+      return 'written'
+    }
+    if (installed !== undefined && !installed.includes(ORCA_MANAGED_EXTENSION_MARKER)) {
       return 'skipped-user-owned'
     }
 

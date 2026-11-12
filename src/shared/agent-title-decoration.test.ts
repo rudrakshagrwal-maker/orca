@@ -3,7 +3,7 @@ import {
   stripLeadingAgentTitleDecoration,
   stripLeadingAgentTitleDecorationOrEmpty,
   agentTerminalTitle // RA: keep terminal-owned labels clean across both surfaces.
-} from './agent-title-decoration'
+} from './agent-status/title/agent-title-decoration'
 
 describe('stripLeadingAgentTitleDecoration', () => {
   // RA: generated labels must not prepend branch/path context to an agent's own title.

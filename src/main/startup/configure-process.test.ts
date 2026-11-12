@@ -1,3 +1,9 @@
+// RA: isolate retained upstream internals; production fork guards remain enabled.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'

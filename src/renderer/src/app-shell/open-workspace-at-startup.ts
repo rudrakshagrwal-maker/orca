@@ -1,7 +1,7 @@
 import { useAppStore } from '../store'
 import { shortcutPlatform } from './app-window-chrome'
-import { isPairedWebClientWindow } from '@/lib/desktop-window-chrome'
-import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
+import { isPairedWebClientWindow } from '@/app-shell/chrome/desktop-window-chrome'
+import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-record-fields'
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 
 // RA: Restore first, then open this Windows desktop on the local Workspace checkout.
@@ -35,7 +35,7 @@ export async function openWorkspaceAtStartup(isCancelled: () => boolean): Promis
       (worktree.hostId ?? LOCAL_EXECUTION_HOST_ID) === LOCAL_EXECUTION_HOST_ID
   )
   if (mainWorktree) {
-    const { activateAndRevealWorktree } = await import('@/lib/worktree-activation')
+    const { activateAndRevealWorktree } = await import('@/lib/workspace/activation/worktree-activation')
     if (!isCancelled()) {
       // RA: Queue atomically before activation can seed or mount a bare shell.
       const state = useAppStore.getState()

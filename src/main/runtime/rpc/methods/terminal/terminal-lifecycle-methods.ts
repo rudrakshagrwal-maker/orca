@@ -1,5 +1,5 @@
 import { terminalCreateFeatureRequirement } from '../../agent-launch-feature-requirement'
-import { terminalImageViewerSupported } from '../../../terminal-image-viewer-env'
+import { terminalImageViewerSupported } from '../../../terminal/launch/terminal-image-viewer-env'
 import { TERMINAL_WORKSPACE_STOP_METHODS } from './terminal-workspace-stop-methods'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../../../shared/sidebar-inputs-switch'
 import { defineMethod } from '../../core'
@@ -90,6 +90,7 @@ export const TERMINAL_LIFECYCLE_METHODS = [
                 : {}),
               ...(params.launchToken ? { launchToken: params.launchToken } : {}),
               ...(params.launchAgent ? { launchAgent: params.launchAgent } : {}),
+              ...(params.trustWorktreeId ? { trustWorktreeId: params.trustWorktreeId } : {}),
               terminalImageViewerSupported: terminalImageViewerSupported(context)
             }
           )
@@ -119,6 +120,7 @@ export const TERMINAL_LIFECYCLE_METHODS = [
             ...(params.resumeOrigin ? { resumeOrigin: params.resumeOrigin } : {}),
             ...(params.launchToken ? { launchToken: params.launchToken } : {}),
             ...(params.launchAgent ? { launchAgent: params.launchAgent } : {}),
+            ...(params.trustWorktreeId ? { trustWorktreeId: params.trustWorktreeId } : {}),
             ...(params.terminalKittyKeyboardProtocol === true
               ? { terminalKittyKeyboardProtocol: true }
               : {}),

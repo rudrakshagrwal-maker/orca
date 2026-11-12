@@ -1,3 +1,8 @@
+import { normalizeSidebarCollapsedGroups } from '../../../../../shared/sidebar-agent-disclosure'
+import {
+  DEFAULT_STATUS_BAR_USAGE_FORMAT,
+  normalizeStatusBarUsageFormat
+} from '../../../../../shared/status-bar-usage-format'
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
 import { workspaceHostScopeForVisibleHosts } from '../../../../../shared/workspace-view/workspace-host-visibility'
 import { createAgentsViewPreferenceActions } from './ui-slice-agents-view-preference-actions'
@@ -26,7 +31,7 @@ import {
 import {
   ALL_AUTOMATION_HOSTS_FILTER,
   toPersistedAutomationHostFilter
-} from '../../../../../shared/automation-host-filter'
+} from '../../../../../shared/automations/ownership/automation-host-filter'
 import {
   clampWorkspaceBoardColumnWidth,
   clampWorkspaceBoardOpacity,
@@ -39,9 +44,9 @@ import { createHostWorkspaceStatusActions } from './ui-slice-host-workspace-stat
 /** Builds preference defaults and setters for the UI slice, leaving durable writes to the persistence layer. */
 export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Partial<UISlice> {
   return {
-    // RA: null resets the Agents section to its content-sized default.
     sidebarAgentsHeight: null,
     setSidebarAgentsHeight: (height) => set({ sidebarAgentsHeight: height }),
+    gitGraphFiltersByWorktree: {},
     sidebarBody: 'workspaces',
     setSidebarBody: (body) => set({ sidebarBody: body }),
 
@@ -49,7 +54,9 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
     // Why: group keys are mode-specific, so clear collapsed state on mode switch — stale keys are meaningless and accumulate.
     setGroupBy: (g) => {
       // RA: the global Agents disclosure is independent of workspace grouping.
-      const collapsedGroups = [...get().collapsedGroups].filter((key) => key.startsWith('ra:sidebar-agent'))
+      const collapsedGroups = [...get().collapsedGroups].filter((key) =>
+        key.startsWith('ra:sidebar-agent')
+      )
       window.api.ui.set({ groupBy: g, collapsedGroups }).catch(console.error)
       set({ groupBy: g, collapsedGroups: new Set(collapsedGroups) })
     },
@@ -165,15 +172,21 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
     collapsedGroups: new Set<string>(),
     toggleCollapsedGroup: (key) =>
       set((s) => {
-        const next = new Set(s.collapsedGroups)
+        const next = new Set(normalizeSidebarCollapsedGroups([...s.collapsedGroups]))
         if (next.has(key)) {
           next.delete(key)
         } else {
           next.add(key)
         }
-        window.api.ui.set({ collapsedGroups: [...next] }).catch(console.error)
-        return { collapsedGroups: next }
+        const groups = normalizeSidebarCollapsedGroups([...next])
+        window.api.ui.set({ collapsedGroups: groups }).catch(console.error)
+        return { collapsedGroups: new Set(groups) }
       }),
+    setCollapsedGroups: (keys) => {
+      const groups = normalizeSidebarCollapsedGroups([...keys])
+      set({ collapsedGroups: new Set(groups) })
+      window.api.ui.set({ collapsedGroups: groups }).catch(console.error)
+    },
 
     worktreeCardProperties: [...DEFAULT_WORKTREE_CARD_PROPERTIES],
     _worktreeCardModeDefaulted: true,
@@ -272,6 +285,12 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
         usagePercentageDisplay: normalized,
         usagePercentageDisplayChangeNoticeDismissed: true
       })
+    },
+    statusBarUsageFormat: { ...DEFAULT_STATUS_BAR_USAGE_FORMAT },
+    setStatusBarUsageFormat: (format) => {
+      const normalized = normalizeStatusBarUsageFormat(format)
+      window.api.ui.set({ statusBarUsageFormat: normalized }).catch(console.error)
+      set({ statusBarUsageFormat: normalized })
     },
     statusBarUsageMode: DEFAULT_STATUS_BAR_USAGE_MODE,
     setStatusBarUsageMode: (mode) => {

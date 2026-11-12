@@ -1,5 +1,5 @@
-import { app, type BrowserWindow } from 'electron'
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
+import { app, type BrowserWindow } from 'electron'
 import { relaunchApp } from './quit/app-relaunch'
 import { destroySystemTray } from '../tray/system-tray'
 import { applyGpuFallbackCommandLineSwitches } from './gpu-fallback-switches'
@@ -12,12 +12,12 @@ import {
 import {
   handleGpuFallbackRecoveredLaunch,
   promptForGpuFallbackRecoveredLaunch
-} from '../crash-reporting/gpu-fallback-recovered-launch'
-import { promptForGpuFallbackRestart } from '../crash-reporting/gpu-fallback-restart-prompt'
-import { engageGpuFallbackAfterCrashBurst } from '../crash-reporting/gpu-fallback-engagement'
-import { recordCrashBreadcrumb } from '../crash-reporting/crash-breadcrumb-store'
-import { recordDurableCrashBreadcrumb } from '../crash-reporting/durable-crash-breadcrumb'
-import { GpuCrashDiagnosticsRecorder } from '../crash-reporting/gpu-crash-diagnostics'
+} from '../crash-reporting/recovery/gpu-fallback-recovered-launch'
+import { promptForGpuFallbackRestart } from '../crash-reporting/recovery/gpu-fallback-restart-prompt'
+import { engageGpuFallbackAfterCrashBurst } from '../crash-reporting/recovery/gpu-fallback-engagement'
+import { recordCrashBreadcrumb } from '../crash-reporting/breadcrumbs/crash-breadcrumb-store'
+import { recordDurableCrashBreadcrumb } from '../crash-reporting/breadcrumbs/durable-crash-breadcrumb'
+import { GpuCrashDiagnosticsRecorder } from '../crash-reporting/capture/gpu-crash-diagnostics'
 import {
   isInstallDirAclRepairExhausted,
   isInstallDirAclRepairPending,
@@ -76,6 +76,8 @@ function persistGpuFallbackMarker(
 
 // Apply before ready for hardware-acceleration selection; Windows desktop only.
 export function maybeApplyGpuFallbackForThisLaunch(): void {
+  // RA: keep hardware acceleration enabled even after a recorded crash burst.
+  if (backgroundJobsDisabled()) return
   if (state.isServeMode || process.platform !== 'win32') {
     return
   }
@@ -182,6 +184,8 @@ export async function handleGpuChildCrash(
   exitCode: number | null,
   crashedAt: number
 ): Promise<void> {
+  // RA: Chromium may recover its GPU child; never restart into disabled acceleration.
+  if (backgroundJobsDisabled()) return
   if (state.gpuFallbackActiveThisLaunch || state.isQuitting || state.isServeMode) {
     return
   }

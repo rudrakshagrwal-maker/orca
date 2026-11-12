@@ -1,12 +1,13 @@
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
-import { findPrevLiveNonTaskStackHistoryIndex } from '../worktree-nav-history'
+import { findPrevLiveNonTaskStackHistoryIndex } from './workspace-navigation-history'
 import { hasFeatureInteraction } from '../../../../../shared/feature-interactions'
 import {
   normalizeVisibleTaskProviders,
   restoreAvailableDefaultTaskProvider,
   resolveVisibleTaskProvider
-} from '../../../../../shared/task-providers'
-import { PER_REPO_FETCH_LIMIT } from '../../../../../shared/work-items'
+} from '../../../../../shared/work-items/task-providers'
+import { PER_REPO_FETCH_LIMIT } from '../../../../../shared/work-items/work-item-pagination'
 import { isGitRepoKind } from '../../../../../shared/repo-kind'
 import { presetToQuery } from './ui-slice-hydration-sanitizers'
 
@@ -25,13 +26,16 @@ export function createUiTaskActions(set: UISliceSet, get: UISliceGet): Partial<U
     pendingSkillsSharedView: false,
     previousViewBeforeMobile: 'terminal',
     previousViewBeforeArtifacts: 'terminal',
-    setActiveView: (view) => set({ activeView: view }),
+    // RA: keyboard/history routes only select surfaces present in this build.
+    setActiveView: (view) => set({ activeView: backgroundJobsDisabled() && view !== 'settings' ? 'terminal' : view }),
     taskPageData: {},
     taskResumeState: undefined,
     taskListPosition: null,
     githubTaskDrawerWorkItem: null,
     newWorkspaceDraft: null,
     openTaskPage: (data = {}, options = {}) => {
+      // RA: stop before provider prefetch, including task shortcuts and deep links.
+      if (backgroundJobsDisabled()) return
       if (options.recordTasksInteraction !== false) {
         const wasTasksPreviouslyInteracted = hasFeatureInteraction(
           get().featureInteractions,

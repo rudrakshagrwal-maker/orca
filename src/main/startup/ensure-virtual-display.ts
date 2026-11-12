@@ -1,5 +1,7 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { isAbsolute, join } from 'node:path'
+// RA: Linux display endpoints keep POSIX semantics when tested from Windows.
+import { posix } from 'node:path'
 import { app } from 'electron'
 import {
   displayOwnership,
@@ -25,6 +27,8 @@ const XVFB_INSTALL_GUIDANCE =
 let xvfbProcess: ChildProcess | null = null
 
 function configureHeadlessServeChromiumFlags(): void {
+  // RA: terminal-only serve has no offscreen browser and must retain GPU acceleration.
+  if (backgroundJobsDisabled()) return
   // Small sandbox /dev/shm mounts can exhaust and crash Chromium utility services; use disk-backed temp.
   app.commandLine.appendSwitch('disable-dev-shm-usage')
   // Opt-in for hosts that expose a GPU to this process (#22450).
@@ -149,12 +153,12 @@ function hasUsableWaylandDisplay(env: NodeJS.ProcessEnv): boolean {
   if (!display) {
     return false
   }
-  if (isAbsolute(display)) {
+  if (posix.isAbsolute(display)) {
     return isUnixSocket(display)
   }
 
   const runtimeDir = env.XDG_RUNTIME_DIR?.trim()
-  return Boolean(runtimeDir && isAbsolute(runtimeDir) && isUnixSocket(join(runtimeDir, display)))
+  return Boolean(runtimeDir && posix.isAbsolute(runtimeDir) && isUnixSocket(posix.join(runtimeDir, display)))
 }
 
 /** Safe across platforms; false means headless Linux serve cannot support browser panes. */

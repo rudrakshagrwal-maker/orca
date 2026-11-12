@@ -1,16 +1,20 @@
 // @vitest-environment happy-dom
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createTerminalKeyboardEventHandlers } from './terminal-keyboard-event-handlers'
-import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './terminal-shortcut-policy'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setRightCtrlHeldForTest } from './right-ctrl-held'
+import { createTerminalKeyboardEventHandlers } from './input/keyboard/terminal-keyboard-event-handlers'
+import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './input/keyboard/terminal-shortcut-policy'
 import { focusTerminalPaneInDirection } from './terminal-directional-focus'
 
 vi.mock('@/store', () => ({ useAppStore: { getState: () => ({}) } }))
 vi.mock('./terminal-directional-focus', () => ({ focusTerminalPaneInDirection: vi.fn() }))
 
 const cleanup: (() => void)[] = []
+// RA: the fork reserves Left Ctrl for word navigation; this suite exercises Right Ctrl.
+beforeEach(() => setRightCtrlHeldForTest(true))
 
 afterEach(() => {
+  setRightCtrlHeldForTest(false)
   for (const dispose of cleanup.splice(0)) {
     dispose()
   }

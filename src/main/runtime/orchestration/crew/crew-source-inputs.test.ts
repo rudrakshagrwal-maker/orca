@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
-import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status-freshness'
+import { AGENT_STATUS_STALE_AFTER_MS } from '../../../../shared/agent-status/contracts/agent-status-freshness'
 import { testOrcaSessionId } from '../../../../shared/orca-session-address-test-fixture'
-import type { OrchestrationCoordinatorKey } from '../orchestration-caller-identity'
+import type { OrchestrationCoordinatorKey } from '../addressing/orchestration-caller-identity'
 import { createCrewSourceInputs } from './crew-source-inputs'
 import { fixture } from './crew-read-model.test-fixture'
 
@@ -127,7 +127,7 @@ it('keeps owned Run facts distinct when a coordinator shares only a handle, pane
     coordinatorHandle: 'term_worker',
     coordinatorPaneKey: f.handles.get('term_worker')!
   })
-  const peerRun = f.db.createRun({
+  f.db.createRun({
     objective: 'Other pane',
     coordinatorHandle: 'term_peer',
     coordinatorPaneKey: f.handles.get('term_peer')!
@@ -149,11 +149,12 @@ it('keeps owned Run facts distinct when a coordinator shares only a handle, pane
     { party: base, ids: [f.run.id, sessionRuns[0].id] },
     {
       party: { ...base, terminalHandle: 'term_worker' },
-      ids: [f.run.id, workerRun.id, sessionRuns[0].id]
+      // RA: pane reuse by another handle cannot grant the original coordinator's Run.
+      ids: [workerRun.id, sessionRuns[0].id]
     },
     {
       party: { ...base, paneKey: f.handles.get('term_peer')! },
-      ids: [f.run.id, peerRun.id, sessionRuns[0].id]
+      ids: [f.run.id, sessionRuns[0].id]
     },
     { party: { ...base, orcaSessionId: sessionB }, ids: [f.run.id, sessionRuns[1].id] }
   ]

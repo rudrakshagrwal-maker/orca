@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/class-names'
 import {
   SUBAGENT_TAB_CONTAINER_WIDTH_CLASSES,
   TAB_CONTAINER_WIDTH_CLASSES

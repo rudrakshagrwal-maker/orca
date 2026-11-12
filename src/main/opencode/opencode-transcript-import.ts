@@ -1,3 +1,4 @@
+// RA: Node20 dynamic imports require the emitted .js extension.
 import { stat } from 'node:fs/promises'
 import { admitTranscriptPath } from '../native-chat/transcript-path-admission'
 import { dirname } from 'node:path'
@@ -61,7 +62,7 @@ export const OPENCODE_TRANSCRIPT_IMPORT: StructuredAgentTranscriptImport = {
       throw error
     }
     const { readOpenCodeTranscriptSignalViaWorker } =
-      await import('../ai-vault/session-scanner-opencode-sqlite-worker-spawn')
+      await import('../ai-vault/scanners/opencode/reader-transport/session-scanner-opencode-sqlite-worker-spawn.js')
     const signal = await readOpenCodeTranscriptSignalViaWorker({
       dbPath,
       sessionId: providerSessionId

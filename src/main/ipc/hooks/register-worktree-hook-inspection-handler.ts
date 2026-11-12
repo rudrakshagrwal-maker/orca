@@ -1,12 +1,12 @@
+import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { ipcMain } from 'electron'
 import { getRepoDialableSshTargetId, type ExecutionHostId } from '../../../shared/execution-host'
 import { isFolderRepo } from '../../../shared/repo-kind'
-import { inspectSetupScriptImportCandidates } from '../../../shared/setup-script-imports'
-import { joinWorktreeRelativePath } from '../../runtime/runtime-relative-paths'
-import { windowsFsPath } from '../../wsl/wsl-unc-drive-fs-path'
-import { blockedWslDistroForPath } from '../../wsl/wsl-unc-access-gate'
+import { joinWorktreeRelativePath } from '../../runtime/files/paths/runtime-relative-paths'
+import { windowsFsPath } from '../../wsl/filesystem/wsl-unc-drive-fs-path'
+import { blockedWslDistroForPath } from '../../wsl/filesystem/wsl-unc-access-gate'
 import { readFile, stat } from 'node:fs/promises'
-import { isENOENT } from '../filesystem/filesystem-path-containment'
+import { isENOENT } from '../filesystem/access/filesystem-path-containment'
 import { resolveRepoForExecutionHost } from '../worktrees/repo-host-ownership'
 import type { WorktreeIpcContext } from '../worktrees/worktree-ipc-context'
 
@@ -16,6 +16,9 @@ export function registerWorktreeHookInspectionHandler(context: WorktreeIpcContex
   ipcMain.handle(
     'hooks:inspectSetupScriptImports',
     async (_event, args: { repoId: string; hostId?: ExecutionHostId }) => {
+      // RA: no setup import scans or parser bundle until that feature is enabled.
+      if (backgroundJobsDisabled()) return []
+      const { inspectSetupScriptImportCandidates } = await import('../../../shared/workspace-setup/setup-script-imports')
       const repo = resolveRepoForExecutionHost(store, args.repoId, args.hostId)
       // SSH ownership must never fall through to local filesystem inspection.
       if (!repo || isFolderRepo(repo) || getRepoDialableSshTargetId(repo)) {

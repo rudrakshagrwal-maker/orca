@@ -3,12 +3,21 @@
   // Why only roots: src/main files come in through imports. check-runtime-electron-ratchet.mjs
   // keeps Electron out of that graph.
   "include": [
+    // RA: imported host code shares the canonical build declarations.
+    "../src/types/build-constants.d.ts",
     "../src/cli/**/*",
     "../src/shared/**/*",
     "../src/shared/editor-language/monaco-language-associations.json",
     "../src/packages/process-host/src/__fixtures__/**/*",
     // Loaded by path beside its launcher, so no import reaches it.
-    "../src/main/persistence/profile-state/profile-state-backup-worker-entry.ts"
+    "../src/main/persistence/profile-state/backup/profile-state-backup-worker-entry.ts"
+  ],
+  // RA: match tc.cli's runtime boundary; node/web typechecks own shared Vitest files.
+  "exclude": [
+    "../src/shared/**/*.test.ts",
+    "../src/shared/**/*.test.tsx",
+    "../src/shared/**/*.spec.ts",
+    "../src/shared/**/*.spec.tsx"
   ],
   "compilerOptions": {
     // The CLI runs on Node 24; Node20 models synchronous ESM imports from CommonJS.

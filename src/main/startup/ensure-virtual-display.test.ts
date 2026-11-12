@@ -1,3 +1,9 @@
+// RA: isolate retained upstream internals; production fork guards remain enabled.
+vi.mock('../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { spawnMock, existsSyncMock, readFileSyncMock, rmSyncMock, statSyncMock, appMock } =

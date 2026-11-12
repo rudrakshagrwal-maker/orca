@@ -1,13 +1,13 @@
-import type { BrowserWindow } from 'electron'
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
+import type { BrowserWindow } from 'electron'
 import { registerCoreHandlers } from '../ipc/register-core-handlers/register-core-handlers'
 import { attachMainWindowServices } from '../window/attach-main-window-services'
 import { initTccPromptNotice } from '../macos-permissions/macos-tcc-prompt-notice'
 import { resolveUpdateInstallMode } from '../updater/updater-service'
 import { desktopConnectorCloud } from './main-process-connector-startup'
 import { mainProcessState as state } from './main-process-state'
-import { prepareCodexAiVaultSessionResume } from '../codex/codex-ai-vault-session-resume'
-import { resolveHostCodexSessionSourceHome } from '../codex/codex-session-source-home'
+import { prepareCodexAiVaultSessionResume } from '../codex/history/resume/codex-ai-vault-session-resume'
+import { resolveHostCodexSessionSourceHome } from '../codex/history/rollouts/codex-session-source-home'
 import { preserveAgentAuthBeforeRestart } from '../providers/accounts/agent-auth-restart-preservation'
 import { preserveStateBeforeUpdateRestart } from '../updater/update-restart-preservation'
 import {
@@ -16,7 +16,7 @@ import {
   handlePtyExit
 } from './main-process-pty-startup'
 import { prepareCodexRuntimeHomeForLaunch } from './codex-launch-preparation'
-import { resolveHostAgentBaseEnvironment } from '../runtime/structured-agent-shell-environment'
+import { resolveHostAgentBaseEnvironment } from '../runtime/agent-session/environment/structured-agent-shell-environment'
 import {
   prepareCodexPinnedLaunchHome,
   prepareCodexSessionResumeForLaunch
@@ -57,7 +57,6 @@ export function attachMainWindowCoreServices(
     !codexAccounts ||
     !claudeAccounts ||
     !rateLimits ||
-    !automations ||
     !keybindings ||
     !codexRuntimeHome ||
     !claudeRuntimeAuth
@@ -78,7 +77,7 @@ export function attachMainWindowCoreServices(
     claudeAccounts,
     rateLimits,
     window.webContents.id,
-    automations,
+    automations ?? undefined, // RA: terminal-only startup has no automation service.
     {
       prepareForCodexLaunch: prepareCodexRuntimeHomeForLaunch,
       prepareForClaudeLaunch: (target) => claudeRuntimeAuth.prepareForClaudeLaunch(target),
@@ -131,10 +130,9 @@ export function attachMainWindowCoreServices(
         }
       : undefined
   )
-  automations.setWebContents(window.webContents)
   // RA: schedules start only when the user opens Automations.
   if (!backgroundJobsDisabled()) {
-    automations.start()
+    automations?.start()
   }
   attachMainWindowServices(
     window,
@@ -166,6 +164,5 @@ export function attachMainWindowCoreServices(
   rateLimits.attach(window, { refreshOnResume: !backgroundJobsDisabled() })
   if (!backgroundJobsDisabled()) {
     initTccPromptNotice(window, { deferWatchUntilReadyToShow: true })
-    rateLimits.start({ fetchImmediately: false })
   }
 }

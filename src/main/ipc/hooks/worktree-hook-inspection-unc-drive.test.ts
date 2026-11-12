@@ -1,3 +1,9 @@
+// RA: isolate retained upstream internals; production fork guards remain enabled.
+vi.mock('../../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Repo } from '../../../shared/repo-types'
 
@@ -7,7 +13,9 @@ const mocks = vi.hoisted(() => ({
   stat: vi.fn(),
   blocked: vi.fn<(path: string) => Promise<{ distro: string; state: 'stopped' } | null>>()
 }))
-vi.mock('../../wsl/wsl-unc-access-gate', () => ({ blockedWslDistroForPath: mocks.blocked }))
+vi.mock('../../wsl/filesystem/wsl-unc-access-gate', () => ({
+  blockedWslDistroForPath: mocks.blocked
+}))
 
 vi.mock('electron', () => ({
   ipcMain: {

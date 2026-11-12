@@ -2,11 +2,11 @@
 // RA: Exercise the existing remappable zoom chord and split restoration.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
-import { createExpandCollapseActions } from './expand-collapse'
+import { createExpandCollapseActions } from './layout/expand/expanded-pane-layout'
 import {
   resolveTerminalShortcutAction,
   type TerminalShortcutEvent
-} from './terminal-shortcut-policy'
+} from './input/keyboard/terminal-shortcut-policy'
 
 const chord: TerminalShortcutEvent = {
   key: 'Enter',

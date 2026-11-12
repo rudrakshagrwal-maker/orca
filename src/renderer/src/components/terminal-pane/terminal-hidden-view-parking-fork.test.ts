@@ -5,7 +5,7 @@ import {
   TERMINAL_TAB_HOT_RETAIN_LIMIT,
   TERMINAL_WORKTREE_COLD_PARK_DELAY_MS,
   TERMINAL_WORKTREE_HOT_RETAIN_LIMIT
-} from './terminal-hidden-view-parking'
+} from './parking/retention/terminal-hidden-view-parking'
 
 // RA: this suite uses the shipped fork policy rather than the optional upstream retention policy.
 describe('fork hidden terminal budget', () => {

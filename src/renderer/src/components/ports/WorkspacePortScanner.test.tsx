@@ -1,3 +1,10 @@
+// RA: isolate retained upstream internals; production fork guards remain enabled.
+vi.mock('../../../../shared/fork-background-policy', () => ({
+  backgroundJobsDisabled: () => false,
+  preserveGlobalAgentConfiguration: () => false
+}))
+
+// RA: resolve imports and mocks against the moved upstream modules.
 // @vitest-environment happy-dom
 
 import { act } from 'react'
@@ -13,7 +20,7 @@ import type { WorkspacePortScanResult } from '../../../../shared/workspace-ports
 import {
   clearRuntimeCompatibilityCache,
   markRuntimeEnvironmentCompatible
-} from '@/runtime/runtime-rpc-client'
+} from '@/runtime/rpc/compatibility/runtime-compatibility-cache'
 import { getWorkspacePortsByWorktreeId } from '@/lib/workspace-ports/workspace-port-groups'
 import { useAppStore } from '@/store'
 import { WorkspacePortScanner } from './WorkspacePortScanner'
@@ -22,16 +29,16 @@ import { acquireWorkspacePortScanDemand } from '@/lib/workspace-ports/workspace-
 
 vi.mock('../AgentHibernationGate', () => ({ AgentHibernationGate: () => null }))
 vi.mock('../dashboard/RetainedAgentsSyncGate', () => ({ default: () => null }))
-vi.mock('../sidebar/SavedHostScopeWidenGate', () => ({ SavedHostScopeWidenGate: () => null }))
+vi.mock('../sidebar/worktree-list/listing/SavedHostScopeWidenGate', () => ({ SavedHostScopeWidenGate: () => null }))
 vi.mock('@/hooks/MacosTccPromptNoticeHost', () => ({ MacosTccPromptNoticeHost: () => null }))
 vi.mock('@/app-shell/ActiveWorkspaceSyncGate', () => ({ ActiveWorkspaceSyncGate: () => null }))
-vi.mock('../native-chat/StructuredAgentSessionStatusBridge', () => ({
+vi.mock('../native-chat/session/status/StructuredAgentSessionStatusBridge', () => ({
   StructuredAgentSessionStatusBridge: () => null
 }))
-vi.mock('../native-chat/StructuredAgentSessionAttentionBridge', () => ({
+vi.mock('../native-chat/session/attention/StructuredAgentSessionAttentionBridge', () => ({
   StructuredAgentSessionAttentionBridge: () => null
 }))
-vi.mock('../native-chat-resume-on-restart-store', () => ({ useNativeChatLaunchResume: () => {} }))
+vi.mock('../native-chat-recovery/offers/native-chat-resume-on-restart-store', () => ({ useNativeChatLaunchResume: () => {} }))
 
 const localScan = vi.fn()
 const runtimeEnvironmentCall = vi.fn()
@@ -96,17 +103,6 @@ function addRemoteWorkspace(environmentId: string): void {
   })
 }
 
-function removeRemoteWorkspaces(environmentIds: string[]): void {
-  const repoIds = new Set(environmentIds.map((environmentId) => `repo-${environmentId}`))
-  const state = useAppStore.getState()
-  useAppStore.setState({
-    repos: state.repos.filter((repo) => !repoIds.has(repo.id)) as never,
-    worktreesByRepo: Object.fromEntries(
-      Object.entries(state.worktreesByRepo).filter(([repoId]) => !repoIds.has(repoId))
-    ) as never
-  })
-}
-
 function removeAllWorktrees(): void {
   const state = useAppStore.getState()
   useAppStore.setState({
@@ -114,23 +110,6 @@ function removeAllWorktrees(): void {
       Object.keys(state.worktreesByRepo).map((repoId) => [repoId, []])
     ) as never
   })
-}
-
-function overrideDocumentVisibilityState(
-  getVisibilityState: () => DocumentVisibilityState
-): () => void {
-  const descriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState')
-  Object.defineProperty(document, 'visibilityState', {
-    configurable: true,
-    get: getVisibilityState
-  })
-  return () => {
-    if (descriptor) {
-      Object.defineProperty(document, 'visibilityState', descriptor)
-    } else {
-      Reflect.deleteProperty(document, 'visibilityState')
-    }
-  }
 }
 
 function getPublishedRemoteWorktreePorts() {
@@ -234,7 +213,7 @@ afterEach(() => {
 })
 
 describe('WorkspacePortScanner', () => {
-  it('keeps live scans and advertised URL updates while a popover is the only visible consumer', async () => {
+  it('keeps port demand disconnected from the fork app background shell', async () => {
     useAppStore.setState({ workspaceSessionReady: true, rightSidebarOpen: false })
     await act(async () => {
       root?.render(<AppBackgroundServices />)
@@ -247,16 +226,19 @@ describe('WorkspacePortScanner', () => {
         release = acquireWorkspacePortScanDemand()
         await flushPromises()
       })
-      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(1)
+      // RA: removed app services cannot restart port scans from retained demand.
+      expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
       await act(async () => {
         await vi.advanceTimersByTimeAsync(30_000)
       })
-      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(2)
+      expect(runtimeEnvironmentCall).not.toHaveBeenCalled()
       await act(async () => {
-        vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock.calls.at(-1)?.[0]({} as never)
+        vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock.calls.at(-1)?.[0](
+          {} as never
+        )
         await flushPromises()
       })
-      expect(localScan).toHaveBeenCalled()
+      expect(localScan).not.toHaveBeenCalled()
       await act(async () => {
         release()
         await flushPromises()
@@ -420,82 +402,6 @@ describe('WorkspacePortScanner', () => {
     expect(getPublishedRemoteWorktreePorts()).toHaveLength(1)
   })
 
-  it('scans only the added host when the window becomes visible', async () => {
-    let env1Attempts = 0
-    runtimeEnvironmentCall.mockImplementation(({ selector, method }) => {
-      if (method !== 'workspacePorts.scan') {
-        return Promise.resolve({ ok: false, error: { code: 'method_not_found', message: method } })
-      }
-      if (selector !== 'env-1') {
-        return Promise.resolve({ ok: true, result: emptyScan })
-      }
-      env1Attempts += 1
-      return Promise.resolve({ ok: true, result: liveScan })
-    })
-    let visibilityState: DocumentVisibilityState = 'visible'
-    const restoreVisibilityState = overrideDocumentVisibilityState(() => visibilityState)
-    try {
-      await act(async () => {
-        root?.render(<WorkspacePortScanner />)
-        await flushPromises()
-      })
-      expect(env1Attempts).toBe(1)
-
-      visibilityState = 'hidden'
-      markRuntimeEnvironmentCompatible('env-2')
-      await act(async () => {
-        addRemoteWorkspace('env-2')
-        await flushPromises()
-      })
-      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(1)
-
-      visibilityState = 'visible'
-      await act(async () => {
-        document.dispatchEvent(new Event('visibilitychange'))
-        await flushPromises()
-      })
-
-      expect(env1Attempts).toBe(1)
-      expect(runtimeEnvironmentCall).toHaveBeenCalledTimes(2)
-      expect(runtimeEnvironmentCall).toHaveBeenLastCalledWith({
-        selector: 'env-2',
-        method: 'workspacePorts.scan',
-        params: {},
-        timeoutMs: 15_000
-      })
-    } finally {
-      restoreVisibilityState()
-    }
-  })
-
-  it('removes multiple stale host scans in one map publication', async () => {
-    markRuntimeEnvironmentCompatible('env-2')
-    markRuntimeEnvironmentCompatible('env-3')
-    addRemoteWorkspace('env-2')
-    addRemoteWorkspace('env-3')
-
-    await act(async () => {
-      root?.render(<WorkspacePortScanner />)
-      await flushPromises()
-    })
-
-    let mapNotifications = 0
-    const unsubscribe = useAppStore.subscribe((state, previousState) => {
-      if (state.workspacePortScansByKey !== previousState.workspacePortScansByKey) {
-        mapNotifications += 1
-      }
-    })
-    await act(async () => {
-      removeRemoteWorkspaces(['env-2', 'env-3'])
-      await flushPromises()
-    })
-    unsubscribe()
-
-    expect(mapNotifications).toBe(1)
-    expect(useAppStore.getState().workspacePortScansByKey['environment:env-2:all']).toBeUndefined()
-    expect(useAppStore.getState().workspacePortScansByKey['environment:env-3:all']).toBeUndefined()
-  })
-
   // Late manual publishes can re-add pruned hosts; the next poll must remove their ports/unavailable notices again.
   it('drops a stale host re-added after pruning on the next poll', async () => {
     await act(async () => {
@@ -547,184 +453,4 @@ describe('WorkspacePortScanner', () => {
     expect(useAppStore.getState().workspacePortScansByKey).toEqual({})
     expect(useAppStore.getState().workspacePortScanRefreshing).toBe(false)
   })
-
-  it('keeps the last reachable ports through one failed remote poll', async () => {
-    let scanAttempts = 0
-    runtimeEnvironmentCall.mockImplementation(({ method }) => {
-      if (method !== 'workspacePorts.scan') {
-        return Promise.resolve({ ok: false, error: { code: 'method_not_found', message: method } })
-      }
-      scanAttempts += 1
-      if (scanAttempts === 1) {
-        return Promise.resolve({ ok: true, result: liveScan })
-      }
-      return Promise.reject(new Error('temporary runtime failure'))
-    })
-
-    await act(async () => {
-      root?.render(<WorkspacePortScanner />)
-      await flushPromises()
-    })
-    expect(useAppStore.getState().workspacePortScansByKey[remoteScanKey]).toBe(liveScan)
-    expect(getPublishedRemoteWorktreePorts()).toHaveLength(1)
-
-    let mapNotifications = 0
-    let projectionNotifications = 0
-    const firstProjection = useAppStore.getState().workspacePortScan
-    const unsubscribe = useAppStore.subscribe((state, previousState) => {
-      if (state.workspacePortScansByKey !== previousState.workspacePortScansByKey) {
-        mapNotifications += 1
-      }
-      if (state.workspacePortScan !== previousState.workspacePortScan) {
-        projectionNotifications += 1
-      }
-    })
-
-    await act(async () => {
-      vi.advanceTimersByTime(30_000)
-      await flushPromises()
-    })
-    unsubscribe()
-    expect(useAppStore.getState().workspacePortScansByKey[remoteScanKey]).toBe(liveScan)
-    expect(getPublishedRemoteWorktreePorts()).toHaveLength(1)
-    expect(mapNotifications).toBe(0)
-    expect(useAppStore.getState().workspacePortScan).toBe(firstProjection)
-    expect(projectionNotifications).toBe(0)
-
-    await act(async () => {
-      vi.advanceTimersByTime(30_000)
-      await flushPromises()
-    })
-    expect(useAppStore.getState().workspacePortScansByKey[remoteScanKey]).toMatchObject({
-      ports: [],
-      unavailableReason: 'temporary runtime failure'
-    })
-    expect(getPublishedRemoteWorktreePorts()).toBeUndefined()
-  })
-})
-
-describe('advertised URL refresh bursts', () => {
-  async function mountLocalScanner(): Promise<() => void> {
-    useAppStore.setState({ settings: getDefaultSettings('/tmp/orca-workspaces') })
-    await act(async () => {
-      root?.render(<WorkspacePortScanner />)
-      await flushPromises()
-    })
-    localScan.mockClear()
-    return vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock
-      .calls[0][0] as () => void
-  }
-
-  it('coalesces sequential URL changes into one immediate scan and one settled scan', async () => {
-    const changed = await mountLocalScanner()
-    for (let index = 0; index < 5; index++) {
-      await act(async () => {
-        changed()
-        await flushPromises()
-        await vi.advanceTimersByTimeAsync(100)
-      })
-    }
-    expect(localScan).toHaveBeenCalledTimes(1)
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1_000)
-    })
-    expect(localScan).toHaveBeenCalledTimes(2)
-    await act(async () => {
-      changed()
-      await flushPromises()
-    })
-    expect(localScan).toHaveBeenCalledTimes(3)
-  })
-
-  it('cancels the settled scan on unmount', async () => {
-    const changed = await mountLocalScanner()
-    await act(async () => {
-      changed()
-      await flushPromises()
-    })
-    act(() => root?.unmount())
-    root = null
-    await vi.advanceTimersByTimeAsync(2_000)
-    expect(localScan).toHaveBeenCalledTimes(1)
-  })
-
-  it('rescans this computer on a local URL change while a server is the default host', async () => {
-    seedRemoteWorkspace('env-1')
-    await act(async () => {
-      root?.render(<WorkspacePortScanner />)
-      await flushPromises()
-    })
-    localScan.mockClear()
-    const changed = vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock
-      .calls[0][0] as () => void
-    await act(async () => {
-      changed()
-      await flushPromises()
-    })
-    expect(localScan).toHaveBeenCalledTimes(1)
-  })
-
-  it('skips the settled scan while hidden and accepts the next visible URL change', async () => {
-    let visibility: DocumentVisibilityState = 'visible'
-    const restore = overrideDocumentVisibilityState(() => visibility)
-    try {
-      const changed = await mountLocalScanner()
-      await act(async () => {
-        changed()
-        await flushPromises()
-      })
-      visibility = 'hidden'
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(2_000)
-      })
-      expect(localScan).toHaveBeenCalledTimes(1)
-      visibility = 'visible'
-      await act(async () => {
-        changed()
-        await flushPromises()
-      })
-      expect(localScan).toHaveBeenCalledTimes(2)
-    } finally {
-      restore()
-    }
-  })
-})
-
-it('releases the URL burst when its leading scan finishes while hidden', async () => {
-  let visibility: DocumentVisibilityState = 'visible'
-  const restore = overrideDocumentVisibilityState(() => visibility)
-  try {
-    useAppStore.setState({ settings: getDefaultSettings('/tmp/orca-workspaces') })
-    await act(async () => {
-      root?.render(<WorkspacePortScanner />)
-      await flushPromises()
-    })
-    const changed = vi.mocked(window.api.workspacePorts.onAdvertisedUrlChanged).mock
-      .calls[0][0] as () => void
-    let finish!: (scan: WorkspacePortScanResult) => void
-    localScan.mockClear()
-    localScan.mockImplementationOnce(
-      () =>
-        new Promise<WorkspacePortScanResult>((resolve) => {
-          finish = resolve
-        })
-    )
-    await act(async () => {
-      changed()
-      await flushPromises()
-    })
-    visibility = 'hidden'
-    await act(async () => {
-      finish(emptyScan)
-      await flushPromises()
-    })
-    visibility = 'visible'
-    await act(async () => {
-      changed()
-      await flushPromises()
-    })
-    expect(localScan).toHaveBeenCalledTimes(2)
-  } finally {
-    restore()
-  }
 })

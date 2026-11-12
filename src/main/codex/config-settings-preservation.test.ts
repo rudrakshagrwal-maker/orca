@@ -1,12 +1,13 @@
+// RA: retain fork policy at the relocated upstream module paths.
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { syncSystemConfigIntoManagedCodexHome } from './codex-config-mirror'
-import { promoteCodexRuntimeSettingsToSystem } from './config-settings-promotion'
-import { readCodexSettingsBaseline } from './config-settings-baseline'
+import { syncSystemConfigIntoManagedCodexHome } from './configuration/settings/codex-config-mirror'
+import { promoteCodexRuntimeSettingsToSystem } from './configuration/settings/config-settings-promotion'
+import { readCodexSettingsBaseline } from './configuration/settings/config-settings-baseline'
 
-vi.mock('./codex-daemon-socket-path-guard', async (importOriginal) => ({
+vi.mock('./configuration/shared-server/codex-daemon-socket-path-guard', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   applyCodexDaemonSocketGuard: (config: string) => config
 }))

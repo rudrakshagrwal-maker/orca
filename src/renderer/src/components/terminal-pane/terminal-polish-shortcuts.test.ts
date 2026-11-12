@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './terminal-shortcut-policy'
-import { resolveWindowsShiftEnterEncoding } from './terminal-windows-shift-enter'
+import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './input/keyboard/terminal-shortcut-policy'
+import { resolveWindowsShiftEnterEncoding } from './input/keyboard/terminal-windows-shift-enter'
 
 // RA: verify the existing pane zoom and modified-enter path under both shortcut priorities.
 const enter: TerminalShortcutEvent = {

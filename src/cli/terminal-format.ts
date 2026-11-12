@@ -1,5 +1,8 @@
-import { PTY_LIVE_NOTE, describeUnconfirmedCloseStop } from '../shared/pty-liveness-verdict'
-import { describeTerminalWaitBlockedReason } from '../shared/terminal-wait-blocked-reason-legacy-alias'
+import {
+  PTY_LIVE_NOTE,
+  describeUnconfirmedCloseStop
+} from '../shared/terminal/pty/lifecycle/pty-liveness-verdict'
+import { describeTerminalWaitBlockedReason } from '../shared/terminal/runtime-policy/terminal-wait-blocked-reason-legacy-alias'
 import type { WithAnnotatedHostScope } from './omitted-host-scope-selectors'
 import type {
   RuntimeTerminalClose,
@@ -29,7 +32,10 @@ export function formatTerminalList(
   }
   const now = options.now ?? Date.now()
   const rows = result.terminals.map((terminal) => [
-    terminal.handle.replace(/^term_/i, '').replace(/-/g, '').slice(0, 8),
+    terminal.handle
+      .replace(/^term_/i, '')
+      .replace(/-/g, '')
+      .slice(0, 8),
     singleLine(terminal.paneTitle ?? terminal.title ?? '(untitled)'),
     terminal.agentIdentity ?? '-',
     terminal.state ?? '-',
@@ -39,9 +45,7 @@ export function formatTerminalList(
   const body = rows
     .map((row, index) => {
       const line = row
-        .map((value, column) =>
-          column === row.length - 1 ? value : value.padEnd(widths[column])
-        )
+        .map((value, column) => (column === row.length - 1 ? value : value.padEnd(widths[column])))
         .join('  ')
       return options.preview
         ? `${line}\npreview: ${singleLine(result.terminals[index].preview || '<empty>')}`
@@ -62,9 +66,15 @@ function singleLine(value: string): string {
 
 function formatTerminalAge(milliseconds: number): string {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000))
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
+  if (seconds < 60) {
+    return `${seconds}s`
+  }
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)}m`
+  }
+  if (seconds < 86400) {
+    return `${Math.floor(seconds / 86400)}h`
+  }
   return `${Math.floor(seconds / 86400)}d`
 }
 
@@ -237,7 +247,7 @@ function promptObservationWarning(
   if (prompt.provider !== 'unsupported' && prompt.provider !== 'old-host') {
     return prompt.stages.includes('turn_started')
       ? null
-      : `input was accepted but no turn start was observed, so the Enter may have been swallowed. Confirm delivery by reissuing the exact command with --retry-request ${prompt.requestId} --wait-submit <seconds>; the same request ID replays the receipt instead of sending the prompt again.`
+      : `input was accepted, but no turn start was observed yet (a send without --wait-submit does not wait for one). Confirm delivery by reissuing the exact command with --retry-request ${prompt.requestId} --wait-submit <seconds>; the same request ID observes this prompt instead of sending it again.`
   }
   if (prompt.observation === 'unsupported') {
     return prompt.provider === 'old-host'

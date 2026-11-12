@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../fork-background-policy'
 import type { GlobalSettings } from '../global-settings-types'
 import type { PersistedUIState } from '../persisted-ui-state-types'
 import type { WorktreeCardMode, WorktreeCardProperty } from '../ui-chrome-types'
@@ -133,6 +134,8 @@ export type WorktreeCardDetails = {
   repoInTitle: boolean
   /** The identity meta row (repo, host, branch or folder path, detached HEAD); compact cards drop it. */
   metaRow: boolean
+  /** The branch or folder path in the meta row; the new card style makes it the opt-in Branch property. */
+  identity: boolean
   issue: boolean
   linearIssue: boolean
   jiraIssue: boolean
@@ -154,11 +157,14 @@ export function getWorktreeCardDetails(
 ): WorktreeCardDetails {
   const compactCards = !settings.newCardStyle && settings.compactWorktreeCards
   const metaRow = !compactCards
-  const shows = (property: WorktreeCardProperty) => cardProps.includes(property)
+  // RA: keep identity and agent trees; removed integrations never demand card data.
+  const shows = (property: WorktreeCardProperty) =>
+    cardProps.includes(property) && (!backgroundJobsDisabled() || ['branch', 'host', 'inline-agents'].includes(property))
   return {
     compactCards,
     repoInTitle: settings.newCardStyle || compactCards,
     metaRow,
+    identity: metaRow && (!settings.newCardStyle || shows('branch')),
     issue: shows('issue'),
     linearIssue: shows('linear-issue'),
     jiraIssue: shows('jira-issue'),

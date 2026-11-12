@@ -1,10 +1,20 @@
+import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import type { ActivityTerminalPortalTarget } from './activity/activity-terminal-portal'
-import TerminalPaneOverlayLayer from './terminal-pane/TerminalPaneOverlayLayer'
-import { RetainedBrowserPaneOverlayLayer } from './browser-pane/assemble-chrome/BrowserPaneOverlayLayer'
-import EmulatorPaneOverlayLayer from './emulator-pane/EmulatorPaneOverlayLayer'
-import StructuredAgentSessionPaneOverlayLayer from './native-chat/StructuredAgentSessionPaneOverlayLayer'
-import AiVaultSessionDropLayer from './tab-group/AiVaultSessionDropLayer'
-import type { HiddenTerminalPrewarm } from './terminal-pane/terminal-pane-types'
+import TerminalPaneOverlayLayer from './terminal-pane/mounting/TerminalPaneOverlayLayer'
+import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
+import { Suspense } from 'react'
+import type { HiddenTerminalPrewarm } from './terminal-pane/controller/terminal-pane-types'
+// RA: disabled feature renderers must not join the terminal's eager import graph.
+const RetainedBrowserPaneOverlayLayer = lazy(() =>
+  import('./browser-pane/assemble-chrome/BrowserPaneOverlayLayer').then((m) => ({
+    default: m.RetainedBrowserPaneOverlayLayer
+  }))
+)
+const EmulatorPaneOverlayLayer = lazy(() => import('./emulator-pane/EmulatorPaneOverlayLayer'))
+const StructuredAgentSessionPaneOverlayLayer = lazy(() =>
+  import('./native-chat/pane/routing/StructuredAgentSessionPaneOverlayLayer')
+)
+const AiVaultSessionDropLayer = lazy(() => import('./tab-group/AiVaultSessionDropLayer'))
 
 /** Share retained pane hosts across group-tree hosts so retention, parking and browser paint have one lifecycle owner. */
 export function WorkspacePaneOverlayLayers({
@@ -52,19 +62,23 @@ export function WorkspacePaneOverlayLayers({
         activationDeferredMountTabIds={activationDeferredMountTabIds}
         ownsNativeChatToggleShortcut={ownsNativeChatToggleShortcut}
       />
-      <RetainedBrowserPaneOverlayLayer
-        worktreeId={worktreeId}
-        isWorktreeActive={isVisible}
-        mountEligible={mountRetainedBrowserOverlay}
-      />
-      {mountEmulatorOverlay ? (
-        <EmulatorPaneOverlayLayer worktreeId={worktreeId} isWorktreeActive={isVisible} />
+      {!backgroundJobsDisabled() ? (
+        <Suspense fallback={null}>
+          <RetainedBrowserPaneOverlayLayer
+            worktreeId={worktreeId}
+            isWorktreeActive={isVisible}
+            mountEligible={mountRetainedBrowserOverlay}
+          />
+          {mountEmulatorOverlay ? (
+            <EmulatorPaneOverlayLayer worktreeId={worktreeId} isWorktreeActive={isVisible} />
+          ) : null}
+          <StructuredAgentSessionPaneOverlayLayer
+            worktreeId={worktreeId}
+            isWorktreeActive={isVisible}
+          />
+          <AiVaultSessionDropLayer worktreeId={worktreeId} enabled={isVisible} />
+        </Suspense>
       ) : null}
-      <StructuredAgentSessionPaneOverlayLayer
-        worktreeId={worktreeId}
-        isWorktreeActive={isVisible}
-      />
-      <AiVaultSessionDropLayer worktreeId={worktreeId} enabled={isVisible} />
     </>
   )
 }

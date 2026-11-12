@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ManagedPane, PaneManager } from '@/lib/pane-manager/pane-manager'
+// RA: upstream owns pane types separately from the manager implementation.
+import type { ManagedPane } from '@/lib/pane-manager/pane-manager-types'
+import type { PaneManager } from '@/lib/pane-manager/pane-manager'
 import { FOCUS_TERMINAL_PANE_EVENT, type FocusTerminalPaneDetail } from '@/constants/terminal'
-import { handleFocusTerminalPaneDetail } from './focus-terminal-pane-event'
-import { dispatchTerminalShortcutAction } from './terminal-keyboard-action-dispatch'
+import { handleFocusTerminalPaneDetail } from './input/focus/focus-terminal-pane-event'
+import { dispatchTerminalShortcutAction } from './input/keyboard/terminal-keyboard-action-dispatch'
 
 const setActiveTab = vi.hoisted(() => vi.fn())
 const closeTabs = vi.hoisted(() => ({ ids: ['tab-0', 'tab-1', 'tab-2'] }))
@@ -20,12 +22,12 @@ vi.mock('@/store', () => ({
     })
   }
 }))
-vi.mock('./terminal-selection-copy', () => ({ copyTerminalSelection: vi.fn() }))
-vi.mock('./terminal-pane-split-with-inherited-cwd', () => ({
+vi.mock('./clipboard/terminal-selection-copy', () => ({ copyTerminalSelection: vi.fn() }))
+vi.mock('./layout/split/terminal-pane-split-with-inherited-cwd', () => ({
   splitTerminalPaneWithInheritedCwd: vi.fn()
 }))
-vi.mock('./terminal-pane-layout-owner-commands', () => ({ equalizeTerminalPanes: vi.fn() }))
-vi.mock('@/lib/pane-manager/terminal-scroll-intent', () => ({
+vi.mock('./layout/ownership/terminal-pane-layout-owner-commands', () => ({ equalizeTerminalPanes: vi.fn() }))
+vi.mock('@/lib/pane-manager/terminal-scroll/terminal-scroll-intent', () => ({
   markTerminalFollowOutput: vi.fn(),
   markTerminalPinnedViewport: vi.fn(),
   syncTerminalScrollIntentFromViewport: vi.fn()

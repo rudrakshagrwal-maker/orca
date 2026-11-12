@@ -62,7 +62,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'worktree', 'history', 'back'],
-    defaultBindings: platformBindings(['Mod+Alt+ArrowLeft'])
+    defaultBindings: platformBindings([]) // RA: navigation arrows and their defaults stay off.
   },
   {
     id: 'worktree.history.forward',
@@ -70,7 +70,7 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     group: 'Global',
     scope: 'global',
     searchKeywords: ['shortcut', 'worktree', 'history', 'forward'],
-    defaultBindings: platformBindings(['Mod+Alt+ArrowRight'])
+    defaultBindings: platformBindings([]) // RA: navigation arrows and their defaults stay off.
   },
   {
     id: 'tab.newTerminal',

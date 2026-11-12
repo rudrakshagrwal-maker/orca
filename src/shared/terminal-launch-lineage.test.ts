@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { getDefaultWorkspaceSession } from './constants'
-import { parseWorkspaceSession } from './workspace-session-schema'
+import { parseWorkspaceSession } from './workspace-session/workspace-session-schema'
 import { reconcileTerminalLaunchParents } from './terminal-launch-lineage'
-import type { WorkspaceSessionState } from './workspace-session-state-types'
+import type { WorkspaceSessionState } from './workspace-session/workspace-session-state-types'
 
 const PARENT_LEAF = '11111111-1111-4111-8111-111111111111'
 const CHILD_LEAF = '22222222-2222-4222-8222-222222222222'

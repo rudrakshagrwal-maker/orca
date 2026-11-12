@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { app } from 'electron'
 import { guardExternalOpensInE2E } from './e2e-external-open-guard'
 import { quitProcess } from './process-quit-request'
@@ -84,6 +85,8 @@ export function disableUnsupportedChromiumFeatures(): void {
 
 // Hidden-page timers otherwise clamp to once/minute after five minutes, delaying agent notifications on every platform.
 export function optOutOfHiddenPageWakeUpThrottling(): void {
+  // RA: background terminal output is daemon-owned; let hidden renderer timers throttle.
+  if (backgroundJobsDisabled()) return
   appendDisabledChromiumFeatures(['IntensiveWakeUpThrottling'])
 }
 
@@ -311,10 +314,13 @@ export function installDevParentSignalQuit(isDev: boolean): void {
 }
 
 export function enableMainProcessGpuFeatures(): void {
+  // RA: prefer discrete VRAM over the integrated GPU's shared system RAM.
+  app.commandLine.appendSwitch('force_high_performance_gpu')
+  app.commandLine.appendSwitch('renderer-process-limit', '1')
   // RA: bound Chromium disk caches on every platform, including software rendering.
   app.commandLine.appendSwitch('disk-cache-size', '10485760')
   app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
-  if (process.platform === 'linux' && getMainE2EConfig().userDataDir) {
+  if (!backgroundJobsDisabled() && process.platform === 'linux' && getMainE2EConfig().userDataDir) {
     // Ubuntu/Xvfb E2E needs software rendering to avoid GPU-process startup failure.
     app.disableHardwareAcceleration()
     app.commandLine.appendSwitch('disable-gpu')

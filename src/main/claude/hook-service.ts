@@ -5,21 +5,22 @@ import {
   listClaudeProfileHomes,
   listClaudeProfileHomesAsync
 } from '../claude-accounts/claude-profile-homes'
-import type { AgentHookSource } from '../../shared/agent-hook-relay'
+import type { AgentHookSource } from '../../shared/agent-hook-listener/transport/agent-hook-relay'
 import type { SFTPWrapper } from 'ssh2'
-import type { AgentHookInstallState, AgentHookInstallStatus } from '../../shared/agent-hook-types'
-import {
-  buildManagedCommandHook,
-  readHooksJson,
-  writeHooksJson,
-  writeManagedScript
-} from '../agent-hooks/installer-utils'
+import type {
+  AgentHookInstallState,
+  AgentHookInstallStatus
+} from '../../shared/agent-hook-listener/configuration/agent-hook-types'
+import { buildManagedCommandHook } from '../agent-hooks/installation/configuration/hook-config-schema'
+import { readHooksJson } from '../agent-hooks/installation/configuration/hooks-json-read'
+import { writeHooksJson } from '../agent-hooks/installation/configuration/hooks-json-write'
+import { writeManagedScript } from '../agent-hooks/installation/scripts/managed-hook-script-write'
 import {
   readHooksJsonRemote,
-  writeHooksJsonRemote,
-  writeManagedScriptRemote
-} from '../agent-hooks/installer-utils-remote'
-import { refreshManagedScriptIfPresent } from '../agent-hooks/managed-hook-script-refresh'
+  writeHooksJsonRemote
+} from '../agent-hooks/installation/configuration/hooks-json-remote'
+import { writeManagedScriptRemote } from '../agent-hooks/installation/scripts/managed-script-write-remote'
+import { refreshManagedScriptIfPresent } from '../agent-hooks/installation/scripts/managed-hook-script-refresh'
 import { getManagedScript } from './hook-script'
 import {
   removeClaudeAgentViewRemote,
@@ -43,7 +44,6 @@ import {
   CLAUDE_HOOK_SETTINGS,
   getManagedScriptFileName,
   getConfigPath,
-  getManagedEventHook,
   getManagedScriptPath,
   getPosixManagedScriptFileName,
   getRemoteConfigPath,
@@ -57,6 +57,7 @@ import {
   type ClaudeCompatibleHookSettings
 } from './hook-settings'
 import { claudeAcceptsExecFormHooks } from './claude-hook-event-versions'
+import { getManagedEventHook } from './claude-managed-event-hook'
 import {
   getClaudeManagedHookPlan,
   OPENCLAUDE_MANAGED_HOOK_PLAN,
@@ -102,7 +103,7 @@ export class ClaudeHookService {
       skipWhenDevinImportsClaude: this.options.agent === 'claude',
       skipWhenGrokImportsClaude: this.options.agent === 'claude',
       skipWhenCursorImportsClaude: this.options.agent === 'claude',
-      decidesPreToolUse: this.options.agent === 'claude'
+      decidesPreToolUse: this.options.agent === 'claude' && !preserveGlobalAgentConfiguration()
     })
   }
 
@@ -162,10 +163,10 @@ export class ClaudeHookService {
 
   async refreshManagedScripts(): Promise<void> {
     // RA: no managed agent hook writes, refreshes or removals.
-    if (preserveGlobalAgentConfiguration()) {
+    if (preserveGlobalAgentConfiguration() && this.options.agent !== 'claude') {
       return
     }
-    if (this.options.agent === 'claude') {
+    if (this.options.agent === 'claude' && !preserveGlobalAgentConfiguration()) {
       const profiles = await listClaudeProfileHomesAsync(getAppEnvironment().getPath('userData'))
       for (const configDir of [undefined, ...profiles]) {
         await refreshClaudeAgentView(getConfigPath(this.options.settings, configDir)).catch(
@@ -181,15 +182,17 @@ export class ClaudeHookService {
       ? refreshWindowsClaudeHookFiles(scriptPath, payload)
       : refreshManagedScriptIfPresent(scriptPath, payload))
     // Refresh existing statusline scripts without creating new installs.
-    await refreshManagedScriptIfPresent(
-      getStatusLineScriptPath(this.options.settings),
-      getManagedStatusLineScript('local')
-    )
+    if (!preserveGlobalAgentConfiguration()) {
+      await refreshManagedScriptIfPresent(
+        getStatusLineScriptPath(this.options.settings),
+        getManagedStatusLineScript('local')
+      )
+    }
   }
 
   install(options: ClaudeHookTargetOptions = {}): AgentHookInstallStatus {
     // RA: no managed agent hook writes, refreshes or removals.
-    if (preserveGlobalAgentConfiguration()) {
+    if (preserveGlobalAgentConfiguration() && this.options.agent !== 'claude') {
       return this.getStatus()
     }
     const refused = refuseProfileAtDefaultHome(this.options, options.configDir)
@@ -217,7 +220,8 @@ export class ClaudeHookService {
       (eventName) =>
         getManagedEventHook(eventName, scriptPath, this.options.settings, exePath, { execForm }),
       getManagedScriptFileName(this.options.settings),
-      plan
+      plan,
+      process.platform !== 'win32'
     )
     const payload = this.managedScript()
     if (this.usesWindowsEntry) {
@@ -241,7 +245,7 @@ export class ClaudeHookService {
     options: ClaudeHookInstallOptions = {}
   ): Promise<AgentHookInstallStatus> {
     // RA: no managed agent hook writes, refreshes or removals.
-    if (preserveGlobalAgentConfiguration()) {
+    if (preserveGlobalAgentConfiguration() && this.options.agent !== 'claude') {
       return this.getStatus()
     }
     // Remote hook installation targets POSIX hosts regardless of the client platform.
@@ -266,14 +270,15 @@ export class ClaudeHookService {
         (eventName) =>
           buildManagedCommandHook(getRemoteManagedEventCommand(eventName, remoteScriptPath)),
         remoteScriptFileName,
-        this.managedHookPlan(options)
+        this.managedHookPlan(options),
+        true
       )
 
       // Publish scripts before settings can reference them.
       await writeManagedScriptRemote(sftp, remoteScriptPath, this.managedScript('posix'))
       // Remote relays lack the statusline route, and remote account usage cannot be attributed locally.
       await writeHooksJsonRemote(sftp, remoteConfigPath, nextConfig)
-      if (this.options.agent === 'claude') {
+      if (this.options.agent === 'claude' && !preserveGlobalAgentConfiguration()) {
         await removeClaudeAgentViewRemote(sftp, remoteConfigPath).catch((error: unknown) => {
           console.warn('[agent-hooks] Remote Claude agent view migration failed', error)
         })
@@ -299,7 +304,7 @@ export class ClaudeHookService {
 
   remove(): AgentHookInstallStatus {
     // RA: no managed agent hook writes, refreshes or removals.
-    if (preserveGlobalAgentConfiguration()) {
+    if (preserveGlobalAgentConfiguration() && this.options.agent !== 'claude') {
       return this.getStatus()
     }
     const configPath = getConfigPath(this.options.settings)
@@ -317,6 +322,30 @@ export class ClaudeHookService {
       config,
       getManagedScriptFileName(this.options.settings)
     )
+    // RA: uninstall owns only its command entries, not the user's statusline or agent view.
+    if (preserveGlobalAgentConfiguration()) {
+      if (hooksChanged) {
+        writeHooksJson(configPath, hooksRemoved)
+      }
+      for (const configDir of listClaudeProfileHomes(getAppEnvironment().getPath('userData'))) {
+        if (refuseProfileAtDefaultHome(this.options, configDir)) {
+          continue
+        }
+        const profilePath = getConfigPath(this.options.settings, configDir)
+        const profileConfig = readHooksJson(profilePath)
+        if (!profileConfig) {
+          continue
+        }
+        const removed = removeManagedHooks(
+          profileConfig,
+          getManagedScriptFileName(this.options.settings)
+        )
+        if (removed.changed) {
+          writeHooksJson(profilePath, removed.config)
+        }
+      }
+      return this.getStatus()
+    }
     const { config: nextConfig, changed: statusLineChanged } = removeManagedStatusLine(
       hooksRemoved,
       getStatusLineScriptFileName(this.options.settings)

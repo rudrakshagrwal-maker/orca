@@ -1,4 +1,4 @@
-import type { RunRow } from '../../types'
+import type { RunRow } from '../orchestration-records'
 import { OrchestrationError } from '../../orchestration-error'
 import { LEGACY_CONTRACT_VERSION } from '../contract-constants'
 import { isEquivalentPaneKey } from '../pane-key-match'
@@ -9,12 +9,14 @@ import {
   mailboxAddressOf,
   runBoundToCoordinator,
   runCoordinatorKey
-} from '../../orchestration-caller-identity'
+} from '../../addressing/orchestration-caller-identity'
 
 export function bindRun(
   this: OrchestrationDb,
   params: {
     runId: string
+    coordinatorProcessIncarnation?: string | null
+    coordinatorAgentSessionId?: string | null
     coordinatorHandle: string | null
     coordinatorPaneKey: string | null
     /** The coordinator's bare Orca session id when it is a structured session; see orca-session-address. */
@@ -30,6 +32,8 @@ export function bindRun(
   }
 ): RunRow | undefined {
   const coordinator = {
+    processIncarnation: params.coordinatorProcessIncarnation ?? null,
+    agentSessionId: params.coordinatorAgentSessionId ?? null,
     terminalHandle: params.coordinatorHandle,
     paneKey: params.coordinatorPaneKey,
     orcaSessionId: params.coordinatorOrcaSessionId ?? null
@@ -42,6 +46,15 @@ export function bindRun(
       return undefined
     }
     const sameBinding = runBoundToCoordinator(run, coordinator)
+    const peerRun = this.getPeerRun(params.runId)
+    if (peerRun && !sameBinding) {
+      // A paired Orca's Run has that Orca as its only consumer; it never binds anything here.
+      throw new OrchestrationError(
+        'consumer_fenced',
+        `Run ${params.runId} is coordinated from ${peerRun.home_label}, which stays its only coordinator. No effects were applied.`,
+        { effectsApplied: false }
+      )
+    }
     const explicitTakeover = params.takeoverLegacy === true
     // Why: before the legacy gate, so a worker never sees its --takeover-legacy recovery command.
     const workerRefusal = sameBinding
@@ -170,6 +183,7 @@ export function bindRun(
         .prepare(
           `UPDATE runs
            SET coordinator_handle = ?, coordinator_pane_key = ?, coordinator_orca_session_id = ?,
+               coordinator_process_incarnation = ?, coordinator_agent_session_id = ?,
                coordinator_orca_session_id_generation = consumer_generation + 1,
                consumer_generation = consumer_generation + 1,
                updated_at = datetime('now')
@@ -179,6 +193,8 @@ export function bindRun(
           coordinator.terminalHandle,
           coordinator.paneKey,
           coordinator.orcaSessionId,
+          coordinator.processIncarnation,
+          coordinator.agentSessionId,
           params.runId
         )
       this.fenceUnacknowledgedMailboxDeliveries(`run:${params.runId}`)

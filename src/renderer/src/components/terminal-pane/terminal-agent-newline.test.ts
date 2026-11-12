@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   resolveTerminalShortcutAction,
   type TerminalShortcutEvent
-} from './terminal-shortcut-policy'
-import { resolveWindowsShiftEnterEncoding } from './terminal-windows-shift-enter'
+} from './input/keyboard/terminal-shortcut-policy'
+import { resolveWindowsShiftEnterEncoding } from './input/keyboard/terminal-windows-shift-enter'
 
 const chord: TerminalShortcutEvent = {
   key: 'Enter',

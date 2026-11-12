@@ -4,9 +4,8 @@ import { dirname, join } from 'node:path'
 import { expect, it, onTestFinished } from 'vitest'
 import { preserveGlobalAgentConfiguration } from '../../shared/fork-background-policy'
 import { writeCanonicalOpenCodePluginAtomically } from '../../shared/opencode-plugin-atomic-write'
-import { writeTomlConfigAtomically } from '../codex/config-toml-atomic-write'
-import { writeHooksJson } from './installer-utils'
-import { writeHooksJsonAsync } from './hooks-json-write-async'
+import { writeTomlConfigAtomically } from '../codex/configuration/toml/config-toml-atomic-write'
+import { writeHooksJsonAsync } from './installation/configuration/hooks-json-write-async'
 
 // RA: exercise actual production guards against disposable agent homes, never the real home.
 it('leaves agent configuration bytes and sibling files untouched', async () => {
@@ -25,7 +24,7 @@ it('leaves agent configuration bytes and sibling files untouched', async () => {
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, text)
   }
-  writeHooksJson(claude, { hooks: {} })
+  // RA: Claude's observer owns the synchronous writer; generic async installs remain forbidden.
   await writeHooksJsonAsync(claude, { hooks: {} })
   writeTomlConfigAtomically(codex, 'model = "overwritten"')
   writeCanonicalOpenCodePluginAtomically(plugin, 'overwritten')

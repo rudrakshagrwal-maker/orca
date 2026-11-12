@@ -1,11 +1,11 @@
-import type { RunRow } from '../../types'
+import type { RunRow } from '../orchestration-records'
 import {
   mailboxAddressOf,
   runBoundToCoordinator,
   runCoordinatorKey,
   type OrchestrationCoordinatorKey
-} from '../../orchestration-caller-identity'
-import { ORCHESTRATION_RUN_PAGE_LIMIT } from '../../../../../shared/orchestration-run-pagination'
+} from '../../addressing/orchestration-caller-identity'
+import { ORCHESTRATION_RUN_PAGE_LIMIT } from '../../../../../shared/orchestration/orchestration-run-pagination'
 import {
   isEquivalentPaneKey,
   RUN_PANE_KEY_MATCH_SUFFIX_SQL,
@@ -162,12 +162,45 @@ export function runsBoundToCoordinator(
   caller: OrchestrationCoordinatorKey
 ): RunRow[] {
   if (caller.orcaSessionId === null) {
-    return caller.paneKey === null ? [] : this.runsBoundToPane(caller.paneKey)
+    return caller.paneKey === null
+      ? []
+      : this.runsBoundToPane(caller.paneKey)
+          .filter((run) => runBoundToCoordinator(run, caller))
+          .map((run) => stampCoordinatorIdentity(this, run, caller))
   }
   const suffix = caller.paneKey === null ? null : paneKeyMatchSuffix(caller.paneKey)
   const rows = this.db.prepare(RUNS_BOUND_TO_COORDINATOR_SQL).all(suffix, caller.orcaSessionId)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: SELECT * over this table returns the row shape its schema and row type define, like every row cast in db/.
-  return (rows as RunRow[]).filter((run) => runBoundToCoordinator(run, caller))
+  return (rows as RunRow[])
+    .filter((run) => runBoundToCoordinator(run, caller))
+    .map((run) => stampCoordinatorIdentity(this, run, caller))
+}
+
+// RA: upgrade only a proven owner; later hooks can add the saved session id before cold restore.
+function stampCoordinatorIdentity(
+  db: OrchestrationDb,
+  run: RunRow,
+  caller: OrchestrationCoordinatorKey
+): RunRow {
+  if (
+    !caller.processIncarnation ||
+    (run.coordinator_process_incarnation === caller.processIncarnation &&
+      (!caller.agentSessionId || run.coordinator_agent_session_id === caller.agentSessionId) &&
+      run.coordinator_handle === caller.terminalHandle)
+  ) {
+    return run
+  }
+  const session = caller.agentSessionId ?? run.coordinator_agent_session_id ?? null
+  db.db
+    .prepare(`UPDATE runs SET coordinator_handle = ?, coordinator_process_incarnation = ?,
+    coordinator_agent_session_id = ? WHERE id = ?`)
+    .run(caller.terminalHandle, caller.processIncarnation, session, run.id)
+  return {
+    ...run,
+    coordinator_handle: caller.terminalHandle,
+    coordinator_process_incarnation: caller.processIncarnation,
+    coordinator_agent_session_id: session
+  }
 }
 
 export function unbindOtherRunsForCoordinator(
@@ -185,6 +218,7 @@ export function unbindOtherRunsForCoordinator(
         .prepare(
           `UPDATE runs
            SET coordinator_handle = NULL, coordinator_pane_key = NULL, coordinator_orca_session_id = NULL,
+               coordinator_process_incarnation = NULL, coordinator_agent_session_id = NULL,
                coordinator_orca_session_id_generation = NULL,
                consumer_generation = consumer_generation + 1,
                updated_at = datetime('now')

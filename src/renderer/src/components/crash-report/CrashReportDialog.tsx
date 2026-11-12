@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, useState } from 'react'
-import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
+import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import type { CrashReportRecord } from '../../../../shared/crash-reporting'
 

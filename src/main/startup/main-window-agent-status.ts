@@ -1,14 +1,14 @@
 import type { BrowserWindow } from 'electron'
-import { agentHookServer } from '../agent-hooks/server'
-import { setMigrationUnsupportedPtyListener } from '../agent-hooks/migration-unsupported-pty-state'
+import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
+import { setMigrationUnsupportedPtyListener } from '../agent-hooks/observations/migration-unsupported-pty-state'
 import { getDashboardPopoutWindow } from '../window/dashboard-popout-window'
 import { stopSyntheticTitleSpinnerTimer } from './synthetic-title-runtime'
 import { mainProcessState as state } from './main-process-state'
-import { pickHostTurnEnd } from '../../shared/agent-status-types'
 import { createAgentPermissionTaskbarAlert } from '../window/agent-permission-taskbar-alert'
 
-// RA: the status listener owns the focus handler for exactly one window lifetime.
+// RA: one focus handler for the current window lifetime.
 let taskbarAlert: ReturnType<typeof createAgentPermissionTaskbarAlert> | undefined
+import { pickHostTurnEnd } from '../../shared/agent-status/contracts/agent-status-types'
 
 export type MainWindowAgentStatusOptions = {
   window: BrowserWindow
@@ -51,12 +51,14 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
       if (structuredHost) {
         return
       }
+      const launchConfig = state.runtime?.getLaunchStatementForPaneKey(paneKey, payload.agentType)
       if (providerSessionOnly) {
         // Idle Pi session_start only refreshes resume identity; skip titles, telemetry and status UI.
         state.mainWindow?.webContents.send('agentStatus:set', {
           ...payload,
           paneKey,
           ...(launchToken ? { launchToken } : {}),
+          ...(launchConfig !== undefined ? { launchConfig } : {}),
           tabId,
           worktreeId,
           connectionId,
@@ -79,6 +81,7 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
         ...payload,
         paneKey,
         ...(launchToken ? { launchToken } : {}),
+        ...(launchConfig !== undefined ? { launchConfig } : {}),
         ...(terminalHandle ? { terminalHandle } : {}),
         tabId,
         worktreeId,
@@ -110,7 +113,9 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
     }
   )
   agentHookServer.setPaneStatusClearListener((clear) => {
-    if ('paneKey' in clear) { taskbarAlert?.clear(clear.paneKey) } // RA: SSH batch clears have no pane key.
+    if ('paneKey' in clear) {
+      taskbarAlert?.clear(clear.paneKey)
+    } // RA: SSH batch clears have no pane key.
     if (state.mainWindow?.isDestroyed()) {
       return
     }

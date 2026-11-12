@@ -8,9 +8,10 @@ export const DISPATCH_CONTEXT_CLAIM_SQL = `INSERT INTO dispatch_contexts (
   id, run_id, task_id, contract_version, launch_token_hash,
   assignee_handle, assignee_pane_key, assignee_orca_session_id, process_incarnation,
   creator_dispatch_id, creator_handle, creator_pane_key, creator_orca_session_id,
+  creator_process_incarnation, creator_agent_session_id,
   status, failure_count, depth, dispatched_at
 )
-SELECT ?, run_id, id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dispatched', ?, ?, datetime('now')
+SELECT ?, run_id, id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dispatched', ?, ?, datetime('now')
 FROM tasks
 WHERE id = ? AND status = 'ready'
   AND NOT EXISTS (
@@ -37,9 +38,10 @@ WHERE id = ? AND status = 'ready'
 
 const STARTING_DISPATCH_CONTEXT_SQL = `INSERT INTO dispatch_contexts (
    id, run_id, task_id, contract_version, launch_token_hash, retry_of_dispatch_id,
-   creator_dispatch_id, creator_handle, creator_pane_key, creator_orca_session_id, depth, status,
+   creator_dispatch_id, creator_handle, creator_pane_key, creator_orca_session_id,
+  creator_process_incarnation, creator_agent_session_id, depth, status,
    failure_count, dispatched_at, follow_up_of_dispatch_id
- ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, datetime('now'), ?)`
+ ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, datetime('now'), ?)`
 
 const REMOTE_DISPATCH_ATTACHMENT_SQL = `INSERT INTO remote_dispatch_attachments (
    dispatch_id, home_run_id, task_id, home_peer_fingerprint, protocol_version, runtime_epoch, depth
@@ -68,6 +70,8 @@ export function claimDispatchContextRow(
     creatorDispatchId?: string | null
     creatorHandle?: string | null
     creatorPaneKey?: string | null
+    creatorProcessIncarnation?: string | null
+    creatorAgentSessionId?: string | null
     creatorOrcaSessionId?: OrcaSessionId | null
     priorFailures: number
     depth: number
@@ -90,6 +94,8 @@ export function claimDispatchContextRow(
       params.creatorHandle ?? null,
       params.creatorPaneKey ?? null,
       params.creatorOrcaSessionId ?? null,
+      params.creatorProcessIncarnation ?? null,
+      params.creatorAgentSessionId ?? null,
       params.priorFailures,
       params.depth,
       params.taskId,
@@ -115,6 +121,8 @@ export function insertStartingDispatchContextRow(
     creatorDispatchId?: string | null
     creatorHandle?: string | null
     creatorPaneKey?: string | null
+    creatorProcessIncarnation?: string | null
+    creatorAgentSessionId?: string | null
     creatorOrcaSessionId?: OrcaSessionId | null
     priorFailures: number
     followUpOfDispatchId?: string | null
@@ -132,6 +140,8 @@ export function insertStartingDispatchContextRow(
     params.creatorHandle ?? null,
     params.creatorPaneKey ?? null,
     params.creatorOrcaSessionId ?? null,
+    params.creatorProcessIncarnation ?? null,
+    params.creatorAgentSessionId ?? null,
     params.depth,
     params.priorFailures,
     params.followUpOfDispatchId ?? null

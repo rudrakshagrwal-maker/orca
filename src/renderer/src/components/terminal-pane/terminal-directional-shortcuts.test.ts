@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './terminal-shortcut-policy'
+import { resolveTerminalShortcutAction, type TerminalShortcutEvent } from './input/keyboard/terminal-shortcut-policy'
 import { setRightCtrlHeldForTest } from './right-ctrl-held'
 
 function event(overrides: Partial<TerminalShortcutEvent>): TerminalShortcutEvent {

@@ -27,7 +27,8 @@ export type CliLaunchRedirectOptions = {
 
 const CLI_EARLY_EXIT_FLAGS = new Set(['--help', '-h', 'help', '--version', '-v'])
 const DESKTOP_FLAGS = new Set(['--no-sandbox', '--disable-gpu'])
-const DESKTOP_VALUE_FLAGS = new Set(['--disable-features'])
+// RA: Electron heap switches are desktop launch options, never Orca CLI arguments.
+const DESKTOP_VALUE_FLAGS = new Set(['--disable-features', '--js-flags'])
 const CLI_LAUNCH_VALUE_FLAG_NAMES = [...VALUE_TAKING_FLAGS].map((flag) => flag.slice(2))
 
 // Fence recursion if a wrapper drops ELECTRON_RUN_AS_NODE again.

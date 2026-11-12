@@ -1,56 +1,39 @@
-import { app, session } from 'electron'
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
+import { app, session } from 'electron'
 import { applyBackgroundActivationPolicy } from '../window/foreground-activation-policy'
 import { applyElectronProxySettings } from '../network/proxy-settings'
 import { installElectronProxyRequestGuard } from '../network/electron-proxy-request-guard'
 import { handleElectronProxyLogin } from '../network/electron-proxy-credentials'
 import { setNodeDistMirrorSettingReader } from '../node-runtime/node-dist-mirror-setting'
-import { handleBrowserGuestLogin } from '../browser/browser-http-auth-prompt'
 import { installMainThreadHangWatchdog } from '../hang-watchdog/main-thread-hang-watchdog'
 import { preservePreviousHangDetection } from '../hang-watchdog/previous-hang-detection'
-import { browserCertificateTrustController, browserManager } from '../browser/browser-manager'
-import { browserSiteDisplayController } from '../browser/browser-site-display-controller'
 import { ensureActiveOrcaProfile } from '../orca-profiles/profile-index-store'
 import { getCanonicalUserDataPath } from '../persistence/loading-store/user-data-path'
 import { getAppEnvironment } from '../../shared/app-environment'
-import { loadWslMoveFence } from '../persistence/moving-wsl-projects/wsl-move-scope-guard'
-import { startWslMoveStartup } from '../persistence/moving-wsl-projects/wsl-move-startup'
-import { startWslHostsPolicyLiveUpdates } from '../wsl/wsl-hosts-policy-live-update'
-import { runPendingWslDriveUncConversions } from '../wsl/wsl-drive-unc-conversion-startup'
-import { createProfileStateStoreForStartup } from '../persistence/profile-state/profile-state-startup-authority'
+import { loadWslMoveFence } from '../persistence/moving-wsl-projects/quiescence/wsl-move-scope-guard'
+import { startWslMoveStartup } from '../persistence/moving-wsl-projects/startup/wsl-move-startup'
+import { startWslHostsPolicyLiveUpdates } from '../wsl/host-lifecycle/wsl-hosts-policy-live-update'
+import { runPendingWslDriveUncConversions } from '../wsl/filesystem/wsl-drive-unc-conversion-startup'
+import { createProfileStateStoreForStartup } from '../persistence/profile-state/startup/profile-state-startup-authority'
 import { getProfileUserDataPath } from '../orca-profiles/profile-storage-paths'
-import { initializeBrowserClientHostId } from '../browser/browser-client-host-id'
+import { initializeBrowserClientHostId } from '../browser/client-hosts/lifecycle/browser-client-host-id'
 import { scheduleSecretProtectionGapReport } from '../host/deferred-secret-protection-report'
 import { withholdUnreachableKeychainForServe } from '../host/serve-keychain-guard'
-import { initSshHostKeyStoreFile } from '../ssh/ssh-host-key-store'
-import { initOrcadHeldFenceTokenFile } from '../ssh/orcad-held-fence-tokens'
-import { neutralizeLegacyTerminalShimDir } from '../pty/legacy-terminal-shim-dir'
+import { initSshHostKeyStoreFile } from '../ssh/host-keys/ssh-host-key-store'
+import { initOrcadHeldFenceTokenFile } from '../managed-server/activation/orcad-held-fence-tokens'
+import { neutralizeLegacyTerminalShimDir } from '../pty/shell-startup/legacy-terminal-shim-dir'
 import { createWindowsShellPathHydration } from './windows-shell-path-hydration'
 import {
   configureWindowsHostGitEnvironmentReadiness,
   setDefaultWslDistroOverride
 } from '../git/runner'
-import { wslHookRelayManager } from '../agent-hooks/wsl-hook-relay-manager'
+import { wslHookRelayManager } from '../agent-hooks/wsl-relay/wsl-hook-relay-manager'
 import { applyAppIcon } from '../window/desktop-integration/app-icon'
 import {
   shouldSuppressDevEducation,
   suppressDevEducationForStore
 } from './dev-education-suppression'
-import {
-  awaitBrowserSessionProxies,
-  setBrowserNetworkProxySettingsResolver
-} from '../browser/browser-session-proxy'
-import { installDocPreviewProtocolHandler } from '../browser/doc-preview-protocol'
 import { installMediaPreviewProtocolHandler } from '../media/media-preview-protocol'
-import { installJiraImageProtocolHandler } from '../jira/attachments/image-protocol'
-import { registerDocPreviewGrantHandlers } from '../ipc/doc-preview-grant-ipc'
-import { initializeBrowserSessionsForApp } from '../browser/browser-session-startup'
-import {
-  initializeBrowserExtensionSupport,
-  switchBrowserExtensionSupport
-} from '../browser/extensions/browser-extension-startup'
-import { whenBrowserExtensionSessionsLoaded } from '../browser/extensions/browser-extension-session-loader'
-import { browserSessionRegistry } from '../browser/browser-session-registry'
 import { logStartupMilestone } from './startup-diagnostics'
 import { writeHttp1CompatibilityMarker } from './http1-compatibility-marker'
 import { mainProcessState as state } from './main-process-state'
@@ -59,13 +42,13 @@ import { updateGpuAccelerationAboutPanel } from './gpu-lifecycle'
 import {
   logWslCliReconciliationResults,
   reconcileManagedWslCliRegistrations
-} from '../cli/wsl-cli-registration-reconciliation'
+} from '../cli/wsl/wsl-cli-registration-reconciliation'
 import { createWslCliReconciliationStartupBarrier } from './wsl-cli-reconciliation-startup-barrier'
-import { agentHookServer } from '../agent-hooks/server'
-import { isAgentStatusHooksEnabled } from '../agent-hooks/managed-agent-hook-controls'
+import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
+import { isAgentStatusHooksEnabled } from '../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
 import { reportProfileStateWriteFailure } from './profile-state-write-failure'
 import { reportProfileStateSaveDelay } from './profile-state-save-delay'
-import { preloadSsh2 } from '../ssh/ssh2-module-load'
+import { preloadSsh2 } from '../ssh/authentication/ssh2-module-load'
 
 export async function initializeReadyFoundation(): Promise<void> {
   logStartupMilestone('app-ready')
@@ -84,26 +67,11 @@ export async function initializeReadyFoundation(): Promise<void> {
       callback,
       session.defaultSession
     )
-    handleBrowserGuestLogin(event, webContents, details, authInfo, callback)
   })
   const canonicalUserDataPath = getCanonicalUserDataPath()
   preservePreviousHangDetection(canonicalUserDataPath)
   installMainThreadHangWatchdog({ userDataPath: canonicalUserDataPath })
-  // Install certificate decisions before any webview/headless window can issue TLS.
-  app.on(
-    'certificate-error',
-    (event, webContents, url, error, certificate, callback, isMainFrame) => {
-      browserCertificateTrustController.handleCertificateError({
-        event,
-        webContents,
-        url,
-        error,
-        certificate,
-        callback,
-        isMainFrame
-      })
-    }
-  )
+  // RA: no embedded guests, browser auth prompts or browser certificate controller.
   const identity = state.devInstanceIdentity
   if (!identity) {
     throw new Error('Development identity is unavailable')
@@ -161,6 +129,7 @@ export async function initializeReadyFoundation(): Promise<void> {
     databaseFile: profile.stateDatabaseFile,
     profileId: profile.profile.id,
     runtime: 'desktop',
+    initializeHomeWorkspace: !state.isServeMode,
     storageAuthority: state.isServeMode ? 'runtime' : 'desktop',
     onPersistenceFailure: reportProfileStateWriteFailure,
     onPersistenceSaveDelayChanged: reportProfileStateSaveDelay
@@ -267,12 +236,6 @@ export async function initializeReadyFoundation(): Promise<void> {
         )
       }
     }
-    if ('experimentalBrowserExtensions' in updates) {
-      // RA: browser extensions must not re-enable background workers through saved settings.
-      void switchBrowserExtensionSupport(
-        !backgroundJobsDisabled() && settings.experimentalBrowserExtensions === true
-      )
-    }
     if ('showMenuBarIcon' in updates) {
       // Store owns settings mutations; sync every menu-bar toggle through this listener.
       syncMacMenuBarIcon(settings.showMenuBarIcon !== false)
@@ -291,45 +254,6 @@ export async function initializeReadyFoundation(): Promise<void> {
   if (shouldSuppressDevEducation({ isDev: !app.isPackaged })) {
     suppressDevEducationForStore(store)
   }
-  // Install the proxy resolver before partitions materialize.
-  setBrowserNetworkProxySettingsResolver(() => state.store!.getSettings())
-  // Protocol-scoped preview handlers must exist before webview attachment.
+  // RA: terminal media remains available without document/Jira/browser preview modules.
   installMediaPreviewProtocolHandler()
-  installJiraImageProtocolHandler()
-  // RA: the preview session is installed by the first document-preview grant.
-  if (!backgroundJobsDisabled()) {
-    installDocPreviewProtocolHandler()
-  }
-  registerDocPreviewGrantHandlers()
-  // Session setup needs the extension support decision before loading profiles.
-  initializeBrowserExtensionSupport({
-    enabled: !backgroundJobsDisabled() && store.getSettings().experimentalBrowserExtensions === true,
-    savedBrowserTabs: store
-  })
-  // Desktop webviews and runtime commands share sessions; initialize without waiting for renderer IPC.
-  initializeBrowserSessionsForApp({
-    orcaProfileId: profile.profile.id,
-    profileDirectory: profile.profileDirectory,
-    // Sweep against current SSH targets or live target cookie jars look orphaned.
-    listLocalSshTargetIds: () => {
-      const currentStore = state.store
-      if (!currentStore) {
-        // An empty list would delete every SSH jar; throw to skip sweeping when the store is unavailable.
-        throw new Error('ssh target store unavailable at partition sweep')
-      }
-      return currentStore.getSshTargets().map((target) => target.id)
-    }
-  })
-  browserSiteDisplayController.followZoomSettings(store)
-  browserManager.setSiteDisplayController(browserSiteDisplayController)
-  if (!backgroundJobsDisabled()) {
-    try {
-      // Await proxy writes so first guest navigation cannot race them.
-      await awaitBrowserSessionProxies(browserSessionRegistry.listProfiles())
-    } catch {
-      console.warn('[proxy] Failed to apply network proxy settings to browser sessions')
-    }
-    // Why bounded: restored tabs should get content scripts, but a slow extension never blocks launch.
-    await whenBrowserExtensionSessionsLoaded(3_000)
-  }
 }

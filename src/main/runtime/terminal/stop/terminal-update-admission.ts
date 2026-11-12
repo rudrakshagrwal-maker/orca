@@ -1,3 +1,4 @@
+// RA: Node20 dynamic imports require the emitted .js extension.
 /** Close per-runtime spawn admission between update census and server stop; time-bound it so vanished desktops cannot lock users out. */
 export const TERMINAL_UPDATE_ADMISSION_CLOSED_MESSAGE =
   'This server is restarting for an update. Try again in a moment.'
@@ -20,7 +21,8 @@ type ListLiveSessionIds = () => Promise<readonly string[] | null>
 
 // Lazy: the daemon modules' xterm polyfill defines a global `window` on import.
 async function listLiveDaemonSessionIds(): Promise<string[] | null> {
-  const { listLiveDaemonPtyIds } = await import('../../../daemon/daemon-provider-state')
+  const { listLiveDaemonPtyIds } =
+    await import('../../../daemon/providers/lifecycle/daemon-provider-state.js')
   return listLiveDaemonPtyIds()
 }
 

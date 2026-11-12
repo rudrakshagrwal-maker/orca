@@ -2,8 +2,8 @@ import React from 'react'
 import { PenTool } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
-import { translate } from '@/i18n/i18n'
+import { cn } from '@/lib/class-names'
+import { useTranslate } from '@/i18n/use-translate'
 
 export type MarkupDrawButtonProps = {
   onClick: () => void
@@ -14,35 +14,35 @@ export type MarkupDrawButtonProps = {
   className?: string
 }
 
+/** Standalone Draw for surfaces without the element picker (remote and client-hosted pages). */
 export function MarkupDrawButton({
   onClick,
   disabled,
   active,
   className
 }: MarkupDrawButtonProps): React.JSX.Element {
-  const label = translate('auto.components.browser-pane.markup.drawButton', 'Draw on screenshot')
-  // RA: no automatic drawing hint, highlight or New badge.
-  const button = (
-    <Button
-      size="icon"
-      variant={active ? 'default' : 'ghost'}
-      className={cn(
-        className ?? 'h-8 w-8',
-        active && 'bg-foreground/80 text-background hover:bg-foreground/90'
-      )}
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      aria-pressed={active}
-    >
-      <PenTool className="size-4" />
-    </Button>
-  )
-
+  const t = useTranslate()
+  const label = t('auto.components.browser-pane.markup.drawButton', 'Draw on screenshot')
+  // RA: drawing remains explicit; no hint, highlight or New badge.
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex">{button}</span>
+        <span className="inline-flex">
+          <Button
+            size="icon"
+            variant={active ? 'default' : 'ghost'}
+            className={cn(
+              className ?? 'h-7 w-7',
+              active && 'bg-foreground/80 text-background hover:bg-foreground/90'
+            )}
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={label}
+            aria-pressed={active}
+          >
+            <PenTool className="size-4" />
+          </Button>
+        </span>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={4}>
         {label}

@@ -1,23 +1,18 @@
-import { app, type BrowserWindow } from 'electron'
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
+import { app, type BrowserWindow } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { placeUnshownLiveTerminalsBestEffort } from '../runtime/terminal/adoption/unshown-live-terminal-placement'
 import {
   getCanonicalUserDataPath,
   migrateMobilePairingDataToCanonicalUserDataPath
 } from '../persistence/loading-store/user-data-path'
-import { OrcaRuntimeRpcServer } from '../runtime/runtime-rpc'
-import { WS_BIND_HOST_LOOPBACK } from '../runtime/runtime-rpc/runtime-rpc-pairing-types'
+import { OrcaRuntimeRpcServer } from '../runtime/rpc/server/runtime-rpc'
+import { resolveServePinnedBindHost } from './serve-pinned-bind-host'
 import { isOrcadSidecarLaunch } from '../window/foreground-activation-policy'
-import { registerMobileHandlers } from '../ipc/mobile'
-import { createRuntimeEnvironmentMobileRelayHosts } from '../ipc/runtime-environments/runtime-environment-mobile-relay-hosts'
 import { getLocalPtyProvider } from '../ipc/pty/provider/registry'
 import { registerHeadlessPtyRuntime } from '../ipc/pty/register-headless-runtime'
 import { LocalPtyProvider } from '../providers/local-pty/local-pty-provider'
-import { publishHeadlessRuntimeGraph } from '../runtime/headless-runtime-graph'
-import { OffscreenBrowserBackend } from '../browser/offscreen-browser-backend'
-import { browserManager } from '../browser/browser-manager'
-import { getDesktopRelayStatus } from './main-process-relay-status'
+import { publishHeadlessRuntimeGraph } from '../runtime/session-graph/headless-runtime-graph'
 import { getServeOptions, getBundledWebClientRoot, printServeReady } from './main-process-serve'
 import {
   bindTerminalRuntimeStartupServices,
@@ -35,18 +30,16 @@ import { settleServeDesktopActivation } from './serve-desktop-activation'
 import {
   recordRuntimeRpcStartFailure,
   showRuntimeRpcStartupFailureDialog
-} from '../runtime/runtime-rpc-startup-failure'
+} from '../runtime/rpc/server/runtime-rpc-startup-failure'
 import { registerCliForHeadlessServe } from './serve-cli-registration'
-import { startAppImageCopyPreExtraction } from '../cli/appimage-copy-pre-extraction'
-import { scheduleAllPendingHistoryTreeRemovals } from '../terminal-history-deletion'
+import { startAppImageCopyPreExtraction } from '../cli/appimage/appimage-copy-pre-extraction'
+import { scheduleAllPendingHistoryTreeRemovals } from '../pty/history/terminal-history-deletion'
 import { mainProcessState as state } from './main-process-state'
 import { logStartupMilestone } from './startup-diagnostics'
 import { setupHeadlessServeAutoUpdater } from '../window/main-window-updater'
 import { preserveStateBeforeUpdateRestart } from '../updater/update-restart-preservation'
 import { resolveUpdateInstallMode } from '../updater/updater-service'
 import { scheduleAgentLaunchRecordWarmup } from './agent-launch-record-warmup'
-import { emitServeBrowserIdentityActionLine } from '../server/serve-stdout-boundary'
-import { getBrowserIdentityModeStatus } from '../browser/browser-identity-mode-store'
 
 type RuntimeService = NonNullable<typeof state.runtime>
 
@@ -65,21 +58,14 @@ function settleDesktopActivation(): void {
   })
 }
 
-/** E2E only: a serve host with no browser of its own, as the WSL distro's server is. Never packaged. */
-function e2eHeadlessServeWithoutBrowser(): boolean {
-  return (
-    !app.isPackaged &&
-    process.env.ORCA_E2E_HEADLESS === '1' &&
-    process.env.ORCA_E2E_HEADLESS_SERVE_WITHOUT_BROWSER === '1'
-  )
-}
-
+/** Construct the runtime RPC server with serve-specific bind and port exposure settings. */
 function installRuntimeRpc(
   runtime: RuntimeService,
   serveOptions: ReturnType<typeof getServeOptions> | null
 ): OrcaRuntimeRpcServer {
   // Migrate pairing credentials from late-resolved userData before switching to the canonical path.
-  migrateMobilePairingDataToCanonicalUserDataPath(app.getPath('userData'))
+  // RA: terminal RPC does not migrate or initialize phone pairing state.
+  if (!backgroundJobsDisabled()) migrateMobilePairingDataToCanonicalUserDataPath(app.getPath('userData'))
   // Use OS-assigned ports for concurrent E2E Electron instances to avoid EADDRINUSE.
   const isE2E = Boolean(process.env.ORCA_E2E_USER_DATA_DIR)
   const requestedE2EWsPort = process.env.ORCA_E2E_RUNTIME_WS_PORT
@@ -89,6 +75,10 @@ function installRuntimeRpc(
   }
   // STA-1511: separate dev port from packaged Orca so pairing/repro URLs do not fall back unpredictably.
   const devWsPort = !app.isPackaged && !isE2E ? 6769 : undefined
+  const pinnedBindHost = resolveServePinnedBindHost({
+    orcadSidecar: isOrcadSidecarLaunch(),
+    serveOptions
+  })
   const runtimeRpc = new OrcaRuntimeRpcServer({
     runtime,
     // Pairing must use pre-setName canonical userData or restarts can lose devices.
@@ -97,8 +87,16 @@ function installRuntimeRpc(
     enableWebSocket: !backgroundJobsDisabled() || serveOptions !== null,
     // STA-2370: desktop stays loopback until pairing; serve explicitly opts into remote access and E2E needs harness-wide bind.
     exposeNetworkByDefault: Boolean(serveOptions) || isE2E,
-    // orcad reaches its browser sidecar only over the Unix socket / named pipe; keep its WS off the network (#31895).
-    ...(isOrcadSidecarLaunch() ? { pinnedBindHost: WS_BIND_HOST_LOOPBACK } : {}),
+    ...(pinnedBindHost !== undefined ? { pinnedBindHost } : {}),
+    ...(serveOptions
+      ? {
+          serveNetworkSources: {
+            allowPublic: serveOptions.allowPublic,
+            refusePublic: serveOptions.refusePublic,
+            pairingAddress: serveOptions.pairingAddress
+          }
+        }
+      : {}),
     ...(isE2E ? { wsPort: e2eWsPort } : {}),
     ...(devWsPort !== undefined ? { wsPort: devWsPort } : {}),
     ...(serveOptions?.wsPort !== undefined
@@ -109,34 +107,11 @@ function installRuntimeRpc(
           requirePinnedWsPort: true
         }
       : {}),
-    webClientRoot: backgroundJobsDisabled() && !serveOptions ? undefined : getBundledWebClientRoot()
+    webClientRoot: backgroundJobsDisabled() ? undefined : getBundledWebClientRoot()
   })
   state.runtimeRpc = runtimeRpc
   runtime.setAgentSenderPeerKey(() => runtimeRpc.getE2EEPublicKey())
-  runtimeRpc.setMobileDesktopRelayHosts(createRuntimeEnvironmentMobileRelayHosts())
-  registerMobileHandlers(runtimeRpc, {
-    getRelayStatus: getDesktopRelayStatus,
-    consumePendingUnpairedDeviceAuthFailure: (webContentsId) => {
-      if (
-        !state.mainWindow ||
-        state.mainWindow.isDestroyed() ||
-        state.mainWindow.webContents.id !== webContentsId ||
-        !state.pendingUnpairedDeviceAuthFailure
-      ) {
-        return false
-      }
-      state.pendingUnpairedDeviceAuthFailure = false
-      return true
-    }
-  })
-  // Repeated direct-auth failures need a re-pairing explanation rather than silent nonconnection.
-  runtimeRpc.setOnUnpairedDeviceAuthFailure(() => {
-    // Retain the one-shot across the runtime-start/renderer-mount race.
-    state.pendingUnpairedDeviceAuthFailure = true
-    if (state.mainWindow && !state.mainWindow.isDestroyed()) {
-      state.mainWindow.webContents.send('mobile:unpairedDeviceAuthFailure')
-    }
-  })
+  // RA: retain remote orchestration transport without mobile handler/relay imports.
   return runtimeRpc
 }
 
@@ -167,19 +142,12 @@ async function launchServeMode(
   )
   await runtime.refreshRestoredOrchestrationAuthority()
   await runtime.reconcileLegacyWorkerTerminals()
+  runtime.startupWorkerAuthority.finish()
   // Main places unshown live terminals before any client attaches.
   if (ORCA_LAYOUT_OWNER_IS_MAIN) {
     await placeUnshownLiveTerminalsBestEffort(runtime)
   }
-  // Headless hosts need display-backed offscreen WebContents; advertise browser capability only when usable.
-  if (state.headlessBrowserDisplayAvailable && !e2eHeadlessServeWithoutBrowser()) {
-    runtime.setOffscreenBrowserBackend(
-      new OffscreenBrowserBackend(browserManager, {
-        getAgentBrowserBridge: () => state.agentBrowserBridge,
-        onPageNavigated: (page) => runtime.serveBrowserPageNavigated(page)
-      })
-    )
-  }
+  // RA: terminal-only serve never imports or creates an offscreen browser window.
   publishHeadlessRuntimeGraph(runtime)
   // Register SSH before binding RPC so the first paired client sees targets.
   registerHeadlessServeSshHandlers(state.store!, runtime)
@@ -194,11 +162,10 @@ async function launchServeMode(
   installServeQuitHandling()
   await registerCliForHeadlessServe()
   // Headless automation cannot wait for a renderer that never opens.
-  // RA: an explicit headless serve may run schedules; the desktop remains demand-driven.
-  state.automations?.start()
+  // RA: headless workers do not start the disabled automation scheduler either.
+  if (!backgroundJobsDisabled()) state.automations?.start()
   // Arm history-removal GC without a window so interrupted serve deletions do not leak until desktop launch.
   void scheduleAllPendingHistoryTreeRemovals()
-  emitServeBrowserIdentityActionLine(getBrowserIdentityModeStatus())
   await printServeReady(serveOptions)
   const store = state.store!
   setupHeadlessServeAutoUpdater(store, {
@@ -246,7 +213,6 @@ async function launchDesktopMode(
   // Apply persisted proxy before the push gateway's first request.
   // RA: no cloud push service.
   // RA: notification permission is requested only through explicit user actions.
-
 }
 
 export async function initializeMainProcessRuntimeLaunch(
