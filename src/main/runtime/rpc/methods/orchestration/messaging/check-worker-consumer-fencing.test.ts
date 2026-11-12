@@ -50,6 +50,9 @@ describe('orchestration.check on a re-attached Dispatch', () => {
   }
 
   function check(paneKey: string, params: Record<string, unknown> = {}) {
+    // RA: snapshot the real process before each request; a mid-request reattach leaves that caller stale.
+    const process = db.getActiveDispatchForTerminal('term_worker')?.process_incarnation
+    vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue(process ?? null)
     return h.call(
       'orchestration.check',
       { terminal: 'term_worker', terminalPaneKey: paneKey, ...params },
@@ -177,13 +180,8 @@ describe('orchestration.check on a re-attached Dispatch', () => {
   it('serves a headless worker whose handle resolves to no pane at all', async () => {
     attachedDispatchWithMail()
 
-    const result = (await h.call(
-      'orchestration.check',
-      { terminal: 'term_worker' },
-      ctx
-    )) as CheckResult
-
-    expect(result.messages.map((message) => message.subject)).toEqual(['do the work'])
+    // RA: handle-only callers cannot prove the process recorded with a stable pane.
+    await expect(h.call('orchestration.check', { terminal: 'term_worker' }, ctx)).rejects.toMatchObject({ code: 'consumer_fenced' })
   })
 })
 
@@ -268,7 +266,8 @@ describe('worker report authority without a Dispatch capability', () => {
   describe('caller fence', () => {
     it.each([
       ['the Run coordinator', harness.coordinatorPaneKey],
-      ['another Dispatch worker', OTHER_WORKER_PANE]
+      ['another Dispatch worker', OTHER_WORKER_PANE],
+      ['a different live process outside orchestration', NON_PARTY_PANE]
     ])('refuses a report sent from %s terminal and records nothing', async (_party, paneKey) => {
       setup()
       startWorker('other', OTHER_WORKER_PANE)
@@ -292,7 +291,6 @@ describe('worker report authority without a Dispatch capability', () => {
       ['its own pane', { paneKey: WORKER_PANE, terminalHandle: 'term_stale_after_remint' }],
       ["another Orca's pane", { paneKey: 'tab_elsewhere:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' }],
       ['a stale handle', { terminalHandle: 'term_gone' }],
-      ['a live pane that is no orchestration party', { paneKey: NON_PARTY_PANE }]
     ])('accepts a report whose env names %s', async (_case, evidence) => {
       setup()
       const worker = startWorker('worker', WORKER_PANE)
@@ -309,9 +307,7 @@ describe('worker report authority without a Dispatch capability', () => {
       panes = { ...panes, term_worker_reminted: WORKER_PANE }
       delete panes.term_worker
 
-      expect(await workerDone(worker, { paneKey: WORKER_PANE })).toMatchObject({
-        lifecycle: { action: 'rejected', code: 'worker_identity_changed' }
-      })
+      await expect(workerDone(worker, { paneKey: WORKER_PANE })).rejects.toMatchObject({ code: 'consumer_fenced' })
     })
   })
 
@@ -335,9 +331,7 @@ describe('worker report authority without a Dispatch capability', () => {
       db.markWorkerStopUnknown(worker.dispatchId, 'tab not owned by Orca')
       vi.mocked(runtime.getTerminalProcessIncarnation).mockReturnValue('runtime_test:term_worker:2')
 
-      expect(await workerDone(worker)).toMatchObject({
-        lifecycle: { code: 'worker_identity_changed' }
-      })
+      await expect(workerDone(worker)).rejects.toMatchObject({ code: 'consumer_fenced' })
       await expect(ask()).rejects.toMatchObject({ code: 'worker_identity_changed' })
     })
   })

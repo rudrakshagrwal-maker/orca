@@ -3,13 +3,15 @@
  * the real-shell lane, which installs zsh; the ordinary unit lane has none.
  */
 
+import { existsSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   createLoginShellHarness,
   type LoginShellHarness
 } from './structured-session-login-shell-test-harness'
 
-describe.runIf(process.platform !== 'win32')('a structured session in a zsh login shell', () => {
+// RA: ordinary fork unit CI does not install zsh; the real-shell lane still exercises it.
+describe.runIf(process.platform !== 'win32' && existsSync('/bin/zsh'))('a structured session in a zsh login shell', () => {
   let harness: LoginShellHarness
 
   beforeEach(() => {

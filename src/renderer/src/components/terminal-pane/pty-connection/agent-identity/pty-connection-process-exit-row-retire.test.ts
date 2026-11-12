@@ -240,7 +240,8 @@ describe('connectPanePty confirmed process exit retires the live agent row', () 
     foreground = 'pwsh.exe'
     await vi.advanceTimersByTimeAsync(10_000)
 
-    expect(window.api.pty.confirmForegroundProcess).toHaveBeenCalledWith('pty-live-codex')
+    // RA: no unsolicited cadence confirmation after the process name changes.
+    expect(window.api.pty.confirmForegroundProcess).not.toHaveBeenCalled()
     expect(mockStoreState.paneForegroundAgentByPaneKey[paneKey]?.agent).toBe('codex')
     expect(mockStoreState.dropAgentStatus).not.toHaveBeenCalled()
     expect(terminal.write.mock.calls.map(([data]) => data).join('')).not.toContain(
@@ -248,7 +249,7 @@ describe('connectPanePty confirmed process exit retires the live agent row', () 
     )
   })
 
-  it('drops the row and retires main latches when Claude exits in a pane without command marks', async () => {
+  it('retains the row until an exit event arrives in a pane without command marks', async () => {
     let foreground: string | null = 'claude'
     let children = true
     vi.mocked(window.api.pty.getForegroundProcess).mockImplementation(async () => foreground)
@@ -264,11 +265,9 @@ describe('connectPanePty confirmed process exit retires the live agent row', () 
     await vi.advanceTimersByTimeAsync(10_000)
     await flushAsyncTicks()
 
-    expect(mockStoreState.dropAgentStatus).toHaveBeenCalledWith(paneKey)
-    // No `paneRemoved`: the pane outlived the agent, so main keeps the resume identity.
-    expect(mockStoreState.dropAgentStatus.mock.calls).toEqual([[paneKey]])
-    expect(window.api.agentStatus.reconcileEndedProcess).toHaveBeenCalledWith(paneKey)
-    expect(mockStoreState.agentStatusByPaneKey[paneKey]).toBeUndefined()
+    // RA: elapsed time alone no longer supplies process-exit evidence.
+    expect(mockStoreState.agentStatusByPaneKey[paneKey]).toBeDefined()
+    expect(mockStoreState.dropAgentStatus).not.toHaveBeenCalled()
   })
 
   it('keeps the row when the agent is relaunched before the exit settles', async () => {

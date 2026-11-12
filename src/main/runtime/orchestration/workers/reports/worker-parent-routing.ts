@@ -1,3 +1,4 @@
+import { isGroupAddress } from '../../addressing/groups/group-addressing'
 import type { OrchestrationDb } from '../../db/orchestration-db'
 import type { DispatchContextRow } from '../../db/orchestration-records'
 import { OrchestrationError } from '../../orchestration-error'
@@ -15,10 +16,17 @@ export function workerSendRecipient(
   if (!own) {
     return requested
   }
+  // RA: naming one's own assignment is a report to its immediate parent, not a cross-parent send.
+  if (requested === `dispatch:${own.id}`) return workerParentRecipient(db, own)
   const target = requested?.startsWith('dispatch:')
     ? db.getDispatchContextById(requested.slice(9))
     : undefined
-  const ownRun = requested?.startsWith('run:') && db.getCoordinatedRun(sender, requested.slice(4))
+  // RA: a worker coordinating its own child Run may address that Run's children, never siblings.
+  const ownRun = requested?.startsWith('run:')
+    ? db.getCoordinatedRun(sender, requested.slice(4))
+    : requested && isGroupAddress(requested) && !requested.toLowerCase().startsWith('@worktree:')
+      ? db.getCurrentRunForCoordinator(sender)
+      : undefined
   return target?.creator_dispatch_id === own.id || ownRun
     ? requested
     : workerParentRecipient(db, own, requested)

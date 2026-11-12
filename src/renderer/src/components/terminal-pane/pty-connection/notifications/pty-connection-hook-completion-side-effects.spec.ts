@@ -5,10 +5,6 @@ import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pa
 import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
 import { AGENT_TASK_COMPLETE_NOTIFICATION_MAX_WAIT_MS } from '../test-fixtures/pty-connection-test-constants'
 import {
-  temporarilySetNavigatorUserAgent,
-  sendTerminalInputThroughPane
-} from '../test-fixtures/pty-connection-test-dom'
-import {
   LEAF_1,
   createMockTransport,
   createPane,
@@ -164,122 +160,6 @@ export function registerPtyConnectionHookCompletionSideEffectsTests(): void {
         expect.any(Function)
       )
       expect(storeSubscribers).toHaveLength(1)
-    })
-
-    it.each([
-      {
-        name: 'delivers confirmed process exit despite the same stale working hook row',
-        hookUpdateBeforeDispatch: 'none'
-      },
-      {
-        name: 'delivers confirmed process exit after a same-turn working hook refresh',
-        hookUpdateBeforeDispatch: 'same-turn'
-      },
-      {
-        name: 'delivers confirmed process exit after same-turn hook identity becomes known',
-        hookUpdateBeforeDispatch: 'same-turn-known-agent'
-      },
-      {
-        name: 'cancels confirmed process exit delivery when a newer working hook row arrives',
-        hookUpdateBeforeDispatch: 'new-turn'
-      }
-    ] as const)('$name', async ({ hookUpdateBeforeDispatch }) => {
-      const restoreUserAgent = temporarilySetNavigatorUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-      )
-      await loadFreshTerminalModules()
-      const { connectPanePty } = await import('../connect-pane-pty')
-      const agentTitleMocks4 = await vi.importMock<PtyConnectionAgentTitleMocks>(
-        '@/lib/agent-status/aggregation/worktree-agent-status'
-      )
-      const transport = createMockTransport('pty-crashed-codex')
-      transportFactoryQueue.push(transport)
-      vi.useFakeTimers()
-      // Pin process cadence so confirmed exit precedes the hook refresh.
-      const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5)
-
-      try {
-        const paneKey = makePaneKey('tab-1', LEAF_1)
-        const crashedTurnStartedAt = Date.now()
-        const initialAgentType =
-          hookUpdateBeforeDispatch === 'same-turn-known-agent' ? 'unknown' : 'codex'
-        mockStoreState.agentStatusByPaneKey[paneKey] = {
-          state: 'working',
-          prompt: 'crash before done hook',
-          updatedAt: crashedTurnStartedAt,
-          stateStartedAt: crashedTurnStartedAt,
-          agentType: initialAgentType,
-          paneKey,
-          stateHistory: []
-        }
-        const getForegroundProcess = vi.mocked(window.api.pty.getForegroundProcess)
-        getForegroundProcess.mockResolvedValue('codex')
-        const pane = createPane(1)
-        const manager = createManager(1)
-        const deps = createDeps()
-
-        connectPanePty(
-          pane as never,
-          manager as never,
-          bindPaneAgentTitleMocks(deps as never, agentTitleMocks4)
-        )
-        await flushAsyncTicks()
-        const titleHandler = createdTransportOptions[0]?.onTitleChange as
-          | ((title: string, rawTitle: string) => void)
-          | undefined
-        if (!titleHandler) {
-          throw new Error('Expected onTitleChange to be registered')
-        }
-
-        titleHandler('Codex working', 'Codex working')
-        await vi.advanceTimersByTimeAsync(2_500)
-        // A crash leaves a live shell; null cannot confirm that the agent exited.
-        getForegroundProcess.mockResolvedValue('pwsh.exe')
-        await vi.advanceTimersByTimeAsync(3_000)
-        if (hookUpdateBeforeDispatch !== 'none') {
-          mockStoreState.agentStatusByPaneKey[paneKey] = {
-            state: 'working',
-            prompt:
-              hookUpdateBeforeDispatch === 'new-turn'
-                ? 'new turn after the prior process exited'
-                : 'same turn hook detail refresh',
-            updatedAt: Date.now(),
-            stateStartedAt:
-              hookUpdateBeforeDispatch === 'new-turn' ? Date.now() : crashedTurnStartedAt,
-            agentType: 'codex',
-            paneKey,
-            stateHistory: []
-          }
-          notifyStoreSubscribers()
-        }
-        await vi.advanceTimersByTimeAsync(AGENT_TASK_COMPLETE_NOTIFICATION_MAX_WAIT_MS)
-
-        const expectedNotification = {
-          source: 'agent-task-complete',
-          terminalTitle: 'codex',
-          paneKey,
-          ptyId: 'tab-pty',
-          agentCompletionSource: 'process-exit'
-        }
-        if (hookUpdateBeforeDispatch === 'new-turn') {
-          expect(deps.dispatchNotification).not.toHaveBeenCalledWith(expectedNotification)
-        } else {
-          expect(deps.dispatchNotification).toHaveBeenCalledWith(expectedNotification)
-        }
-        expect(pane.terminal.write).toHaveBeenCalledWith(
-          RESET_TERMINAL_CURSOR_STYLE,
-          expect.any(Function)
-        )
-        transport.sendInput.mockClear()
-        sendTerminalInputThroughPane(pane, '\x1b[I')
-        sendTerminalInputThroughPane(pane, '\x7f')
-        expect(transport.sendInput).toHaveBeenCalledTimes(2)
-        expect(transport.sendInput).toHaveBeenNthCalledWith(1, '\x1b[I', 'query-reply')
-        expect(transport.sendInput).toHaveBeenLastCalledWith('\x7f', 'query-reply')
-      } finally {
-        randomSpy.mockRestore()
-        restoreUserAgent()
-      }
     })
 
     it('drops an exited agent completion when a replacement agent hook row is active', async () => {

@@ -269,7 +269,7 @@ describe('Claude completion banners through the real pane and hook lanes', () =>
   const rich = (message: string) =>
     expect.objectContaining({ source: 'agent-task-complete', agentLastAssistantMessage: message })
 
-  it('announces the turn once; a /btw, its late BEL and quitting stay quiet, a hookless successor does not', async () => {
+  it('announces the turn once; a /btw, its late BEL and quitting stay quiet, a hookless successor has no cadence notification', async () => {
     await play(SIDE_QUESTION)
     // Claude is replaced in the pane by goose (no hooks), which later exits.
     foreground = 'goose'
@@ -279,8 +279,7 @@ describe('Claude completion banners through the real pane and hook lanes', () =>
     await vi.advanceTimersByTimeAsync(15_000)
 
     expect(banners).toEqual([
-      expect.objectContaining({ agentType: 'claude', agentLastAssistantMessage: SEA }),
-      expect.objectContaining({ source: 'agent-task-complete', terminalTitle: 'goose' })
+      expect.objectContaining({ agentType: 'claude', agentLastAssistantMessage: SEA })
     ])
   })
 

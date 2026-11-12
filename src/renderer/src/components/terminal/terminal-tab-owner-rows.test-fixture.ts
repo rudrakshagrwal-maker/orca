@@ -1,5 +1,7 @@
 export function terminalOwnerRows(environmentId: string | null) {
   return {
+    // RA: close fixtures contain ordinary tabs, with no hidden worker lineage.
+    unifiedTabsByWorktree: {},
     repos: [
       {
         id: 'repo-1',

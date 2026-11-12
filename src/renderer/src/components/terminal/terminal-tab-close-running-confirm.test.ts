@@ -57,7 +57,7 @@ const closeTab = vi.fn()
 
 function busyTabState(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    settings: { activeRuntimeEnvironmentId: null, confirmClosePinnedTab: true },
+    settings: { activeRuntimeEnvironmentId: null, confirmClosePinnedTab: true, workerTabsShown: true },
     ...terminalOwnerRows(null),
     tabsByWorktree: { 'wt-1': [{ id: 'tab-busy' }, { id: 'tab-other' }] },
     unifiedTabsByWorktree: {
@@ -185,7 +185,7 @@ describe('closeTerminalTab running-process confirmation', () => {
     onConfirm()
 
     expect(inspectRuntimeTerminalProcessMock).not.toHaveBeenCalled()
-    expect(closeTab).toHaveBeenCalledWith('tab-busy', { reason: 'user' })
+    expect(closeTab).toHaveBeenCalledWith('tab-busy', { reason: 'user', allowWorkerRetirement: false })
   })
 
   // Only an actual pin prompt supersedes process confirmation; disabling pin confirmation still requires the busy-command prompt.
@@ -208,7 +208,7 @@ describe('closeTerminalTab running-process confirmation', () => {
 
     useRunningTerminalCloseConfirmStore.getState().confirmRunningTerminalClose()
 
-    expect(closeTab).toHaveBeenCalledWith('tab-busy', { reason: 'user' })
+    expect(closeTab).toHaveBeenCalledWith('tab-busy', { reason: 'user', allowWorkerRetirement: false })
   })
 
   it('rejects a pinned tab for a CLI close even when pin confirmation is off', () => {

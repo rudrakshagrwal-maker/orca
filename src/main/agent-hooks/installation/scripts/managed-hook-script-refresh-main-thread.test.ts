@@ -32,7 +32,7 @@ describe('managed hook script refresh and owned profile cleanup', () => {
     vi.unstubAllEnvs()
   })
 
-  it('refreshes stale scripts and removes owned profile plugins while preserving unowned files', async () => {
+  it('refreshes only the approved Claude status script and preserves existing agent plugins', async () => {
     const hooksDir = join(state.home, '.orca', 'agent-hooks')
     const claudeScript = join(
       hooksDir,
@@ -86,11 +86,11 @@ describe('managed hook script refresh and owned profile cleanup', () => {
     const refreshed = await readFile(claudeScript, 'utf8')
     expect(refreshed).not.toBe('stale')
     expect(refreshed).toContain(
-      process.platform === 'win32' ? 'echo {}' : 'trap orca_hook_finish EXIT'
+      process.platform === 'win32' ? 'echo {}' : 'printf'
     )
-    await expect(readFile(modScript, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+    expect(await readFile(modScript, 'utf8')).toBe('stale')
     for (const mod of profileMods) {
-      await expect(readFile(mod, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(await readFile(mod, 'utf8')).toBe('stale')
     }
     expect(await readFile(join(unowned, 'hooks', 'register.js'), 'utf8')).toBe('user-owned')
     await expect(

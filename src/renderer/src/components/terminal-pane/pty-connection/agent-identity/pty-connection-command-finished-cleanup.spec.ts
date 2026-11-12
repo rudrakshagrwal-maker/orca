@@ -86,7 +86,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
           createPane(1),
           createManager(1),
           bindPaneAgentTitleMocks(
-            createDeps({ isVisibleRef: { current: false } }),
+            createDeps({ isVisibleRef: { current: true } }),
             agentTitleMocks3
           )
         )
@@ -139,7 +139,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       )
       transportFactoryQueue.push(transport)
       const paneKey = makePaneKey('tab-1', LEAF_1)
-      const deps = createDeps({ isVisibleRef: { current: false } })
+      const deps = createDeps({ isVisibleRef: { current: true } })
 
       connectPanePty(
         ...mockPanePtyArgs(
@@ -194,7 +194,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       )
       transportFactoryQueue.push(transport)
       const paneKey = makePaneKey('tab-1', LEAF_1)
-      const deps = createDeps({ isVisibleRef: { current: false } })
+      const deps = createDeps({ isVisibleRef: { current: true } })
 
       connectPanePty(
         ...mockPanePtyArgs(
@@ -266,7 +266,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
           createPane(1),
           createManager(1),
           bindPaneAgentTitleMocks(
-            createDeps({ isVisibleRef: { current: false } }),
+            createDeps({ isVisibleRef: { current: true } }),
             agentTitleMocks6
           )
         )
@@ -325,7 +325,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
           createPane(1),
           createManager(1),
           bindPaneAgentTitleMocks(
-            createDeps({ isVisibleRef: { current: false } }),
+            createDeps({ isVisibleRef: { current: true } }),
             agentTitleMocks7
           )
         )
@@ -377,7 +377,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
           createPane(1),
           createManager(1),
           bindPaneAgentTitleMocks(
-            createDeps({ isVisibleRef: { current: false } }),
+            createDeps({ isVisibleRef: { current: true } }),
             agentTitleMocks8
           )
         )
@@ -422,7 +422,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       const paneKey = makePaneKey('tab-1', LEAF_1)
       const pane = createPane(1)
       const { writes } = captureCallbackTerminalWrites(pane)
-      const deps = createDeps({ isVisibleRef: { current: false } })
+      const deps = createDeps({ isVisibleRef: { current: true } })
 
       connectPanePty(
         ...mockPanePtyArgs(pane, createManager(1), bindPaneAgentTitleMocks(deps, agentTitleMocks9))
@@ -474,7 +474,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       const paneKey = makePaneKey('tab-1', LEAF_1)
       const pane = createPane(1)
       const { writes } = captureCallbackTerminalWrites(pane)
-      const deps = createDeps({ isVisibleRef: { current: false } })
+      const deps = createDeps({ isVisibleRef: { current: true } })
 
       connectPanePty(
         ...mockPanePtyArgs(pane, createManager(1), bindPaneAgentTitleMocks(deps, agentTitleMocks10))
@@ -526,7 +526,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
       const paneKey = makePaneKey('tab-1', LEAF_1)
       const pane = createPane(1)
       const { writes } = captureCallbackTerminalWrites(pane)
-      const deps = createDeps({ isVisibleRef: { current: false } })
+      const deps = createDeps({ isVisibleRef: { current: true } })
 
       connectPanePty(
         ...mockPanePtyArgs(pane, createManager(1), bindPaneAgentTitleMocks(deps, agentTitleMocks11))
@@ -573,7 +573,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
           createPane(1),
           createManager(1),
           bindPaneAgentTitleMocks(
-            createDeps({ tabId, isVisibleRef: { current: false } }),
+            createDeps({ tabId, isVisibleRef: { current: true } }),
             agentTitleMocks12
           )
         )
@@ -623,7 +623,7 @@ export function registerPtyConnectionCommandFinishedCleanupTests(): void {
           createPane(1),
           createManager(1),
           bindPaneAgentTitleMocks(
-            createDeps({ isVisibleRef: { current: false } }),
+            createDeps({ isVisibleRef: { current: true } }),
             agentTitleMocks13
           )
         )

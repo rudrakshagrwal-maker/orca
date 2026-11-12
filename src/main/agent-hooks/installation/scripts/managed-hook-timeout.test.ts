@@ -1,36 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { spawn, spawnSync } from 'node:child_process'
+import { describe, expect, it } from 'vitest'
 import { runProcessSync } from '@orca/process-host'
 import { buildPosixAgentHookPostCommand } from './hook-post-command'
-import { createServer, type Server, type Socket } from 'node:net'
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type * as osModule from 'node:os'
 
-const { homedirMock } = vi.hoisted(() => ({
-  homedirMock: vi.fn<() => string>()
-}))
-
-vi.mock('electron', () => ({
-  app: {
-    getPath: () => '/tmp/orca-user-data'
-  }
-}))
-
-vi.mock('os', async (importOriginal) => {
-  const actual = await importOriginal<typeof osModule>()
-  return {
-    ...actual,
-    homedir: homedirMock.mockImplementation(actual.homedir)
-  }
-})
-import '../../../codex/hooks/installation/hook-service'
-import { CodexHookService } from '../../../codex/hooks/installation/codex-hook-service-implementation'
-import { createAgentHookMemorySftp as createFakeSftp } from '../remote/testing/agent-hook-memory-sftp.test-fixture'
-
-const REMOTE_HOME = '/home/dev'
-
+// RA: only pure transport behavior remains; Codex hook installation is cut.
 describe('managed agent hook timeouts', () => {
   it.skipIf(process.platform === 'win32').each(['raw-json-v1', ''])(
     'scopes the C numeric locale to the custom curl command for transport %s',
@@ -83,95 +58,4 @@ describe('managed agent hook timeouts', () => {
     }
   )
 
-  describe('dead-endpoint transport budget', () => {
-    let tempDir: string | null = null
-    let server: Server | null = null
-    const openSockets: Socket[] = []
-
-    afterEach(() => {
-      for (const socket of openSockets.splice(0)) {
-        socket.destroy()
-      }
-      if (server) {
-        server.close()
-        server = null
-      }
-      if (tempDir) {
-        rmSync(tempDir, { recursive: true, force: true })
-        tempDir = null
-      }
-    })
-
-    const hasPosixCurl =
-      process.platform !== 'win32' &&
-      spawnSync('sh', ['-c', 'command -v curl'], { encoding: 'utf8' }).status === 0
-
-    function runHookScript(scriptPath: string, port: number): Promise<{ status: number | null }> {
-      return new Promise((resolve, reject) => {
-        const child = spawn('sh', [scriptPath], {
-          env: {
-            ...process.env,
-            ORCA_AGENT_HOOK_ENDPOINT: '',
-            ORCA_AGENT_HOOK_PORT: String(port),
-            ORCA_AGENT_HOOK_TOKEN: 'test-token',
-            ORCA_PANE_KEY: 'pane-1',
-            ORCA_TAB_ID: 'tab-1',
-            ORCA_WORKTREE_ID: 'wt-1',
-            CLAUDE_JOB_DIR: ''
-          },
-          stdio: ['pipe', 'ignore', 'ignore']
-        })
-        const timeout = setTimeout(() => {
-          child.kill('SIGKILL')
-          reject(new Error('hook script exceeded test timeout'))
-        }, 10_000)
-        child.on('error', (error) => {
-          clearTimeout(timeout)
-          reject(error)
-        })
-        child.on('close', (status) => {
-          clearTimeout(timeout)
-          resolve({ status })
-        })
-        child.stdin.end('{"hook_event_name":"Stop"}')
-      })
-    }
-
-    // An accepted, unanswered connection exercises max-time after connect-timeout has already passed.
-    it.skipIf(!hasPosixCurl)(
-      'returns within budget when the local listener accepts but never responds',
-      async () => {
-        const { sftp, fs } = createFakeSftp()
-        await new CodexHookService().installRemote(sftp, REMOTE_HOME)
-        const wrapperBody = fs.files.get(`${REMOTE_HOME}/.orca/agent-hooks/codex-hook.sh`)!
-
-        tempDir = mkdtempSync(join(tmpdir(), 'orca-hook-timeout-'))
-        const scriptPath = join(tempDir, 'codex-hook.sh')
-        writeFileSync(scriptPath, wrapperBody, 'utf8')
-        chmodSync(scriptPath, 0o755)
-
-        const stallingServer = createServer((socket) => {
-          openSockets.push(socket)
-        })
-        server = stallingServer
-        const port = await new Promise<number>((resolve) => {
-          stallingServer.listen(0, '127.0.0.1', () => {
-            const address = stallingServer.address()
-            resolve(typeof address === 'object' && address ? address.port : 0)
-          })
-        })
-
-        const startedAt = Date.now()
-        const result = await runHookScript(scriptPath, port)
-        const elapsedMs = Date.now() - startedAt
-
-        // POST timeout must fail open.
-        expect(result.status).toBe(0)
-        expect(openSockets.length).toBeGreaterThan(0)
-        expect(elapsedMs).toBeGreaterThanOrEqual(1_000)
-        // Allow overhead beyond curl's 1.5-second cap.
-        expect(elapsedMs).toBeLessThan(6_000)
-      }
-    )
-  })
 })

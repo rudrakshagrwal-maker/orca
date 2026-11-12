@@ -2,6 +2,12 @@ import { eraseRpcMethods, isStreamingMethod, type RpcAnyMethodDeclaration } from
 
 // RA: schemas, provider clients and services enter memory only on a matching request.
 const groups = new Map<string, Promise<readonly RpcAnyMethodDeclaration[]>>()
+let activateFeature: ((feature: string) => Promise<void>) | undefined
+
+// RA: desktop activation is injected; headless bundles must not import Electron startup.
+export function setRestoredFeatureActivator(activate: (feature: string) => Promise<void>): void {
+  activateFeature = activate
+}
 
 export type RestoredRpcDeclaration =
   | (typeof import('./source-control/github/github.js').GITHUB_METHODS)[number]
@@ -44,8 +50,7 @@ export function loadRestoredFeatureMethods(name: string): Promise<readonly RpcAn
       // RA: normal dispatcher permission checks and schema validation precede service activation.
       return eraseRpcMethods(methods).map((method): RpcAnyMethodDeclaration => {
         const activate = async (): Promise<void> => {
-          const { activateRestoredFeature } = await import('../../../startup/restored-feature-activation.js')
-          await activateRestoredFeature(feature)
+          await activateFeature?.(feature)
         }
         if (isStreamingMethod(method)) {
           return { ...method, handler: async (params, context, emit) => {

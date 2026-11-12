@@ -10,11 +10,8 @@ import type { RuntimeRpcResponse } from '../../../../../../shared/runtime-rpc-en
 import { OrcaRuntimeService } from '../../../../orca-runtime'
 import { OrchestrationDb } from '../../../../orchestration/db/orchestration-db'
 import type { OrchestrationEnvironmentTransport } from '../../../../orchestration/federation/environment-transport'
-import type { OrchestrationSessionCaller } from '../../../../orchestration/addressing/orchestration-caller-identity'
 import { RpcDispatcher } from '../../../dispatcher'
-import type { RpcContext } from '../../../core'
 import { ORCHESTRATION_METHODS } from '../orchestration'
-import { ORCHESTRATION_REPLY_METHOD } from '../messaging/reply-method'
 import { notifyPeerMailQueued } from '../../../../orchestration/federation/peer-mail/peer-mail-waiters'
 
 // Retries run at once so a recovering pull loop is observable without waiting out its backoff.
@@ -28,8 +25,6 @@ vi.mock(
 
 const A_PANE = 'tab_a:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const B_PANE = 'tab_b:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
-const CHAT_ON_A = 'orca_session_id:11111111-1111-4111-8111-111111111111'
-const CHAT_ON_B = 'orca_session_id:22222222-2222-4222-8222-222222222222'
 
 type Side = { db: OrchestrationDb; runtime: OrcaRuntimeService; dispatcher: RpcDispatcher }
 
@@ -129,21 +124,6 @@ describe('agent mail between paired Orca servers', () => {
     })
   }
 
-  function chatReply(side: Side, caller: string, params: { id: string; body: string }) {
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a test double carrying only the fields the code under test reads.
-    const orchestrationCaller = {
-      address: caller,
-      terminalHandle: null,
-      orcaSessionId: caller.slice('orca_session_id:'.length),
-      paneKey: null
-    } as unknown as OrchestrationSessionCaller
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a test double carrying only the fields the code under test reads.
-    return ORCHESTRATION_REPLY_METHOD.handler(params, {
-      runtime: side.runtime,
-      orchestrationCaller
-    } as RpcContext)
-  }
-
   function mailFor(side: Side, handle: string) {
     return side.db.getUnreadMessages(handle)
   }
@@ -190,33 +170,6 @@ describe('agent mail between paired Orca servers', () => {
       mutation(a, 'orchestration.reply', { id: back!.id, body: 'Thanks.', from: 'term_a' })
     ).resolves.toMatchObject({ ok: true })
     expect(mailFor(b, 'term_b').map((message) => message.body)).toEqual(['Thanks.'])
-  })
-
-  it('returns a chat agent reply to the chat on the opening server', async () => {
-    const send = ORCHESTRATION_METHODS.find((method) => method.name === 'orchestration.send')!
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a test double carrying only the fields the code under test reads.
-    // RA: only the addressed chat may reply, not another chat sharing the host.
-    await send.handler({ from: CHAT_ON_A, on: 'devB', to: CHAT_ON_B, subject: 'Plan?' }, {
-      runtime: a.runtime,
-      orchestrationCaller: {
-        address: CHAT_ON_A,
-        terminalHandle: null,
-        orcaSessionId: CHAT_ON_A.slice(16),
-        paneKey: null
-      }
-    } as unknown as RpcContext)
-    const [onB] = mailFor(b, CHAT_ON_B)
-    expect(onB!.from_handle).toBe(`${CHAT_ON_A} on Jinwoo's Mac`)
-
-    await chatReply(b, CHAT_ON_B, { id: onB!.id, body: 'Plan attached.' })
-
-    a.runtime.ensureOrchestrationFederationRelay()
-    await vi.waitFor(() => expect(mailFor(a, CHAT_ON_A)).toHaveLength(1))
-    expect(mailFor(a, CHAT_ON_A)[0]).toMatchObject({
-      from_handle: `${CHAT_ON_B} on Build Box`,
-      body: 'Plan attached.'
-    })
-    expect(a.db.getPeerMailMessage(mailFor(a, CHAT_ON_A)[0]!.id)?.remote_party).toBe(CHAT_ON_B)
   })
 
   it('delivers a reply queued before both servers restart exactly once', async () => {

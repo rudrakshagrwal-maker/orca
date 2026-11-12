@@ -21,7 +21,7 @@ export function registerProfileStateMaintenanceRecoveryTests(): void {
       )
       const abort = vi.spyOn(authority, 'abort')
       const controller = new AbortController()
-      store.updateSettings({ theme: 'dark' })
+      store.updateSettings({ theme: 'light' })
       const pending = store.beginProfileMaintenance({ signal: controller.signal })
       const rejected = expect(pending).rejects.toThrow('aborted')
       await started.promise
@@ -35,7 +35,7 @@ export function registerProfileStateMaintenanceRecoveryTests(): void {
       })
       await store.flushPendingOrThrowAsync()
       expect(readState()).toMatchObject({
-        settings: { theme: 'dark' },
+        settings: { theme: 'light' },
         workspaceSession: { activeTabId: 'after-cancellation' }
       })
     })
@@ -46,16 +46,16 @@ export function registerProfileStateMaintenanceRecoveryTests(): void {
       vi.spyOn(authority, 'writeCompleteSerializedDomains').mockRejectedValueOnce(
         new Error('disk refused')
       )
-      store.updateSettings({ theme: 'dark' })
+      store.updateSettings({ theme: 'light' })
       await expect(store.beginProfileMaintenance()).rejects.toThrow('disk refused')
 
       store.setWorkspaceSession({ ...store.getWorkspaceSession(), activeTabId: 'after-failure' })
       await store.runDurableMutation(() => {
-        store.updateSettings({ theme: 'light' })
+        store.updateSettings({ theme: 'dark' })
         return { value: undefined }
       })
       expect(readState()).toMatchObject({
-        settings: { theme: 'light' },
+        settings: { theme: 'dark' },
         workspaceSession: { activeTabId: 'after-failure' }
       })
       await (await store.beginProfileMaintenance()).resume()
@@ -64,7 +64,7 @@ export function registerProfileStateMaintenanceRecoveryTests(): void {
     it('keeps changed storage fenced when recovering a known failure', async () => {
       const { store, authority, peer, readState } = await createWorkerMaintenanceFixture()
       vi.spyOn(console, 'error').mockImplementation(() => {})
-      store.updateSettings({ theme: 'dark' })
+      store.updateSettings({ theme: 'light' })
       vi.spyOn(authority, 'writeCompleteSerializedDomains').mockImplementationOnce(async () => {
         const writer = peer()
         writer.writeSerializedDomains([{ domain: 'peer', payload: '{"preserved":true}' }])

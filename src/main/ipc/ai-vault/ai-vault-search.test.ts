@@ -30,6 +30,8 @@ import { fakeSearchService } from '../../../shared/ai-vault/search/ai-vault-sear
 import { setStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 beforeEach(() => {
   handlers.clear()
+  // RA: the isolated search handler fixture models an already opened History panel.
+  handlers.set('features:activate', async () => undefined)
   sshSearch.mockReset()
   sshHostInfos.mockReset()
   sshHostInfos.mockReturnValue([])

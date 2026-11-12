@@ -11,6 +11,7 @@ vi.mock('node:child_process', () => ({ fork: forkMock }))
 vi.mock('node:fs', () => ({ existsSync: () => true }))
 
 const {
+  activateAiVaultScannerService,
   resetAiVaultScannerServiceForTests,
   resolveAiVaultSessionTitlesInService,
   setAiVaultServiceIdleTimeoutMs
@@ -29,6 +30,8 @@ describe('the shared scanner client', () => {
     forkMock.mockReturnValue(child.asChildProcess())
     setAiVaultServiceIdleTimeoutMs(60_000)
 
+    // RA: only an explicit History open may start the scanner.
+    activateAiVaultScannerService()
     const titles = resolveAiVaultSessionTitlesInService([])
     readyAiVaultServiceChild(child)
     await Promise.resolve()

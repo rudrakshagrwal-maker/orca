@@ -251,7 +251,7 @@ describe('Session', () => {
 
     it('answers a late query itself on every backend, so no downstream view is asked', () => {
       const query = '\x1b]10;?\x07'
-      const reply = '\x1b]10;rgb:ffff/ffff/ffff\x1b\\'
+      const reply = '\x1b]10;rgb:d3d3/d7d7/cfcf\x1b\\'
       for (const ownerBackend of ['posix-pty', 'windows-conpty'] as const) {
         subprocess = createMockSubprocess()
         createSession({ ownerBackend })

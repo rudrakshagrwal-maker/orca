@@ -90,7 +90,7 @@ export function registerPtyConnectionForegroundProcessExitTests(): void {
       return { cacheKey: makePaneKey(tabId, LEAF_1), binding, deps }
     }
 
-    it('retires a hand-typed Codex read in a pane without command marks once it exits', async () => {
+    it('keeps unmarked identity until explicit focus or process evidence replaces it', async () => {
       vi.useFakeTimers()
       const ptyId = 'pty-unmarked-codex-exit'
       let foreground: string | null = 'codex'
@@ -98,7 +98,7 @@ export function registerPtyConnectionForegroundProcessExitTests(): void {
       vi.mocked(window.api.pty.getForegroundProcess).mockImplementation(async () => foreground)
       vi.mocked(window.api.pty.hasChildProcesses).mockImplementation(async () => children)
 
-      const { cacheKey, binding, deps } = await connectRestoredPane(ptyId, true)
+      const { cacheKey, binding } = await connectRestoredPane(ptyId, true)
       await vi.advanceTimersByTimeAsync(3_000)
       expect(mockStoreState.paneForegroundAgentByPaneKey[cacheKey]).toMatchObject({
         agent: 'codex',
@@ -109,12 +109,8 @@ export function registerPtyConnectionForegroundProcessExitTests(): void {
       children = false
       await vi.advanceTimersByTimeAsync(10_000)
 
-      expect(mockStoreState.paneForegroundAgentByPaneKey[cacheKey]).toEqual({
-        agent: null,
-        shellForeground: false
-      })
-      expect(mockStoreState.clearAgentLaunchConfig).toHaveBeenCalledWith(cacheKey)
-      expect(deps.onAgentExitedRef.current).toHaveBeenCalledWith(LEAF_1)
+      // RA: no timer can infer an unannounced exit.
+      expect(mockStoreState.paneForegroundAgentByPaneKey[cacheKey]).toMatchObject({ agent: 'codex' })
 
       // Codex typed again in the same unmarked pane: the next sample must identify it.
       foreground = 'codex'

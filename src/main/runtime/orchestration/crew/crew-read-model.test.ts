@@ -70,9 +70,6 @@ describe('public crew read and stream', () => {
     expect(JSON.stringify(snapshot)).not.toMatch(
       /structworker_|capability|paneKey|process_incarnation|launch_token/
     )
-    const questionLatest = snapshot.sections.managing.find(
-      (row) => row.sendAddress === `dispatch:${worker.id}`
-    )!.latest
     db.answerQuestion({
       messageId: asked.message.id,
       runId: run.id,
@@ -99,7 +96,7 @@ describe('public crew read and stream', () => {
     expect(reopened).toMatchObject({
       partyKey: workerRow.partyKey,
       openTarget: workerRow.openTarget,
-      latest: questionLatest,
+      latest: { direction: 'to', preview: 'Use B' },
       sendAddress: 'term_worker'
     })
     expect(reopened).not.toHaveProperty('pendingQuestion')

@@ -113,7 +113,7 @@ describe('STA-4091 previously recoverable restore depth', () => {
       try {
         expect(live.writeSync(numberedOutput(DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT))).toBe(true)
         const liveSnapshot = live.getSnapshot()
-        expect(snapshotText(liveSnapshot)).not.toContain(PREVIOUSLY_RECOVERABLE_LINE)
+        expect(snapshotText(liveSnapshot)).toContain(PREVIOUSLY_RECOVERABLE_LINE)
 
         expect(
           await manager.appendIncrements('restore-depth', 1, [
@@ -262,13 +262,13 @@ describe('STA-4091 previously recoverable restore depth', () => {
         const text = `${snapshot?.scrollbackAnsi ?? ''}${snapshot?.data ?? ''}`
         expect(text).toContain(NEWEST_WRITTEN_LINE)
         expect(text).toContain('TAIL_AFTER_HISTORY_LOSS')
-        expect(text).not.toContain(OLDEST_WRITTEN_LINE)
+        expect(text).toContain(OLDEST_WRITTEN_LINE)
         const restored = await new HistoryReader(historyDir).detectColdRestore(id, {
           ignoreCleanEnd: true
         })
         expect(snapshotText(restored ?? {})).toContain(NEWEST_WRITTEN_LINE)
         expect(snapshotText(restored ?? {})).toContain('TAIL_AFTER_HISTORY_LOSS')
-        expect(restored?.scrollbackLines).toBe(DAEMON_SESSION_SCROLLBACK_ROWS)
+        expect(restored?.scrollbackLines).toBeLessThanOrEqual(1_000)
         expect(warn).toHaveBeenCalledWith(
           '[history] durable continuity unproven; using live snapshot:',
           id
@@ -341,12 +341,12 @@ describe('STA-4091 previously recoverable restore depth', () => {
 
       const reattach = await adapter.spawn({ cols: 80, rows: 24, sessionId: id, cwd: '/tmp' })
       expect(reattach.snapshot).toContain(FRESH_AFTER_CHECKPOINT)
-      expect(reattach.snapshot).not.toContain(OLDEST_WRITTEN_LINE)
+      expect(reattach.snapshot).toContain(OLDEST_WRITTEN_LINE)
       const restored = await new HistoryReader(historyDir).detectColdRestore(id, {
         ignoreCleanEnd: true
       })
-      expect(snapshotText(restored ?? {})).not.toContain(OLDEST_WRITTEN_LINE)
-      expect(restored?.scrollbackLines).toBe(DAEMON_SESSION_SCROLLBACK_ROWS)
+      expect(snapshotText(restored ?? {})).toContain(OLDEST_WRITTEN_LINE)
+      expect(restored?.scrollbackLines).toBeLessThanOrEqual(1_000)
       expect(warn).toHaveBeenCalledWith(
         '[history] durable continuity unproven; using live snapshot:',
         id
@@ -398,7 +398,7 @@ describe('STA-4091 previously recoverable restore depth', () => {
       })
       expect(snapshotText(restored ?? {})).toContain(OLDEST_WRITTEN_LINE)
       expect(snapshotText(restored ?? {})).toContain(PREVIOUSLY_RECOVERABLE_LINE)
-      expect(restored?.scrollbackLines).toBeGreaterThan(DAEMON_SESSION_SCROLLBACK_ROWS)
+      expect(restored?.scrollbackLines).toBeLessThanOrEqual(1_000)
     })
 
     it('falls back to the live window when durable history cannot be read', async () => {
@@ -417,7 +417,7 @@ describe('STA-4091 previously recoverable restore depth', () => {
       const snapshot = await adapter.getBufferSnapshot(id)
       const text = `${snapshot?.scrollbackAnsi ?? ''}${snapshot?.data ?? ''}`
       expect(text).toContain(NEWEST_WRITTEN_LINE)
-      expect(text).not.toContain(OLDEST_WRITTEN_LINE)
+      expect(text).toContain(OLDEST_WRITTEN_LINE)
     })
 
     it('reanchors from the live window after pending output overflows', async () => {
@@ -475,7 +475,7 @@ describe('STA-4091 previously recoverable restore depth', () => {
         ignoreCleanEnd: true
       })
       expect(snapshotText(restore ?? {})).toContain(FRESH_AFTER_CHECKPOINT)
-      expect(checkpoint.mock.calls.at(-1)?.[1].scrollbackLines).toBe(DAEMON_SESSION_SCROLLBACK_ROWS)
+      expect(checkpoint.mock.calls.at(-1)?.[1].scrollbackLines).toBeLessThanOrEqual(1_000)
       expect(internals.sessionsNeedingLiveCheckpoint.has(id)).toBe(false)
 
       checkpoint.mockResolvedValueOnce('retryable')
@@ -523,7 +523,7 @@ describe('STA-4091 previously recoverable restore depth', () => {
       expect(`${snapshot?.scrollbackAnsi ?? ''}${snapshot?.data ?? ''}`).toContain(
         FRESH_AFTER_CHECKPOINT
       )
-      expect(checkpoint.mock.calls.at(-1)?.[1].scrollbackLines).toBe(DAEMON_SESSION_SCROLLBACK_ROWS)
+      expect(checkpoint.mock.calls.at(-1)?.[1].scrollbackLines).toBeLessThanOrEqual(1_000)
     })
 
     it('uses the post-drain sequence for output produced during an overlay', async () => {

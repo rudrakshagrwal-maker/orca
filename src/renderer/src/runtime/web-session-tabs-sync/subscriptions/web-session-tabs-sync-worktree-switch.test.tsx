@@ -173,7 +173,7 @@ describe('session-tabs streams across worktree switches on one host', () => {
     clearRuntimeEnvironmentConnectionGenerationsForTests()
   })
 
-  it('drops a warm stream when its host is re-paired while another host is selected', async () => {
+  it('drops an unselected stream immediately under the zero warm-worktree budget', async () => {
     await connect()
     const streamA = latestStream(WORKTREE_A)
     mocks.ownerEnvironmentIdForWorkspace.mockImplementation((_state, worktreeId) =>
@@ -189,7 +189,7 @@ describe('session-tabs streams across worktree switches on one host', () => {
       await settle()
     })
     await selectWorktree(WORKTREE_B)
-    expect(streamA.unsubscribe).not.toHaveBeenCalled()
+    expect(streamA.unsubscribe).toHaveBeenCalled()
 
     const repaired = withHostB.map((environment) =>
       environment.id === ENV ? { ...environment, pairingRevision: REVISION + 1 } : environment

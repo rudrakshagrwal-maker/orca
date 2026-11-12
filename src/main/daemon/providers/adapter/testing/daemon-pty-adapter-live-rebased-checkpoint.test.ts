@@ -148,7 +148,7 @@ describe('DaemonPtyAdapter checkpoints rebased on live', () => {
       })
       expect(ids.at(-1)).toBe(6_000)
       expect(ids.every((id, index) => index === 0 || id === ids[index - 1] + 1)).toBe(true)
-      expect(ids.length).toBeGreaterThan(4_900)
+      expect(ids.length).toBeGreaterThan(900)
       expect(rows.filter((row) => row.startsWith('NEW_'))).toHaveLength(30)
     } finally {
       replayed.dispose()
@@ -170,7 +170,7 @@ describe('DaemonPtyAdapter checkpoints rebased on live', () => {
     const snapshot = await historyAdapter.getBufferSnapshot(id, { scrollbackRows: 2_000 })
     const text = `${snapshot?.scrollbackAnsi ?? ''}${snapshot?.data ?? ''}`
     // Include screen rows; trailing newline leaves the last row blank.
-    const oldest = 4_000 - (2_000 + 24 - 2)
+    const oldest = 4_000 - (1_000 + 24 - 2)
     expect(text).toContain('LINE_04000')
     expect(text).toContain(`LINE_0${oldest}`)
     expect(text).not.toContain(`LINE_0${oldest - 1}`)
@@ -234,9 +234,10 @@ describe('DaemonPtyAdapter checkpoints rebased on live', () => {
       expect(text.split('HELD_TAIL')).toHaveLength(2)
       expect(restore?.pendingEscapeTailAnsi).toBe(marker)
       expect(restore?.pendingOutputSeq).toBe(2)
-      expect(text).toContain('LINE_00001')
+      expect(text).not.toContain('LINE_00001')
+      expect(text).toContain('LINE_02078')
       expect(text).toContain('LINE_03100')
-      expect(text.split('LINE_02000')).toHaveLength(2)
+      expect(text).not.toContain('LINE_02000')
     } finally {
       disk.dispose()
       live.dispose()

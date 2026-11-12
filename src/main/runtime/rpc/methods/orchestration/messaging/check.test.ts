@@ -84,24 +84,13 @@ describe('orchestration RPC methods', () => {
       expect(inboxB.messages.map((message) => message.subject)).toEqual(['B only'])
     })
 
-    it('uses the stable pane identity when the coordinator handle was reminted', async () => {
+    // RA: a reminted handle without saved-session proof cannot inherit a coordinator mailbox.
+    it('does not give a replacement handle the coordinator mailbox from pane identity alone', async () => {
       setup()
-      db.insertMessage({
-        from: 'term_worker',
-        to: `run:${activeRunId}`,
-        subject: 'Completed after restart',
-        runId: activeRunId
-      })
-
-      const result = (await call('orchestration.check', {
-        terminal: 'term_stale_coord',
-        terminalPaneKey: coordinatorPaneKey
-      })) as { runId: string; messages: { subject: string }[] }
-
-      expect(result).toMatchObject({
-        runId: activeRunId,
-        messages: [{ subject: 'Completed after restart' }]
-      })
+      const message = db.insertMessage({ from: 'term_worker', to: `run:${activeRunId}`, subject: 'Completed after restart', runId: activeRunId })
+      const result = await call('orchestration.check', { terminal: 'term_stale_coord', terminalPaneKey: coordinatorPaneKey })
+      expect(result).toMatchObject({ messages: [], count: 0 })
+      expect(db.getUnreadMessages(`run:${activeRunId}`).map((row) => row.id)).toContain(message.id)
     })
 
     it('keeps a live handle authoritative over mismatched pane metadata', async () => {

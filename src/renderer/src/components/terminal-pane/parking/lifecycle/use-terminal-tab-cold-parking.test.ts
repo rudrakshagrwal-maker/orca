@@ -6,6 +6,9 @@ import type { TerminalTab } from '../../../../../../shared/workspace-layout/term
 
 const mocks = vi.hoisted(() => ({
   storeState: {
+    // RA: the hidden-worker selector shares the terminal store.
+    tabsByWorktree: {},
+    unifiedTabsByWorktree: {},
     pendingStartupByTabId: {} as Record<string, unknown>,
     ptyIdsByTabId: {} as Record<string, string[]>,
     runtimeStatusByEnvironmentId: new Map(),

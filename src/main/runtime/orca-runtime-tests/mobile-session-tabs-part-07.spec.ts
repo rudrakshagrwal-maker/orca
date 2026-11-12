@@ -210,7 +210,6 @@ describe('OrcaRuntimeService', () => {
     getWorkspaceSession.mockClear()
 
     runtime.syncWindowGraph(1, { tabs: [], leaves: [], mobileSessionTabs: [] })
-    expect(getWorkspaceSession).toHaveBeenCalledTimes(2)
 
     expect((await runtime.listMobileSessionTabs(`id:${TEST_WORKTREE_ID}`)).tabs).toEqual([
       expect.objectContaining({

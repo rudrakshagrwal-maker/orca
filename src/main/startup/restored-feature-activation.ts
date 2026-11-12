@@ -1,3 +1,4 @@
+import { setRestoredFeatureActivator } from '../runtime/rpc/methods/restored-feature-methods'
 import { app, ipcMain } from 'electron'
 import { mainProcessState as state } from './main-process-state'
 
@@ -77,6 +78,7 @@ async function activate(feature: string): Promise<void> {
 }
 
 export function registerRestoredFeatureActivation(): void {
+  setRestoredFeatureActivator(activateRestoredFeature)
   ipcMain.handle('features:activate', (event, feature: unknown) => {
     // RA: iframe guests cannot activate application services.
     if (event.senderFrame !== event.sender.mainFrame || event.sender.id !== state.mainWindow?.webContents.id ||

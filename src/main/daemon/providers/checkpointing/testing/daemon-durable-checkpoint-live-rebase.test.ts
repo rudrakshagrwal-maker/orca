@@ -139,12 +139,12 @@ describe('durable checkpoint rebased on the live snapshot', () => {
 
   it('keeps the live alt frame, modes and owner verbatim', async () => {
     const disk = emulator({ scrollback: DAEMON_RESTORE_SCROLLBACK_ROWS })
-    write(disk, numberedLines(1, 2_000))
+    write(disk, numberedLines(1, 800))
     const restoreInfo = restoreInfoFrom(disk.getSnapshot())
 
     const live = emulator({ scrollback: DAEMON_SESSION_SCROLLBACK_ROWS })
     const tui = '\x1b[?1049h\x1b[?1002h\x1b[?1006h\x1b[HLIVE_TUI_FRAME'
-    write(live, numberedLines(1, 2_000))
+    write(live, numberedLines(1, 800))
     write(live, tui)
     const liveSnapshot: TerminalSnapshot = {
       ...live.getSnapshot(),
@@ -165,7 +165,7 @@ describe('durable checkpoint rebased on the live snapshot', () => {
     expect(durable.modes).toEqual(liveSnapshot.modes)
     expect(durable.terminalOwner).toBe('shell')
     expect(durable.scrollbackAnsi.endsWith(liveSnapshot.scrollbackAnsi)).toBe(true)
-    expectConsecutive(numberedRowIds(replayedRows(durable)), 1, 2_000)
+    expectConsecutive(numberedRowIds(replayedRows(durable)), 1, 800)
   })
 
   it('keeps restore depth with rows the live window evicted, without seam duplicates', async () => {
@@ -211,13 +211,13 @@ describe('durable checkpoint rebased on the live snapshot', () => {
 
     const bounded = await boundSnapshot(committed, 2_000)
 
-    expect(bounded.scrollbackLines).toBe(2_000)
+    expect(bounded.scrollbackLines).toBe(1_000)
     expect(bounded.outputSequence).toBe(6)
     expect(bounded.modes.kittyKeyboardFlags).toBe(1)
-    expectConsecutive(numberedRowIds(replayedRows(bounded)), 4_000 - (2_000 + 24 - 2), 4_000)
+    expectConsecutive(numberedRowIds(replayedRows(bounded)), 4_000 - (1_000 + 24 - 2), 4_000)
   })
 
-  it('keeps older-row OSC links across a recorded resize', async () => {
+  it('evicts OSC links beyond the checkpoint budget across a resize', async () => {
     const oldLink = '\x1b]8;;https://old.example\x1b\\OLD_LINK\x1b]8;;\x1b\\\r\n'
     const stream = `${oldLink}${numberedLines(1, 1_500)}`
     const disk = emulator({ scrollback: DAEMON_RESTORE_SCROLLBACK_ROWS })
@@ -235,13 +235,11 @@ describe('durable checkpoint rebased on the live snapshot', () => {
     })
 
     const oldRow = replayedRows(durable).findIndex((row) => row.startsWith('OLD_LINK'))
-    expect(oldRow).toBe(0)
-    expect(durable.oscLinks).toEqual([
-      { row: oldRow, startCol: 0, endCol: 8, uri: 'https://old.example' }
-    ])
+    expect(oldRow).toBe(-1)
+    expect(durable.oscLinks).toEqual([])
   })
 
-  it('keeps an older-row OSC link on its text across folds that evict rows', async () => {
+  it('does not retain an OSC link after its row is evicted by later folds', async () => {
     const link = '\x1b]8;;https://old.example\x1b\\OLD_LINK\x1b]8;;\x1b\\\r\n'
     let stream = `${numberedLines(1, 2_000)}${link}${numberedLines(2_001, 5_100)}`
     const disk = emulator({ scrollback: DAEMON_RESTORE_SCROLLBACK_ROWS })
@@ -263,12 +261,10 @@ describe('durable checkpoint rebased on the live snapshot', () => {
         isFirstTake: false
       })
 
-      expect(durable.snapshotAnsi).toContain('\x1b]8;;https://old.example')
+      expect(durable.snapshotAnsi).not.toContain('\x1b]8;;https://old.example')
       const linkRow = replayedRows(durable).findIndex((row) => row.startsWith('OLD_LINK'))
-      expect(linkRow).toBeGreaterThan(0)
-      expect(durable.oscLinks).toEqual([
-        { row: linkRow, startCol: 0, endCol: 8, uri: 'https://old.example' }
-      ])
+      expect(linkRow).toBe(-1)
+      expect(durable.oscLinks).toEqual([])
       restoreInfo = restoreInfoFrom(durable)
     }
   })
@@ -287,10 +283,10 @@ describe('durable checkpoint rebased on the live snapshot', () => {
   })
 })
 
-const STRADDLE_LINES = 450
+const STRADDLE_LINES = 200
 const STRADDLE_LINE_LENGTH = 300
 
-/** Four rows per line leave an orphaned continuation after 1023 rows are evicted. */
+/** RA: four-row lines straddle the explicitly smaller live window inside the restore budget. */
 function straddlingWrappedHistory(): {
   restoreInfo: ColdRestoreInfo
   live: HeadlessEmulator
@@ -305,9 +301,9 @@ function straddlingWrappedHistory(): {
   }
   const disk = emulator({ scrollback: DAEMON_RESTORE_SCROLLBACK_ROWS })
   write(disk, stream)
-  const live = emulator({ scrollback: DAEMON_SESSION_SCROLLBACK_ROWS })
+  const live = emulator({ scrollback: 100 })
   write(live, stream)
-  const liveTop = live.getBufferTailLines(DAEMON_SESSION_SCROLLBACK_ROWS + 24)[0]
+  const liveTop = live.getBufferTailLines(124)[0]
   expect(liveTop).toMatch(/^x+$/)
   return { restoreInfo: restoreInfoFrom(disk.getSnapshot()), live, expected }
 }

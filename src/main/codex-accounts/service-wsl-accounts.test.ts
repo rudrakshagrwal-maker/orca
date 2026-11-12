@@ -105,7 +105,7 @@ describe('CodexAccountService config sync', () => {
     )
 
     expect(readFileSync(join(wslManagedHomePath, 'config.toml'), 'utf-8')).toBe(
-      'sandbox_mode = "danger-full-access"\n\n' +
+      'approval_policy = "untrusted"\n\n' +
         '[projects."/workspace"]\ntrust_level = "trusted"\n'
     )
   })

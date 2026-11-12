@@ -177,7 +177,7 @@ export function openDetectedFilePath(
     // RA: open verified file links in VS Code before any embedded editor/browser routing.
     if (backgroundJobsDisabled() && !statResult.isDirectory) {
       try {
-        const ownerHostId = clientLocal ? LOCAL_EXECUTION_HOST_ID : hostWorkspaceFile?.executionHostId ?? terminalFileSourceHost(useAppStore.getState(), fileContext)
+        const ownerHostId = clientLocal ? LOCAL_EXECUTION_HOST_ID : hostWorkspaceFile?.executionHostId ?? sourceFileHostId
         if (!ownerHostId) {
           deps.onOpenFailure?.({ verdict: 'unverifiable' })
           return

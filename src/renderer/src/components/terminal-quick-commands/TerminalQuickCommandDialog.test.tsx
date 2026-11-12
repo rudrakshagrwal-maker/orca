@@ -245,10 +245,8 @@ describe('TerminalQuickCommandDialog animation structure', () => {
     )
     const trigger = getByRole(document.body, 'button', { name: 'Select agent' })
     await act(async () => fireEvent.keyDown(trigger, { key: 'Enter' }))
-    const unsupported = getByRole(document.body, 'menuitem', { name: /^Aider/ })
-    expect(unsupported.getAttribute('aria-disabled')).toBe('true')
-    await act(async () => fireEvent.click(unsupported))
-    expect(onSave).not.toHaveBeenCalled()
+    // RA: cut providers such as Aider are absent from the agent picker.
+    expect(document.body.textContent).not.toContain('Aider')
     await act(async () => fireEvent.keyDown(getByRole(document.body, 'menu'), { key: 'Escape' }))
     const user = userEvent.setup()
     act(() => trigger.focus())

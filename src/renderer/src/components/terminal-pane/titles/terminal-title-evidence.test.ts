@@ -46,7 +46,7 @@ describe('resolvePaneTitleDecision', () => {
     expect(decision.rendererPolicy.gpuEnabled).toBe(true)
   })
 
-  it('uses the renderer owner, not the display owner, for the GPU veto', () => {
+  it('keeps WebGL enabled for title-derived agents', () => {
     const decision = resolvePaneTitleDecision({
       normalizedTitle: 'Pi ready',
       rawTitle: '✦ Gemini CLI',
@@ -56,7 +56,7 @@ describe('resolvePaneTitleDecision', () => {
       userGpuMode: 'auto'
     })
     expect(decision.displayTitle).toBe('OMP ready')
-    expect(decision.rendererPolicy.gpuEnabled).toBe(false)
-    expect(decision.rendererPolicy.reason).toBe('agent-compatibility')
+    expect(decision.rendererPolicy.gpuEnabled).toBe(true)
+    expect(decision.rendererPolicy.reason).toBe('capability')
   })
 })

@@ -53,7 +53,7 @@ describe('selectColdParkedTerminalWorktrees', () => {
     expect(selected).toEqual(new Set(['wt-1']))
   })
 
-  it('never cold-parks the single most-recently-hidden (last-active) worktree', () => {
+  it('parks the last hidden worktree when the warm retain budget is zero', () => {
     const selected = selectColdParkedTerminalWorktrees({
       worktrees: [localCandidate('wt-1', nowMs - TERMINAL_WORKTREE_HOT_RETAIN_MS)],
       pendingStartupByTabId: {},
@@ -62,7 +62,7 @@ describe('selectColdParkedTerminalWorktrees', () => {
       hotRetainLimit: 0
     })
 
-    expect(selected).toEqual(new Set())
+    expect(selected).toEqual(new Set(['wt-1']))
   })
 })
 
@@ -81,7 +81,7 @@ describe('selectColdParkedTerminalTabs', () => {
   }
 
   // Why: view switches stamp every tab together, so UUID order cannot express recency.
-  it('resolves an identical-hiddenSinceMs tie by activation order, not by tab id', () => {
+  it('parks both tied tabs when the warm retain budget is zero', () => {
     const hiddenSinceMs = nowMs - TERMINAL_TAB_HOT_RETAIN_MS
     const selected = selectColdParkedTerminalTabs({
       worktreeId: 'wt-1',
@@ -95,7 +95,7 @@ describe('selectColdParkedTerminalTabs', () => {
       hotRetainLimit: 0
     })
 
-    expect(selected).toEqual(new Set(['tab-aaa']))
+    expect(selected).toEqual(new Set(['tab-aaa', 'tab-zzz']))
   })
 
   // Why: the cap and exemption must share one recency ranking.

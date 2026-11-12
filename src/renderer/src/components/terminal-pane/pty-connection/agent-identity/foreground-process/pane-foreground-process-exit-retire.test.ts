@@ -79,6 +79,8 @@ describe('process monitor retires a latched foreground read', () => {
     expect(sidebarAgent('repo', pane.getEntry())).toBe('codex')
 
     pane.setForeground('zsh', false)
+    // RA: retirement follows explicit process-exit evidence, never cadence polling.
+    pane.tracker.onProcessExitConfirmed({ agent: 'codex', processName: 'zsh' })
     await vi.advanceTimersByTimeAsync(5_000)
 
     expect(pane.getEntry()).toEqual({ agent: null, shellForeground: false })
@@ -106,6 +108,8 @@ describe('process monitor retires a latched foreground read', () => {
     expect(sidebarAgent('repo', pane.getEntry())).toBe('codex')
 
     pane.setForeground('zsh', false)
+    // RA: retirement follows explicit process-exit evidence, never cadence polling.
+    pane.tracker.onProcessExitConfirmed({ agent: 'codex', processName: 'zsh' })
     await vi.advanceTimersByTimeAsync(10_000)
 
     expect(sidebarAgent('repo', pane.getEntry())).toBeNull()

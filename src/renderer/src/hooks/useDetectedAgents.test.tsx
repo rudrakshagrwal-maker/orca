@@ -137,7 +137,7 @@ it('loads complete Settings inventory even when the automatic inventory is alrea
   })
   expect(latestHookResult?.detectedIds).toEqual(['claude', 'codex', 'kiro'])
   expect(refreshLocalAgents.mock.lastCall?.[0]?.enabledOnly).not.toBe(true)
-  expect(useAppStore.getState().detectedAgentIds).toEqual(['claude', 'codex', 'kiro'])
+  expect(useAppStore.getState().detectedAgentIds).toEqual(['claude', 'codex'])
 })
 
 describe('Floating Workspace authority', () => {

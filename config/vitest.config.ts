@@ -81,6 +81,55 @@ const transforms = {
     ]
   }
 }
+// RA: fork CI has no upstream release tags/artifacts; skip before top-level release imports.
+const forkEnvironmentSkips = [
+  // RA: the cloud relay workspace (pg) is not installed by fork desktop unit CI.
+  'tests/e2e/relay-region-correction.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-clear-old-client.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-clear-old-tab-mirror.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-cli-missing-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-handle-replacement-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-interrupted-tool-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-kill-delivered-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-newer-chat-refusal.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-outcome-chat-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-resume-marker-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-saved-name-old-client.unit.test.ts',
+  'tests/e2e/cross-version-wire/agent-session-stop-event-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-agent-session-model-options.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-agent-session-send.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-agent-session-wire.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-device-key-registry.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-host-descriptor.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-host-observed-turn-end.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-mobile-direct-e2ee-v2.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-paired-e2ee-handshake-core.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-pairing-ticket.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-registered-agents.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-session-tabs-retirement-proof.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-stopping.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-structured-attention-frames.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-terminal-wire.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-web-device-key.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-web-session-pairing.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-web-upgrade-marker.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-worktree-identity-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/cross-version-worktree-ps-verdict.unit.test.ts',
+  'tests/e2e/cross-version-wire/host-model-catalog-released-phone.unit.test.ts',
+  'tests/e2e/cross-version-wire/legacy-relay-bridge.unit.test.ts',
+  'tests/e2e/cross-version-wire/managed-orcad-convert-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/orchestration-delivery-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/preflight-workspace-scoped-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/qoder-history-search-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/qoder-registration-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/release-checkout.unit.test.ts',
+  'tests/e2e/cross-version-wire/released-chat-upgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/reported-lossy-initial-snapshot.unit.test.ts',
+  'tests/e2e/cross-version-wire/runtime-source-fence-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/submission-positions-downgrade.unit.test.ts',
+  'tests/e2e/cross-version-wire/wsl-host-desktop-downgrade.unit.test.ts',
+]
+
 const testOptions = {
   environment: 'node',
   clearMocks: false,
@@ -94,7 +143,7 @@ const testOptions = {
   execArgv: ['--no-experimental-webstorage', '--expose-gc'],
   setupFiles: UNIT_SETUP_FILES.map((file) => resolve(file)),
   include: UNIT_INCLUDE,
-  exclude: balancedShards ? UNIT_EXCLUDE : defaultExclude,
+  exclude: [...(balancedShards ? UNIT_EXCLUDE : defaultExclude), ...forkEnvironmentSkips],
   hookTimeout: 60_000,
   testTimeout: 30_000
 }

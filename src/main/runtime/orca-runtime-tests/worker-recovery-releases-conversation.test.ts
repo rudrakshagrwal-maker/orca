@@ -11,7 +11,7 @@ import {
 } from './orca-runtime-test-fixtures.spec'
 import type { AgentStatusIpcPayload } from '../../../shared/agent-status/contracts/agent-status-ipc-payload'
 
-const SESSION = { key: 'session_id', id: 'grok-session-1' } as const
+const SESSION = { key: 'session_id', id: '11111111-1111-4111-8111-111111111111' } as const
 const DEAD_PANE_KEY = 'crashed-reopen-tab:44444444-4444-4444-8444-444444444444'
 
 describe('worker terminal recovery after a crash', () => {
@@ -51,7 +51,7 @@ describe('worker terminal recovery after a crash', () => {
         creator: { kind: 'system' },
         maxDepth: Number.MAX_SAFE_INTEGER,
         taskId: task.id,
-        startOptions: { topology: 'current', agent: 'grok' }
+        startOptions: { topology: 'current', agent: 'claude' }
       })
       db.prepareStartingWorkerAuthority({
         dispatchId: started.dispatch.id,
@@ -81,7 +81,7 @@ describe('worker terminal recovery after a crash', () => {
 
       await expect(
         runtime.resumeAgentSessionInWorkspace(TEST_WORKTREE_ID, {
-          agent: 'grok',
+          agent: 'claude',
           providerSession: SESSION,
           captureHostId: 'local',
           mutationId: 'next-follow-up'

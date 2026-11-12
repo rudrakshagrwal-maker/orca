@@ -220,7 +220,10 @@ describe('the relay-era orca CLI on migrated legacy orchestration records', () =
     })
     createRootDispatch(database, next.id, WORKER, WORKER_PANE)
     const afterReassignment = await run(runtime, done)
-    expect(afterReassignment.body).toMatchObject({ ok: true })
+    // RA: new custody fences the former assignment even for a legacy retry.
+    expect(afterReassignment.body).toMatchObject({ ok: false })
+    expect(database.getTask(next.id)?.status).toBe('dispatched')
+    expect(database.getTask(taskId)?.status).toBe('completed')
   })
 
   it('admits a settled legacy worker only to replay an operation it committed', async () => {

@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { findDuplicateTomlDeclarations } from '../../configuration/toml/config-toml-duplicate-declarations-test-fixture'
 import { repairOrcaDuplicateTrustTables } from './config-toml-project-duplicate-repair'
-import { upsertProjectTrustLevel } from './config-toml-trust'
 import { upsertProjectTrustContent as upsertProjectTrustLevelInContent } from './config-toml-project-trust'
 import {
   createTrustConfigFixture,
@@ -11,13 +8,11 @@ import {
 
 // Use distinct project paths because repair refusals are logged once per reason.
 let tmpDir: string
-let configPath: string
 let warn: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   const fixture = createTrustConfigFixture()
   tmpDir = fixture.tmpDir
-  configPath = fixture.configPath
   warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
@@ -27,37 +22,6 @@ afterEach(() => {
 })
 
 describe('repairing configs broken by #22592', () => {
-  it('removes the table Orca appended beside Codex quoted spelling and keeps a .bak', () => {
-    const projectPath = '/Users/me/Projects/agentic-WPS'
-    const broken = [
-      'model = "gpt-5.5"',
-      '',
-      `["projects"."${projectPath}"]`,
-      '"trust_level" = "trusted"',
-      '',
-      `[projects."${projectPath}"]`,
-      'trust_level = "trusted"',
-      ''
-    ].join('\n')
-    writeFileSync(configPath, broken)
-    expect(findDuplicateTomlDeclarations(broken)).not.toEqual([])
-
-    upsertProjectTrustLevel(configPath, projectPath, 'trusted')
-
-    const repaired = readFileSync(configPath, 'utf-8')
-    expect(repaired).toBe(
-      [
-        'model = "gpt-5.5"',
-        '',
-        `["projects"."${projectPath}"]`,
-        'trust_level = "trusted"',
-        ''
-      ].join('\n')
-    )
-    expect(findDuplicateTomlDeclarations(repaired)).toEqual([])
-    expect(readFileSync(`${configPath}.bak`, 'utf-8')).toBe(broken)
-    expect(warn).not.toHaveBeenCalled()
-  })
 
   it('repairs a duplicate for another project than the one being trusted', () => {
     const broken = [

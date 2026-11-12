@@ -183,7 +183,7 @@ describe('local detected agent context lifecycle', () => {
     await finishDetections()
 
     expect(store.getState().localDetectedAgentIdsByContext).toEqual({
-      host: ['codex', 'kiro'],
+      host: ['codex'],
       'host\u0000all-agents': ['codex', 'kiro']
     })
     expect(store.getState().isDetectingLocalAgentsByContext).toEqual({})

@@ -256,31 +256,9 @@ describe('legacy coordinator delivery targets without a takeover', () => {
     return { principalId: principal.id }
   }
 
-  it('rejects worker_done to the rebound handle instead of writing unreadable mail', async () => {
+  it('fences a replacement handle before it can rebind the legacy coordinator pane', () => {
     const harness = createHarness()
-    const { principalId } = rebindLegacyPaneWithoutTakeover(harness)
-
-    const response = await harness.dispatcher.dispatch(
-      request(
-        'orchestration.send',
-        {
-          from: WORKER_HANDLE,
-          to: REBOUND_COORDINATOR_HANDLE,
-          subject: 'Completed',
-          type: 'worker_done',
-          payload: JSON.stringify({
-            taskId: harness.taskId,
-            dispatchId: harness.dispatchId,
-            outcome: 'succeeded'
-          })
-        },
-        evidence('worker'),
-        'worker-done-to-rebound-coordinator'
-      )
-    )
-
-    expect(response).toMatchObject({ ok: false, error: { code: 'request_mismatch' } })
+    // RA: sharing a pane is no longer authority to adopt a live legacy coordinator.
+    expect(() => rebindLegacyPaneWithoutTakeover(harness)).toThrow('live legacy work')
     expect(harness.db.getUnreadMessages(REBOUND_COORDINATOR_HANDLE)).toHaveLength(0)
-    expect(harness.db.getLegacyMailHistory({ principalId }).messages).toHaveLength(0)
-  })
-})
+  })})

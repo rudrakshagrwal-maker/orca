@@ -1,5 +1,5 @@
 import type { IDisposable } from '@xterm/xterm'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { installFilePathLinkClickFallback } from './files/terminal-link-handlers'
 import { openFilePathLinkAtBufferPosition } from './files/terminal-file-link-hit-testing'
 import { createTerminalLinkTestDoubles } from './terminal-link-handlers-test-fixtures'
@@ -18,7 +18,8 @@ import {
 } from './terminal-link-handlers-test-harness'
 
 const doubles = createTerminalLinkTestDoubles()
-const { storeState, openFileMock, openFilePathMock, createBrowserTabMock } = doubles
+const { storeState, openFilePathMock } = doubles
+const openExternalEditorMock = vi.fn(async () => ({ ok: true as const }))
 
 vi.mock('@/store/index', () => ({
   useAppStore: {
@@ -40,6 +41,10 @@ vi.mock('@/lib/workspace/ownership/connection-context', () => ({
 }))
 
 installTerminalLinkTestEnvironment(doubles)
+beforeEach(() => {
+  // RA: verified links use the external VS Code bridge.
+  window.api.shell.openInExternalEditor = openExternalEditorMock
+})
 
 describe('createFilePathLinkProvider range bounds', () => {
   it('opens a wrapped continuation-row html path from a direct modifier-click fallback', async () => {
@@ -64,11 +69,7 @@ describe('createFilePathLinkProvider range bounds', () => {
     await flushAsyncWork()
 
     expect(opened).toBe(true)
-    expect(createBrowserTabMock).toHaveBeenCalledWith(
-      'wt-1',
-      'file:///tmp/mobile/mock-homepage.html',
-      expect.objectContaining({ title: 'mock-homepage.html', activate: true })
-    )
+    expect(openExternalEditorMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/tmp/mobile/mock-homepage.html', builtInEditorId: 'vscode', ownerHostId: 'local' }))
     expect(openFilePathMock).not.toHaveBeenCalled()
   })
 
@@ -94,10 +95,7 @@ describe('createFilePathLinkProvider range bounds', () => {
     await flushAsyncWork()
 
     expect(opened).toBe(true)
-    expect(openFileMock).toHaveBeenCalledWith(
-      expect.objectContaining({ filePath: '/repo/My Folder' }),
-      { forceContentReload: true }
-    )
+    expect(openExternalEditorMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/repo/My Folder', builtInEditorId: 'vscode', ownerHostId: 'local' }))
     expect(openFilePathMock).not.toHaveBeenCalled()
   })
 
@@ -122,16 +120,13 @@ describe('createFilePathLinkProvider range bounds', () => {
       )
 
     expect(openAtCurrentTime()).toBe(false)
-    expect(openFileMock).not.toHaveBeenCalled()
+    expect(openExternalEditorMock).not.toHaveBeenCalled()
 
     now.mockReturnValue(11_000)
     expect(openAtCurrentTime()).toBe(true)
     await flushAsyncWork()
 
-    expect(openFileMock).toHaveBeenCalledWith(
-      expect.objectContaining({ filePath: '/tmp/eventually-created.ts' }),
-      { forceContentReload: true }
-    )
+    expect(openExternalEditorMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/tmp/eventually-created.ts', builtInEditorId: 'vscode', ownerHostId: 'local' }))
     now.mockRestore()
   })
 
@@ -168,10 +163,7 @@ describe('createFilePathLinkProvider range bounds', () => {
     } as unknown as MouseEvent)
     await flushAsyncWork()
 
-    expect(openFilePathMock).toHaveBeenCalledWith(
-      '/private/tmp/orca-setup-e2e.hOW01f/workspaces/test-wt-5/mobile/packages/expo-two-way-audio/android/src/main/java/expo/modules/twowayaudio/ExpoTwoWayAudioLifeCycleListener.kt',
-      'local'
-    )
+    expect(openExternalEditorMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/private/tmp/orca-setup-e2e.hOW01f/workspaces/test-wt-5/mobile/packages/expo-two-way-audio/android/src/main/java/expo/modules/twowayaudio/ExpoTwoWayAudioLifeCycleListener.kt', builtInEditorId: 'vscode', ownerHostId: 'local' }))
     expect(preventDefault).toHaveBeenCalled()
     expect(stopPropagation).toHaveBeenCalled()
     expect(terminal.clearSelection).toHaveBeenCalled()
@@ -207,10 +199,7 @@ describe('createFilePathLinkProvider range bounds', () => {
     await flushAsyncWork()
 
     expect(opened).toBe(true)
-    expect(openFilePathMock).toHaveBeenCalledWith(
-      '/private/tmp/orca-setup-e2e.hOW01f/workspaces/test-wt-5/mobile/packages/expo-two-way-audio/android/src/main/java/expo/modules/twowayaudio/ExpoTwoWayAudioLifeCycleListener.kt',
-      'local'
-    )
+    expect(openExternalEditorMock).toHaveBeenCalledWith(expect.objectContaining({ path: '/private/tmp/orca-setup-e2e.hOW01f/workspaces/test-wt-5/mobile/packages/expo-two-way-audio/android/src/main/java/expo/modules/twowayaudio/ExpoTwoWayAudioLifeCycleListener.kt', builtInEditorId: 'vscode', ownerHostId: 'local' }))
   })
 
   it('opens the same boundary path from direct clicks on both physical halves', async () => {
@@ -241,11 +230,8 @@ describe('createFilePathLinkProvider range bounds', () => {
       await flushDoubleRaf()
 
       expect(opened).toBe(true)
-      expect(openFileMock).toHaveBeenLastCalledWith(
-        expect.objectContaining({ filePath: `/repo/${middlePath}` }),
-        { forceContentReload: true }
-      )
+      expect(openExternalEditorMock).toHaveBeenLastCalledWith(expect.objectContaining({ path: `/repo/${middlePath}`, builtInEditorId: 'vscode', ownerHostId: 'local' }))
     }
-    expect(openFileMock).toHaveBeenCalledTimes(2)
+    expect(openExternalEditorMock).toHaveBeenCalledTimes(2)
   })
 })

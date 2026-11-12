@@ -76,7 +76,7 @@ describe('workspace document guest input', () => {
       }
     )
 
-    expect(send.mock.calls).toEqual([['ui:ctrlTabKeyDown', { shiftKey: false }]])
+    expect(send.mock.calls).toEqual([['ui:browserPageTabShortcut', { key: 'Tab', code: 'Tab', control: true, alt: false, shift: false, meta: false, doubleTapModifier: undefined }]])
   })
 
   it('reports a press in the preview so its split becomes active', () => {

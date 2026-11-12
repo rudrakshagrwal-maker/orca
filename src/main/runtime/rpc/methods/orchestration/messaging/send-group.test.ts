@@ -148,18 +148,12 @@ describe('orchestration.send group addresses', () => {
     expect(result.messages.map((m) => m.to_handle)).toEqual([`dispatch:${started.dispatch.id}`])
   })
 
-  it('lets a worker address its Run siblings with @all, excluding itself', async () => {
+  it('fences a worker from broadcasting to its Run siblings', async () => {
     setupWithTerminals([makeSummary('term_coord'), makeSummary('term_a'), makeSummary('term_b')])
     dispatchWorker('term_a')
-    const sibling = dispatchWorker('term_b')
-
-    const result = (await call('orchestration.send', {
-      from: 'term_a',
-      to: '@all',
-      subject: 'sibling ping'
-    })) as GroupReceipt
-
-    expect(result.messages.map((m) => m.to_handle)).toEqual([`dispatch:${sibling}`])
+    dispatchWorker('term_b')
+    await expect(call('orchestration.send', { from: 'term_a', to: '@all', subject: 'sibling ping' })).rejects.toMatchObject({ code: 'consumer_fenced' })
+    expect(db.getInbox(100)).toHaveLength(0)
   })
 
   it.each([false, true])(

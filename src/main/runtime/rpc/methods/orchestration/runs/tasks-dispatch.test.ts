@@ -30,20 +30,20 @@ describe('orchestration RPC methods', () => {
     it('records the caller pane, process, and Run generation when creating a task', async () => {
       setup()
       vi.spyOn(runtime, 'getTerminalPaneKey').mockImplementation((handle) =>
-        handle === 'term_creator' ? coordinatorPaneKey : null
+        handle === 'term_coord' ? coordinatorPaneKey : null
       )
       vi.spyOn(runtime, 'getOrchestrationDispatchAuthority').mockReturnValue({
-        terminalHandle: 'term_creator',
+        terminalHandle: 'term_coord',
         paneKey: coordinatorPaneKey,
         processIncarnation: 'pty-creator:incarnation-a'
       } as never)
       const result = (await call('orchestration.taskCreate', {
         spec: 'spawn related workspace',
-        callerTerminalHandle: 'term_creator'
+        callerTerminalHandle: 'term_coord'
       })) as { task: { id: string } }
 
       expect(db.getTask(result.task.id)).toMatchObject({
-        created_by_terminal_handle: 'term_creator',
+        created_by_terminal_handle: 'term_coord',
         created_by_pane_key: coordinatorPaneKey,
         created_by_process_incarnation: 'pty-creator:incarnation-a',
         created_by_run_generation: 1

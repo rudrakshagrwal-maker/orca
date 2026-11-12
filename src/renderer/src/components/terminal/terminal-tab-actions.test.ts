@@ -72,6 +72,7 @@ describe('closeTerminalTab', () => {
     isWebRuntimeSessionActiveMock.mockReturnValue(true)
     resolveHostSessionTabIdForWebSessionTabMock.mockReturnValue('host-tab-1')
     getStateMock.mockReturnValue({
+      settings: { workerTabsShown: true },
       ...terminalOwnerRows('web-runtime'),
       tabsByWorktree: {
         'wt-1': [{ id: 'local-tab-1' }, { id: 'local-tab-2' }]
@@ -97,6 +98,7 @@ describe('closeTerminalTab', () => {
     isWebRuntimeSessionActiveMock.mockReturnValue(true)
     resolveHostSessionTabIdForWebSessionTabMock.mockReturnValue('host-tab-1')
     getStateMock.mockReturnValue({
+      settings: { workerTabsShown: true },
       ...terminalOwnerRows('web-runtime'),
       tabsByWorktree: {
         'wt-1': [{ id: 'local-tab-1' }, { id: 'local-tab-2' }]
@@ -114,7 +116,8 @@ describe('closeTerminalTab', () => {
 
     expect(closeTab).toHaveBeenCalledWith('local-tab-1', {
       reason: undefined,
-      remoteCloseOwnedByHost: true
+      remoteCloseOwnedByHost: true,
+      allowWorkerRetirement: true
     })
     expect(closeWebRuntimeSessionTabMock).toHaveBeenCalledWith({
       worktreeId: 'wt-1',
@@ -136,6 +139,7 @@ describe('closeTerminalTab', () => {
       isWebRuntimeSessionActiveMock.mockReturnValue(true)
       resolveHostSessionTabIdForWebSessionTabMock.mockReturnValue('host-tab-1')
       getStateMock.mockReturnValue({
+      settings: { workerTabsShown: true },
         ...terminalOwnerRows('web-runtime'),
         tabsByWorktree: { 'wt-1': [{ id: 'local-tab-1' }, { id: 'local-tab-2' }] },
         activeWorktreeId: 'wt-1',
@@ -173,6 +177,7 @@ describe('closeTerminalTab', () => {
     const closeTab = vi.fn()
     const closeUnifiedTab = vi.fn()
     getStateMock.mockReturnValue({
+      settings: { workerTabsShown: true },
       ...terminalOwnerRows(null),
       tabsByWorktree: {},
       unifiedTabsByWorktree: {
@@ -206,7 +211,7 @@ describe('closeTerminalTab', () => {
 
     closeTerminalTab('terminal-entity-1', { reason: 'user' })
 
-    expect(closeTab).toHaveBeenCalledWith('terminal-entity-1', { reason: 'user' })
+    expect(closeTab).toHaveBeenCalledWith('terminal-entity-1', { reason: 'user', allowWorkerRetirement: false })
     expect(closeUnifiedTab).not.toHaveBeenCalled()
   })
 
@@ -216,6 +221,7 @@ describe('closeTerminalTab', () => {
     isWebRuntimeSessionActiveMock.mockReturnValue(true)
     resolveHostSessionTabIdForWebSessionTabMock.mockReturnValue(null)
     getStateMock.mockReturnValue({
+      settings: { workerTabsShown: true },
       ...terminalOwnerRows('web-runtime'),
       tabsByWorktree: {
         'wt-1': [{ id: 'plain-uuid-tab' }, { id: 'local-tab-2' }]
@@ -231,7 +237,8 @@ describe('closeTerminalTab', () => {
 
     expect(closeTab).toHaveBeenCalledWith('plain-uuid-tab', {
       reason: 'user',
-      remoteCloseOwnedByHost: true
+      remoteCloseOwnedByHost: true,
+      allowWorkerRetirement: false
     })
     expect(closeWebRuntimeSessionTabMock).toHaveBeenCalledWith({
       worktreeId: 'wt-1',
@@ -312,6 +319,7 @@ describe('closeOtherTerminalTabs', () => {
     const closeTab = vi.fn()
     isWebRuntimeSessionActiveMock.mockReturnValue(true)
     getStateMock.mockReturnValue({
+      settings: { workerTabsShown: true },
       ...terminalOwnerRows('web-runtime'),
       tabsByWorktree: {
         'wt-1': [{ id: 'keep' }, { id: 'close-a' }, { id: 'close-b' }]

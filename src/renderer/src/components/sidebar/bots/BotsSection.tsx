@@ -9,7 +9,7 @@ export function BotsSection(): React.JSX.Element | null {
   const [expanded, setExpanded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { snapshot, busy, refresh } = useBotProfiles(expanded)
-  if (!window.api.bots) return null
+  if (!window.api?.bots) return null
   return <section className="shrink-0 border-t border-sidebar-border px-2 py-1">
     <div className="flex items-center justify-between">
       <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>

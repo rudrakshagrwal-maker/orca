@@ -155,8 +155,8 @@ describe('orchestration RPC methods', () => {
         handle === 'term_worker' ? 'tab_foreign:leaf_foreign' : coordinatorPaneKey
       )
 
-      expect(
-        await call('orchestration.send', {
+      await expect(
+        call('orchestration.send', {
           from: 'term_worker',
           subject: 'Done',
           type: 'worker_done',
@@ -166,7 +166,7 @@ describe('orchestration RPC methods', () => {
             outcome: 'succeeded'
           })
         })
-      ).toMatchObject({ lifecycle: { action: 'rejected', code: 'worker_identity_changed' } })
+      ).rejects.toMatchObject({ code: 'consumer_fenced' })
       expect(db.getTask(task.id)?.status).toBe('dispatched')
     })
 

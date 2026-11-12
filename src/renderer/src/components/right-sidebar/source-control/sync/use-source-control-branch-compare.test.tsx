@@ -23,6 +23,7 @@ vi.mock('@/lib/workspace/ownership/connection-context', () => ({
 }))
 vi.mock('@/store/index', () => {
   const state = {
+    activeWorktreeId: 'A', // RA: only the selected workspace owns automatic compare refreshes.
     beginGitBranchCompareRequest: mocks.beginGitBranchCompareRequest,
     setGitBranchCompareResult: mocks.setGitBranchCompareResult,
     clearGitBranchCompare: mocks.clearGitBranchCompare,

@@ -467,7 +467,6 @@ describe('remote runtime request connection integration', () => {
             ['runtime.clientEvents.subscribe', undefined],
             ['session.tabs.subscribe', { worktree: 'id:wt-1' }],
             ['accounts.subscribe', undefined],
-            ['notifications.subscribe', undefined],
             ['files.watch', { worktree: 'id:wt-1' }]
           ] as const
           const mixedSubscriptions = await Promise.all(

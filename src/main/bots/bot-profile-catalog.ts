@@ -15,8 +15,8 @@ export const validBotId = (id: string): boolean => /^[A-Za-z0-9][A-Za-z0-9_.-]{0
 
 export function parseHermesProfiles(output: string): BotProfile[] {
   const clean = output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '')
-  if (!/^\s*Profile\s+Model\s+Gateway\b/m.test(clean)) throw new Error('Unknown Hermes profile table')
-  const rows = clean.slice(clean.search(/^\s*Profile\s+Model\s+Gateway\b/m)).split(/\r?\n/).slice(1).filter((line) => line.trim() && !/^[\s─━-]+$/.test(line))
+  if (!/^[ \t]*Profile[ \t]+Model[ \t]+Gateway\b/m.test(clean)) throw new Error('Unknown Hermes profile table')
+  const rows = clean.slice(clean.search(/^[ \t]*Profile[ \t]+Model[ \t]+Gateway\b/m)).split(/\r?\n/).slice(1).filter((line) => line.trim() && !/^[\s─━-]+$/.test(line))
   if (!rows.length) throw new Error('Hermes profile table has no recognized rows')
   const seen = new Set<string>()
   return rows.map((line) => {

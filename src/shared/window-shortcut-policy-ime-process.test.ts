@@ -33,7 +33,7 @@ describe('window shortcuts pressed during IME composition (#28159)', () => {
 
   it('uses the platform chords on Windows and Linux while composing', () => {
     expect(resolveWindowShortcutAction(imeChord('Digit4', { alt: true }), 'win32')).toEqual({
-      type: 'jumpToTabIndex',
+      type: 'jumpToWorktreeIndex',
       index: 3
     })
     expect(resolveWindowShortcutAction(imeChord('Digit4', { control: true }), 'linux')).toEqual({

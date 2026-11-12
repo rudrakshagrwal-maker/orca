@@ -6,14 +6,14 @@ export function useBotProfiles(expanded: boolean) {
   const [snapshot, setSnapshot] = useState(saved)
   const [busy, setBusy] = useState(false)
   const refresh = useCallback(async () => {
-    if (!window.api.bots) return
+    if (!window.api?.bots) return
     setBusy(true)
     try { saved = await window.api.bots.list(true); setSnapshot(saved) }
     catch { setSnapshot((old) => ({ ...old, error: 'Discovery unavailable; retry Refresh.' })) }
     finally { setBusy(false) }
   }, [])
   useEffect(() => {
-    if (!expanded || !window.api.bots) return
+    if (!expanded || !window.api?.bots) return
     let cancelled = false
     void window.api.bots.list().then(async (cache) => {
       saved = cache

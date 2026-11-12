@@ -172,7 +172,7 @@ describe('shell showing through a hibernation kill', () => {
       createPane(1),
       createManager(1),
       createDeps({
-        isVisibleRef: { current: false },
+        isVisibleRef: { current: true },
         consumeSuppressedPtyExit: vi.fn((id: string) => {
           const suppressed = mockStoreState.suppressedPtyExitIds[id] === true
           delete mockStoreState.suppressedPtyExitIds[id]

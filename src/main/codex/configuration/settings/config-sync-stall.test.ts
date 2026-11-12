@@ -113,7 +113,7 @@ describe('reportCodexConfigSyncOutcome', () => {
       expect(warn.mock.calls.filter((c) => String(c[0]).includes('stalled'))).toHaveLength(1)
       warn.mockClear()
 
-      // Readable source plus an unwritable home fails promotion and skips the mirror.
+      // RA: canonical home permissions cannot stall a promotion the fork never performs.
       writeFileSync(systemConfigPath(), 'model = "gpt-5"\n', 'utf-8')
       chmodSync(homes.systemHomePath, 0o555)
       try {
@@ -122,7 +122,7 @@ describe('reportCodexConfigSyncOutcome', () => {
         chmodSync(homes.systemHomePath, 0o755)
       }
 
-      expect(warn.mock.calls.filter((c) => String(c[0]).includes('stall cleared'))).toHaveLength(0)
+      expect(warn.mock.calls.filter((c) => String(c[0]).includes('stall cleared'))).toHaveLength(1)
       expect(readFileSync(runtimeConfigPath(), 'utf-8')).toContain('model = "o4"')
     }
   )

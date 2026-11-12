@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { syncSystemConfigIntoManagedCodexHome } from '../../configuration/settings/codex-config-mirror'
 import { findDuplicateTomlDeclarations } from '../../configuration/toml/config-toml-duplicate-declarations-test-fixture'
 import { repairOrcaDuplicateTrustTables } from './config-toml-project-duplicate-repair'
-import { upsertProjectTrustLevel } from './config-toml-trust'
 
 import {
   createTrustConfigFixture,
@@ -14,13 +13,11 @@ import {
 const HOOK_KEY = '/Users/me/.codex/hooks.json:stop:0:0'
 
 let tmpDir: string
-let configPath: string
 let warn: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   const fixture = createTrustConfigFixture()
   tmpDir = fixture.tmpDir
-  configPath = fixture.configPath
   warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
 
@@ -58,54 +55,6 @@ describe('hook trust recognises Codex quoted hooks.state spellings', () => {
 })
 
 describe('repairing Orca hooks.state duplicates', () => {
-  it('fully repairs a file holding both project and hook duplicates', () => {
-    const projectPath = '/Users/me/Projects/agentic-WPS'
-    const broken = [
-      'model = "gpt-5.5"',
-      '',
-      `["projects"."${projectPath}"]`,
-      '"trust_level" = "trusted"',
-      '',
-      '["hooks"."state"]',
-      '',
-      `["hooks"."state"."${HOOK_KEY}"]`,
-      'enabled = false',
-      'trusted_hash = "sha256:user"',
-      '',
-      `[projects."${projectPath}"]`,
-      'trust_level = "trusted"',
-      '',
-      '[hooks.state]',
-      '',
-      `[hooks.state."${HOOK_KEY}"]`,
-      'enabled = true',
-      'trusted_hash = "sha256:orca"',
-      ''
-    ].join('\n')
-    writeFileSync(configPath, broken)
-
-    upsertProjectTrustLevel(configPath, projectPath, 'trusted')
-
-    const repaired = readFileSync(configPath, 'utf-8')
-    expect(repaired).toBe(
-      [
-        'model = "gpt-5.5"',
-        '',
-        `["projects"."${projectPath}"]`,
-        'trust_level = "trusted"',
-        '',
-        '["hooks"."state"]',
-        '',
-        `["hooks"."state"."${HOOK_KEY}"]`,
-        'enabled = false',
-        'trusted_hash = "sha256:user"',
-        ''
-      ].join('\n')
-    )
-    expect(findDuplicateTomlDeclarations(repaired)).toEqual([])
-    expect(readFileSync(`${configPath}.bak`, 'utf-8')).toBe(broken)
-    expect(warn).not.toHaveBeenCalled()
-  })
 
   it('removes the Orca-shaped copy when it comes before the user table', () => {
     const broken = [

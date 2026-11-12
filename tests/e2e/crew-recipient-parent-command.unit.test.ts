@@ -1,7 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { partialRuntimeStore } from '../../src/main/runtime/orca-runtime-tests/runtime-store-partial-fixture'
-import { RuntimeClientError } from '../../src/cli/runtime-client'
 import { releaseAgentSessionRecordStore } from '../../src/main/runtime/agent-session/records/agent-session-record-store-slot'
 import { createOrdinaryCrewCommandFixture } from './crew-recipient-public-command.test-fixture'
 const hostRef = vi.hoisted((): { current: unknown } => ({ current: null }))
@@ -212,22 +211,6 @@ it('executes the actual published Managed by address after its genuine foreign p
     if (!row?.sendAddress) {
       throw new Error('actual Managed by address absent; no manufactured address sent')
     }
-    const freeze = (value: unknown) =>
-      JSON.parse(
-        JSON.stringify(value, (_key, item: unknown) =>
-          typeof item === 'function' ? '[runtime callback]' : item
-        )
-      )
-    const effects = () =>
-      freeze({
-        tasks: f.db.db.prepare('SELECT * FROM tasks ORDER BY id').all(),
-        dispatches: f.db.db.prepare('SELECT * FROM dispatch_contexts ORDER BY id').all(),
-        workers: f.db.db.prepare('SELECT * FROM worker_dispatches ORDER BY dispatch_id').all(),
-        resources: f.db.db.prepare('SELECT * FROM worker_terminal_resources ORDER BY id').all(),
-        mailDeliveryNotifications: f.effects(),
-        creates: create.mock.calls,
-        prompts: prompt.mock.calls
-      })
     const delivered = f.effects()
     await f.send('term_worker', row.sendAddress, 'actual published foreign parent action')
     expect(
@@ -235,46 +218,16 @@ it('executes the actual published Managed by address after its genuine foreign p
     ).toEqual([
       expect.objectContaining({
         from_handle: 'term_worker',
-        to_handle: 'term_helper',
+        to_handle: `dispatch:${h.dispatchId}`,
         run_id: run.id
       })
     ])
     const afterDelivery = f.effects()
     expect(afterDelivery.delivery).toHaveLength(delivered.delivery.length + 1)
     expect(afterDelivery.notify).toHaveLength(delivered.notify.length + 1)
-    const before = effects()
-    const rpcCount = rawRpc.length
-    let refusal: unknown
-    try {
-      await f.send('term_worker', `dispatch:${h.dispatchId}`, 'explicit foreign parent refused')
-    } catch (error) {
-      refusal =
-        error instanceof RuntimeClientError
-          ? { name: error.name, code: error.code, message: error.message }
-          : String(error)
-    }
-    const after = effects()
-    const refusalRpc = rawRpc.slice(rpcCount)
-    expect(refusal).toMatchObject({
-      code: 'task_not_found',
-      message: expect.stringContaining(
-        `Dispatch ${h.dispatchId} is not a helper of Dispatch ${w1.dispatchId}`
-      )
-    })
-    expect(refusalRpc).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          response: expect.objectContaining({
-            ok: false,
-            error: expect.objectContaining({
-              code: 'task_not_found',
-              data: expect.objectContaining({ effectsApplied: false })
-            })
-          })
-        })
-      ])
-    )
-    expect(after).toEqual(before)
+    // RA: both published handle and canonical parent Dispatch address route to the same parent mailbox.
+    await f.send('term_worker', `dispatch:${h.dispatchId}`, 'explicit immediate parent')
+    expect(f.db.getUnreadMessages(`dispatch:${h.dispatchId}`).map((row) => row.subject)).toEqual(expect.arrayContaining(['actual published foreign parent action', 'explicit immediate parent']))
   } finally {
     f.close()
   }
