@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { registerBotHandlers } from '../bots' // RA: lazy discovery only.
 import { registerRestoredFeatureActivation } from '../../startup/restored-feature-activation' // RA: inert first-use IPC.
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
@@ -134,6 +135,7 @@ export function registerCoreHandlers(
   }
   registered = true
   registerRestoredFeatureActivation()
+  registerBotHandlers() // RA: registering handlers does not connect to bots.
 
   registerAppHandlers(store, {
     quitResumeRecordsFor: (session) => runtime.quitResumeRecordsFor(session),

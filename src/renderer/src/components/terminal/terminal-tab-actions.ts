@@ -3,6 +3,7 @@ import {
   retireTerminalNoticeLifetime
 } from '../terminal-pane/provider-notices/terminal-notice-lifetime'
 import { useAppStore } from '@/store'
+import { hideWorkerTabOnClose } from './worker-tab-visibility' // RA: user closes must stop before confirmation or host teardown.
 import { closeWebRuntimeSessionTab } from '@/runtime/web-session-tabs-sync/actions/web-runtime-session-tab-lifecycle'
 import { isWebRuntimeSessionActive } from '@/runtime/web-session-tabs-sync/identity/web-runtime-session-environment'
 import { toHostSessionTabId } from '../../../../shared/workspace-layout/terminal-surface-id'
@@ -70,6 +71,7 @@ export function closeTerminalTab(tabId: string, options: CloseTerminalTabOptions
   const intent = options.reason ?? options.hostCloseReason
   const storeReason = terminalTabCloseStoreReason(intent)
   const state = useAppStore.getState()
+  if (options.reason === 'user' && hideWorkerTabOnClose(state, tabId)) return // RA: hide the view, keep the worker.
   const precomputedCloseState = validatePrecomputedTerminalCloseState(
     tabId,
     options?.precomputedRetirementPlan,
@@ -81,6 +83,7 @@ export function closeTerminalTab(tabId: string, options: CloseTerminalTabOptions
       // Why: late explicit cleanup must still revoke tab-scoped resume authority after PTY exit removed the row.
       state.closeTab(tabId, {
         reason: storeReason,
+        allowWorkerRetirement: intent === 'requested' || options.hostCloseReason !== undefined, // RA: external explicit closes retain their original meaning.
         ...(options?.localPtyTeardownOwnedExternally
           ? { localPtyTeardownOwnedExternally: true }
           : {}),
@@ -164,6 +167,7 @@ export function closeTerminalTab(tabId: string, options: CloseTerminalTabOptions
         : getLatestWebSessionTabsPublicationEpoch(runtimeEnvironmentId, owningWorktreeId)
     // Prune local mirrors while awaiting the host snapshot so close feels immediate.
     closeLocalTerminalTabState(terminalTabId, {
+      allowWorkerRetirement: intent === 'requested' || options.hostCloseReason !== undefined, // RA: host-owned teardown is not a view close.
       // A host-only lifecycle reason leaves the local close untagged; the host adjudicates the PTY.
       reason: options.reason === undefined ? undefined : storeReason,
       ...(options?.captureRecentlyClosed !== undefined
@@ -229,6 +233,7 @@ export function closeTerminalTab(tabId: string, options: CloseTerminalTabOptions
       ? getTerminalNoticeLifetime(options.lifecyclePtyId)
       : undefined
   closeLocalTerminalTabState(terminalTabId, {
+    allowWorkerRetirement: intent === 'requested' || options.hostCloseReason !== undefined, // RA: preserve explicit RPC close semantics.
     reason: storeReason,
     ...(options?.captureRecentlyClosed !== undefined
       ? { captureRecentlyClosed: options.captureRecentlyClosed }

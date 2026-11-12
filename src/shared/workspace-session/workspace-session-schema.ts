@@ -1,5 +1,6 @@
 // Validate persisted sessions at read boundaries so malformed legacy data never reaches React. Ignore unknown fields, validate fields we read, and salvage independent entries via zod-salvage; only non-session payloads reset to defaults.
 import { z } from 'zod'
+import { botTerminalIdentitySchema } from '../bot-profile-schema' // RA: shared persistence/IPC boundary.
 import {
   leafStringsSchema,
   terminalLayoutSnapshotSchema
@@ -63,6 +64,10 @@ export const terminalTabSchema = z.object({
   createdAt: z.number(),
   generation: z.number().optional(),
   startupCwd: z.string().min(1).optional(),
+  shellOverride: z.string().optional(), // RA: restored bots retain their explicitly chosen Windows shell.
+  forceHostRuntime: z.boolean().optional(), // RA: never move the Windows SSH key into WSL.
+  // RA: Identity is display/reconnect metadata; main resolves every subsequent command from its catalogue.
+  botProfile: botTerminalIdentitySchema.optional().catch(undefined),
   // Retain the idle agent icon before hooks fire; unknown IDs degrade to absent without resetting the session.
   launchAgent: z
     .custom<TuiAgent>((v) => isTuiAgent(v))

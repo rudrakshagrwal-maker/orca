@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { revealWorkerTab } from '@/components/terminal/worker-tab-visibility' // RA: include launch-only rows.
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
 import { AgentStateDot } from '@/components/AgentStateDot'
@@ -137,6 +138,7 @@ export function WorktreeLiveAgentRows({
                 style={{ marginLeft: `${row.depth * 1.25}rem` }}
                 className="flex h-6 min-w-0 items-center gap-1 rounded-sm px-1 text-left text-2xs hover:bg-worktree-sidebar-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"
                 onClick={() => {
+                  revealWorkerTab(row.tab.id) // RA: a row is the explicit visibility request.
                   if (structuredIds.includes(row.tab.id)) {
                     activateAndRevealWorktree(worktreeId)
                     activateStructuredAgentSessionTab({ worktreeId, tabId: row.tab.id })

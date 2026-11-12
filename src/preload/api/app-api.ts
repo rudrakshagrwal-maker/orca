@@ -1,4 +1,5 @@
 import type { UiLanguageDetection } from '../../shared/ui-locale'
+import type { WorkerRamQueueRow } from '../../shared/worker-ram-queue' // RA: admission rows.
 import type { WindowMaterial } from '../../shared/window-material'
 import type { AppIdentity } from '../../shared/app-identity'
 import type { MacosUpgradeSupport } from '../../shared/macos-upgrade-support'
@@ -17,6 +18,11 @@ import type { KeyboardLayoutSnapshot } from '../../shared/keyboard-layout-snapsh
 import type { KeyboardLayoutChangeEvent } from '../../shared/keyboard-layout-events'
 
 export type AppApi = {
+  // RA: local desktop capabilities remain optional for older/web clients.
+  windowsLoginItem?: (enabled?: boolean) => Promise<{ supported: boolean; enabled: boolean; reason?: string }>
+  systemRamPercent?: () => Promise<number>
+  workerRamQueue?: () => Promise<WorkerRamQueueRow[]>
+  onWorkerRamQueueChanged?: (callback: (rows: WorkerRamQueueRow[]) => void) => () => void
   getSystemLanguageDetection?: (
     browserPreferences?: readonly string[]
   ) => Promise<UiLanguageDetection | null>

@@ -89,12 +89,12 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
     }).catch(async (error: unknown) => {
       throw await explainOlderRuntimeRunRequired(client, error)
     })
-    if (result.result.state !== 'ready') {
+    if (result.result.state !== 'ready' && result.result.state !== 'queued') { // RA: admission is accepted, not failed.
       process.exitCode = 1
     }
     const keepOpenState =
       (flags.has('keep-open') || startsInNewWorkspace(flags)) &&
-      (result.result.state === 'ready' || isUnobservedTurnStart(result.result))
+      (result.result.state === 'ready' || result.result.state === 'queued' || isUnobservedTurnStart(result.result)) // RA: queued work keeps its requested custody.
         ? await keepWorkerOpen(client, result.result.dispatchId)
         : undefined
     const renderedResult = {

@@ -1,4 +1,5 @@
 import type { AiVaultSessionTitle } from '../ai-vault/contracts/ai-vault-session-title'
+import type { BotTerminalIdentity } from '../bot-profile-types' // RA: durable non-secret bot launch identity.
 import type { TuiAgent } from '../agent-launch/catalog/tui-agent'
 import type { AgentLaunchPaneOutcome } from '../agent-launch/contracts/agent-launch-pane-verdict'
 
@@ -71,6 +72,7 @@ export type TerminalTab = {
   forceHostRuntime?: boolean
   /** An explorer cwd below root retains workspace tab/session ownership. */
   startupCwd?: string
+  botProfile?: BotTerminalIdentity // RA: cold restore offers Reconnect, never a fresh model turn.
   /** Show the launched agent’s icon before its first hook; live status later wins. Plain terminals/manually started agents omit this. */
   launchAgent?: TuiAgent
   /** Session-only agent.launch pane reservation, cleared on attachment/return to an ordinary terminal.

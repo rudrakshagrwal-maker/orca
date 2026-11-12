@@ -1,4 +1,5 @@
 import { useAppStore } from '@/store'
+import { revealWorkerTab } from '@/components/terminal/worker-tab-visibility' // RA: retained worker row opens its view too.
 import { activateAndRevealWorkspace } from '@/lib/workspace/activation/worktree-activation'
 import { activateTabAndFocusPane } from '@/lib/workspace/tabs/activate-tab-and-focus-pane'
 import { activateTerminalTabOnOwner } from '@/lib/workspace/tabs/terminal-tab-owner-activation'
@@ -35,6 +36,7 @@ export function activateRetainedAgentRow(worktreeId: string, tabId: string, pane
     return
   }
   // Verify an existing destination before workspace activation can resume sleeping panes.
+  revealWorkerTab(tabId) // RA: opening the sidebar row is explicit.
   if (
     activateAndRevealWorkspace(worktreeId, owner ? { executionHostId: owner } : undefined) === false
   ) {

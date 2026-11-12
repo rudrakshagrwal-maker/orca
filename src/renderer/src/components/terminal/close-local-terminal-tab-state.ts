@@ -8,6 +8,7 @@ export function closeLocalTerminalTabState(
   terminalTabId: string,
   options?: {
     reason?: TerminalTabCloseReason
+    allowWorkerRetirement?: boolean // RA: an external actor explicitly requested process teardown.
     captureRecentlyClosed?: boolean
     remoteCloseOwnedByHost?: boolean
     preserveWorktreeSelection?: boolean

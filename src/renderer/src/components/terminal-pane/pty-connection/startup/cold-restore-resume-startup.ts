@@ -35,6 +35,8 @@ type AppState = ReturnType<typeof useAppStore.getState>
 
 /** The agent session a cold restore of this pane would resume; read-only, so pre-spawn checks can share it. */
 export function findColdRestoreResumeSource(session: ConnectPanePtySession, state: AppState) {
+  // RA: SSH/gateway observations cannot certify a bot's exact conversation for automatic resume.
+  if (state.tabsByWorktree[session.deps.worktreeId]?.some((tab) => tab.id === session.deps.tabId && tab.botProfile)) return null
   const entry = state.agentStatusByPaneKey[session.cacheKey]
   const sleepingRecordEntry = session.getSleepingRecordForPane(state)
   const sleepingRecord = sleepingRecordEntry?.record

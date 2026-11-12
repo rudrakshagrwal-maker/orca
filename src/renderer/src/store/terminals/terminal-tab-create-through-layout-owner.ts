@@ -40,6 +40,7 @@ export function withMainTerminalFacts(tab: TerminalTab): TerminalTab {
       ? pickStoredFields(terminal, [
           'shellOverride',
           'startupCwd',
+          'botProfile', // RA: host creation facts retain bot identity.
           'forceHostRuntime',
           'launchAgent'
         ])
@@ -60,6 +61,7 @@ export function terminalTabCreateCommand(
     defaultTitle: tab.defaultTitle ?? tab.title,
     ...(tab.shellOverride ? { shellOverride: tab.shellOverride } : {}),
     ...(tab.startupCwd ? { startupCwd: tab.startupCwd } : {}),
+    ...(tab.botProfile ? { botProfile: tab.botProfile } : {}), // RA: existing layout command, not a new persistence owner.
     ...(tab.forceHostRuntime ? { forceHostRuntime: true } : {}),
     ...(tab.launchAgent ? { launchAgent: tab.launchAgent } : {})
   }

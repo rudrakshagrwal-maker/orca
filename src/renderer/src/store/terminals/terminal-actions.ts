@@ -91,6 +91,7 @@ export type TerminalActions = {
       quickCommandLabel?: string | null
       viewMode?: Tab['viewMode']
       startupCwd?: string
+      botProfile?: TerminalTab['botProfile'] // RA: persisted by the existing layout owner.
       forceHostRuntime?: boolean
     }
   ) => TerminalTab
@@ -101,6 +102,7 @@ export type TerminalActions = {
     opts?: {
       recordInteraction?: boolean
       reason?: TerminalTabCloseReason
+      allowWorkerRetirement?: boolean // RA: UI hides workers; external explicit closes still retire them.
       captureRecentlyClosed?: boolean
       remoteCloseOwnedByHost?: boolean
       /** See closeUnifiedTab. */

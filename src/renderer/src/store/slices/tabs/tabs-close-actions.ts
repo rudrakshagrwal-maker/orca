@@ -1,4 +1,5 @@
 import { editorTabRetirement } from '../editor/tabs/editor-tab-retirement'
+import { hideWorkerTabOnClose } from '@/components/terminal/worker-tab-visibility' // RA: close hides worker views.
 import {
   landsOnEmptiedWorktree,
   emptiedWorktreeLandingPatch,
@@ -47,6 +48,7 @@ export function createTabsCloseActions(
         return null
       }
       const { tab, worktreeId } = found
+      if (tab.contentType === 'terminal' && !opts?.terminalRetirementHandled && hideWorkerTabOnClose(state, tab.entityId)) return null // RA: preserve custody.
       const retireEditor = opts?.editorRetirementHandled
         ? () => {}
         : editorTabRetirement(set, get, state, tab)

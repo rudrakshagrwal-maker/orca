@@ -1,4 +1,5 @@
 import { defineOrchestrationMethod } from '../access/orchestration-method-access'
+import { queueWorkerAboveRam } from '../../../../../memory/worker-ram-admission' // RA: defer injected work above RAM limit.
 import { dispatchAccess } from '../access/run-access-rules'
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
 import { buildDispatchPreamble } from '../../../../orchestration/workers/launch/worker-dispatch-preamble'
@@ -23,6 +24,8 @@ import {
 } from '../chat-assignee-admission'
 import { sendChatTask } from '../chat-task-delivery'
 import { dispatchTaskSource } from '../../../../orchestration/coordinator/dispatch/dispatch-task-source'
+import { escalateWorkerFailure } from '../../../../orchestration/workers/reports/worker-failure-escalation' // RA: asynchronous delivery must not fail silently.
+import { dispatchReportMailbox } from '../../../../orchestration/workers/reports/dispatch-report-mailbox'
 
 export const ORCHESTRATION_DISPATCH_METHODS = [
   defineOrchestrationMethod({
@@ -160,39 +163,58 @@ export const ORCHESTRATION_DISPATCH_METHODS = [
       })
 
       let injected = false
-      let prompt
-      if (params.inject) {
-        try {
-          if (chatAssignee) {
-            const from = dispatchTaskSource({
-              db,
-              dispatch: ctx,
-              from: params.from,
-              senderSnapshot: (party, reported) =>
-                runtime.orchestrationSenderNames.snapshotOf(party, reported)
-            })
-            await sendChatTask({ db, dispatch: ctx, from, preamble })
-          } else {
-            prompt = await sendAgentTurn({
-              kind: 'terminal',
-              runtime,
-              handle: to,
-              turn: {
-                purpose: 'dispatch-preamble',
-                body: preamble,
-                operationId: orchestrationMutation?.requestId ?? ctx.id
-              }
-            })
+      let prompt: Awaited<ReturnType<typeof sendAgentTurn>> | undefined // RA: deferred delivery owns the eventual reply.
+      const inject = async () => { // RA: deferred closure retains the exact dispatch and operation ID.
+        if (params.inject) {
+          try {
+            if (chatAssignee) {
+              const from = dispatchTaskSource({
+                db,
+                dispatch: ctx,
+                from: params.from,
+                senderSnapshot: (party, reported) =>
+                  runtime.orchestrationSenderNames.snapshotOf(party, reported)
+              })
+              await sendChatTask({ db, dispatch: ctx, from, preamble })
+            } else {
+              prompt = await sendAgentTurn({
+                kind: 'terminal',
+                runtime,
+                handle: to,
+                turn: {
+                  purpose: 'dispatch-preamble',
+                  body: preamble,
+                  operationId: orchestrationMutation?.requestId ?? ctx.id
+                }
+              })
+            }
+            injected = true
+          } catch (err) {
+            // Unknown delivery may still be running; keep Dispatch open for its report or explicit abandon.
+            if (!(err instanceof OrchestrationError && err.code === 'operation_unknown')) {
+              db.failDispatch(ctx.id, err instanceof Error ? err.message : String(err))
+            }
+            throw err
           }
-          injected = true
-        } catch (err) {
-          // Unknown delivery may still be running; keep Dispatch open for its report or explicit abandon.
-          if (!(err instanceof OrchestrationError && err.code === 'operation_unknown')) {
-            db.failDispatch(ctx.id, err instanceof Error ? err.message : String(err))
-          }
-          throw err
         }
       }
+      if (params.inject && await queueWorkerAboveRam({
+        row: { id: ctx.id, worktreeId: runtime.getTerminalWorktreeIdForHandle(to) ?? '', parentHandle: params.from, label: task.task_title || 'Worker' },
+        limit: () => runtime.getWorkerRamLimitPercent(),
+        current: () => { const status = db.getDispatchContextById(ctx.id)?.status; return (status === 'pending' || status === 'dispatched') && !db.isWorkerStopRequested(ctx.id) && (!ctx.creator_dispatch_id || !db.isWorkerStopRequested(ctx.creator_dispatch_id)) },
+        run: async () => {
+          try { await inject() }
+          catch {
+            escalateWorkerFailure(db, ctx, {
+              id: `ram-start-${ctx.id}`, from: to,
+              mailbox: () => dispatchReportMailbox(db, ctx),
+              describe: (name) => ({ subject: 'Deferred dispatch needs attention', body: `RAM admission released ${name}, but delivery did not complete; inspect this dispatch before retrying.` }),
+              payload: { taskId: task.id, dispatchId: ctx.id }
+            }, (destination, type) => runtime.notifyMessageArrived(destination, type))
+          }
+        }
+      })) return { dispatch: ctx, injected: false, queued: true, state: 'queued', next: 'Queued for RAM; do not resend. Orca starts this work when memory stays below the limit for 30 seconds.' }
+      await inject()
 
       // Opt into returning the preamble to avoid hundreds of unnecessary response bytes.
       if (params.returnPreamble) {

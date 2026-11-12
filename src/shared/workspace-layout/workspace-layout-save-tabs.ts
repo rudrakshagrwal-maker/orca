@@ -71,6 +71,7 @@ export function saveTerminalRow(
       'shellOverride',
       'forceHostRuntime',
       'startupCwd',
+      'botProfile', // RA: main-owned identity projection.
       'launchAgent'
     ])
   }

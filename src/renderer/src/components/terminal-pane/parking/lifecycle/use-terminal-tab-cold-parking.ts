@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { useShallow } from 'zustand/react/shallow'
 import type { TerminalTab } from '../../../../../../shared/workspace-layout/terminal-tab-types'
 import { useAppStore } from '../../../../store/index'
+import { useHiddenWorkerTabSignature } from '../../../terminal/use-worker-tab-visibility' // RA: reuse park capture/watchers.
 import {
   findActivityTerminalPortal,
   type ActivityTerminalPortalTarget
@@ -316,8 +317,18 @@ export function useTerminalTabColdParking(args: {
     allowSustainedPin: !isForceParked
   })
 
-  // Sync in the park/reveal effect flush: dispose watchers before remounted-pane IPC and start them after unmount capture.
-  useParkedTerminalWatcherSynchronization({ ...args, parkedTabIds: parkedTerminalTabIds })
+  // RA: hidden workers use the existing capture/dispose/watch path immediately, with no xterm mount.
+  const hiddenWorkerSignature = useHiddenWorkerTabSignature(worktreeId)
+  const workerParkedTabIds = useMemo(() => {
+    const hidden = new Set<string>(JSON.parse(hiddenWorkerSignature))
+    return new Set([...parkedTerminalTabIds, ...terminalTabs.filter((tab) => hidden.has(tab.id)).map((tab) => tab.id)])
+  }, [hiddenWorkerSignature, parkedTerminalTabIds, terminalTabs])
+  useEffect(() => {
+    captureNewlyParkedTerminalTabs(worktreeId, workerParkedTabIds, parkedTabCaptureDoneRef.current)
+  }, [worktreeId, workerParkedTabIds])
 
-  return parkedTerminalTabIds
+  // Sync in the park/reveal effect flush: dispose watchers before remounted-pane IPC and start them after unmount capture.
+  useParkedTerminalWatcherSynchronization({ ...args, parkedTabIds: workerParkedTabIds })
+
+  return workerParkedTabIds
 }

@@ -19,6 +19,7 @@ import type {
 } from './api/agent-usage-api'
 import type { AiVaultApi } from './api/ai-vault-api'
 import type { AppApi, E2EApi, PlatformApi } from './api/app-api'
+import type { BotsApi } from './api/bots-api' // RA: local desktop bots.
 import type { AutomationsApi } from './api/automation-api'
 import type { BrowserApi } from './api/browser/browser-api'
 import type { CliApi } from './api/cli-install-api'
@@ -79,6 +80,7 @@ type Merged<T> = { [K in keyof T]: T[K] }
 
 export type PreloadApi = {
   app: AppApi
+  bots?: BotsApi // RA: absent in browser clients.
   orcaProfiles: OrcaProfileApi
   platform: PlatformApi
   e2e: E2EApi

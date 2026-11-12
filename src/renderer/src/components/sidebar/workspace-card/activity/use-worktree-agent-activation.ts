@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { revealWorkerTab } from '@/components/terminal/worker-tab-visibility' // RA: explicit row click opens the view.
 import { useAppStore } from '@/store'
 import { activateAndRevealWorktree } from '@/lib/workspace/activation/worktree-activation'
 import { activateTabAndFocusPane } from '@/lib/workspace/tabs/activate-tab-and-focus-pane'
@@ -36,6 +37,7 @@ export function activateWorktreeAgentPane(
     return
   }
   // Use shared activation for cross-repo reveal and navigation history.
+  revealWorkerTab(tabId) // RA: renderer may now mount.
   activateAndRevealWorktree(worktreeId)
   const tabs = useAppStore.getState().tabsByWorktree[worktreeId] ?? []
   if (tabs.some((t) => t.id === tabId)) {

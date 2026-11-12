@@ -12,6 +12,7 @@ const NewTabRow = terminalTabSchema
     color: true,
     createdAt: true,
     startupCwd: true,
+    botProfile: true, // RA: retain identity if the pane joins through PTY placement.
     quickCommandLabel: true,
     launchAgent: true,
     viewMode: true

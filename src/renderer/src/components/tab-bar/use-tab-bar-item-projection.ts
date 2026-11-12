@@ -15,6 +15,7 @@ import { sameStringArray } from '@/runtime/web-session-tabs-sync/state-equality-
 import { useAppStore } from '@/store'
 import { selectTabAgentParents } from './tab-agent-lineage'
 import { orderAgentLineage } from './agent-lineage-order'
+import { useHiddenWorkerTabSignature } from '../terminal/use-worker-tab-visibility' // RA: preserve host tab order.
 import { moveTabToGroup } from './tab-move-to-pane-column'
 
 export type TabBarItemProjection = {
@@ -118,7 +119,9 @@ export function useTabBarItemProjection({
     JSON.stringify([...selectTabAgentParents(s, props.worktreeId)])
   )
   const pendingParentMoves = useRef(new Map<string, string>())
+  const hiddenWorkerSignature = useHiddenWorkerTabSignature(props.worktreeId) // RA: sidebar-only workers.
   const orderedItems = useMemo(() => {
+    const hidden = new Set<string>(JSON.parse(hiddenWorkerSignature)) // RA: do not retire the hidden rows.
     const parents = new Map<string, string>(JSON.parse(parentSignature))
     const unifiedToVisible = new Map(baseItems.map((item) => [item.unifiedTabId, item.id]))
     const visibleParents = new Map(
@@ -129,10 +132,10 @@ export function useTabBarItemProjection({
     )
     const byId = new Map(baseItems.map((item) => [item.id, item]))
     return orderAgentLineage(
-      baseItems.map((item) => item.id),
+      baseItems.filter((item) => !hidden.has(item.id) && !hidden.has(item.unifiedTabId)).map((item) => item.id),
       visibleParents
     ).map((id) => byId.get(id)!)
-  }, [baseItems, parentSignature])
+  }, [baseItems, parentSignature, hiddenWorkerSignature])
   useEffect(() => {
     const store = useAppStore.getState()
     // RA: a child launched or re-parented into another pane follows its parent's strip too.

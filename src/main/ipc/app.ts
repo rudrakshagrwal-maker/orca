@@ -40,6 +40,9 @@ import { registerMacKeyboardLayoutChangeNotifications } from './macos-keyboard-l
 import { isProfileStateSaveDelayed } from '../startup/profile-state-save-delay'
 import { readCommandStdout, readKeyboardInputSourceId } from './macos-keyboard-input-source'
 import { getWindowsAdministratorStatus } from '../windows/windows-administrator-status'
+import { readWindowsLoginItem, setWindowsLoginItem } from '../startup/windows-login-item' // RA: OS startup setting.
+import { collectHostMemory } from '../memory/host-memory' // RA: system-only, no process enumeration.
+import { workerRamQueueSnapshot, subscribeWorkerRamQueue } from '../memory/worker-ram-admission' // RA: queued rows.
 import { getMacosUpgradeSupport } from '../macos-update-requirement/macos-upgrade-support'
 
 import type { ReconnectFactsFor } from '../persistence/window-save-view'
@@ -124,6 +127,28 @@ function resolveDevFeatureWallAssetDir(): string {
 }
 
 export function registerAppHandlers(store: Store, options: RegisterAppHandlersOptions = {}): void {
+  // RA: queue changes are push-fed once per desktop, never polled by every workspace card.
+  ipcMain.handle('app:workerRamQueue', (event) => {
+    if (!isTrustedUIRenderer(event.sender)) throw new Error('Trusted desktop required')
+    return workerRamQueueSnapshot()
+  })
+  subscribeWorkerRamQueue(() => {
+    const rows = workerRamQueueSnapshot()
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed() && isTrustedUIRenderer(window.webContents)) window.webContents.send('app:workerRamQueueChanged', rows)
+    }
+  })
+  // RA: main owns local OS operations, never a remote runtime or renderer command.
+  ipcMain.handle('app:windowsLoginItem', (event, enabled: unknown) => {
+    if (!isTrustedUIRenderer(event.sender)) throw new Error('Trusted desktop required')
+    if (enabled === undefined) return readWindowsLoginItem()
+    if (typeof enabled !== 'boolean') throw new Error('Expected a boolean')
+    return setWindowsLoginItem(enabled)
+  })
+  ipcMain.handle('app:systemRamPercent', async (event) => {
+    if (!isTrustedUIRenderer(event.sender)) throw new Error('Trusted desktop required')
+    return (await collectHostMemory()).memoryUsagePercent
+  })
   registerRendererShutdownCheckpointHandler(
     store,
     options.quitResumeRecordsFor,

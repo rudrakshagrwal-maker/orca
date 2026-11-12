@@ -1,4 +1,5 @@
 import { OrchestrationError } from '../../../../orchestration/orchestration-error'
+import { retainRamQueuedWorker } from '../../../../../memory/worker-ram-admission' // RA: preserve --keep-open before a queued worker has a PTY.
 import { defineOrchestrationMethod } from '../access/orchestration-method-access'
 import {
   releaseFederatedWorker,
@@ -99,6 +100,9 @@ export const ORCHESTRATION_WORKER_RELEASE_METHODS = [
     params: WorkerRetainParams,
     handler: async (params, { runtime, orchestrationMutation }): Promise<WorkerReleaseReceipt> => {
       const db = runtime.getOrchestrationDb()
+      if (!db.getWorkerTerminalResourceByOwner(params.dispatch) && retainRamQueuedWorker(params.dispatch)) {
+        return { dispatchId: params.dispatch, state: 'retained', reason: 'user_requested', processAction: 'none', archive: null } // RA: retain intent is consumed on custody binding.
+      }
       const federated = db.getFederatedDispatch(params.dispatch)
       if (federated) {
         if (!orchestrationMutation) {

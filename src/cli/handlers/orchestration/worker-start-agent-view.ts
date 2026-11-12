@@ -87,7 +87,7 @@ export const WORKER_START_VIEW: OrchestrationAgentView<WorkerStartAgentReceipt, 
       }
     },
     failure: (value) =>
-      value.state === 'ready'
+      value.state === 'ready' || value.state === 'queued' // RA: RAM admission retains its explicit queued state.
         ? undefined
         : isUnobservedTurnStart(value)
           ? {

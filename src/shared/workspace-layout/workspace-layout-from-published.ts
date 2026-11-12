@@ -44,6 +44,7 @@ function layoutTab(tab: PublishedTab): LayoutTab {
       'shellOverride',
       'forceHostRuntime',
       'startupCwd',
+      'botProfile', // RA: preserve identity when a window adopts its host layout.
       'launchAgent'
     ]),
     panes: {

@@ -1,4 +1,5 @@
 import { Minimize2, PanelRight } from 'lucide-react'
+import { SystemRamChip } from './SystemRamChip' // RA: global memory budget.
 import { useTranslate } from '@/i18n/use-translate'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { TOGGLE_TERMINAL_PANE_EXPAND_EVENT } from '@/constants/terminal'
@@ -79,6 +80,7 @@ export function TitlebarMainStrip({ layout }: { layout: AppChromeLayout }): Reac
       {/* The open sidebar already renders its close button. */}
       {layout.showRightSidebarControls && !layout.rightSidebarOpen ? <RightSidebarToggle /> : null}
       {/* Reserve the custom window-controls overlay’s width. */}
+      <SystemRamChip /> {/* RA: amber 75%, red 80%. */}
       {hasCustomTitleBar && <div className="window-controls-titlebar-spacer" />}
     </>
   )

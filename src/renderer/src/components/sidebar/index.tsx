@@ -166,6 +166,7 @@ function Sidebar({
                 onWorkspaceBoardDragPreviewCancel={cancelWorkspaceBoardDragPreview}
                 projectsCollapseTarget={projectsCollapseTarget}
               />
+              <BotsSection /> {/* RA: a bounded list alongside Projects. */}
               <WslMovedProjectsSection />
 
               <div className="relative shrink-0">
@@ -259,3 +260,4 @@ function Sidebar({
 }
 
 export default React.memo(Sidebar)
+import { BotsSection } from './bots/BotsSection' // RA: read-only bot discovery.

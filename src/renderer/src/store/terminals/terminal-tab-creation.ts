@@ -123,6 +123,7 @@ export function createTerminalTabCreationActions(
           createdAt: Date.now(),
           ...(createdShellOverride !== undefined ? { shellOverride: createdShellOverride } : {}),
           ...(startupCwd && startupCwd.length > 0 ? { startupCwd } : {}),
+          ...(options?.botProfile ? { botProfile: options.botProfile } : {}), // RA: no command persistence.
           ...(options?.forceHostRuntime ? { forceHostRuntime: true } : {}),
           ...(options?.launchAgent ? { launchAgent: options.launchAgent } : {}),
           ...(options?.agentLaunchPane ? { agentLaunchPane: options.agentLaunchPane } : {}),

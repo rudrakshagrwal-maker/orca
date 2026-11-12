@@ -13,6 +13,7 @@ const TERMINAL_CREATION_FIELDS = [
   'shellOverride',
   'forceHostRuntime',
   'startupCwd',
+  'botProfile', // RA: durable bot identity.
   'launchAgent'
 ] as const satisfies readonly (keyof LayoutTerminalCreation)[]
 

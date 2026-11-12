@@ -1,4 +1,5 @@
 import type React from 'react'
+import { GeneralWorkerSettings } from './GeneralWorkerSettings' // RA: searchable local controls.
 import { useEffect, useRef } from 'react'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
 import { useAppStore } from '../../../store/index'
@@ -167,6 +168,7 @@ function GeneralRootSettings({
         : t('settings.general.worktrees.hidden', 'All hidden')
   return (
     <>
+      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} /> {/* RA: no heavy feature subscriptions. */}
       {matchesSettingsSearch(query, tabsEntries) ? (
         <SettingsGroup title={t('settings.general.tabs.title', 'Tabs')}>
           <RecentTabOrderControl

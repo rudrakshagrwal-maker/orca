@@ -127,6 +127,7 @@ const ROW = {
   shellOverride: own('tab.terminal', 'shellOverride'),
   forceHostRuntime: own('tab.terminal', 'forceHostRuntime'),
   startupCwd: own('tab.terminal', 'startupCwd'),
+  botProfile: own('tab.terminal', 'botProfile'), // RA: identity survives restart without startup commands.
   launchAgent: own('tab.terminal', 'launchAgent'),
   // Drop transient legacy pendingActivationSpawn writes. agentLaunchPane may survive a window reload while pending, but restart treats the pane as ordinary.
   agentLaunchPane: 'unwritten',

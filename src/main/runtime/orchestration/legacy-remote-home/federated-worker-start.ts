@@ -1,4 +1,8 @@
 import type { FederatedWorkerStartRequest } from './federated-worker-start-request'
+import { queueWorkerAboveRam, takeRamQueuedWorkerRetention } from '../../../memory/worker-ram-admission' // RA: owner admission precedes remote worker placement too.
+import { retainFederatedWorker } from './federated-worker-release'
+import { escalateWorkerFailure } from '../workers/reports/worker-failure-escalation'
+import { dispatchReportMailbox } from '../workers/reports/dispatch-report-mailbox'
 import { isTuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent-config'
 import type { RuntimeStatus } from '../../../../shared/runtime-session-contracts'
 import {
@@ -165,136 +169,164 @@ export async function startFederatedWorker(args: FederatedWorkerStartRequest): P
   releaseRetriedWorkerTerminal(runtime, db, { retryOf: params.retryOf })
   const createdTask = started.task
   const taskForRemote = task ?? createdTask
-  db.recordWorkerStage({ dispatchId: started.dispatch.id, stage: 'remote_attach_requested' })
-  let readyResult: unknown
-  let launch = requestedLaunch
-  try {
-    const remote = parseRemoteFederatedWorkerStartReceipt(
-      await runtime.callOrchestrationWorkerServer(
-        server.environmentId,
-        'orchestration.federationAttachStart',
-        {
-          // RA: preserve the original shell's identity across the worker-server RPC.
-          ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
-          runId,
-          dispatchId: started.dispatch.id,
-          taskId: taskForRemote.id,
-          taskSpec: taskForRemote.spec,
-          // Carry home dispatch depth so remote workers cannot re-enter as roots when nesting.
-          depth: started.dispatch.depth,
-          protocolVersion: federationProtocolVersion,
-          // A server creates new-child as top-level plus this parent, so older servers parse it too.
-          worktree: createsWorktree ? 'new-top-level' : worktree,
-          ...(childParent && 'crossStoreParent' in childParent
-            ? {
-                crossStoreParent: childParent.crossStoreParent,
-                crossStoreParentInferredFrom: childParent.crossStoreParentInferredFrom
+  const launchRemote = async (): Promise<unknown> => { // RA: retain this dispatch and retry request while queued.
+    db.recordWorkerStage({ dispatchId: started.dispatch.id, stage: 'remote_attach_requested' })
+    let readyResult: unknown
+    let launch = requestedLaunch
+    try {
+      const remote = parseRemoteFederatedWorkerStartReceipt(
+        await runtime.callOrchestrationWorkerServer(
+          server.environmentId,
+          'orchestration.federationAttachStart',
+          {
+            // RA: preserve the original shell's identity across the worker-server RPC.
+            ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
+            runId,
+            dispatchId: started.dispatch.id,
+            taskId: taskForRemote.id,
+            taskSpec: taskForRemote.spec,
+            // Carry home dispatch depth so remote workers cannot re-enter as roots when nesting.
+            depth: started.dispatch.depth,
+            protocolVersion: federationProtocolVersion,
+            // A server creates new-child as top-level plus this parent, so older servers parse it too.
+            worktree: createsWorktree ? 'new-top-level' : worktree,
+            ...(childParent && 'crossStoreParent' in childParent
+              ? {
+                  crossStoreParent: childParent.crossStoreParent,
+                  crossStoreParentInferredFrom: childParent.crossStoreParentInferredFrom
+                }
+              : {}),
+            name: params.name,
+            repo: params.repo,
+            baseBranch: params.baseBranch,
+            displayName: params.displayName,
+            ...(params.displayName !== undefined ? { displayNameKind: 'user' as const } : {}),
+            comment: params.comment,
+            setup: createsWorktree ? params.setup : undefined,
+            setupSource: createsWorktree
+              ? params.setup
+                ? 'explicit_request'
+                : 'orchestration_default'
+              : undefined,
+            terminal: params.terminal,
+            agent: params.agent,
+            model: params.model,
+            effort: params.effort,
+            timeoutMs: budgets.readinessTimeoutMs,
+            devMode: params.devMode
+          },
+          budgets.attachDeadlineMs,
+          { orchestrationRequestId: orchestrationMutation.requestId },
+          { contractVerified: true, ...pairingFence }
+        )
+      )
+      if (remote.dispatchId !== started.dispatch.id) {
+        throw new OrchestrationError(
+          'resource_server_mismatch',
+          'The worker server returned a different Dispatch attachment.'
+        )
+      }
+      recordWorkerLaunchObservation(db, started.dispatch.id, remote.launch)
+      launch = resolveFederatedWorkerLaunchReceipt(
+        remote.launch,
+        requestedLaunch,
+        remote.state === 'ready'
+      )
+      if (isReadyRemoteFederatedWorkerStartReceipt(remote)) {
+        recordReadyFederatedDispatch(db, started.dispatch.id, remote)
+        const readyWorker = db.markWorkerDispatchReady(started.dispatch.id)
+        if (takeRamQueuedWorkerRetention(started.dispatch.id)) { // RA: forward the queued keep-open only after the remote terminal exists.
+          db.endFederatedHomeAutoRelease(started.dispatch.id)
+          const federated = db.getFederatedDispatch(started.dispatch.id)
+          if (federated) await retainFederatedWorker({ runtime, server, federated, dispatchId: started.dispatch.id, requestId: `ram-retain-${started.dispatch.id}` })
+        }
+        runtime.ensureOrchestrationFederationRelay(runId)
+        const reportsTurnStops = status.capabilities?.includes(
+          ORCHESTRATION_WORKER_TURN_STOP_REPORTS_RUNTIME_CAPABILITY
+        )
+        readyResult = withWorkerStartNext(
+          {
+            runId,
+            taskId: taskForRemote.id,
+            dispatchId: started.dispatch.id,
+            state: 'ready',
+            stage: readyWorker.stage,
+            server: { environmentId: server.environmentId, name: server.name },
+            setup: remote.setup,
+            launch,
+            timeoutMs: budgets.readinessTimeoutMs,
+            effects: remote.effects ?? [],
+            residualResources: remote.residualResources ?? [],
+            ...(childParent && 'warning' in childParent ? { warning: childParent.warning } : {})
+          },
+          reportsTurnStops
+            ? undefined
+            : {
+                name: server.name,
+                dispatchId: started.dispatch.id,
+                cli: params.from ? runtime.getTerminalOrchestrationCliCommand(params.from) : 'orca'
               }
-            : {}),
-          name: params.name,
-          repo: params.repo,
-          baseBranch: params.baseBranch,
-          displayName: params.displayName,
-          ...(params.displayName !== undefined ? { displayNameKind: 'user' as const } : {}),
-          comment: params.comment,
-          setup: createsWorktree ? params.setup : undefined,
-          setupSource: createsWorktree
-            ? params.setup
-              ? 'explicit_request'
-              : 'orchestration_default'
-            : undefined,
-          terminal: params.terminal,
-          agent: params.agent,
-          model: params.model,
-          effort: params.effort,
-          timeoutMs: budgets.readinessTimeoutMs,
-          devMode: params.devMode
-        },
-        budgets.attachDeadlineMs,
-        { orchestrationRequestId: orchestrationMutation.requestId },
-        { contractVerified: true, ...pairingFence }
-      )
-    )
-    if (remote.dispatchId !== started.dispatch.id) {
-      throw new OrchestrationError(
-        'resource_server_mismatch',
-        'The worker server returned a different Dispatch attachment.'
-      )
-    }
-    recordWorkerLaunchObservation(db, started.dispatch.id, remote.launch)
-    launch = resolveFederatedWorkerLaunchReceipt(
-      remote.launch,
-      requestedLaunch,
-      remote.state === 'ready'
-    )
-    if (isReadyRemoteFederatedWorkerStartReceipt(remote)) {
-      recordReadyFederatedDispatch(db, started.dispatch.id, remote)
-      const readyWorker = db.markWorkerDispatchReady(started.dispatch.id)
-      runtime.ensureOrchestrationFederationRelay(runId)
-      const reportsTurnStops = status.capabilities?.includes(
-        ORCHESTRATION_WORKER_TURN_STOP_REPORTS_RUNTIME_CAPABILITY
-      )
-      readyResult = withWorkerStartNext(
-        {
-          runId,
-          taskId: taskForRemote.id,
-          dispatchId: started.dispatch.id,
-          state: 'ready',
-          stage: readyWorker.stage,
-          server: { environmentId: server.environmentId, name: server.name },
+        )
+      } else if (remote.state === 'outcome_unknown') {
+        const worker = db.markWorkerStartUnknown(
+          started.dispatch.id,
+          remote.failedStage ?? 'remote_attach',
+          remote.lastError ?? 'The worker server reported an unknown start outcome.'
+        )
+        return federatedUnknownReceipt(worker, taskForRemote.id, server.name, launch)
+      } else {
+        const worker = db.failWorkerStart(
+          started.dispatch.id,
+          remote.failedStage ?? 'remote_attach',
+          remote.lastError ?? `The worker server returned ${remote.state}.`
+        )
+        return federatedFailedReceipt(worker, { runId, taskId: taskForRemote.id }, server, {
           setup: remote.setup,
           launch,
-          timeoutMs: budgets.readinessTimeoutMs,
-          effects: remote.effects ?? [],
-          residualResources: remote.residualResources ?? [],
-          ...(childParent && 'warning' in childParent ? { warning: childParent.warning } : {})
-        },
-        reportsTurnStops
-          ? undefined
-          : {
-              name: server.name,
-              dispatchId: started.dispatch.id,
-              cli: params.from ? runtime.getTerminalOrchestrationCliCommand(params.from) : 'orca'
-            }
-      )
-    } else if (remote.state === 'outcome_unknown') {
-      const worker = db.markWorkerStartUnknown(
-        started.dispatch.id,
-        remote.failedStage ?? 'remote_attach',
-        remote.lastError ?? 'The worker server reported an unknown start outcome.'
-      )
-      return federatedUnknownReceipt(worker, taskForRemote.id, server.name, launch)
-    } else {
-      const worker = db.failWorkerStart(
-        started.dispatch.id,
-        remote.failedStage ?? 'remote_attach',
-        remote.lastError ?? `The worker server returned ${remote.state}.`
-      )
-      return federatedFailedReceipt(worker, { runId, taskId: taskForRemote.id }, server, {
-        setup: remote.setup,
-        launch,
-        effects: remote.effects,
-        residualResources: remote.residualResources
+          effects: remote.effects,
+          residualResources: remote.residualResources
+        })
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      if (error instanceof OrchestrationError && isKnownRemoteStartFailure(error.code)) {
+        const worker = db.failWorkerStart(started.dispatch.id, 'remote_attach', reason)
+        return federatedFailedReceipt(worker, { runId, taskId: taskForRemote.id }, server, {
+          launch: requestedLaunch
+        })
+      }
+      const worker = db.markWorkerStartUnknown(started.dispatch.id, 'remote_attach', reason)
+      return federatedUnknownReceipt(worker, taskForRemote.id, server.name, requestedLaunch)
+    }
+    if (!params.terminal) {
+      recordStart({
+        dispatchId: started.dispatch.id,
+        workerAddress: `dispatch:${started.dispatch.id}`,
+        task: taskForRemote.spec,
+        agent: workerLaunchAgent(launch) ?? workerLaunchAgent(requestedLaunch)
       })
     }
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error)
-    if (error instanceof OrchestrationError && isKnownRemoteStartFailure(error.code)) {
-      const worker = db.failWorkerStart(started.dispatch.id, 'remote_attach', reason)
-      return federatedFailedReceipt(worker, { runId, taskId: taskForRemote.id }, server, {
-        launch: requestedLaunch
-      })
+    return readyResult
+  }
+  if (await queueWorkerAboveRam({
+    row: { id: started.dispatch.id, worktreeId: runtime.getTerminalWorktreeIdForHandle(params.parentTerminalHandle ?? params.from) ?? '', parentHandle: params.from, label: createdTask.task_title || params.name || 'Remote worker' },
+    limit: () => runtime.getWorkerRamLimitPercent(),
+    current: () => db.getWorkerDispatch(started.dispatch.id)?.state === 'starting' && db.getDispatchContextById(started.dispatch.id)?.status === 'pending' && !db.isWorkerStopRequested(started.dispatch.id) && (!started.dispatch.creator_dispatch_id || !db.isWorkerStopRequested(started.dispatch.creator_dispatch_id)),
+    run: async () => {
+      const receipt = await launchRemote()
+      if (receipt && typeof receipt === 'object' && 'state' in receipt && receipt.state !== 'ready') {
+        escalateWorkerFailure(db, started.dispatch, {
+          id: `ram-start-${started.dispatch.id}`, from: `dispatch:${started.dispatch.id}`,
+          mailbox: () => dispatchReportMailbox(db, started.dispatch),
+          describe: (name) => ({ subject: 'Deferred remote worker needs attention', body: `RAM admission released ${name}, but remote startup did not become ready; inspect worker-show before retrying.` }),
+          payload: { taskId: taskForRemote.id, dispatchId: started.dispatch.id, state: receipt.state }
+        }, (to, type) => runtime.notifyMessageArrived(to, type))
+      }
+      return receipt
     }
-    const worker = db.markWorkerStartUnknown(started.dispatch.id, 'remote_attach', reason)
-    return federatedUnknownReceipt(worker, taskForRemote.id, server.name, requestedLaunch)
+  })) {
+    db.recordWorkerStage({ dispatchId: started.dispatch.id, stage: 'ram_queued' })
+    return { runId, taskId: taskForRemote.id, dispatchId: started.dispatch.id, state: 'queued', stage: 'ram_queued', effects: [], residualResources: [], launch: requestedLaunch, next: 'Queued for RAM; do not resend. Orca starts the remote worker after 30 seconds below the memory limit.' }
   }
-  if (!params.terminal) {
-    recordStart({
-      dispatchId: started.dispatch.id,
-      workerAddress: `dispatch:${started.dispatch.id}`,
-      task: taskForRemote.spec,
-      agent: workerLaunchAgent(launch) ?? workerLaunchAgent(requestedLaunch)
-    })
-  }
-  return readyResult
+  return launchRemote()
 }

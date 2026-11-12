@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => {
     platform: 'win32',
     pairedWeb: false,
     repos,
+    activeWorkspaceKey: null as string | null, // RA: hydrated selection includes folders.
+    activeWorktreeId: null as string | null,
+    activeWorkspaceExecutionHostId: null as string | null,
+    activeTabId: null as string | null,
+    savedWorkspaceValid: false,
     tabsByWorktree: {} as Record<string, { id: string; ptyId: string | null }[]>,
     unifiedTabsByWorktree: {} as Record<string, { contentType: string }[]>,
     worktreesByRepo: {
@@ -25,6 +30,10 @@ const mocks = vi.hoisted(() => {
 })
 
 vi.mock('../store', () => ({ useAppStore: { getState: () => mocks } }))
+// RA: this test owns startup fallback, catalog owner selection has its own tests.
+vi.mock('@/store/workspaces/selection/workspace-host-target', () => ({
+  selectWorkspaceByHostTarget: () => mocks.savedWorkspaceValid ? { id: mocks.activeWorkspaceKey ?? mocks.activeWorktreeId } : undefined
+}))
 vi.mock('./app-window-chrome', () => ({
   get shortcutPlatform() {
     return mocks.platform
@@ -50,6 +59,11 @@ describe('Workspace startup selection', () => {
     vi.clearAllMocks()
     mocks.platform = 'win32'
     mocks.pairedWeb = false
+    mocks.activeWorkspaceKey = null
+    mocks.activeWorktreeId = null
+    mocks.activeWorkspaceExecutionHostId = null
+    mocks.activeTabId = null
+    mocks.savedWorkspaceValid = false
     mocks.repos = [repo]
     mocks.tabsByWorktree = {}
     mocks.unifiedTabsByWorktree = {}
@@ -112,7 +126,7 @@ describe('Workspace startup selection', () => {
     await openWorkspaceAtStartup(() => false)
     expect(mocks.addRepoPath).toHaveBeenCalledExactlyOnceWith(
       'C:\\Users\\Rudraksh\\Documents\\Workspace',
-      'git',
+      'folder', // RA: first-run Workspace may be an ordinary folder.
       { displayName: 'Workspace', runtimeEnvironmentId: null }
     )
     expect(mocks.fetchWorktrees).toHaveBeenCalledWith('workspace', { executionHostId: 'local' })
@@ -142,5 +156,24 @@ describe('Workspace startup selection', () => {
     await openWorkspaceAtStartup(() => cancelled)
     expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
     expect(mocks.createTab).not.toHaveBeenCalled()
+  })
+
+  // RA: a warm tab's command and PTY identity must remain entirely owned by hydration.
+  it.each(['worktree:other::C:/project', 'folder:notes'])('retains saved workspace %s and its active tab', async (key) => {
+    mocks.activeWorkspaceKey = key
+    mocks.activeTabId = 'live-bot-tab'
+    mocks.savedWorkspaceValid = true
+    await openWorkspaceAtStartup(() => false)
+    expect(mocks.activeWorkspaceKey).toBe(key)
+    expect(mocks.activeTabId).toBe('live-bot-tab')
+    expect(mocks.createTab).not.toHaveBeenCalled()
+    expect(mocks.activateAndRevealWorktree).not.toHaveBeenCalled()
+    expect(mocks.addRepoPath).not.toHaveBeenCalled()
+  })
+
+  it('falls back when the saved workspace was removed', async () => {
+    mocks.activeWorkspaceKey = 'folder:removed'
+    await openWorkspaceAtStartup(() => false)
+    expect(mocks.activateAndRevealWorktree).toHaveBeenCalledWith('local-main', expect.any(Object))
   })
 })

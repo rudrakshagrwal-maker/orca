@@ -176,6 +176,7 @@ const api = {
   ui: uiApi,
   stats: statsApi,
   memory: memoryApi,
+  bots: botsApi, // RA: no eager discovery.
   claudeUsage: claudeUsageApi,
   codexUsage: codexUsageApi,
   openCodeUsage: openCodeUsageApi,
@@ -222,3 +223,4 @@ installHiddenWindowFramePump(
     }
   }
 )
+import { botsApi } from './api/bots-bridge' // RA: local bot catalogue.

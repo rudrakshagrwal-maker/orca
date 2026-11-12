@@ -1,4 +1,5 @@
 import { publishSettingsUpdate } from './settings-update-effects'
+import { workerRamLimit } from '../../../shared/worker-ram-queue' // RA: clamp every settings writer.
 import { legacyChatPermissionWrite } from './legacy-chat-permission-write'
 import { stampDefaultOnMigrationGuards } from './default-on-migration-guards'
 import { normalizeNativeChatAppearanceSettings } from '../../../shared/native-chat/native-chat-appearance-settings'
@@ -60,6 +61,8 @@ export function updateSettings(
   options: { notifyListeners?: boolean; originWebContentsId?: number } = {}
 ): GlobalSettings {
   const sanitizedUpdates = normalizeWorkspaceDirSetting(stripRetiredGlobalSettings(updates))
+  if ('workerRamLimitPercent' in updates) sanitizedUpdates.workerRamLimitPercent = workerRamLimit(updates.workerRamLimitPercent) // RA: 70-90%.
+  if ('workerTabsShown' in updates) sanitizedUpdates.workerTabsShown = updates.workerTabsShown === true // RA: hidden by default.
   const linkBehavior = updates.terminalLinkClickBehavior
   if (linkBehavior === 'actions' || linkBehavior === 'open' || linkBehavior === 'none') {
     // Loaded defaults are ambiguous; synchronize the legacy switch only on an explicit write.

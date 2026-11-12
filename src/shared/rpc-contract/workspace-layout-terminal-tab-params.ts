@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { botTerminalIdentitySchema } from '../bot-profile-schema' // RA: validated non-secret creation facts.
 import { isTerminalLeafId } from '../workspace-layout/stable-pane-id'
 import { isValidHostTerminalTabId } from '../workspace-layout/terminal-tab-id'
 import type { TuiAgent } from '../agent-launch/catalog/tui-agent'
@@ -19,6 +20,7 @@ const TerminalCreation = z.object({
   defaultTitle: z.string().min(1).optional(),
   shellOverride: z.string().min(1).optional(),
   startupCwd: z.string().min(1).optional(),
+  botProfile: botTerminalIdentitySchema.optional(), // RA: survive main-owned tab creation.
   forceHostRuntime: z.literal(true).optional(),
   launchAgent: z
     .custom<TuiAgent>((value) => typeof value === 'string' && isTuiAgent(value))

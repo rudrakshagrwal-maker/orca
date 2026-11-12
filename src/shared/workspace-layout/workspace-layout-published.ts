@@ -51,7 +51,7 @@ export type PublishedTerminal = {
   defaultTitle?: string
 } & Pick<
   LayoutTerminalCreation,
-  'shellOverride' | 'forceHostRuntime' | 'startupCwd' | 'launchAgent'
+  'shellOverride' | 'forceHostRuntime' | 'startupCwd' | 'launchAgent' | 'botProfile' // RA: desktop reconnect identity.
 >
 
 export type PublishedTab = {
@@ -177,6 +177,7 @@ function publishTab(
         'shellOverride',
         'forceHostRuntime',
         'startupCwd',
+        'botProfile', // RA: never publish a saved executable command.
         'launchAgent'
       ])
     }

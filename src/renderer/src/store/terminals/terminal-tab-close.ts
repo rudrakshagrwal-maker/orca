@@ -3,6 +3,7 @@ import {
   retireTerminalNoticeLifetime
 } from '@/components/terminal-pane/provider-notices/terminal-notice-lifetime'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
+import { hideWorkerTabOnClose } from '@/components/terminal/worker-tab-visibility' // RA: close view, keep worker.
 import { sweepRetiredTerminalTabState } from './retired-terminal-tab-state-sweep'
 import { getRecentlyClosedTabPosition } from '../slices/tabs/recently-closed-tab-position'
 import { pushClosedTerminalTabSnapshot } from './recently-closed-terminal-tabs'
@@ -35,6 +36,7 @@ export function createTerminalTabCloseActions(
   return {
     closeTab: (tabId, opts) => {
       const closeReason = opts?.reason ?? 'user'
+      if (closeReason === 'user' && !opts?.allowWorkerRetirement && hideWorkerTabOnClose(get(), tabId)) return // RA: no provider teardown.
       // Why narrowed separately: main alone records a close for a process exit.
       const intentReason = closeReason === 'pty-exit' ? null : closeReason
       const retiresSession = intentReason !== null

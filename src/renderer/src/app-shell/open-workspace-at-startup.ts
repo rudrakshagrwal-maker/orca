@@ -3,11 +3,21 @@ import { shortcutPlatform } from './app-window-chrome'
 import { isPairedWebClientWindow } from '@/app-shell/chrome/desktop-window-chrome'
 import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-record-fields'
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
+import { getActiveSidebarWorkspaceId } from '../../../shared/workspace-scope' // RA: includes folders.
+import { selectWorkspaceByHostTarget } from '@/store/workspaces/selection/workspace-host-target'
 
-// RA: Restore first, then open this Windows desktop on the local Workspace checkout.
+// RA: Hydration owns the saved tab/PTY; fallback only when its workspace disappeared.
 export async function openWorkspaceAtStartup(isCancelled: () => boolean): Promise<void> {
   if (shortcutPlatform !== 'win32' || isPairedWebClientWindow() || isCancelled()) {
     return
+  }
+  const restored = useAppStore.getState()
+  const active = getActiveSidebarWorkspaceId(restored.activeWorkspaceKey, restored.activeWorktreeId)
+  // RA: accept the scoped folder owner or a valid older session's legacy selection.
+  for (const id of new Set([active, restored.activeWorktreeId])) {
+    if (id && selectWorkspaceByHostTarget(restored, {
+      id, hostId: restored.activeWorkspaceExecutionHostId ?? LOCAL_EXECUTION_HOST_ID
+    })) return
   }
   const workspacePath = 'C:\\Users\\Rudraksh\\Documents\\Workspace'
   const normalizePath = (path: string): string =>
@@ -18,7 +28,7 @@ export async function openWorkspaceAtStartup(isCancelled: () => boolean): Promis
         getRepoExecutionHostId(candidate) === LOCAL_EXECUTION_HOST_ID &&
         normalizePath(candidate.path) === normalizePath(workspacePath)
     ) ??
-    (await useAppStore.getState().addRepoPath(workspacePath, 'git', {
+    (await useAppStore.getState().addRepoPath(workspacePath, 'folder', {
       displayName: 'Workspace',
       runtimeEnvironmentId: null
     }))
