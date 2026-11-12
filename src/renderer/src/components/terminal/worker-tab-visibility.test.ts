@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createTestStore, seedStore } from '@/store/testing/app-store-test-fixture'
 import { makeTab } from '@/store/terminals/terminal-tab.test-fixture'
+import { createGlobalSettingsFixture } from '../../../../shared/global-settings-test-fixture'
 import { hideWorkerTabOnClose, isWorkerTabHidden, revealWorkerTab } from './worker-tab-visibility'
 vi.mock('../sidebar/workspace-card/activity/worktree-agent-orchestration-index', () => ({ selectWorktreeAgentOrchestration: () => ({}) }))
 vi.mock('../tab-bar/tab-agent-lineage', () => ({ selectTabAgentParents: () => new Map([['worker', 'parent']]) }))
@@ -23,7 +24,7 @@ describe('worker terminal visibility', () => {
     const store = createTestStore()
     seedStore(store, { tabsByWorktree: { project: [makeTab({ id: 'ordinary', worktreeId: 'project' }), makeTab({ id: 'shown', worktreeId: 'project', customTitle: 'worker-task_456' })] } })
     expect(hideWorkerTabOnClose(store.getState(), 'ordinary')).toBe(false)
-    store.setState((state) => ({ settings: { ...state.settings, workerTabsShown: true } }))
+    store.setState({ settings: createGlobalSettingsFixture({ workerTabsShown: true }) })
     expect(isWorkerTabHidden(store.getState(), 'project', 'shown')).toBe(false)
     expect(hideWorkerTabOnClose(store.getState(), 'shown')).toBe(false)
   })

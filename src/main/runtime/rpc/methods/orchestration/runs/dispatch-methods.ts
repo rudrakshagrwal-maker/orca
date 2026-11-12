@@ -163,7 +163,7 @@ export const ORCHESTRATION_DISPATCH_METHODS = [
       })
 
       let injected = false
-      let prompt: Awaited<ReturnType<typeof sendAgentTurn>> | undefined // RA: deferred delivery owns the eventual reply.
+      let prompt: Awaited<ReturnType<typeof runtime.sendTerminalAgentPrompt>> | undefined // RA: deferred delivery owns the eventual reply.
       const inject = async () => { // RA: deferred closure retains the exact dispatch and operation ID.
         if (params.inject) {
           try {

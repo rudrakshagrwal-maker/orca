@@ -185,6 +185,7 @@ export function buildDefaultSettings(args: {
     artifactSharingEnabled: true,
     agentSkillSharingEnabled: false,
     nestedWorkerMaxDepth: NESTED_WORKER_MAX_DEPTH_DEFAULT,
+    workerRamLimitPercent: 80,
     nestedWorkerMaxDepthDefaultedToFour: true,
     orchestrationWorkerAutoReleaseEnabled: true,
     showArtifactsButton: false,

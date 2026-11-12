@@ -5,6 +5,7 @@ import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-reco
 import { getRepoExecutionHostId, LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 import { getActiveSidebarWorkspaceId } from '../../../shared/workspace-scope' // RA: includes folders.
 import { selectWorkspaceByHostTarget } from '@/store/workspaces/selection/workspace-host-target'
+import { hostWorktreeTarget } from '../../../shared/worktree/host-qualified-identity'
 
 // RA: Hydration owns the saved tab/PTY; fallback only when its workspace disappeared.
 export async function openWorkspaceAtStartup(isCancelled: () => boolean): Promise<void> {
@@ -15,9 +16,9 @@ export async function openWorkspaceAtStartup(isCancelled: () => boolean): Promis
   const active = getActiveSidebarWorkspaceId(restored.activeWorkspaceKey, restored.activeWorktreeId)
   // RA: accept the scoped folder owner or a valid older session's legacy selection.
   for (const id of new Set([active, restored.activeWorktreeId])) {
-    if (id && selectWorkspaceByHostTarget(restored, {
+    if (id && selectWorkspaceByHostTarget(restored, hostWorktreeTarget({
       id, hostId: restored.activeWorkspaceExecutionHostId ?? LOCAL_EXECUTION_HOST_ID
-    })) return
+    }))) return
   }
   const workspacePath = 'C:\\Users\\Rudraksh\\Documents\\Workspace'
   const normalizePath = (path: string): string =>
