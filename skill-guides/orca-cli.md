@@ -24,6 +24,23 @@ Use `orca` when Orca's running editor/runtime is the source of truth. Use plain 
 
 Prefer `--json` for agent-driven calls. If the CLI is missing, say so explicitly instead of inspecting source files first.
 
+## Hermes bot profiles
+
+```text
+ORCA bots list --json
+ORCA bots ask box:a2z "Review this bounded brief and return findings" --new --json
+ORCA bots ask box:a2z "Check the fix" --session <sessionId> --json
+ORCA bots open box:a2z --session <sessionId>
+```
+
+IDs include the host (`local:default`, `box:owner`). General → Hermes peers configures SSH peers.
+Ask waits for a reply; its result contains `reply`, `sessionId` (Hermes), `orcaSessionId`,
+`settled`, transcript entries and a truncation flag. Plain text prints the reply and session ID.
+The default continues the newest chat. `--new` starts fresh and conflicts with `--session`.
+Run in the intended Orca workspace or supply `--worktree`. A blocked approval/question exits 1;
+open the chat for the user. No permissions are auto-approved. `--timeout-ms` defaults to 600000.
+These direct conversations do not create orchestration Task/Dispatch records.
+
 ## Full Handoffs
 
 A full handoff transfers ownership to another agent or worktree, then the original agent stops. Treat requests phrased as "hand off", "handoff", "handover", "give this to another agent", "give this to another worktree", "another agent", or "another worktree" as full handoffs unless the user expects the result back ("have another agent review this and report") or explicitly asks to supervise, monitor, wait for results, track completion, coordinate a DAG, use decision gates, or manage ask/reply.

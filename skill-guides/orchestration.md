@@ -57,6 +57,21 @@ Start from the coordinator's Orca session: each worker gets its own linked tab.
 Follow the receipt's `next`, including link repair.
 On a failed start, do not repeat it; load the recovery reference.
 
+### Calling a bot from a worker
+
+Coordinators and workers can delegate a bounded question or review to an existing Hermes profile:
+
+```text
+ORCA bots list --json
+ORCA bots ask box:owner "<self-contained read-only review brief>" --new --json
+ORCA bots ask box:owner "<follow-up>" --session <sessionId> --json
+```
+
+Ask waits and returns the reply and both native/Orca session IDs. `settled: blocked` exits 1;
+use `ORCA bots open box:owner --session <sessionId>` for user approval. There is no automatic
+approval, Task/Dispatch record, wake-up, or gate settlement. The calling worker reports the result
+through its existing `worker_done`. Bot IDs are not valid `worker-start --agent` values.
+
 ## 4. Review gate
 
 Send every task `worker_done`, including failures and fix reports, to a

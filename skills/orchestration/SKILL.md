@@ -44,6 +44,16 @@ Dispatch independent work, then end your turn. No polling or watch scripts.
 Use `send` to reuse a finished worker, including the reviewer. Max 10 live workers.
 Workers follow their Task/Dispatch preamble for `ask` and `worker_done`.
 
+### Workers using Hermes profiles
+
+Any coordinator or worker can call `ORCA bots list --json`, then
+`ORCA bots ask box:a2z "<bounded task or review brief>" --new --json`.
+Continue with `--session <sessionId>` from the reply. Omit `--new` to use the newest chat.
+The command waits and returns the reply, `sessionId`, `orcaSessionId`, and `settled`.
+On `blocked`, open `ORCA bots open box:a2z --session <sessionId>` for the user's approval.
+The calling worker still owes its own `worker_done`; a bot ask creates no Task/Dispatch,
+wake-up, review gate, or automatic worker settlement. Do not pass a bot ID to `--agent`.
+
 For rare cases, load only the reference named by the guide:
 `ORCA skills get orchestration --reference references/<file>.md`.
 Use `--references` to list names; if `--reference` is unsupported, use `--full`.

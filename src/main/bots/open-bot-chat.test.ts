@@ -12,6 +12,12 @@ import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire
 import { FakeAcpChild } from '../acp/process/testing/acp-scripted-connection.test-fixture'
 import { createStructuredAgentSessionLogger } from '../native-chat/agent-session-wire/host/structured-agent-session-logger'
 import { openBotChat } from './open-bot-chat'
+import { readBotReply } from '../../cli/bot-reply'
+import type { RuntimeClient } from '../../cli/runtime-client'
+import {
+  structuredAgentSessionMessageSendMutation,
+  structuredAgentSessionSendBody
+} from '../../shared/agent-session/requests/structured-agent-session-send-mutation'
 
 vi.mock('./bot-profile-catalog', () => ({
   validBotId: (value: string) => /^[a-z0-9][a-z0-9_-]{0,63}$/.test(value),
@@ -81,6 +87,16 @@ beforeEach(async () => {
           child.agent.on('session/new', (frame) =>
             child.agent.reply(frame, { sessionId: 'new-hermes' })
           )
+          child.agent.on('session/prompt', (frame) => {
+            child.agent.notify('session/update', {
+              sessionId: 'new-hermes',
+              update: {
+                sessionUpdate: 'agent_message_chunk',
+                content: { type: 'text', text: 'Reply to this ask' }
+              }
+            })
+            child.agent.reply(frame, { stopReason: 'end_turn' })
+          })
           child.agent.on('session/load', (frame) => {
             child.agent.notify('session/update', {
               sessionId: 'saved-hermes',
@@ -167,6 +183,36 @@ describe('bot chat through the durable native host', () => {
         limit: 1
       })
       expect(history.providerSession?.id).toBe('new-hermes')
+    })
+    const host = getStructuredAgentSessionHost()!
+    const page = (await host.history({ sessionId: opened.sessionId, direction: 'tail', limit: 1 }))
+      .page
+    const sent = await host.send(
+      { callerKey: 'bot-cli-test' },
+      structuredAgentSessionMessageSendMutation({
+        sessionId: opened.sessionId,
+        clientOperationId: '1794640000000-00000000000000000000000000000001',
+        expectedRuntimeFence: page.fence!,
+        body: structuredAgentSessionSendBody('Question for this bot', [])
+      })
+    )
+    if (!sent.ok) {
+      throw new Error(sent.refusal.message)
+    }
+    const transport = {
+      call: async (_method: string, params: Parameters<typeof host.history>[0]) => ({
+        result: await host.history(params)
+      })
+    }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This reader requests only history, which the real native host supplies here.
+    const client = transport as unknown as RuntimeClient
+    await vi.waitFor(async () => {
+      const reply = await readBotReply(client, opened.sessionId, sent.value.clientMessageId, 'done')
+      expect(reply.entries).toContainEqual({
+        kind: 'message',
+        role: 'assistant',
+        text: 'Reply to this ask'
+      })
     })
     await expect(
       openBotChat(

@@ -14,6 +14,16 @@ description: >-
 
 # Orca CLI
 
+## Hermes bots
+
+Use the selected executable with `bots list --json`, `bots ask <bot-id> "<message>" --json`,
+or `bots open <bot-id> [--session <id>]`. IDs are host-qualified, such as `local:default`
+and `box:a2z`. Ask defaults to the newest chat; use `--new` for an independent task or
+`--session <returned-session-id>` to continue. It waits for the reply and returns both
+Hermes and Orca session IDs. An approval/question returns `settled: blocked` and exits 1;
+open the chat for the user. Bot asks are direct conversations, not orchestration Task/Dispatch records.
+Run inside an Orca workspace or supply `--worktree <selector>`.
+
 This discovery stub loads the version-matched guide from the Orca executable used for this session.
 
 ## Resolve the CLI for this session

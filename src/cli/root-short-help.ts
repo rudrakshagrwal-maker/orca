@@ -15,6 +15,7 @@ export const ROOT_SHORT_HELP = [
   '  terminal focus    Focus a terminal',
   '  terminal rename   Name a tab',
   '  agent launch      Launch an agent',
+  '  bots              List, ask or open Hermes bots',
   '  worktree list     List worktrees',
   '  worktree create   Create a worktree',
   '  project           Project commands',

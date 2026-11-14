@@ -2,7 +2,6 @@ import { useAppStore } from '@/store'
 import { getActiveSidebarWorkspaceId } from '../../../../shared/workspace-scope'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import { createNonSecureContextUuid } from '../../../../shared/non-secure-context-uuid'
-import { openStructuredAgentSessionProvisionalTab } from '@/lib/agent-session/launch/structured-agent-session-launch-surface'
 import type { BotProfile } from '../../../../shared/bot-profile-types'
 
 export async function openBotChat(profile: BotProfile, sessionId?: string | null): Promise<void> {
@@ -23,6 +22,8 @@ export async function openBotChat(profile: BotProfile, sessionId?: string | null
     worktree: `id:${workspaceId}`,
     requestId: createNonSecureContextUuid()
   })
+  const { openStructuredAgentSessionProvisionalTab } =
+    await import('@/lib/agent-session/launch/structured-agent-session-launch-surface')
   openStructuredAgentSessionProvisionalTab({
     sessionId: result.sessionId,
     worktreeId: result.worktreeId,
