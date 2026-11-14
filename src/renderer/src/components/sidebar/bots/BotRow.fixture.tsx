@@ -1,4 +1,4 @@
-import { defineFixture } from '../../../../component-fixtures/component-fixture'
+import { defineFixture } from '../../../component-fixtures/component-fixture'
 import { BotRow } from './BotRow'
 import type { BotProfile } from '../../../../../shared/bot-profile-types'
 
