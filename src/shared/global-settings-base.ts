@@ -24,9 +24,11 @@ import type { SshRemoteControlSettings } from './ssh-remote-control-settings'
 import type { AgentWorkspaceTrustSettings } from './agent-launch/permissions/agent-workspace-trust-decision'
 import type { KeybindingGlobalSettings } from './keybindings/global-settings'
 import type { HermesPeerSettings } from './hermes-peers'
+import type { FreshStartOnLaunchSettings } from './fresh-start-on-launch-settings'
 
 /** Settings groups owned by their feature modules and composed into GlobalSettings. */
 export type GlobalSettingsBase = AntigravityChatAuthSettings &
+  FreshStartOnLaunchSettings &
   HermesPeerSettings &
   EmulatorOpeningSettings &
   SshRemoteControlSettings &

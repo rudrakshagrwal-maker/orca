@@ -10,6 +10,8 @@ export type WorkspaceSessionApi = {
   session: {
     // Omitted hostId selects the local persistence partition.
     get: (hostId?: ExecutionHostId) => Promise<WorkspaceSessionState>
+    /** Once per app launch; consume=false checks without claiming during workspace discovery. */
+    claimFreshStart: (consume?: boolean) => Promise<boolean>
     /** Read persisted partitions at boot; the host catalog may omit some. */
     listHostIds: () => Promise<ExecutionHostId[]>
     set: (args: WorkspaceSessionState, hostId?: ExecutionHostId) => Promise<void>

@@ -3,6 +3,7 @@ import type { PreloadApi } from '../api-types'
 
 export const sessionApi = {
   get: (hostId) => ipcRenderer.invoke('session:get', hostId),
+  claimFreshStart: (consume) => ipcRenderer.invoke('session:claim-fresh-start', consume),
   listHostIds: () => ipcRenderer.invoke('session:list-host-ids'),
   set: (args, hostId) => ipcRenderer.invoke('session:set', args, hostId),
   patch: (args, hostId) => ipcRenderer.invoke('session:patch', args, hostId),

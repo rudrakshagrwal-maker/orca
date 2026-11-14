@@ -273,6 +273,7 @@ export function buildDefaultSettings(args: {
     codexSharedServerWarning: true,
     tabAutoGenerateTitle: false,
     confirmClosePinnedTab: true,
+    freshStartOnLaunch: true,
     editorPreviewTabsEnabled: true,
     // RA: keep the laptop awake while agents work.
     keepComputerAwakeWhileAgentsRun: true,

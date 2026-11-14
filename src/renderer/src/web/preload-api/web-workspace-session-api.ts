@@ -66,6 +66,8 @@ export function createWebWorkspaceSessionApi(): Partial<PreloadApi> {
     session: {
       // Mirrors desktop bridge: non-local hosts persist under a host-suffixed key so their sessions stay isolated from local.
       get: (hostId) => Promise.resolve(getStoredWorkspaceSession(hostId)),
+      // A browser reconnect is not a desktop app launch.
+      claimFreshStart: () => Promise.resolve(false),
       listHostIds: () => Promise.resolve(listStoredWorkspaceSessionHostIds()),
       set: async (session, hostId) => {
         writeJson(sessionStorageKeyForHost(hostId), sanitizeWebRuntimeWorkspaceSession(session))

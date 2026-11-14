@@ -7,17 +7,57 @@ import { Input } from '@/components/ui/input'
 import { matchesSettingsSearch } from '../search/settings-search'
 import { WindowsLoginSetting } from './WindowsLoginSetting'
 
-export function GeneralWorkerSettings({ settings, updateSettings, query }: {
+export function GeneralWorkerSettings({
+  settings,
+  updateSettings,
+  query
+}: {
   settings: GlobalSettings
   updateSettings: (updates: Partial<GlobalSettings>) => void
   query: string
 }): React.JSX.Element | null {
   const [limit, setLimit] = useState(String(settings.workerRamLimitPercent ?? 80))
-  useEffect(() => setLimit(String(settings.workerRamLimitPercent ?? 80)), [settings.workerRamLimitPercent])
-  if (!matchesSettingsSearch(query, [{ title: 'Windows login and workers', keywords: ['startup', 'start', 'Orca', 'login', 'worker', 'tabs', 'hidden', 'shown', 'RAM', 'memory', 'limit'] }])) return null
+  useEffect(
+    () => setLimit(String(settings.workerRamLimitPercent ?? 80)),
+    [settings.workerRamLimitPercent]
+  )
+  if (
+    !matchesSettingsSearch(query, [
+      {
+        title: 'Windows login and workers',
+        keywords: [
+          'startup',
+          'start',
+          'Orca',
+          'login',
+          'worker',
+          'tabs',
+          'hidden',
+          'shown',
+          'RAM',
+          'memory',
+          'limit',
+          'fresh',
+          'launch',
+          'restore',
+          'Claude'
+        ]
+      }
+    ])
+  ) {
+    return null
+  }
   return (
     <SettingsGroup title="Windows login and workers">
       <WindowsLoginSetting />
+      <SettingsSwitchRow
+        label="Fresh start on launch"
+        description="Close previous sessions and open one Claude tab when Orca starts."
+        checked={settings.freshStartOnLaunch !== false}
+        onChange={() =>
+          updateSettings({ freshStartOnLaunch: settings.freshStartOnLaunch === false })
+        }
+      />
       <SettingsSwitchRow
         label="Show worker tabs"
         description="Hidden by default. Click a worker in Projects to open its terminal."
@@ -34,9 +74,13 @@ export function GeneralWorkerSettings({ settings, updateSettings, query }: {
           className="w-20"
           value={limit}
           onChange={(event) => setLimit(event.target.value)}
-          onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.currentTarget.blur()
+            }
+          }}
           onBlur={() => {
-            const parsed = limit.trim() ? Number(limit) : settings.workerRamLimitPercent ?? 80
+            const parsed = limit.trim() ? Number(limit) : (settings.workerRamLimitPercent ?? 80)
             const value = Number.isFinite(parsed) ? Math.max(70, Math.min(90, parsed)) : 80
             setLimit(String(value))
             updateSettings({ workerRamLimitPercent: value })

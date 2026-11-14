@@ -1,4 +1,4 @@
-import { openWorkspaceAtStartup } from './open-workspace-at-startup'
+import { openWorkspaceForAppLaunch } from './open-fresh-start-at-startup'
 import { restoreStructuredLaunchSurfaces } from '@/lib/agent-session/launch/structured-agent-session-launch-surface'
 import { useEffect, useRef } from 'react'
 import { restoreLocalStructuredChatsAtStartup } from '@/runtime/native-chat/local-sessions/local-structured-chats'
@@ -284,7 +284,11 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
             return
           }
           // RA: Select Workspace only after persisted terminals and chats have restored.
-          await openWorkspaceAtStartup(() => cancelled)
+          await openWorkspaceForAppLaunch(
+            () => cancelled,
+            startupWorktreeRefresh,
+            sessionRead.session
+          )
           if (cancelled) {
             return
           }

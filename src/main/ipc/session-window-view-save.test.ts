@@ -36,6 +36,7 @@ vi.mock('../ssh/config/ssh-config-parser', () => ({
 }))
 
 import { registerSessionHandlers } from './session'
+import { createFreshStartOnLaunchGate } from '../persistence/fresh-start-on-launch'
 
 const OTHER_KEY = 'repo-1::/Users/dev/other'
 
@@ -103,6 +104,24 @@ describe('a window save in a layout-owner build', () => {
   afterEach(async () => {
     await closeTestStores()
     rmSync(testState.dir, { recursive: true, force: true })
+  })
+
+  it('persists fresh start without the stale-save fence restoring old tabs and split panes', async () => {
+    const saved = mainSession()
+    store.setWorkspaceSession({
+      ...saved,
+      activeWorktreeId: GIT_KEY,
+      terminalTopologyRevisionByRepoId: { 'repo-1': 9 }
+    })
+    const freshStart = createFreshStartOnLaunchGate(store, async () => {})
+    await freshStart.prepare()
+    expect(store.getWorkspaceSession().tabsByWorktree).toEqual({})
+    expect(store.getWorkspaceSession().terminalLayoutsByTabId).toEqual({})
+    expect(store.getWorkspaceSession().unifiedTabs).toBeUndefined()
+    expect(store.getWorkspaceSession().activeWorktreeId).toBe(GIT_KEY)
+    store.patchWorkspaceSession({ activeTabId: 'this-run' })
+    await freshStart.prepare()
+    expect(store.getWorkspaceSession().activeTabId).toBe('this-run')
   })
 
   it('keeps main’s tabs and panes, and takes the window’s view and titles', async () => {

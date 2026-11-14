@@ -1,4 +1,12 @@
 import { ipcMain } from 'electron'
+import { createFreshStartOnLaunchGate } from '../persistence/fresh-start-on-launch'
+import { shutdownAllDaemonSessions } from './pty/pty-management'
+import { mainProcessState } from '../startup/main-process-state'
+import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/host/structured-agent-session-registry'
+import {
+  captureStructuredSessionSurface,
+  closeCapturedStructuredSession
+} from '../runtime/agent-session/structured-agent-session-close'
 import type { Store } from '../persistence/loading-store/store'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { parseTerminalSurfaceCloseTarget } from '../../shared/workspace-layout/terminal-surface-close-target'
@@ -16,15 +24,49 @@ import type {
 } from '../../shared/workspace-session/workspace-session-state-types'
 
 export function registerSessionHandlers(store: Store, runtime: OrcaRuntimeService): void {
+  const freshStart = createFreshStartOnLaunchGate(store, async () => {
+    await Promise.all([
+      mainProcessState.firstWindowStartupServicesReady,
+      mainProcessState.localPtyProviderStartupReady
+    ])
+    await runtime.prepareStructuredAgentSessionStartupRestoration()
+    const host = getStructuredAgentSessionHost()
+    if (host) {
+      if (!host.getPersistedVisibleSessionTabIndex().present) {
+        await host.deps.store.initializeSessionTabs()
+      }
+      for (const { sessionId } of host.listSessionTabs()) {
+        const closed = await closeCapturedStructuredSession(
+          host,
+          sessionId,
+          'user-close',
+          captureStructuredSessionSurface(host, sessionId, runtime),
+          runtime
+        )
+        if (!closed) {
+          throw new Error('Could not close a previous chat for fresh start')
+        }
+      }
+    }
+    const stopped = await shutdownAllDaemonSessions()
+    if (stopped.remainingCount !== 0 || stopped.listingIncomplete) {
+      throw new Error('Could not stop every previous daemon session for fresh start')
+    }
+  })
   // Why: renderer saves would change a fenced host's frozen source partition, or write back what a
   // WSL move rewrote under this window before main reloads it.
   const isFenced = (hostId?: string | null): boolean =>
     isFrozenOrcadSourceSessionPartition(store, hostId) || isWslMoveWindowWriteHeld()
 
   // Optional hostId preserves local-partition behavior for older renderers.
-  ipcMain.handle('session:get', (_event, hostId?: string | null) => {
+  ipcMain.handle('session:get', async (_event, hostId?: string | null) => {
+    await freshStart.prepare()
     return store.getWorkspaceSession(hostId)
   })
+
+  ipcMain.handle('session:claim-fresh-start', (_event, consume = true) =>
+    freshStart.claimLaunch(consume === true)
+  )
 
   // Repo catalogs omit folder-only SSH hosts; enumerate session partitions directly (#12723).
   ipcMain.handle('session:list-host-ids', () => {
