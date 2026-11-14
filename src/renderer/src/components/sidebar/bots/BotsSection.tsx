@@ -1,29 +1,80 @@
-// RA: Bounded list leaves the existing Projects scroll area in control.
-import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+﻿import { useState } from 'react'
+import { ChevronRight, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useNow } from '@/hooks/use-now'
+import { cn } from '@/lib/class-names'
 import { openBotTerminal } from '@/lib/bots/open-bot-terminal'
+import { BotRow } from './BotRow'
 import { useBotProfiles } from './use-bot-profiles'
 
 export function BotsSection(): React.JSX.Element | null {
-  const [expanded, setExpanded] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(true)
   const { snapshot, busy, refresh } = useBotProfiles(expanded)
-  if (!window.api?.bots) return null
-  return <section className="shrink-0 border-t border-sidebar-border px-2 py-1">
-    <div className="flex items-center justify-between">
-      <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
-        {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />} Bots
-      </Button>
-      {expanded && <Button variant="ghost" size="sm" disabled={busy} onClick={() => void refresh()}>{busy ? 'Refreshing' : 'Refresh'}</Button>}
-    </div>
-    {expanded && <div className="max-h-48 overflow-y-auto worktree-sidebar-scrollbar">
-      {snapshot.profiles.map((profile) => <button key={profile.key} className="block w-full rounded-md px-2 py-1 text-left text-sm hover:bg-sidebar-accent" onClick={() => { setError(null); void openBotTerminal(profile).catch((e: unknown) => setError(e instanceof Error ? e.message : 'Bot launch failed')) }}>
-        <span className="block">{profile.label}</span>
-        <span className="block truncate text-xs text-muted-foreground" title={profile.home}>{profile.application} · {profile.source === 'dsh' ? profile.home : 'SSH, /home/hermes'}</span>
-      </button>)}
-      {!snapshot.profiles.length && !busy && <p className="px-2 text-xs text-muted-foreground">No profiles discovered.</p>}
-      {(error || snapshot.error) && <p role="alert" className="px-2 text-xs text-destructive">{error || snapshot.error}</p>}
-    </div>}
-  </section>
+  const now = useNow(60_000, expanded)
+  if (!window.api?.bots) {
+    return null
+  }
+  return (
+    <Collapsible open={expanded} onOpenChange={setExpanded} asChild>
+      <section className="shrink-0 border-t border-sidebar-border px-1 py-1 text-sidebar-foreground">
+        <div className="flex items-center">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex h-7 min-w-0 flex-1 cursor-pointer items-center justify-start gap-1 rounded-md px-2 text-[13px] font-medium hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
+              <ChevronRight className={cn('size-3.5', expanded && 'rotate-90')} aria-hidden /> Bots
+            </button>
+          </CollapsibleTrigger>
+          {expanded && snapshot.installed && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  disabled={busy}
+                  onClick={refresh}
+                  aria-label="Refresh bots"
+                  className="mr-1"
+                >
+                  <RefreshCw className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={4}>
+                Refresh bots
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        <CollapsibleContent>
+          <div className="worktree-sidebar-scrollbar max-h-72 overflow-y-auto">
+            {snapshot.profiles.map((profile) => (
+              <BotRow key={profile.key} profile={profile} now={now} onOpen={openBotTerminal} />
+            ))}
+            {!snapshot.profiles.length && (
+              <p className="px-3 py-2 text-xs text-muted-foreground">
+                {busy
+                  ? 'Loading bots…'
+                  : snapshot.installed === false
+                    ? 'Hermes is not installed.'
+                    : 'No bots available.'}
+              </p>
+            )}
+            {snapshot.error && (
+              <div className="px-3 pb-1">
+                <p role="alert" className="text-xs text-destructive">
+                  {snapshot.error}
+                </p>
+                <Button variant="ghost" size="xs" disabled={busy} onClick={refresh}>
+                  Retry
+                </Button>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
+  )
 }
