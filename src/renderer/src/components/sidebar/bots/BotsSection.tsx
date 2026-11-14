@@ -76,17 +76,18 @@ export function BotsSection(): React.JSX.Element | null {
                 {group.error && (
                   <p className="px-3 py-2 text-xs text-muted-foreground">{group.error}</p>
                 )}
+                {group.name === 'local' &&
+                  !snapshot.profiles.some((profile) => (profile.host ?? 'local') === 'local') && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">
+                      {busy
+                        ? 'Loading bots…'
+                        : snapshot.installed === false
+                          ? 'Hermes is not installed.'
+                          : 'No bots available.'}
+                    </p>
+                  )}
               </div>
             ))}
-            {!snapshot.profiles.some((profile) => (profile.host ?? 'local') === 'local') && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">
-                {busy
-                  ? 'Loading bots…'
-                  : snapshot.installed === false
-                    ? 'Hermes is not installed.'
-                    : 'No bots available.'}
-              </p>
-            )}
             {snapshot.error && (
               <div className="px-3 pb-1">
                 <p role="alert" className="text-xs text-destructive">

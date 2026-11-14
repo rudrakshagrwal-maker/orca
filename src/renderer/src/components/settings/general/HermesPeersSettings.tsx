@@ -33,7 +33,8 @@ export function HermesPeersSettings({
         aria-label="Hermes peers"
         value={draft}
         aria-invalid={Boolean(error)}
-        className="min-h-40 font-mono text-xs"
+        variant="code"
+        className="min-h-40"
         onChange={(event) => setDraft(event.target.value)}
       />
       {error && (

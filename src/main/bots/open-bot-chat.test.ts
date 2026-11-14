@@ -103,6 +103,7 @@ beforeEach(async () => {
       })
     }
   }
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This fixture implements the runtime methods used by the bot entry point.
   runtime = service as unknown as OrcaRuntimeService
 })
 afterEach(async () => {

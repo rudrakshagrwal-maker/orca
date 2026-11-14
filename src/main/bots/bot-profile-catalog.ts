@@ -81,26 +81,27 @@ export async function readLocalBotProfiles(home = getHermesHome()): Promise<BotP
   return { profiles, installed: true, lastSuccess: Date.now(), ...(error ? { error } : {}) }
 }
 
-let snapshot: BotProfileSnapshot = { profiles: [], lastSuccess: null }
-let refreshing: Promise<BotProfileSnapshot> | undefined
-let peersKey = ''
+type CatalogCache = {
+  key: string
+  snapshot: BotProfileSnapshot
+  refreshing?: Promise<BotProfileSnapshot>
+}
+let cache: CatalogCache = { key: '', snapshot: { profiles: [], lastSuccess: null } }
 
 export async function getBotProfiles(
   refresh = false,
   peers: HermesPeer[] = []
 ): Promise<BotProfileSnapshot> {
   const key = JSON.stringify(peers)
-  if (key !== peersKey) {
-    if (refreshing) {
-      await refreshing
-    }
-    peersKey = key
-    snapshot = { profiles: [], lastSuccess: null }
+  if (key !== cache.key) {
+    cache = { key, snapshot: { profiles: [], lastSuccess: null } }
   }
+  const selected = cache
+  const snapshot = selected.snapshot
   if (!refresh && snapshot.lastSuccess && Date.now() - snapshot.lastSuccess < 60_000) {
     return snapshot
   }
-  refreshing ??= Promise.all([
+  selected.refreshing ??= Promise.all([
     readLocalBotProfiles().catch(() => ({
       profiles: [],
       lastSuccess: null,
@@ -114,9 +115,9 @@ export async function getBotProfiles(
       profiles: [...local.profiles, ...remote.flatMap((result) => result.profiles)],
       peers: peers.map((peer, index) => ({ name: peer.name, error: remote[index].error }))
     }))
-    .then((result) => (snapshot = result))
+    .then((result) => (selected.snapshot = result))
     .finally(() => {
-      refreshing = undefined
+      selected.refreshing = undefined
     })
-  return refreshing
+  return selected.refreshing
 }

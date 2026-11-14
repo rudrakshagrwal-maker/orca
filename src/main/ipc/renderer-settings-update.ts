@@ -8,9 +8,10 @@ type LegacyTerminalScrollbackSettingsUpdate = Partial<GlobalSettings> & {
 export function sanitizeRendererSettingsUpdate(
   args: Partial<GlobalSettings>
 ): Partial<GlobalSettings> {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This legacy field is removed before the typed update is returned.
-  const { terminalScrollbackBytes: _legacyScrollbackBytes, ...sanitizedArgs } =
-    args as LegacyTerminalScrollbackSettingsUpdate
+  const {
+    terminalScrollbackBytes: _legacyScrollbackBytes,
+    ...sanitizedArgs
+  }: LegacyTerminalScrollbackSettingsUpdate = args
   void _legacyScrollbackBytes
   if ('hermesPeers' in sanitizedArgs) {
     sanitizedArgs.hermesPeers = HermesPeersSchema.parse(sanitizedArgs.hermesPeers)
