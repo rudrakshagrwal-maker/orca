@@ -42,3 +42,9 @@ export type HermesPeer = {
 export type BotTerminalIdentity = Pick<BotProfile, 'key' | 'id' | 'source' | 'home'> & {
   remotePath?: string
 }
+
+export type OpenBotChatResult = {
+  sessionId: string
+  nativeSessionId: string | null
+  worktreeId: string
+}

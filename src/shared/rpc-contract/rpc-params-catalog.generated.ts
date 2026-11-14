@@ -104,6 +104,7 @@ import {
   AutomationRuns,
   AutomationUpdate
 } from './automation-params'
+import { BotListParams, BotOpenParams } from './bots-params'
 import { CertificateProceed } from './browser-core-params'
 import { ExtensionList, ExtensionReload } from './browser-extension-params'
 import { MouseClick } from './browser-extras-params'
@@ -905,6 +906,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'automation.runs': AutomationRuns,
   'automation.show': AutomationId,
   'automation.update': AutomationUpdate,
+  'bots.list': BotListParams,
+  'bots.open': BotOpenParams,
   'browser.back': ExpectUrlBrowserTarget,
   'browser.capture.start': BrowserTarget,
   'browser.capture.stop': BrowserTarget,

@@ -9,7 +9,7 @@ import { getOptionalWorktreeSelector, resolveCurrentWorktreeSelector } from '../
 import { printResult } from '../format'
 import { RuntimeClientError } from '../runtime-client'
 import type { BotProfileSnapshot } from '../../shared/bot-profile-types'
-import type { OpenBotChatResult } from '../../main/bots/open-bot-chat'
+import type { OpenBotChatResult } from '../../shared/bot-profile-types'
 import type {
   AgentSessionMutationResult,
   AgentSessionSendResult

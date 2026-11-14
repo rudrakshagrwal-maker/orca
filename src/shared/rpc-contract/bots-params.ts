@@ -8,3 +8,4 @@ export const BotOpenParams = z
     show: z.boolean().optional()
   })
   .strict()
+export const BotListParams = z.object({}).strict()

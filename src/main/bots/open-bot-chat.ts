@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import type { OpenBotChatResult } from '../../shared/bot-profile-types'
 import { getBotProfiles } from './bot-profile-catalog'
 import { validSessionId } from './hermes-chat-reader'
 import { resolveHermesPeers } from '../../shared/hermes-peers'
@@ -21,11 +22,7 @@ export type OpenBotChatInput = {
   requestId: string
   show?: boolean
 }
-export type OpenBotChatResult = {
-  sessionId: string
-  nativeSessionId: string | null
-  worktreeId: string
-}
+export type { OpenBotChatResult }
 const flights = new Map<string, Promise<OpenBotChatResult>>()
 
 export function openBotChat(input: OpenBotChatInput, ctx: RpcContext): Promise<OpenBotChatResult> {
