@@ -1,4 +1,5 @@
 import type { GlobalSettings } from '../../shared/global-settings-types'
+import { HermesPeersSchema } from '../../shared/hermes-peers'
 
 type LegacyTerminalScrollbackSettingsUpdate = Partial<GlobalSettings> & {
   terminalScrollbackBytes?: unknown
@@ -11,6 +12,9 @@ export function sanitizeRendererSettingsUpdate(
   const { terminalScrollbackBytes: _legacyScrollbackBytes, ...sanitizedArgs } =
     args as LegacyTerminalScrollbackSettingsUpdate
   void _legacyScrollbackBytes
+  if ('hermesPeers' in sanitizedArgs) {
+    sanitizedArgs.hermesPeers = HermesPeersSchema.parse(sanitizedArgs.hermesPeers)
+  }
   // Plugin consent and enablement require main's reviewed-fingerprint handlers.
   // Account configuration must stop old writers and commit through the host account operation.
   delete sanitizedArgs.antigravityChatAuth

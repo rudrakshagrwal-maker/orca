@@ -27,6 +27,7 @@ import { DefaultWindowsProjectRuntimeSetting } from './project-runtime/DefaultWi
 import { defaultScopeHost } from '@/runtime/hosts/selection/default-creation-host'
 import { SettingsGroup } from '../section-layout/SettingsGroup'
 import { GeneralConfirmationsSection } from './GeneralConfirmationsSection'
+import { HermesPeersSettings } from './HermesPeersSettings'
 import { GeneralSearchResults } from './GeneralSearchResults'
 import { getGeneralSubPageTitle, type GeneralSubPage } from './general-sub-pages'
 import { useOpenInMenuDraft } from './OpenInMenuSetting'
@@ -168,7 +169,8 @@ function GeneralRootSettings({
         : t('settings.general.worktrees.hidden', 'All hidden')
   return (
     <>
-      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} /> {/* RA: no heavy feature subscriptions. */}
+      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} />{' '}
+      {/* RA: no heavy feature subscriptions. */}
       {matchesSettingsSearch(query, tabsEntries) ? (
         <SettingsGroup title={t('settings.general.tabs.title', 'Tabs')}>
           <RecentTabOrderControl
@@ -262,6 +264,7 @@ function GeneralRootSettings({
         </SettingsGroup>
       ) : null}
       <GeneralConfirmationsSection settings={settings} updateSettings={updateSettings} />
+      <HermesPeersSettings settings={settings} updateSettings={updateSettings} query={query} />
       {showNavigation || matchesSettingsSearch(query, autoSaveEntries) ? (
         <SettingsGroup
           title={t('auto.components.settings.GeneralEditorSettingsSection.45c6e85c4d', 'Editor')}

@@ -11,6 +11,7 @@ export type BotProfile = {
   label: string
   source: 'hermes' | 'dsh'
   home: string
+  host?: string
   application: 'local TUI' | 'remote TUI' | 'web host' | 'headless' | 'unverified application'
   chats?: BotChat[]
   error?: string
@@ -20,10 +21,22 @@ export type BotProfileSnapshot = {
   lastSuccess: number | null
   error?: string
   installed?: boolean
+  peers?: { name: string; error?: string }[]
 }
 export type BotLaunch = {
   agentArgs: string
   label: string
+  command?: string
+}
+
+export type HermesPeer = {
+  name: string
+  host: string
+  user: string
+  keyPath: string
+  remoteUser: string
+  hermesHome: string
+  hermesBin: string
 }
 
 export type BotTerminalIdentity = Pick<BotProfile, 'key' | 'id' | 'source' | 'home'> & {

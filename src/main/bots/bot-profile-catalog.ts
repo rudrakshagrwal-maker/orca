@@ -4,7 +4,8 @@ import path from 'node:path'
 import { parse } from 'yaml'
 import { getHermesHome } from '../hermes/hermes-default-home'
 import { readHermesChats } from './hermes-chat-reader'
-import type { BotProfile, BotProfileSnapshot } from '../../shared/bot-profile-types'
+import type { BotProfile, BotProfileSnapshot, HermesPeer } from '../../shared/bot-profile-types'
+import { readPeerBotProfiles } from './hermes-peer-reader'
 
 export const validBotId = (id: string): boolean => /^[a-z0-9][a-z0-9_-]{0,63}$/.test(id)
 const IDENTITY_MARKERS = ['config.yaml', '.env', 'SOUL.md', 'profile.yaml', 'auth.json', 'state.db']
@@ -58,7 +59,8 @@ export async function readLocalBotProfiles(home = getHermesHome()): Promise<BotP
   )) {
     const profileHome = id === 'default' ? home : path.join(profilesRoot, id)
     const profile: BotProfile = {
-      key: `hermes:local:${id}`,
+      key: `local:${id}`,
+      host: 'local',
       id,
       label: await profileLabel(profileHome, id),
       source: 'hermes',
@@ -81,12 +83,37 @@ export async function readLocalBotProfiles(home = getHermesHome()): Promise<BotP
 
 let snapshot: BotProfileSnapshot = { profiles: [], lastSuccess: null }
 let refreshing: Promise<BotProfileSnapshot> | undefined
+let peersKey = ''
 
-export async function getBotProfiles(refresh = false): Promise<BotProfileSnapshot> {
+export async function getBotProfiles(
+  refresh = false,
+  peers: HermesPeer[] = []
+): Promise<BotProfileSnapshot> {
+  const key = JSON.stringify(peers)
+  if (key !== peersKey) {
+    if (refreshing) {
+      await refreshing
+    }
+    peersKey = key
+    snapshot = { profiles: [], lastSuccess: null }
+  }
   if (!refresh && snapshot.lastSuccess && Date.now() - snapshot.lastSuccess < 60_000) {
     return snapshot
   }
-  refreshing ??= readLocalBotProfiles()
+  refreshing ??= Promise.all([
+    readLocalBotProfiles().catch(() => ({
+      profiles: [],
+      lastSuccess: null,
+      error: 'Could not read local bots.'
+    })),
+    ...peers.map(readPeerBotProfiles)
+  ])
+    .then(([local, ...remote]): BotProfileSnapshot => ({
+      ...local,
+      lastSuccess: Date.now(),
+      profiles: [...local.profiles, ...remote.flatMap((result) => result.profiles)],
+      peers: peers.map((peer, index) => ({ name: peer.name, error: remote[index].error }))
+    }))
     .then((result) => (snapshot = result))
     .finally(() => {
       refreshing = undefined
