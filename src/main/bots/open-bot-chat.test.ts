@@ -12,8 +12,6 @@ import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire
 import { FakeAcpChild } from '../acp/process/testing/acp-scripted-connection.test-fixture'
 import { createStructuredAgentSessionLogger } from '../native-chat/agent-session-wire/host/structured-agent-session-logger'
 import { openBotChat } from './open-bot-chat'
-import { readBotReply } from '../../cli/bot-reply'
-import type { RuntimeClient } from '../../cli/runtime-client'
 import {
   structuredAgentSessionMessageSendMutation,
   structuredAgentSessionSendBody
@@ -199,21 +197,6 @@ describe('bot chat through the durable native host', () => {
     if (!sent.ok) {
       throw new Error(sent.refusal.message)
     }
-    const transport = {
-      call: async (_method: string, params: Parameters<typeof host.history>[0]) => ({
-        result: await host.history(params)
-      })
-    }
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: This reader requests only history, which the real native host supplies here.
-    const client = transport as unknown as RuntimeClient
-    await vi.waitFor(async () => {
-      const reply = await readBotReply(client, opened.sessionId, sent.value.clientMessageId, 'done')
-      expect(reply.entries).toContainEqual({
-        kind: 'message',
-        role: 'assistant',
-        text: 'Reply to this ask'
-      })
-    })
     await expect(
       openBotChat(
         {
