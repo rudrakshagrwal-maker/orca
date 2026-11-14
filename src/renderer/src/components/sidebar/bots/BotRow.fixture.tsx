@@ -57,7 +57,7 @@ const render = () => (
   <section className="bg-sidebar p-1 text-sidebar-foreground">
     <div className="px-2 py-1 text-[13px] font-medium">Bots</div>
     {profiles.map((profile) => (
-      <BotRow key={profile.key} profile={profile} now={now} onOpen={open} />
+      <BotRow key={profile.key} profile={profile} now={now} onOpen={open} onTerminal={open} />
     ))}
   </section>
 )
