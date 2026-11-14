@@ -44,7 +44,7 @@ export async function openFreshStartAtStartup(
   }
   const state = useAppStore.getState()
   const activeId = getActiveSidebarWorkspaceId(
-    savedSelection.activeWorkspaceKey,
+    savedSelection.activeWorkspaceKey ?? null,
     savedSelection.activeWorktreeId
   )
   let hostId = savedSelection.activeWorkspaceExecutionHostId ?? LOCAL_EXECUTION_HOST_ID
