@@ -1,51 +1,100 @@
-// RA: Bot clicks use one local terminal/startup owner, including native folder workspaces.
+// @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BotProfile } from '../../../../shared/bot-profile-types'
 const mocks = vi.hoisted(() => ({
   activeWorkspaceKey: 'folder:notes',
   activeWorktreeId: null,
   activeWorkspaceExecutionHostId: 'local',
-  repos: [{ id: 'workspace', path: 'C:/Users/Rudraksh/Documents/Workspace', executionHostId: 'local' }],
-  worktreesByRepo: { workspace: [{ id: 'local-workspace', path: 'C:/Users/Rudraksh/Documents/Workspace', isMainWorktree: true, hostId: 'local' }] },
-  folderWorkspaces: [],
-  createTab: vi.fn((_workspace: string, _group: unknown, _shell: string, _options: unknown) => ({ id: 'bot-tab' })),
-  setTabCustomTitle: vi.fn(),
-  activate: vi.fn(),
+  activeGroupIdByWorktree: { 'folder:notes': 'group' },
   launch: vi.fn(),
-  select: vi.fn()
+  open: vi.fn(),
+  settle: vi.fn(),
+  select: vi.fn(),
+  connection: vi.fn()
 }))
 vi.mock('@/store', () => ({ useAppStore: { getState: () => mocks } }))
-vi.mock('@/store/workspaces/selection/workspace-host-target', () => ({ selectWorkspaceByHostTarget: (...args: unknown[]) => mocks.select(...args) }))
-vi.mock('@/lib/workspace/ownership/connection-owner-resolution', () => ({ getConnectionIdFromState: () => null }))
-vi.mock('@/lib/workspace/activation/worktree-activation', () => ({ activateAndRevealWorkspace: mocks.activate }))
+vi.mock('@/store/workspaces/selection/workspace-host-target', () => ({
+  selectWorkspaceByHostTarget: (...args: unknown[]) => mocks.select(...args)
+}))
+vi.mock('@/lib/workspace/ownership/connection-owner-resolution', () => ({
+  getConnectionIdFromState: () => mocks.connection()
+}))
+vi.mock('@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab', () => ({
+  launchAgentInNewTabWithOutcome: mocks.open
+}))
+vi.mock('@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab-host-agents', () => ({
+  settleAgentTabLaunch: mocks.settle
+}))
 import { openBotTerminal } from './open-bot-terminal'
-const profile: BotProfile = { key: 'hermes:hermes@100.65.84.89:default', id: 'default', label: 'Hermes / default', source: 'hermes', home: '/home/hermes', application: 'remote TUI' }
-describe('opening bot terminals', () => {
+const profile: BotProfile = {
+  key: 'hermes:local:default',
+  id: 'default',
+  label: 'Hermes',
+  source: 'hermes',
+  home: '/local/hermes',
+  application: 'local TUI'
+}
+
+describe('opening local bot terminals', () => {
   afterEach(() => vi.unstubAllGlobals())
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.activeWorkspaceExecutionHostId = 'local'
-    mocks.select.mockImplementation((_state, target: { id: string }) => ({ id: target.id, path: target.id === 'local-workspace' ? 'C:/Users/Rudraksh/Documents/Workspace' : 'C:/Notes' }))
-    mocks.launch.mockResolvedValue({ command: 'fixed-main-command', shell: 'powershell.exe', label: 'Hermes / default', identity: { key: profile.key, id: 'default', source: 'hermes', home: '/home/hermes' } })
-    vi.stubGlobal('window', { api: { bots: { launch: mocks.launch } } })
-  })
-  it('opens a local folder tab with its startup atomically queued', async () => {
-    await openBotTerminal(profile)
-    expect(mocks.createTab).toHaveBeenCalledExactlyOnceWith('folder:notes', undefined, 'powershell.exe', {
-      startupCwd: 'C:/Notes', forceHostRuntime: true, quickCommandLabel: 'Hermes / default',
-      botProfile: { key: 'hermes:hermes@100.65.84.89:default', id: 'default', source: 'hermes', home: '/home/hermes' },
-      pendingStartup: { command: 'fixed-main-command', env: undefined }
+    mocks.select.mockReturnValue({ id: 'folder:notes', path: '/home/ra/notes' })
+    mocks.connection.mockReturnValue(null)
+    mocks.launch.mockResolvedValue({
+      agentArgs: '-p default --tui --resume recent',
+      label: 'Hermes'
     })
-    expect(mocks.activate).toHaveBeenCalledWith('folder:notes', { executionHostId: 'local', providesInitialSurface: true })
+    mocks.open.mockReturnValue({ surface: { kind: 'local-terminal', tabId: 'bot-tab' } })
+    mocks.settle.mockResolvedValue({ kind: 'terminal' })
+    vi.stubGlobal('api', { bots: { launch: mocks.launch } })
   })
-  it('routes a click from a remote workspace into the existing local Workspace', async () => {
-    mocks.activeWorkspaceExecutionHostId = 'runtime:remote'
+  it('uses the existing Hermes launch path in the active folder workspace on any platform', async () => {
     await openBotTerminal(profile)
-    expect(mocks.createTab).toHaveBeenCalledWith('local-workspace', undefined, 'powershell.exe', expect.objectContaining({ startupCwd: 'C:/Users/Rudraksh/Documents/Workspace', forceHostRuntime: true }))
+    expect(mocks.open).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: 'hermes',
+        worktreeId: 'folder:notes',
+        workspaceExecutionHostId: 'local',
+        requestedSurface: 'terminal',
+        initialCwd: '/home/ra/notes',
+        agentArgs: '-p default --tui --resume recent',
+        actionAgentArgs: '-p default --tui --resume recent',
+        quickCommandLabel: 'Hermes',
+        groupId: 'group'
+      }),
+      false
+    )
   })
-  it('does not create a bare tab when main refuses the profile', async () => {
+  it('passes the new-chat choice through main validation', async () => {
+    await openBotTerminal(profile, null)
+    expect(mocks.launch).toHaveBeenCalledWith('hermes:local:default', null)
+  })
+  it('does not route local profiles into remote workspaces', async () => {
+    mocks.activeWorkspaceExecutionHostId = 'runtime:remote'
+    await expect(openBotTerminal(profile)).rejects.toThrow('Select a local workspace')
+    expect(mocks.open).not.toHaveBeenCalled()
+    expect(mocks.launch).not.toHaveBeenCalled()
+  })
+  it('does not open a tab when main refuses a stale profile', async () => {
     mocks.launch.mockRejectedValue(new Error('Unknown profile'))
     await expect(openBotTerminal(profile)).rejects.toThrow('Unknown profile')
-    expect(mocks.createTab).not.toHaveBeenCalled()
+    expect(mocks.open).not.toHaveBeenCalled()
+  })
+  it('rechecks workspace existence after main replies', async () => {
+    mocks.select
+      .mockReturnValueOnce({ id: 'folder:notes', path: '/notes' })
+      .mockReturnValueOnce(undefined)
+    await expect(openBotTerminal(profile)).rejects.toThrow('removed before launch')
+    expect(mocks.open).not.toHaveBeenCalled()
+  })
+  it('reports a launch refusal', async () => {
+    mocks.settle.mockResolvedValue({ kind: 'failed' })
+    await expect(openBotTerminal(profile)).rejects.toThrow('Could not launch Hermes')
+  })
+  it('reports a synchronous launch refusal', async () => {
+    mocks.open.mockReturnValue({ refused: { delivered: false, failureNotified: false } })
+    await expect(openBotTerminal(profile)).rejects.toThrow('Could not launch Hermes')
   })
 })

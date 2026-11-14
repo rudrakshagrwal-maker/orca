@@ -1,23 +1,31 @@
-// RA: Catalogue identities contain no credentials or executable renderer input.
+export type BotChat = {
+  id: string
+  title: string
+  preview: string
+  updatedAt: number
+}
+
 export type BotProfile = {
   key: string
   id: string
   label: string
   source: 'hermes' | 'dsh'
   home: string
-  application: 'remote TUI' | 'web host' | 'headless' | 'unverified application'
+  application: 'local TUI' | 'remote TUI' | 'web host' | 'headless' | 'unverified application'
+  chats?: BotChat[]
+  error?: string
 }
 export type BotProfileSnapshot = {
   profiles: BotProfile[]
   lastSuccess: number | null
   error?: string
+  installed?: boolean
 }
 export type BotLaunch = {
-  command: string
-  shell: string
-  env?: Record<string, string>
+  agentArgs: string
   label: string
-  identity: BotTerminalIdentity // RA: saved identity, never the executable command.
 }
 
-export type BotTerminalIdentity = Pick<BotProfile, 'key' | 'id' | 'source' | 'home'> & { remotePath?: string }
+export type BotTerminalIdentity = Pick<BotProfile, 'key' | 'id' | 'source' | 'home'> & {
+  remotePath?: string
+}
