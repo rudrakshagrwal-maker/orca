@@ -3,6 +3,7 @@ import type { ActivityTerminalPortalTarget } from './activity/activity-terminal-
 import TerminalPaneOverlayLayer from './terminal-pane/mounting/TerminalPaneOverlayLayer'
 import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
 import { Suspense } from 'react'
+import { useAppStore } from '@/store'
 import type { HiddenTerminalPrewarm } from './terminal-pane/controller/terminal-pane-types'
 // RA: disabled feature renderers must not join the terminal's eager import graph.
 const RetainedBrowserPaneOverlayLayer = lazy(() =>
@@ -11,8 +12,8 @@ const RetainedBrowserPaneOverlayLayer = lazy(() =>
   }))
 )
 const EmulatorPaneOverlayLayer = lazy(() => import('./emulator-pane/EmulatorPaneOverlayLayer'))
-const StructuredAgentSessionPaneOverlayLayer = lazy(() =>
-  import('./native-chat/pane/routing/StructuredAgentSessionPaneOverlayLayer')
+const StructuredAgentSessionPaneOverlayLayer = lazy(
+  () => import('./native-chat/pane/routing/StructuredAgentSessionPaneOverlayLayer')
 )
 const AiVaultSessionDropLayer = lazy(() => import('./tab-group/AiVaultSessionDropLayer'))
 
@@ -47,6 +48,11 @@ export function WorkspacePaneOverlayLayers({
   /** Floating overlays leave the toggle chord to the active workspace; duplicate listeners would both toggle. */
   ownsNativeChatToggleShortcut?: boolean
 }): React.JSX.Element {
+  const hasBotChat = useAppStore((state) =>
+    (state.unifiedTabsByWorktree[worktreeId] ?? []).some(
+      (tab) => tab.contentType === 'agent-session' && tab.agentSessionAgent === 'hermes'
+    )
+  )
   return (
     <>
       <TerminalPaneOverlayLayer
@@ -72,11 +78,15 @@ export function WorkspacePaneOverlayLayers({
           {mountEmulatorOverlay ? (
             <EmulatorPaneOverlayLayer worktreeId={worktreeId} isWorktreeActive={isVisible} />
           ) : null}
+          <AiVaultSessionDropLayer worktreeId={worktreeId} enabled={isVisible} />
+        </Suspense>
+      ) : null}
+      {hasBotChat || !backgroundJobsDisabled() ? (
+        <Suspense fallback={null}>
           <StructuredAgentSessionPaneOverlayLayer
             worktreeId={worktreeId}
             isWorktreeActive={isVisible}
           />
-          <AiVaultSessionDropLayer worktreeId={worktreeId} enabled={isVisible} />
         </Suspense>
       ) : null}
     </>

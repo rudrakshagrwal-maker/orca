@@ -1,4 +1,5 @@
 import type { AgentSessionAccountKind } from '../../../shared/agent-session/agent-session-availability'
+import type { AcpLoadHistoryFrame } from '../history/acp-history-replay'
 import type { AgentSessionContextUsage } from '../../../shared/agent-session/agent-session-context-usage'
 import type { AgentSessionUsageLimit } from '../../../shared/agent-session/failures/agent-session-usage-limit'
 import type { AgentJournalToolCallItem } from '../../../shared/agent-session/journal/agent-session-journal-types'
@@ -113,6 +114,7 @@ export type AcpModelCommandReply =
 
 /** Hooks interpret extensions; lifecycle and row identity stay shared. */
 export type AcpDialect = {
+  historyFrames?(frames: AcpLoadHistoryFrame[]): AcpLoadHistoryFrame[]
   /** Effort replaces part of the native composite model selection. */
   effortChangesModel?: true
   subagentStop?: {

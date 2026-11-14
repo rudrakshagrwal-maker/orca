@@ -43,6 +43,20 @@ export async function openBotTerminal(
     if (!target || !selectWorkspaceByHostTarget(current, target)) {
       throw new Error('The workspace was removed before launch.')
     }
+    if (launch.command) {
+      current.createTab(
+        workspace.id,
+        current.activeGroupIdByWorktree[workspace.id],
+        navigator.userAgent.includes('Windows') ? 'powershell.exe' : undefined,
+        {
+          quickCommandLabel: launch.label,
+          startupCwd: workspace.path,
+          forceHostRuntime: true,
+          pendingStartup: { command: launch.command }
+        }
+      )
+      return
+    }
     const outcome = launchAgentInNewTabWithOutcome(
       {
         requestId: createNonSecureContextUuid(),

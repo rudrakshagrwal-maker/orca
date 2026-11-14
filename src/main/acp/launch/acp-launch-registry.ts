@@ -28,6 +28,31 @@ import { OMP_SESSION_HISTORY } from '../../omp/omp-session-history'
 import { OMP_TRANSCRIPT_IMPORT } from '../../omp/omp-transcript-import'
 import { ANTIGRAVITY_LAUNCH_SPEC } from '../../antigravity/antigravity-acp-launch-spec'
 import type { AcpLaunchSpec } from './acp-launch-contract'
+import { HERMES_ACP_DIALECT } from '../acp-dialects/hermes-dialect'
+import { getHermesHome } from '../../hermes/hermes-default-home'
+
+export const HERMES_LAUNCH_SPEC: AcpLaunchSpec = {
+  agent: 'hermes',
+  command: 'hermes',
+  args: () => ['-p', 'default', 'acp'],
+  env: {},
+  dialect: HERMES_ACP_DIALECT,
+  historyCatchUp: 'user-message-id',
+  loginCommand: [],
+  account: directoryAccountBinding('HERMES_HOME', () => getHermesHome()),
+  installDirectories: ({ env, homePath }) => [
+    join(env.LOCALAPPDATA ?? homePath, 'hermes', 'bin'),
+    join(homePath, '.local', 'bin')
+  ],
+  modelDiscovery: { kind: 'session', listingNamesConfiguredModel: false },
+  keepsEverySession: true,
+  transcriptImport: null,
+  sessionHistory: {
+    rowAgents: ['hermes'],
+    rowSessionId: (link) => link.handle.nativeId,
+    parseResumeArgs: () => null
+  }
+}
 
 const GROK_LAUNCH_SPEC: AcpLaunchSpec = {
   agent: 'grok',
@@ -150,6 +175,7 @@ const OMP_LAUNCH_SPEC: AcpLaunchSpec = {
 }
 
 export const ACP_LAUNCH_SPECS: readonly AcpLaunchSpec[] = [
+  HERMES_LAUNCH_SPEC,
   GROK_LAUNCH_SPEC,
   OPENCODE_LAUNCH_SPEC,
   OPENCODE2_LAUNCH_SPEC,

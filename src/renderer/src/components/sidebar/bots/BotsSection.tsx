@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useNow } from '@/hooks/use-now'
 import { cn } from '@/lib/class-names'
 import { openBotTerminal } from '@/lib/bots/open-bot-terminal'
+import { openBotChat } from '@/lib/bots/open-bot-chat'
 import { BotRow } from './BotRow'
 import { useBotProfiles } from './use-bot-profiles'
 
@@ -28,7 +29,7 @@ export function BotsSection(): React.JSX.Element | null {
               <ChevronRight className={cn('size-3.5', expanded && 'rotate-90')} aria-hidden /> Bots
             </button>
           </CollapsibleTrigger>
-          {expanded && snapshot.installed && (
+          {expanded && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -50,10 +51,34 @@ export function BotsSection(): React.JSX.Element | null {
         </div>
         <CollapsibleContent>
           <div className="worktree-sidebar-scrollbar max-h-72 overflow-y-auto">
-            {snapshot.profiles.map((profile) => (
-              <BotRow key={profile.key} profile={profile} now={now} onOpen={openBotTerminal} />
+            {[
+              { name: 'local', label: 'This laptop', error: snapshot.error },
+              ...(snapshot.peers ?? []).map((peer) => ({
+                ...peer,
+                label: peer.name === 'box' ? 'Box' : peer.name
+              }))
+            ].map((group) => (
+              <div key={group.name}>
+                <p className="px-3 pt-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group.label}
+                </p>
+                {snapshot.profiles
+                  .filter((profile) => (profile.host ?? 'local') === group.name)
+                  .map((profile) => (
+                    <BotRow
+                      key={profile.key}
+                      profile={profile}
+                      now={now}
+                      onOpen={openBotChat}
+                      onTerminal={openBotTerminal}
+                    />
+                  ))}
+                {group.error && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">{group.error}</p>
+                )}
+              </div>
             ))}
-            {!snapshot.profiles.length && (
+            {!snapshot.profiles.some((profile) => (profile.host ?? 'local') === 'local') && (
               <p className="px-3 py-2 text-xs text-muted-foreground">
                 {busy
                   ? 'Loading bots…'

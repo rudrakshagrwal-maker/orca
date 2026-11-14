@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, Plus, MoreHorizontal, Terminal } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -18,11 +24,13 @@ const avatarColors = [
 export function BotRow({
   profile,
   now,
-  onOpen
+  onOpen,
+  onTerminal
 }: {
   profile: BotProfile
   now: number
   onOpen: (profile: BotProfile, sessionId?: string | null) => Promise<void>
+  onTerminal?: (profile: BotProfile, sessionId?: string | null) => Promise<void>
 }): React.JSX.Element {
   const [expanded, setExpanded] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -33,14 +41,14 @@ export function BotRow({
     (hash, char) => (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0,
     0
   )
-  const open = async (sessionId?: string | null) => {
+  const open = async (sessionId?: string | null, terminal = false) => {
     if (busy) {
       return
     }
     setBusy(true)
     setError(null)
     try {
-      await onOpen(profile, sessionId)
+      await (terminal && onTerminal ? onTerminal : onOpen)(profile, sessionId)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not open chat.')
     } finally {
@@ -113,6 +121,26 @@ export function BotRow({
             New chat
           </TooltipContent>
         </Tooltip>
+        {onTerminal && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                disabled={busy}
+                aria-label={`Actions for ${profile.label}`}
+              >
+                <MoreHorizontal className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => void open(undefined, true)}>
+                <Terminal className="size-4" />
+                Open in terminal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       <CollapsibleContent>
         <div className="pl-8">

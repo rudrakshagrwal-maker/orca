@@ -135,7 +135,7 @@ export function registerCoreHandlers(
   }
   registered = true
   registerRestoredFeatureActivation()
-  registerBotHandlers() // RA: registering handlers does not connect to bots.
+  registerBotHandlers(store, runtime) // RA: registering handlers does not connect to bots.
 
   registerAppHandlers(store, {
     quitResumeRecordsFor: (session) => runtime.quitResumeRecordsFor(session),
@@ -218,9 +218,8 @@ export function registerCoreHandlers(
   registerClipboardHandlers(store, {
     localChatAttachmentStore: async () => {
       // RA: clipboard support must not eagerly load chat attachment storage.
-      const { getAgentSessionAttachmentStore } = await import(
-        '../../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
-      )
+      const { getAgentSessionAttachmentStore } =
+        await import('../../native-chat/agent-session-attachments/agent-session-attachment-store-registry')
       await ensureStructuredAgentSessionHostUnlessRefused(() =>
         runtime.ensureStructuredAgentSessionHost()
       )
