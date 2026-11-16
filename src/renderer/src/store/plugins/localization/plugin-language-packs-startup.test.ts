@@ -42,9 +42,6 @@ function installBridge() {
 beforeEach(async () => {
   vi.resetModules()
   languagePacks = await import('./plugin-language-packs')
-  // RA: plugin contents load only after explicit panel use.
-  const { markPluginsOpened } = await import('../catalog/plugin-first-use')
-  markPluginsOpened()
 })
 
 afterEach(() => {
