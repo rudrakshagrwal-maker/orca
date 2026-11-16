@@ -3,6 +3,42 @@ import { reconcileManagedWslCliRegistrations } from './wsl-cli-registration-reco
 import { runSerializedWslCliRegistrationOperation } from './wsl-cli-registration-operation'
 
 describe('reconcileManagedWslCliRegistrations', () => {
+  // RA: host-only startup must not spawn WSL or inspect host CLI installation state.
+  it('does no discovery without owned WSL registrations or deployments', async () => {
+    const listDistros = vi.fn(async () => ['Ubuntu'])
+    const getHostLauncherTarget = vi.fn(async () => '/orca')
+    expect(
+      await reconcileManagedWslCliRegistrations({
+        platform: 'win32',
+        isPackaged: true,
+        userDataPath: '/user-data',
+        hasManagedRegistrations: async () => false,
+        listOrcaHostDistros: () => [],
+        listDistros,
+        getHostLauncherTarget
+      })
+    ).toEqual([])
+    expect(listDistros).not.toHaveBeenCalled()
+    expect(getHostLauncherTarget).not.toHaveBeenCalled()
+  })
+
+  // RA: unavailable WSL must not fan out into additional installation probes.
+  it('stops after an empty WSL list even when a managed launcher is recorded', async () => {
+    const getHostLauncherTarget = vi.fn(async () => '/orca')
+    expect(
+      await reconcileManagedWslCliRegistrations({
+        platform: 'win32',
+        isPackaged: true,
+        userDataPath: '/user-data',
+        hasManagedRegistrations: async () => true,
+        listOrcaHostDistros: () => [],
+        listDistros: async () => [],
+        getHostLauncherTarget
+      })
+    ).toEqual([])
+    expect(getHostLauncherTarget).not.toHaveBeenCalled()
+  })
+
   it('lets a Settings removal win over a late startup repair for the same distro', async () => {
     const events: string[] = []
     let repairStarted!: () => void
@@ -20,6 +56,9 @@ describe('reconcileManagedWslCliRegistrations', () => {
       platform: 'win32',
       isPackaged: true,
       userDataPath: '/user-data',
+      // RA: this fixture represents an owned WSL launcher.
+      hasManagedRegistrations: async () => true,
+      listOrcaHostDistros: () => [],
       listDistros: async () => ['Ubuntu'],
       listRunningDistros: async () => ['Ubuntu'],
       isDistroRunning: async (distro: string) => ['Ubuntu'].includes(distro),

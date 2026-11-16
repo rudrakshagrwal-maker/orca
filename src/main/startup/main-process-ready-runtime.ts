@@ -1,7 +1,6 @@
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
-import { app, nativeTheme } from 'electron'
+import { app, ipcMain, nativeTheme } from 'electron'
 import { performance } from 'node:perf_hooks'
-import { StarNagService } from '../star-nag/service'
 import { startPreGoneCrashSampling } from '../crash-reporting/process-exits/process-gone-diagnostics'
 import { refuseRealtimeSchedulingUnderZeroRtTime } from './linux-realtime-scheduling-guard'
 import { recordProcessGoneCrash } from './main-window-lifecycle-flags'
@@ -15,14 +14,9 @@ import {
   initializeMainProcessRuntime,
   configureRuntimeServices
 } from './main-process-runtime-service'
-import {
-  collectWorktreeTrashSweepRoots,
-  sweepStaleWorktreeTrash
-} from '../workspaces/removal/worktree-trash'
 import { loadWorktreeRemovalRecordsForStore } from './worktree-removal-records-load'
 import { runAfterFirstWindowShown } from './first-window-deferral'
 import { logStartupMilestone } from './startup-diagnostics'
-import { pruneDesktopOrcadArtifactCache } from '../orcad/orcad-artifact-cache-retention'
 import { runGatedWslMoveDesktopRewritePass } from '../persistence/moving-wsl-projects/desktop-state/wsl-move-desktop-rewrite'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { repairDuplicatePtyPanesOnStart } from '../runtime/terminal/identity/moved-pane-owner-rekey'
@@ -54,9 +48,21 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
     const { initializeMainProcessPlugins } = await import('./main-process-plugins')
     await initializeMainProcessPlugins(runtime)
   }
-  state.starNag = new StarNagService(store, state.stats!)
-  // RA: retain user-invoked star IPC without starting automatic nags.
-  state.starNag.registerIpcHandlers()
+  // RA: legacy renderer calls stay harmless without loading star nags or spawning GitHub probes.
+  for (const action of [
+    'dismiss',
+    'later',
+    'complete',
+    'disable',
+    'openWeb',
+    'forceShow',
+    'showAgentValueMoment',
+    'onboardingCompleted'
+  ]) {
+    ipcMain.handle(`star-nag:${action}`, () => {})
+  }
+  ipcMain.handle('star-nag:starOrca', () => false)
+  ipcMain.handle('star-nag:agentValueMoment', () => ({ status: 'skipped' }))
   // RA: browser proxies, emulator bridges and dispatchers stay outside terminal startup imports.
   if (!backgroundJobsDisabled()) {
     const { initializeMainProcessBrowserRuntime } = await import('./main-process-browser-runtime')
@@ -64,18 +70,28 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   }
   // Finish recorded deletes and old trash left across crashes; defer disk sweeps so they do not compete with first paint/catalog hydration.
   runAfterFirstWindowShown(() => {
-    void sweepStaleWorktreeTrash(
-      collectWorktreeTrashSweepRoots(store.getRepos(), store.getSettings())
-    ).catch((error) => {
-      console.warn('[worktrees] Failed to sweep leftover worktree directories:', error)
-    })
+    // RA: load disk-cleanup code only after paint, alongside the already-deferred sweep.
+    void import('../workspaces/removal/worktree-trash')
+      .then(({ sweepStaleWorktreeTrash, collectWorktreeTrashSweepRoots }) =>
+        sweepStaleWorktreeTrash(
+          collectWorktreeTrashSweepRoots(store.getRepos(), store.getSettings())
+        )
+      )
+      .catch((error) => {
+        console.warn('[worktrees] Failed to sweep leftover worktree directories:', error)
+      })
     runtime.finishInterruptedWorktreeRemovals()
   }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
   // RA: no agent plugin refresh or WSL usage reporter.
   runAfterFirstWindowShown(() => {
-    void pruneDesktopOrcadArtifactCache(app.getPath('userData')).catch((error) => {
-      console.warn('[orcad-artifacts] Failed to bound the slot cache:', error)
-    })
+    // RA: artifact retention does not belong to the first-window module graph.
+    void import('../orcad/orcad-artifact-cache-retention')
+      .then(({ pruneDesktopOrcadArtifactCache }) =>
+        pruneDesktopOrcadArtifactCache(app.getPath('userData'))
+      )
+      .catch((error) => {
+        console.warn('[orcad-artifacts] Failed to bound the slot cache:', error)
+      })
   }, WORKTREE_TRASH_SWEEP_FALLBACK_MS)
   // The startup pass ran before browser sessions and any window existed, so `browser-cookies` paused.
   runAfterFirstWindowShown(() => {

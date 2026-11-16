@@ -1,6 +1,5 @@
-import { antigravityHookService } from '../antigravity/hook-service'
-import { getRelocatedDaemonHost } from '../daemon/executable-host/windows/daemon-host-relocation'
 import { app, ipcMain, powerMonitor, session } from 'electron'
+import { installElectronBrowserCommands } from '../host/electron-browser-commands' // RA: agents drive the embedded browser.
 import os from 'node:os'
 import { join } from 'node:path'
 import { maybeRedirectCliLaunch } from './cli-launch-redirect'
@@ -64,11 +63,8 @@ import { selectLinuxKeyringBackend } from './select-linux-keyring-backend'
 import { setPtyHostBindings } from '../ipc/pty/pty-host-bindings'
 import { electronRuntimeDesktopSurface } from '../host/electron-runtime-desktop-surface'
 import { setRuntimeDesktopSurface } from '../runtime/construction/runtime-desktop-surface'
-import { installElectronBrowserCommands } from '../host/electron-browser-commands'
 import { electronHttpClient } from '../host/electron-http-client'
 import { setMainHttpClient } from '../network/http-client'
-import { electronSpeechServiceFactories } from '../host/electron-speech-services'
-import { setSpeechServiceFactories } from '../speech/speech-runtime-service'
 import { setWorktreeWatcherRemoval } from '../workspaces/removal/worktree-watcher-removal'
 import { desktopWorktreeWatcherRemoval } from '../ipc/filesystem/watchers/filesystem-watcher'
 import { setDefaultProxySessionResolver } from '../network/electron-default-proxy-session'
@@ -204,9 +200,7 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   // Capture after overrides, before ready-time app naming can change userData on case-sensitive filesystems.
   initDataPath()
   startEventLoopDelayProbe('main', getCanonicalUserDataPath())
-  antigravityHookService.setWindowsRuntimePathProvider(
-    () => getRelocatedDaemonHost()?.execPath ?? process.execPath
-  )
+  // RA: no Antigravity hook/runtime registration in the Claude/Codex terminal fork.
 
   // Electron fixes the Keychain service name before ready; dev userData is already pinned so renaming cannot shift it.
   if (state.devInstanceIdentity && shouldApplyPreReadyAppName(state.devInstanceIdentity)) {
@@ -271,14 +265,13 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   setPtyHostBindings({ ipc: ipcMain, power: powerMonitor })
   // Node hosts omit desktop surfaces and route notifications to paired clients instead.
   setRuntimeDesktopSurface(electronRuntimeDesktopSurface)
-  // Install Chromium browser commands only in Electron; Node hosts advertise no browser capability and reject those RPCs.
+  // RA: agents use the embedded browser (1000+ uses), so its commands stay.
   installElectronBrowserCommands()
   // Electron consults default-session proxy config; Node hosts use environment only.
   setDefaultProxySessionResolver(() => session.defaultSession)
   // Desktop integrations use Chromium networking; Node differs in proxy environment and user agent.
   setMainHttpClient(electronHttpClient)
-  // Only Electron supplies streaming speech services; other hosts reject speech calls.
-  setSpeechServiceFactories(electronSpeechServiceFactories)
+  // RA: leave speech factories unset; terminal-only startup never loads model/worker implementations.
   setWorktreeWatcherRemoval(desktopWorktreeWatcherRemoval)
   // Couple only dev desktop lifetime; serve must outlive its CLI shim/background-shell parent.
   const shouldCoupleToDevParent = isDev && !state.isServeMode
