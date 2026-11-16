@@ -64,7 +64,8 @@ export function buildShortcutRowVisibility(
           terminalStatus: getShortcutTerminalStatus(
             item,
             options.terminalShortcutPolicy,
-            effective.length > 0,
+            effective,
+            options.platform,
             t
           )
         }

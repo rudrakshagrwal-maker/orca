@@ -2,7 +2,7 @@ import type { ActivePluginCommand } from '@/store/plugins/catalog/plugin-contrib
 import '../../../../../shared/keybindings'
 import {
   getEffectiveKeybindingsForDefinition,
-  keybindingIsActiveInContext
+  getKeybindingsForContext
 } from '../../../../../shared/keybindings/effective'
 import { keybindingMatchesInput } from '../../../../../shared/keybindings/matching'
 import type {
@@ -63,13 +63,12 @@ export function findPluginCommandForKeybinding(
       continue
     }
     const definition = pluginCommandKeybindingDefinition(command)
-    // Why: plugin chords obey the terminal shortcut policy exactly as Orca's own app shortcuts do (#15642).
-    if (!keybindingIsActiveInContext(definition, options)) {
-      continue
-    }
-    const matches = getEffectiveKeybindingsForDefinition(definition, platform, overrides).some(
-      (binding) => keybindingMatchesInput(binding, input, platform)
-    )
+    const matches = getKeybindingsForContext(
+      definition,
+      getEffectiveKeybindingsForDefinition(definition, platform, overrides),
+      platform,
+      options
+    ).some((binding) => keybindingMatchesInput(binding, input, platform))
     if (matches) {
       return command
     }

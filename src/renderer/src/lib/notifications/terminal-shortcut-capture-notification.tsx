@@ -4,6 +4,7 @@ import '../../../../shared/keybindings'
 import { formatKeybindingList } from '../../../../shared/keybindings/formatting'
 import {
   getEffectiveKeybindingsForAction,
+  getKeybindingsForContext,
   isKeybindingPotentialTerminalConflict
 } from '../../../../shared/keybindings/effective'
 import { getKeybindingDefinition } from '../../../../shared/keybindings/definitions'
@@ -60,7 +61,12 @@ export function showTerminalShortcutCaptureNotification({
   markNoticeShown(actionId)
 
   const bindingLabel = formatKeybindingList(
-    getEffectiveKeybindingsForAction(actionId, platform, keybindings),
+    getKeybindingsForContext(
+      definition,
+      getEffectiveKeybindingsForAction(actionId, platform, keybindings),
+      platform,
+      { context: 'terminal' }
+    ),
     platform
   )
   // Keep this longer-lived toast compact while showing shortcut and edit path.

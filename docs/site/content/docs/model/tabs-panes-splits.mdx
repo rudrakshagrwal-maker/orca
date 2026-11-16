@@ -35,6 +35,21 @@ Remap under [Settings → Shortcuts](/docs/settings). Existing installs keep cus
 
 ## Split panes
 
+### Shortcuts while a terminal has focus
+
+These Control keys go to the terminal program, including Claude Code and Codex. Their shifted forms run Orca actions under either terminal shortcut priority policy:
+
+| Terminal input | Orca shortcut | Orca action |
+| --- | --- | --- |
+| `Ctrl+B` | `Ctrl+Shift+B` | Toggle left sidebar |
+| `Ctrl+T` | `Ctrl+Shift+T` | New terminal tab |
+| `Ctrl+O` | `Ctrl+Shift+O` | Open markdown tab |
+| `Ctrl+R` | `Ctrl+Shift+R` | Force reload Orca |
+
+Outside a terminal, existing shortcuts keep their behavior: `Ctrl+Shift+B` opens a browser tab and `Ctrl+Shift+T` reopens a closed tab on Windows/Linux. macOS Command shortcuts also keep their behavior. Disabled actions stay disabled; unrelated custom bindings remain in effect. Settings shows terminal-specific bindings beside each affected action.
+
+### Splitting a layout
+
 Drag a tab to the edge of a pane to create a split:
 
 - **Right edge** — splits left/right (horizontal split).

@@ -77,7 +77,7 @@ export function useFloatingTerminalPanelShortcuts({
       const matchOptions: KeybindingMatchOptions = { context, terminalShortcutPolicy }
       const floatingChromeMatchOptions: KeybindingMatchOptions =
         isFloatingTerminalInput && terminalShortcutPolicy === 'terminal-first'
-          ? { context: 'app', terminalShortcutPolicy }
+          ? { context: 'terminal', terminalShortcutPolicy: 'orca-first' }
           : matchOptions
       const ownedAction = matchFloatingWorkspacePanelOwnedAction(
         input,

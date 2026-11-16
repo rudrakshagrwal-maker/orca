@@ -12,7 +12,8 @@ import {
   getLegacySearchBindings,
   isDigitIndexActionId
 } from './definitions'
-import { keybindingConflictIdentities } from './matching-key'
+import { keybindingConflictIdentities, platformModifiers } from './matching-key'
+import { canonicalizeParsedKeybinding, parseKeybinding } from './parser'
 import {
   normalizeKeybindingWithOptions,
   normalizeOptionsForAction,
@@ -227,4 +228,40 @@ export function keybindingIsActiveInContext(
     return true
   }
   return isKeybindingAllowedInTerminal(definition)
+}
+
+// RA: Terminal input keeps these Control chords; their shifted forms belong to Orca.
+const TERMINAL_SHIFTED_ACTIONS: Readonly<Record<string, KeybindingActionId>> = {
+  B: 'sidebar.left.toggle',
+  T: 'tab.newTerminal',
+  O: 'tab.openMarkdown',
+  R: 'app.forceReload'
+}
+
+export function getKeybindingsForContext(
+  definition: KeybindingDefinition,
+  bindings: readonly string[],
+  platform: NodeJS.Platform,
+  options: KeybindingMatchOptions = {}
+): string[] {
+  const active = keybindingIsActiveInContext(definition, options)
+  return bindings.flatMap((binding) => {
+    if (options.context === 'terminal') {
+      const parsed = parseKeybinding(binding)
+      if (parsed && !parsed.doubleTapModifier) {
+        const modifiers = platformModifiers(parsed, platform)
+        const owner = TERMINAL_SHIFTED_ACTIONS[parsed.key]
+        if (owner && modifiers.control && !modifiers.meta && !modifiers.alt) {
+          if (definition.id !== owner) {
+            return []
+          }
+          return [canonicalizeParsedKeybinding({ ...parsed, shift: true })]
+        }
+        if (owner === definition.id && modifiers.meta && !modifiers.control && !modifiers.alt) {
+          return [...(active ? [binding] : []), `Ctrl+Shift+${parsed.key}`]
+        }
+      }
+    }
+    return active ? [binding] : []
+  })
 }

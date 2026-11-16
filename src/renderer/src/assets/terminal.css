@@ -22,7 +22,7 @@
 /* RA: each terminal leaf clips its canvas inside the owner's 8px card, including inner splits. */
 .pane-manager-root .pane.ra-terminal-card {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: calc(var(--radius) * 0.8);
   overflow: hidden;
   background: var(--background);
   box-sizing: border-box;

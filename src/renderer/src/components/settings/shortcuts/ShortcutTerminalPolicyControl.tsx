@@ -37,8 +37,8 @@ export function ShortcutTerminalPolicyControl({
           'Shortcuts in terminal'
         )}
         description={t(
-          'auto.components.settings.ShortcutTerminalPolicyControl.c43c7ff5f9',
-          'Decide who first intercepts shortcuts'
+          'settings.shortcuts.terminalControlKeys',
+          'Ctrl+B, Ctrl+T, Ctrl+O and Ctrl+R always go to the terminal. Use Ctrl+Shift with those letters for Orca; other shortcuts follow this policy.'
         )}
         control={
           <Select

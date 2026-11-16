@@ -15,6 +15,7 @@ import {
 import {
   getDefaultBindings,
   getEffectiveKeybindingsForAction,
+  getKeybindingsForContext,
   keybindingIsActiveInContext
 } from './effective'
 
@@ -54,12 +55,12 @@ export function keybindingMatchesAction(
   if (!definition) {
     return false
   }
-  if (!keybindingIsActiveInContext(definition, options)) {
-    return false
-  }
-  return getEffectiveKeybindingsForAction(actionId, platform, overrides).some((binding) =>
-    keybindingMatchesInput(binding, input, platform)
-  )
+  return getKeybindingsForContext(
+    definition,
+    getEffectiveKeybindingsForAction(actionId, platform, overrides),
+    platform,
+    options
+  ).some((binding) => keybindingMatchesInput(binding, input, platform))
 }
 
 // Why: decided from the definition and the pressed chord, so re-saving a default never takes it from the field.

@@ -1024,6 +1024,12 @@ body[data-modal-overlay-open]
   margin-right: var(--workspace-panel-gap);
 }
 
+/* RA: Use a hairline inside the sidebar card rather than inset elevation. */
+.workspace-sidebar-column[data-open='true'] > .titlebar-left {
+  box-shadow: none;
+  border-bottom: 1px solid var(--border);
+}
+
 /* RA: Keep the clipped sidebar's resize target reachable at its inside edge. */
 .workspace-sidebar-column [data-sidebar-resize-handle] {
   right: 0;
@@ -1048,12 +1054,17 @@ body[data-modal-overlay-open]
   border-bottom: 0;
 }
 
-.workspace-main-panel [data-tab-group-strip-id] [data-testid='sortable-tab'] {
+.workspace-main-panel [data-tab-group-strip-id] [data-active] {
   border-top: 0;
 }
 
 .workspace-main-panel [data-tab-group-strip-id] [data-active='true'] {
   background: var(--background);
+}
+
+/* RA: The selected tab opens into the panel, including multi-tab strips. */
+.workspace-main-panel [data-tab-group-strip-id] [data-active='true'] > .bg-tab-active-indicator {
+  display: none;
 }
 
 .workspace-main-panel [data-tab-group-strip-id] [data-active='false'] {
