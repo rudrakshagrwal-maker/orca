@@ -63,11 +63,9 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   }
   ipcMain.handle('star-nag:starOrca', () => false)
   ipcMain.handle('star-nag:agentValueMoment', () => ({ status: 'skipped' }))
-  // RA: browser proxies, emulator bridges and dispatchers stay outside terminal startup imports.
-  if (!backgroundJobsDisabled()) {
-    const { initializeMainProcessBrowserRuntime } = await import('./main-process-browser-runtime')
-    initializeMainProcessBrowserRuntime(runtime)
-  }
+  // RA: agents drive the embedded browser (1000+ uses), so its runtime always starts.
+  const { initializeMainProcessBrowserRuntime } = await import('./main-process-browser-runtime')
+  initializeMainProcessBrowserRuntime(runtime)
   // Finish recorded deletes and old trash left across crashes; defer disk sweeps so they do not compete with first paint/catalog hydration.
   runAfterFirstWindowShown(() => {
     // RA: load disk-cleanup code only after paint, alongside the already-deferred sweep.
