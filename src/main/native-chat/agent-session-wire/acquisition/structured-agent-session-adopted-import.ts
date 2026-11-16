@@ -66,9 +66,6 @@ async function readAdoptedTranscript(
   if (!adopt) {
     return null
   }
-  if (adopt.replayViaAcp && params.agent === 'hermes' && adopt.providerHandle.transport === 'acp') {
-    return null
-  }
   if (!adopt.transcriptPath) {
     throw agentSessionRefusalError('agent_session_identity_required', {
       reason: 'transcriptNotFound'
@@ -125,11 +122,7 @@ async function applyAdoptedTranscript(
 ): Promise<void> {
   const adopt = params.adopt
   // Preserve durable writes after the initial epoch row.
-  if (
-    !adopt ||
-    attached.journal.cursor().sequence > 1 ||
-    (adopt.replayViaAcp && params.agent === 'hermes' && adopt.providerHandle.transport === 'acp')
-  ) {
+  if (!adopt || attached.journal.cursor().sequence > 1) {
     return
   }
   if (prepared) {

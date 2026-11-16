@@ -96,7 +96,7 @@ export async function initializeAcpStructuredSession(
     try {
       started = await connection.start(
         {
-          cwd: launch.sessionCwd ?? launch.cwd,
+          cwd: launch.cwd,
           mcpServers: [],
           sessionId: resume.sessionId,
           ...setup
@@ -105,9 +105,6 @@ export async function initializeAcpStructuredSession(
       )
       assertStarting()
       replayed = input.lanes.finishLoad()
-      if (replayed && spec.dialect.historyFrames) {
-        replayed = spec.dialect.historyFrames(replayed)
-      }
       attaching.translator.finishLoad()
     } catch (error) {
       takeover = acpReopenTakeover(error, resume, {
@@ -121,10 +118,7 @@ export async function initializeAcpStructuredSession(
   if (!started || !liveLane) {
     liveLane?.dispose()
     input.lanes.clear()
-    started = await connection.start(
-      { cwd: launch.sessionCwd ?? launch.cwd, mcpServers: [], ...setup },
-      acceptSession
-    )
+    started = await connection.start({ cwd: launch.cwd, mcpServers: [], ...setup }, acceptSession)
     assertStarting()
   }
   if (!liveLane) {

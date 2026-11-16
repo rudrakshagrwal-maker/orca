@@ -1,6 +1,4 @@
 import { checkAcpLaunchVersion } from './acp-launch-version'
-import { hermesBotProcess } from '../../bots/hermes-bot-process'
-import { requireLegacyAgentSessionAccountHome } from '../../../shared/agent-session/lifecycle/agent-session-account-home'
 import { overlayEnvironmentVariables } from '../../../shared/environment-overlay'
 
 import {
@@ -43,7 +41,6 @@ export type AcpStructuredLaunch = StructuredAgentCommand & {
   antigravityChatAuth?: AntigravityChatAuthConfig
   args: string[]
   cwd: string
-  sessionCwd?: string
   /** Sealed for spawns; recovery reads use the unsealed agent environment. */
   env: Record<string, string>
   envToDelete: string[]
@@ -71,7 +68,7 @@ export type AcpStructuredLaunchPartDeps = {
 } & Pick<AcpLaunchVisualsDeps, 'logger'>
 
 export type AcpLaunchSettings = StructuredAgentCommandSettings &
-  Partial<Pick<GlobalSettings, 'antigravityChatAuth' | 'hermesPeers'>>
+  Partial<Pick<GlobalSettings, 'antigravityChatAuth'>>
 
 export type AcpLaunchInvocationDeps = {
   operation?: StructuredAgentResolutionOperation
@@ -151,24 +148,8 @@ export function acpStructuredLaunchPart(
 ): StructuredAgentLaunchPartResolver<AcpStructuredLaunch> {
   return async (basis, identity) => {
     const { record } = basis
-    const botKey =
-      agentSpec.agent === 'hermes' && record.launchArgs?.[0] === '--orca-bot'
-        ? record.launchArgs[1]
-        : null
-    const botSettings: AcpLaunchSettings = basis.commandSettings()
-    const selectedBot = botKey
-      ? hermesBotProcess(
-          botKey,
-          requireLegacyAgentSessionAccountHome(record.accountHome).path,
-          await basis.baseEnvironment(),
-          botSettings.hermesPeers
-        )
-      : null
-    const resolutionSpec: AcpLaunchSpec = selectedBot
-      ? { ...agentSpec, command: selectedBot.command, ignoreAgentCommandSetting: true }
-      : agentSpec
     const { env, envToDelete, command, prefixArgs, spec, antigravityChatAuth } =
-      await resolveAcpLaunchInvocation(resolutionSpec, record.accountHome, {
+      await resolveAcpLaunchInvocation(agentSpec, record.accountHome, {
         resolveEnvironment: basis.baseEnvironment,
         resolveLaunchEnv: () => basis.launchEnv(),
         resolveCommandSettings: basis.commandSettings,
@@ -207,22 +188,13 @@ export function acpStructuredLaunchPart(
     // before it opens; resumed chats apply their model through the session instead.
     const model = spec.launchesWithModel && !head ? record.options?.model : undefined
     const args = spec.args({ fullAccess, pluginDir: skill?.pluginDir ?? null, model })
-    const bot = botKey
-      ? hermesBotProcess(
-          botKey,
-          requireLegacyAgentSessionAccountHome(record.accountHome).path,
-          env,
-          botSettings.hermesPeers
-        )
-      : null
     return {
       launch: {
         spec,
         ...(antigravityChatAuth ? { antigravityChatAuth } : {}),
         command,
         prefixArgs,
-        args: [...prefixArgs, ...(bot?.args ?? args)],
-        ...(bot?.sessionCwd ? { sessionCwd: bot.sessionCwd } : {}),
+        args: [...prefixArgs, ...args],
         fullAccess,
         ...(model ? { launchModel: model } : {}),
         resume: head
@@ -241,10 +213,7 @@ export function acpStructuredLaunchPart(
             }
           : null
       },
-      env: withNativeChatVisualsEnv(
-        { ...(bot?.env ?? env), ...skill?.env },
-        skill ? visuals : null
-      ),
+      env: withNativeChatVisualsEnv({ ...env, ...skill?.env }, skill ? visuals : null),
       inheritedEnvToDelete: [
         ...STRUCTURED_CHILD_ENV_TO_DELETE,
         ...envToDelete,

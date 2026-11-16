@@ -1,54 +1,16 @@
-import type { BotLaunch, BotProfile, HermesPeer } from '../../shared/bot-profile-types'
-import { hermesSshArgs } from './hermes-peer-transport'
-import {
-  buildShellCommandFromArgv,
-  resolveStartupShell
-} from '../../shared/agent-launch/startup/tui-agent-startup-shell'
-import { validBotId } from './bot-profile-catalog'
-import { validSessionId } from './hermes-chat-reader'
+// RA: Commands are built solely from main-owned catalogue entries and fixed executable paths.
+import { quoteStartupArg } from '../../shared/agent-launch/startup/tui-agent-startup-shell'
+import type { BotLaunch, BotProfile } from '../../shared/bot-profile-types'
+import { HERMES_SSH_ARGS, validBotId } from './bot-profile-catalog'
 
-export function buildBotLaunch(
-  profile: BotProfile,
-  sessionId?: string | null,
-  peers: HermesPeer[] = []
-): BotLaunch {
-  if (
-    profile.source !== 'hermes' ||
-    !['local TUI', 'remote TUI'].includes(profile.application) ||
-    !validBotId(profile.id)
-  ) {
-    throw new Error('Invalid local bot profile')
+export function buildBotLaunch(profile: BotProfile, platform: NodeJS.Platform = process.platform): BotLaunch {
+  if (!validBotId(profile.id)) throw new Error('Invalid bot profile')
+  if (platform !== 'win32') throw new Error('These bot launchers require the local Windows desktop')
+  const quote = (value: string) => quoteStartupArg(value, 'powershell')
+  const identity = { key: profile.key, id: profile.id, source: profile.source, home: profile.home } // RA: no model/gateway identity inferred.
+  if (profile.source === 'hermes') {
+    const remote = `cd /home/hermes && exec /home/hermes/.local/bin/hermes --profile ${quoteStartupArg(profile.id, 'posix')} --tui`
+    return { label: profile.label, shell: 'powershell.exe', identity: { ...identity, remotePath: '/home/hermes' }, command: `& ssh ${['-tt', ...HERMES_SSH_ARGS, remote].map(quote).join(' ')}` }
   }
-  const resume = sessionId === undefined ? profile.chats?.[0]?.id : sessionId
-  if (resume && (!validSessionId(resume) || !profile.chats?.some((chat) => chat.id === resume))) {
-    throw new Error('Chat is no longer available. Refresh Bots.')
-  }
-  if (sessionId === undefined && profile.error) {
-    throw new Error(profile.error)
-  }
-  if (profile.application === 'remote TUI') {
-    const peer = peers.find((candidate) => candidate.name === profile.host)
-    if (!peer) {
-      throw new Error('Hermes peer was removed. Refresh Bots.')
-    }
-    return {
-      label: profile.label,
-      agentArgs: '',
-      command: buildShellCommandFromArgv(
-        [
-          'ssh',
-          ...hermesSshArgs(
-            peer,
-            [peer.hermesBin, '-p', profile.id, '--tui', ...(resume ? ['--resume', resume] : [])],
-            true
-          )
-        ],
-        resolveStartupShell(process.platform)
-      )
-    }
-  }
-  return {
-    label: profile.label,
-    agentArgs: `-p ${profile.id} --tui${resume ? ` --resume ${resume}` : ''}`
-  }
+  return { label: `${profile.label} (${profile.application})`, shell: 'powershell.exe', identity, command: `& dsh --profile ${quote(profile.id)}`, env: { DSH_HOME: profile.home } }
 }

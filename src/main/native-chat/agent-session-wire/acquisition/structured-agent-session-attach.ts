@@ -66,7 +66,6 @@ export type AgentSessionAttachParams = {
   providerHandle?: AgentSessionWireProviderHandle
   /** Host-only adoption seeds resume/import. Ordinary ensure handles must not imply adoption. */
   adopt?: {
-    replayViaAcp?: true
     providerHandle: AgentSessionProviderHandle
     /** Omit only for exact replay of an already-imported journal. */
     transcriptPath?: string
