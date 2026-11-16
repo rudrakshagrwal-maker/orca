@@ -1,4 +1,3 @@
-import { loadRestoredFeatureMethods } from '../methods/restored-feature-methods' // RA: load providers on request.
 import { randomBytes } from 'node:crypto'
 import type { RuntimeTransportMetadata } from '../../../../shared/runtime-bootstrap'
 import type { OrcaRuntimeService } from '../../orca-runtime'
@@ -135,7 +134,7 @@ export class RuntimeRpcState {
     methods
   }: OrcaRuntimeRpcServerOptions) {
     this.runtime = runtime
-    this.dispatcher = new RpcDispatcher({ runtime, methods: methods ?? ALL_RPC_METHODS, loadMethods: methods ? undefined : loadRestoredFeatureMethods })
+    this.dispatcher = new RpcDispatcher({ runtime, methods: methods ?? ALL_RPC_METHODS })
     this.userDataPath = userDataPath
     this.pid = pid
     this.platform = platform

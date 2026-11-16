@@ -1,6 +1,4 @@
-import { useEffect, useMemo } from 'react'
-import { markPluginsOpened } from '@/store/plugins/catalog/plugin-first-use'
-import { isPluginPanelTabKey } from '../../../../shared/plugins/manifest/plugin-manifest'
+import { useMemo } from 'react'
 import { Plug, Files, GitBranch, ListChecks, Workflow } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { useRepoById } from '@/store/repos/use-repository-catalog'
@@ -61,11 +59,6 @@ export function useRightSidebarActivityItems({
     )
   )
   const pluginSystemEnabled = useAppStore((s) => s.settings?.pluginSystemEnabled === true)
-  const requestedTab = useAppStore((s) => s.rightSidebarTab)
-  useEffect(() => {
-    // RA: a directly restored/requested plugin panel is also an explicit first use.
-    if (rightSidebarOpen && pluginSystemEnabled && isPluginPanelTabKey(requestedTab)) markPluginsOpened()
-  }, [rightSidebarOpen, pluginSystemEnabled, requestedTab])
   const pluginPanels = usePluginPanels()
   const visiblePluginPanels = useMemo(
     () => (pluginSystemEnabled ? pluginPanels : []),
@@ -79,7 +72,6 @@ export function useRightSidebarActivityItems({
     [installedPlugins]
   )
 
-  // RA: only restored panels are offered; ports and attached-worktree overviews stay cut.
   const activityItems = useMemo<ActivityBarItem[]>(
     () => [
       {
@@ -147,7 +139,7 @@ export function useRightSidebarActivityItems({
 
   const visibleItems = useMemo(
     () =>
-      getVisibleRightSidebarActivityItems(activityItems.filter((item) => item.id !== 'ports' && item.id !== 'workspaces'), {
+      getVisibleRightSidebarActivityItems(activityItems, {
         isFolder,
         isFolderWorkspace,
         hasSshHost

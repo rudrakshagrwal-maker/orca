@@ -1,7 +1,7 @@
 import { useAppStore } from '@/store'
-import { Suspense } from 'react'
-import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
+import { SessionHistorySettingsPane } from '../session-history/SessionHistorySettingsPane'
 import { ArtifactsSettingsPane } from '../artifacts/ArtifactsSettingsPane'
+import { AutomationsSettingsPane } from '../automations/AutomationsSettingsPane'
 import { GeneralPane } from '../general/GeneralPane'
 import { IntegrationsPane } from '../integrations/IntegrationsPane'
 import { MobileSettingsPane } from '../mobile/MobileSettingsPane'
@@ -12,18 +12,6 @@ import { SettingsSection } from '../section-layout/SettingsSection'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 import type { SettingsRenderContext } from './settings-render-context'
-
-// RA: search settings and status subscriptions load only on their selected panel.
-const SessionHistorySettingsPane = lazy(() =>
-  import('../session-history/SessionHistorySettingsPane').then((module) => ({
-    default: module.SessionHistorySettingsPane
-  }))
-)
-const AutomationsSettingsPane = lazy(() =>
-  import('../automations/AutomationsSettingsPane').then((module) => ({
-    default: module.AutomationsSettingsPane
-  }))
-)
 
 export function renderOrcaAccountSettingsSection(
   context: SettingsRenderContext,
@@ -174,9 +162,7 @@ export function renderAutomationsSettingsSection(
       searchEntries={navigation.getSectionSearchEntries('automations')}
     >
       {view.isSectionMounted('automations') ? (
-        <Suspense fallback={null}>
-          <AutomationsSettingsPane settings={model.settings} updateSettings={model.updateSettings} />
-        </Suspense>
+        <AutomationsSettingsPane settings={model.settings} updateSettings={model.updateSettings} />
       ) : null}
     </SettingsSection>
   )
@@ -245,12 +231,10 @@ export function renderSessionHistorySettingsSection(
       searchEntries={navigation.getSectionSearchEntries('session-history')}
     >
       {view.isSectionMounted('session-history') ? (
-        <Suspense fallback={null}>
-          <SessionHistorySettingsPane
-            settings={model.settings}
-            updateSettings={model.updateSettingsOrThrow}
-          />
-        </Suspense>
+        <SessionHistorySettingsPane
+          settings={model.settings}
+          updateSettings={model.updateSettingsOrThrow}
+        />
       ) : null}
     </SettingsSection>
   )

@@ -6,7 +6,7 @@ import { getDefaultOnboardingState, ONBOARDING_FINAL_STEP } from './onboarding-d
 import { normalizePluginSystemEnabledDefaultOn } from './plugins/plugin-system-settings'
 
 // RA: these checks use the real immutable fork policy, without the legacy unit-test mock.
-it('disables collection and config writes while preserving explicit plugin opt-in', () => {
+it('disables collection and config writes even when an old profile enabled hooks/plugins', () => {
   expect(backgroundJobsDisabled()).toBe(true)
   expect(preserveGlobalAgentConfiguration()).toBe(true)
   // RA: the approved Claude observer is the sole per-agent exception.
@@ -17,8 +17,7 @@ it('disables collection and config writes while preserving explicit plugin opt-i
       pluginSystemEnabled: true,
       pluginSystemDefaultedOn: true
     }).pluginSystemEnabled
-  ).toBe(true) // RA: restored plugins remain lazy after the saved opt-in.
-  expect(normalizePluginSystemEnabledDefaultOn(undefined).pluginSystemEnabled).toBe(false)
+  ).toBe(false)
   expect(getDefaultSettings('/tmp')).toMatchObject({
     agentStatusHooksEnabled: true,
     pluginSystemEnabled: false,

@@ -1,5 +1,5 @@
-import { localAiVaultScanRoots } from '../ai-vault-scan-roots'
 import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
+import { localAiVaultScanRoots } from '../ai-vault-scan-roots'
 import type { SessionSearchHostScope } from '../../ai-vault-search/session-search-service'
 import { fork, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -37,26 +37,18 @@ import {
   type LocalAiVaultScanProgressHandle
 } from '../ai-vault-local-scan-progress'
 
-let historyOpened = false
-
-// RA: ambient transcript/title consumers cannot activate the scanner before its panel.
-export function activateAiVaultScannerService(): void {
-  historyOpened = true
-  sharedClient?.clearRestartCircuit()
-}
-
 export function spawnAiVaultServiceProcess(): ChildProcess {
-  if (backgroundJobsDisabled() && !historyOpened) {
-    throw new Error('Open Agent Session History before starting its scanner')
+  // RA: preserve agent configuration and disable unsolicited background work.
+  if (backgroundJobsDisabled()) {
+    throw new Error('AI Vault scanning is disabled in this fork')
   }
-  // RA: request-only child, low OS priority and a bounded heap, including idle indexing.
   const entryPath = getAiVaultServiceEntryPath()
   if (!existsSync(entryPath)) {
     throw new Error(`AI Vault service entry not found: ${entryPath}`)
   }
   const child = fork(entryPath, [], {
     stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
-    execArgv: ['--max-old-space-size=256'],
+    execArgv: ['--max-old-space-size=384'],
     env: buildAiVaultServiceEnv(),
     ...(process.platform === 'win32' ? { windowsHide: true } : {})
   })
@@ -92,8 +84,8 @@ export function scanAiVaultSessionsInService(
   signal?: AbortSignal,
   progress?: LocalAiVaultScanProgressHandle
 ): Promise<AiVaultListResult> {
-  // RA: only a history-panel request starts local scanning.
-  if (backgroundJobsDisabled() && !historyOpened) {
+  // RA: a disabled local scan is empty and does not spawn a retrying child.
+  if (backgroundJobsDisabled()) {
     return Promise.resolve({ sessions: [], issues: [], scannedAt: new Date().toISOString() })
   }
   return withSpan('aiVault.scan.service', async (span) => {
@@ -180,5 +172,4 @@ export function resetAiVaultScannerServiceForTests(): void {
   sharedClient?.dispose()
   sharedClient = null
   idleTimeoutMs = undefined
-  historyOpened = false
 }

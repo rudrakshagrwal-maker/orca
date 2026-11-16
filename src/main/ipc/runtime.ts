@@ -1,4 +1,3 @@
-import { loadRestoredFeatureMethods } from '../runtime/rpc/methods/restored-feature-methods' // RA: load providers on request.
 import { BrowserWindow, ipcMain } from 'electron'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type {
@@ -93,7 +92,7 @@ export function registerRuntimeHandlers(runtime: OrcaRuntimeService): void {
       if (event.senderFrame !== event.sender.mainFrame) {
         throw new Error('Runtime RPC call must originate from the current main frame')
       }
-      return new RpcDispatcher({ runtime, methods: ALL_RPC_METHODS, loadMethods: loadRestoredFeatureMethods }).dispatch(
+      return new RpcDispatcher({ runtime, methods: ALL_RPC_METHODS }).dispatch(
         {
           id: 'desktop-ipc',
           authToken: 'desktop-ipc',
@@ -130,7 +129,7 @@ export function registerRuntimeHandlers(runtime: OrcaRuntimeService): void {
       senderSubscriptions.set(args.subscriptionId, controller)
       const channel = `runtime:subscription:${args.subscriptionId}`
       // Streaming outlives dispatch setup; unsubscribe or sender retirement owns cancellation.
-      void new RpcDispatcher({ runtime, methods: ALL_RPC_METHODS, loadMethods: loadRestoredFeatureMethods }).dispatchStreamingObjects(
+      void new RpcDispatcher({ runtime, methods: ALL_RPC_METHODS }).dispatchStreamingObjects(
         {
           id: args.subscriptionId,
           authToken: 'desktop-ipc',

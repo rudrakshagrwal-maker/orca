@@ -1,5 +1,4 @@
 import { Puzzle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import type { PluginHostListEntry } from '../../../../../preload/api-types'
 import { useTranslate } from '@/i18n/use-translate'
 import { PluginManager } from './PluginManager'
@@ -9,7 +8,6 @@ import type { PluginPageNavigation } from '../state/use-plugin-page-navigation'
 
 type PluginSettingsOverviewProps = {
   featureEnabled: boolean
-  onEnable?: () => void // RA: the fork keeps plugins off until explicit opt-in.
   settingsError: string | null
   loading: boolean
   error: string | null
@@ -32,8 +30,8 @@ type PluginSettingsOverviewProps = {
   page: PluginPageNavigation
 }
 
-/** RA: the fork starts off and preserves a deliberate saved opt-in. */
-function PluginsOffState({ onEnable }: { onEnable?: () => void }): React.JSX.Element {
+/** Plugins are on by default; off only comes from a deliberate saved choice such as policy. */
+function PluginsOffState(): React.JSX.Element {
   const t = useTranslate()
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/40 py-2.5 pr-3 pl-4">
@@ -41,18 +39,12 @@ function PluginsOffState({ onEnable }: { onEnable?: () => void }): React.JSX.Ele
       <p className="min-w-0 flex-1 text-sm font-medium">
         {t('auto.components.settings.PluginSettingsOverview.offTitle', 'Plugins are off')}
       </p>
-      {onEnable ? (
-        <Button size="sm" onClick={onEnable}>
-          {t('plugins.enable', 'Enable plugins')}
-        </Button>
-      ) : null}
     </div>
   )
 }
 
 export function PluginSettingsOverview({
   featureEnabled,
-  onEnable,
   settingsError,
   loading,
   error,
@@ -71,7 +63,7 @@ export function PluginSettingsOverview({
 }: PluginSettingsOverviewProps): React.JSX.Element {
   return (
     <>
-      {featureEnabled ? null : <PluginsOffState onEnable={onEnable} />}
+      {featureEnabled ? null : <PluginsOffState />}
       {settingsError ? <p className="text-xs text-destructive">{settingsError}</p> : null}
       {featureEnabled ? (
         <PluginManager

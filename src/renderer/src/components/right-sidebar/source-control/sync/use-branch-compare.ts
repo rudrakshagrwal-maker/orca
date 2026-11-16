@@ -40,7 +40,6 @@ export function useSourceControlBranchCompare({
   remoteStatus: GitUpstreamStatus | undefined
 }) {
   const scope = useSourceControlScope()
-  const isFocusedWorkspace = useAppStore((state) => state.activeWorktreeId === activeWorktreeId) // RA: only one poll owner.
   const branchCompareInFlightRef = useRef(false)
   const branchCompareRerunRef = useRef<BranchCompareRefreshKind | null>(null)
   const branchCompareRunPromiseRef = useRef<Promise<void> | null>(null)
@@ -57,8 +56,6 @@ export function useSourceControlBranchCompare({
 
   const runBranchCompare = useCallback(
     async (kind: BranchCompareRefreshKind) => {
-      // RA: folder sections may be mounted together; only the focused workspace polls.
-      if (kind === 'interval' && (!document.hasFocus() || useAppStore.getState().activeWorktreeId !== activeWorktreeId)) return
       if (!activeWorktreeId || !worktreePath || !compareBaseRef || isFolder) {
         return
       }
@@ -229,7 +226,7 @@ export function useSourceControlBranchCompare({
   })
 
   useEffect(() => {
-    if (!isFocusedWorkspace || !activeWorktreeId || !worktreePath || !isBranchVisible || !compareBaseRef || isFolder) {
+    if (!activeWorktreeId || !worktreePath || !isBranchVisible || !compareBaseRef || isFolder) {
       return
     }
     // HEAD changes refresh immediately; visible polling catches base/remote changes that do not move HEAD.
@@ -251,7 +248,6 @@ export function useSourceControlBranchCompare({
     clearBranchComparePollTimer,
     compareBaseRef,
     isBranchVisible,
-    isFocusedWorkspace,
     isFolder,
     worktreePath
   ])

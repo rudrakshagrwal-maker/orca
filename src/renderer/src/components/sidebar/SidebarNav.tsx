@@ -10,7 +10,7 @@ import { useMobileSidebarOnboardingBadge } from './mobile-sidebar-onboarding-bad
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-// RA: the simple Tasks entry keeps provider toolbars and their probes unloaded.
+// RA: tasks never mount or load their provider toolbars.
 import { HideSidebarMenu } from './sidebar-nav-controls'
 import { useTranslate } from '@/i18n/use-translate'
 import { lazyWithRetry } from '@/app-shell/startup/lazy-with-retry'

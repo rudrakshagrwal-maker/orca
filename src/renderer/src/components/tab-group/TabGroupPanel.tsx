@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../../../shared/fork-background-policy'
 import { Suspense, useCallback, useMemo } from 'react'
 import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
 import { useDroppable } from '@dnd-kit/core'
@@ -358,9 +359,9 @@ export default function TabGroupPanel({
             data-active-content-type={activeTab?.contentType}
           />
         ) : null}
-        {/* RA: editor and Markdown bundles load only for a visible editor tab. */}
-        {isVisible && activeTab &&
-          activeTab.contentType !== 'git-graph' && activeTab.contentType !== 'terminal' &&
+        {/* RA: restored editor/Markdown/graph tabs never load Monaco. */}
+        {!backgroundJobsDisabled() && activeTab &&
+          activeTab.contentType !== 'terminal' &&
           activeTab.contentType !== 'agent-session' &&
           activeTab.contentType !== 'browser' &&
           activeTab.contentType !== 'simulator' && (

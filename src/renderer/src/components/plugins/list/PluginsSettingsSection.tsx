@@ -1,4 +1,3 @@
-import { markPluginsOpened } from '@/store/plugins/catalog/plugin-first-use' // RA: explicit first use.
 import { isPluginAutoUpdateOn } from '../../../../../shared/plugins/catalog/plugin-update-policy'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -38,7 +37,6 @@ function errorMessage(cause: unknown, fallback: string): string {
   return fallback
 }
 
-// RA: this lazy settings panel is the explicit plugin/store entry point.
 export function PluginsSettingsSection({
   mounted,
   settings,
@@ -174,7 +172,6 @@ export function PluginsSettingsSection({
     if (!mounted) {
       return
     }
-    markPluginsOpened()
     setLoading(true)
     void loadPluginListForSubscription()
     const unsubscribe = window.api.plugins.onChanged(() => {
@@ -356,9 +353,6 @@ export function PluginsSettingsSection({
       {featureEnabled && page.openKey !== null ? null : <PluginsAlphaNotice />}
       <PluginSettingsOverview
         featureEnabled={featureEnabled}
-        onEnable={() => {
-          void updateSettings({ pluginSystemEnabled: true }).catch(setPluginListError)
-        }}
         settingsError={settingsError}
         loading={loading}
         error={error}

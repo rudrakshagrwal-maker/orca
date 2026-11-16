@@ -115,13 +115,8 @@ export function useWorktreeGitStatusObservation(
     pollingAllowed &&
     isActiveConnectionReady
   // Pause only evidence-free polling: gating signal refreshes too would prevent a fresh result from clearing huge status.
-  // RA: nonfocused folder sections retain push/watch refreshes without owning polling timers.
-  const isFocusedWorkspace = useAppStore((state) =>
-    state.activeWorktreeId === activeWorktreeId &&
-    getExecutionHostIdForWorktree(state, state.activeWorktreeId) === activeExecutionHostId
-  )
   const shouldPollActiveWorktreeGitStatus =
-    canFetchActiveWorktreeGitStatus && !!activeWorktreeId && !huge && isFocusedWorkspace
+    canFetchActiveWorktreeGitStatus && !!activeWorktreeId && !huge
   const activeStatusPollScope = shouldPollActiveWorktreeGitStatus
     ? `${activeExecutionHostId}\0${activeWorktreeId}\0${worktreePath}`
     : null
