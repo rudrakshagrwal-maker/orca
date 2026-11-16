@@ -21,9 +21,7 @@ import {
   cancelPendingWebglRefresh,
   disposeWebgl
 } from './terminal-rendering/pane-webgl-renderer'
-import { rebuildAttachedWebgl } from './terminal-rendering/pane-webgl-reattach'
 import { configureLazyArabicShapingJoiner } from './terminal-rendering/terminal-arabic-shaping-joiner'
-import { TerminalLigaturesAddon } from './terminal-rendering/terminal-ligatures-addon'
 import { attachInlineImages, detachInlineImages } from './terminal-rendering/pane-inline-images'
 import { installTerminalImeCandidateAnchor } from './terminal-input/terminal-ime-candidate-anchor'
 import { cancelPendingTerminalViewportPresents } from './terminal-rendering/pane-viewport-present'
@@ -125,34 +123,13 @@ export function disposeLigatures(pane: ManagedPaneInternal): void {
   }
 }
 
+// RA: glyph joiners for programming ligatures add a grid scan to every TUI repaint.
 export function attachLigatures(pane: ManagedPaneInternal): void {
-  if (pane.ligaturesAddon) {
-    return
-  }
-  try {
-    const ligaturesAddon = new TerminalLigaturesAddon()
-    pane.terminal.loadAddon(ligaturesAddon)
-    pane.ligaturesAddon = ligaturesAddon
-    // Recompute existing glyph runs when ligatures are enabled after rendering, including Settings toggles.
-    if (!pane.webglAttachmentDeferred) {
-      pane.terminal.refresh(0, pane.terminal.rows - 1)
-    }
-    // WebGL samples font features at atlas creation; rebuild after enabling ligatures so GPU cells reflect them.
-    rebuildAttachedWebgl(pane)
-  } catch (err) {
-    console.warn('[terminal] ligatures addon failed to attach for pane', pane.id, err)
-    pane.ligaturesAddon = null
-  }
+  disposeLigatures(pane)
 }
 
-export function setLigaturesEnabled(pane: ManagedPaneInternal, enabled: boolean): void {
-  if (enabled) {
-    attachLigatures(pane)
-  } else if (pane.ligaturesAddon) {
-    disposeLigatures(pane)
-    // Disposed ligatures remain baked into the WebGL atlas; rebuild for immediate non-ligated rendering.
-    rebuildAttachedWebgl(pane)
-  }
+export function setLigaturesEnabled(pane: ManagedPaneInternal, _enabled: boolean): void {
+  disposeLigatures(pane)
 }
 
 export function disposePane(

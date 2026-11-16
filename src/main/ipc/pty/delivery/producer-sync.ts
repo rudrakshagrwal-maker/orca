@@ -12,7 +12,10 @@ export function updateProducerFlowControl(session: PtyIpcSession, id: string): v
   if (!PRODUCER_FLOW_CONTROL_ENABLED) {
     return
   }
-  session.producerFlowControl.update(id, session.pendingData.get(id)?.data.length ?? 0)
+  // RA: a pane falls behind before main's pending queue fills; include unparsed renderer bytes.
+  const accounting = session.rendererDeliveryAccountingByPty.get(id)
+  const inFlight = accounting ? Math.max(0, accounting.sentChars - accounting.ackedChars) : 0
+  session.producerFlowControl.update(id, (session.pendingData.get(id)?.data.length ?? 0) + inFlight)
 }
 
 export function syncPtyBackgroundedDelivery(

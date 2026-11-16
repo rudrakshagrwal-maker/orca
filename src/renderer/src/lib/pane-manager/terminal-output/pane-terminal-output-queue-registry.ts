@@ -66,6 +66,8 @@ export type QueuedWrite = {
 }
 
 export type QueueEntry = {
+  // RA: credited streams are bounded upstream and must never be replaced by a synthetic notice.
+  hasDeliveryCredit?: boolean
   terminal: ForegroundTerminalOutputTarget
   chunks: QueueChunk[]
   chunkIndex: number
@@ -124,11 +126,10 @@ const backlogRecoveryByTerminal = new WeakMap<
 >()
 let drainTimer: ReturnType<typeof setTimeout> | null = null
 let drainTimerDelayMs: number | null = null
-// MessageChannel avoids Chromium’s nested-timer ~4ms clamp while yielding to input/paint.
-let drainImmediatePending = false
-const drainImmediateGeneration = 0
-const useMessageChannelDrain = typeof MessageChannel !== 'undefined' && !isVitestEnv()
-let drainChannel: MessageChannel | null = null
+// RA: one shared animation frame prevents parse callbacks from draining between paints.
+let drainFrame: number | null = null
+export const parsingTerminals = new WeakSet<ForegroundTerminalOutputTarget>()
+export const parseMsPerChar = new WeakMap<ForegroundTerminalOutputTarget, number>()
 // Why indirect: the drain loop lives downstream of this module, so it registers itself here rather than being imported back into the queue state it operates on.
 let runDrain: (() => void) | null = null
 
@@ -140,41 +141,21 @@ function runDrainTick(): void {
   runDrain?.()
 }
 
-function isVitestEnv(): boolean {
-  // Why: vitest fake timers can't advance MessageChannel macrotasks; the timer path keeps the suites' virtual clock authoritative.
-  return typeof process !== 'undefined' && process.env?.VITEST === 'true'
-}
-
-function getDrainChannel(): MessageChannel {
-  if (drainChannel === null) {
-    drainChannel = new MessageChannel()
-    drainChannel.port1.onmessage = (event: MessageEvent) => {
-      if (event.data !== drainImmediateGeneration || !drainImmediatePending) {
-        return
-      }
-      drainImmediatePending = false
-      runDrainTick()
-    }
-  }
-  return drainChannel
-}
-
-export function isMessageChannelDrainEnabled(): boolean {
-  return useMessageChannelDrain
-}
-
 export function markTerminalOutputDrainStarted(): void {
   drainTimer = null
   drainTimerDelayMs = null
+  drainFrame = null
 }
 
 export function scheduleDrain(delayMs: number): void {
-  if (drainImmediatePending) {
-    // An immediate drain is already armed — nothing can beat zero delay.
+  if (drainFrame !== null) {
     return
   }
+  // RA: promoting a timer-owned background queue must still wait for a visible frame.
+  const hasVisibleOutput = Array.from(queuedByTerminal.values()).some((entry) => entry.highPriority)
+  const useFrame = hasVisibleOutput && typeof requestAnimationFrame === 'function'
   if (drainTimer !== null) {
-    if (drainTimerDelayMs !== null && drainTimerDelayMs <= delayMs) {
+    if (!useFrame && drainTimerDelayMs !== null && drainTimerDelayMs <= delayMs) {
       return
     }
     clearTimeout(drainTimer)
@@ -187,12 +168,13 @@ export function scheduleDrain(delayMs: number): void {
   if (terminalOutputSchedulerDebugEnabled) {
     terminalOutputSchedulerDebugState.scheduledDrainCount++
   }
-  if (delayMs === 0 && useMessageChannelDrain) {
-    drainImmediatePending = true
-    getDrainChannel().port2.postMessage(drainImmediateGeneration)
+  // RA: visible splits share one frame; timers remain for background-only output.
+  if (useFrame) {
+    drainFrame = requestAnimationFrame(runDrainTick)
     return
   }
-  drainTimer = setTimeout(runDrainTick, delayMs)
+  // RA: non-browser consumers retain the same bounded visible cadence.
+  drainTimer = setTimeout(runDrainTick, hasVisibleOutput ? Math.max(16, delayMs) : delayMs)
   drainTimerDelayMs = delayMs
 }
 
@@ -232,6 +214,9 @@ export function discardTerminalOutput(terminal: ForegroundTerminalOutputTarget):
     // Why: discarded chunks still consumed their deliveries — credit them or main's in-flight window leaks (fireQueuedAckCredits).
     fireQueuedAckCredits(entry)
   }
+  // RA: teardown releases the per-pane parser gate.
+  parsingTerminals.delete(terminal)
+  parseMsPerChar.delete(terminal)
   discardInFlightTerminalOutputAckCredits(terminal)
   queuedByTerminal.delete(terminal)
   discardForegroundRenderSettle(terminal)

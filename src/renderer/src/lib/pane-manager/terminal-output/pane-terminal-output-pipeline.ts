@@ -14,9 +14,12 @@ import { recordTerminalOutputQueueDebugPressure } from './pane-terminal-output-s
 import { clearForegroundRelease } from './pane-terminal-foreground-queue-state'
 import {
   BACKGROUND_CHUNK_CHARS,
+  BACKGROUND_DRAIN_INTERVAL_MS,
   discardTerminalOutput,
   fireQueuedAckCredits,
   queuedByTerminal,
+  parsingTerminals,
+  parseMsPerChar,
   scheduleDrain,
   type QueueEntry,
   type TerminalOutputParsedCallback
@@ -55,12 +58,12 @@ export function writeBackgroundTerminalChunk(
   }
 }
 
-// Parse-clock visible drains at zero delay instead of limiting xterm to fixed 4/16ms cadence; retain bounded background cadence to protect focus.
+// RA: parser completion only arms another frame, never another immediate visible write.
 function makeParseClockPacer(): () => void {
   return () => {
     try {
-      if (queuedByTerminal.size > 0 && hasHighPriorityBacklog()) {
-        scheduleDrain(0)
+      if (queuedByTerminal.size > 0) {
+        scheduleDrain(hasHighPriorityBacklog() ? 0 : BACKGROUND_DRAIN_INTERVAL_MS)
       }
     } catch {
       // Why: runs inside xterm's write-callback chain; a throw here would wedge the terminal (see xterm-write-callback-guard.ts).
@@ -101,18 +104,33 @@ export function composeWriteFailureCallback(
   }
 }
 
-export function writeQueuedChunk(entry: QueueEntry): 'foreground' | 'background' | null {
+export function writeQueuedChunk(
+  entry: QueueEntry,
+  maxChars = BACKGROUND_CHUNK_CHARS
+): 'foreground' | 'background' | null {
   if (isTerminalWritePipelineCertifiedDead(entry.terminal)) {
     // The drain owns this detached entry, so map-based discard cannot see it.
     discardDetachedQueueEntry(entry)
     discardTerminalOutput(entry.terminal)
     return null
   }
-  const queuedWrite = takeQueuedChunk(entry, BACKGROUND_CHUNK_CHARS)
+  const queuedWrite = takeQueuedChunk(entry, maxChars)
   if (!queuedWrite) {
     return null
   }
-  const pacer = entry.highPriority ? makeParseClockPacer() : undefined
+  // RA: background siblings also need their parser gate reopened after completion.
+  const pacer = makeParseClockPacer()
+  // RA: do not build a second unbounded queue inside xterm's asynchronous WriteBuffer.
+  parsingTerminals.add(entry.terminal)
+  const startedAt = performance.now()
+  const finishParse = (): void => {
+    parsingTerminals.delete(entry.terminal)
+    parseMsPerChar.set(
+      entry.terminal,
+      Math.min(0.25, Math.max(0, performance.now() - startedAt) / queuedWrite.data.length)
+    )
+    queuedWrite.onParsed?.()
+  }
   const ackCreditsParsed = registerTerminalOutputAckCredits(entry.terminal, queuedWrite.ackCredits)
   // Arm before writing: wedged WriteBuffer (#2836) or disposed xterm can omit parsed callbacks entirely.
   armTerminalWriteStallWatch(entry.terminal, {
@@ -130,22 +148,18 @@ export function writeQueuedChunk(entry: QueueEntry): 'foreground' | 'background'
             forceViewportRefresh: queuedWrite.forceForegroundRefresh,
             followupViewportRefresh: queuedWrite.followupForegroundRefresh,
             shouldRefreshViewportSynchronously: queuedWrite.shouldRefreshForegroundSynchronously,
-            onParsed: composeParsedCallback(
-              entry.terminal,
-              queuedWrite.onParsed,
-              ackCreditsParsed,
-              pacer
-            ),
+            onParsed: composeParsedCallback(entry.terminal, finishParse, ackCreditsParsed, pacer),
             onWriteFailure: composeWriteFailureCallback(entry.terminal, ackCreditsParsed)
           }
         )
       : writeBackgroundTerminalChunk(
           entry.terminal,
           queuedWrite.data,
-          composeParsedCallback(entry.terminal, queuedWrite.onParsed, ackCreditsParsed, pacer),
+          composeParsedCallback(entry.terminal, finishParse, ackCreditsParsed, pacer),
           composeWriteFailureCallback(entry.terminal, ackCreditsParsed)
         )
     if (!writeAccepted) {
+      parsingTerminals.delete(entry.terminal)
       // Why: the failure callback credited the submitted chunk; credit and abandon the detached tail so the drain can't retry a certified-dead xterm.
       fireQueuedAckCredits(entry)
       entry.chunks.length = 0
@@ -156,6 +170,7 @@ export function writeQueuedChunk(entry: QueueEntry): 'foreground' | 'background'
       return null
     }
   } catch {
+    parsingTerminals.delete(entry.terminal)
     // Why: beforeWrite or write setup can fail before xterm owns the bytes; cancel the armed watch without claiming parser failure.
     cancelTerminalWriteStallWatch(entry.terminal)
     ackCreditsParsed?.()

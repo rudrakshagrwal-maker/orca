@@ -11,6 +11,8 @@ import {
 } from '../../agent-status/renderer-owned-agent-status-registry'
 import { rendererAgentStatusObservations } from '@/lib/agent-status/evidence/renderer-agent-status-observations'
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
+import { throttleTerminalOutputObserver } from '@/lib/pane-manager/terminal-output/terminal-output-observer-throttle'
+import type { ParsedAgentStatusPayload } from '../../../../../../shared/agent-status/contracts/agent-status-types'
 
 export function installRendererOwnedPaneStatus(session: ConnectPanePtySession): void {
   session.shouldOwnAgentStatusInRenderer = session.runtimeEnvironmentId !== null
@@ -19,68 +21,75 @@ export function installRendererOwnedPaneStatus(session: ConnectPanePtySession): 
     session.runtimeEnvironmentId !== null
       ? registerRendererOwnedAgentStatusPane(session.cacheKey, session.runtimeEnvironmentId)
       : null
-  session.handleRendererOwnedAgentStatus = (payload): void => {
-    const currentState = useAppStore.getState()
-    const routing = session.resolveCurrentAgentStatusRouting()
-    if (!routing) {
-      return
-    }
-    const title = currentState.runtimePaneTitlesByTabId?.[session.deps.tabId]?.[session.pane.id]
-    const authoritativePaneAgent = session.getAuthoritativePaneAgent()
-    const agentType = resolveCompatibleAgentTypeForOwner(payload.agentType, authoritativePaneAgent)
-    const statusPayload = agentType === payload.agentType ? payload : { ...payload, agentType }
-    const observedStatusPayload = {
-      ...statusPayload,
-      observation: rendererAgentStatusObservations.observe(session.cacheKey, {
-        origin: 'osc',
-        observedAt: Date.now(),
-        kind: 'snapshot'
-      })
-    }
-    const resolvedStatusTitle = resolveAgentStatusTerminalTitle(statusPayload, title)
-    const statusTitle = resolvedStatusTitle
-      ? normalizeCompatibleAgentTitleForOwner(
-          resolvedStatusTitle,
-          agentType ?? authoritativePaneAgent
+  // RA: remote status snapshots supersede earlier snapshots; publish at most four per second.
+  session.handleRendererOwnedAgentStatus = throttleTerminalOutputObserver(
+    (payload: ParsedAgentStatusPayload): void => {
+      const currentState = useAppStore.getState()
+      const routing = session.resolveCurrentAgentStatusRouting()
+      if (!routing) {
+        return
+      }
+      const title = currentState.runtimePaneTitlesByTabId?.[session.deps.tabId]?.[session.pane.id]
+      const authoritativePaneAgent = session.getAuthoritativePaneAgent()
+      const agentType = resolveCompatibleAgentTypeForOwner(
+        payload.agentType,
+        authoritativePaneAgent
+      )
+      const statusPayload = agentType === payload.agentType ? payload : { ...payload, agentType }
+      const observedStatusPayload = {
+        ...statusPayload,
+        observation: rendererAgentStatusObservations.observe(session.cacheKey, {
+          origin: 'osc',
+          observedAt: Date.now(),
+          kind: 'snapshot'
+        })
+      }
+      const resolvedStatusTitle = resolveAgentStatusTerminalTitle(statusPayload, title)
+      const statusTitle = resolvedStatusTitle
+        ? normalizeCompatibleAgentTitleForOwner(
+            resolvedStatusTitle,
+            agentType ?? authoritativePaneAgent
+          )
+        : resolvedStatusTitle
+      // Only actual byte-derived status proves authority to fence out host mirroring.
+      markRendererOwnedAgentStatusWrite(session.cacheKey)
+      const timing = resolveRendererOwnedAgentStatusTiming(
+        currentState.agentStatusByPaneKey[session.cacheKey]
+      )
+      if (session.launchToken) {
+        currentState.setAgentStatus(
+          session.cacheKey,
+          observedStatusPayload,
+          statusTitle,
+          timing,
+          routing,
+          {
+            launchToken: session.launchToken
+          }
         )
-      : resolvedStatusTitle
-    // Only actual byte-derived status proves authority to fence out host mirroring.
-    markRendererOwnedAgentStatusWrite(session.cacheKey)
-    const timing = resolveRendererOwnedAgentStatusTiming(
-      currentState.agentStatusByPaneKey[session.cacheKey]
-    )
-    if (session.launchToken) {
-      currentState.setAgentStatus(
-        session.cacheKey,
-        observedStatusPayload,
-        statusTitle,
-        timing,
-        routing,
-        {
-          launchToken: session.launchToken
-        }
-      )
-    } else {
-      currentState.setAgentStatus(
-        session.cacheKey,
-        observedStatusPayload,
-        statusTitle,
-        timing,
-        routing
-      )
-    }
-    if (payload.state === 'working' && session.syncAgentTaskCompleteTrackingEnabled()) {
-      session.requiresFreshWorkingForAgentTaskCompleteNotification = false
-    }
-    const storedStatus = useAppStore.getState().agentStatusByPaneKey[session.cacheKey]
-    const notificationPayload =
-      typeof storedStatus?.stateStartedAt === 'number'
-        ? { ...statusPayload, stateStartedAt: storedStatus.stateStartedAt }
-        : statusPayload
-    // Why: hook lifecycle owns deferred side effects even when alerts are disabled.
-    session.agentCompletionCoordinator.observeHookStatus(notificationPayload)
-    if (payload.state === 'working' && session.pendingTerminalBellNotification) {
-      session.scheduleTerminalBellNotification()
-    }
-  }
+      } else {
+        currentState.setAgentStatus(
+          session.cacheKey,
+          observedStatusPayload,
+          statusTitle,
+          timing,
+          routing
+        )
+      }
+      if (payload.state === 'working' && session.syncAgentTaskCompleteTrackingEnabled()) {
+        session.requiresFreshWorkingForAgentTaskCompleteNotification = false
+      }
+      const storedStatus = useAppStore.getState().agentStatusByPaneKey[session.cacheKey]
+      const notificationPayload =
+        typeof storedStatus?.stateStartedAt === 'number'
+          ? { ...statusPayload, stateStartedAt: storedStatus.stateStartedAt }
+          : statusPayload
+      // Why: hook lifecycle owns deferred side effects even when alerts are disabled.
+      session.agentCompletionCoordinator.observeHookStatus(notificationPayload)
+      if (payload.state === 'working' && session.pendingTerminalBellNotification) {
+        session.scheduleTerminalBellNotification()
+      }
+    },
+    () => session.disposed
+  )
 }

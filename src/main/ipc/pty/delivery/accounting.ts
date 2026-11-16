@@ -96,6 +96,8 @@ export function applyCumulativeAck(
     0,
     session.rendererInFlightTotalChars - acknowledged
   )
+  // RA: parsing may empty the window without pending main bytes; resume the producer on credit.
+  session.updateProducerFlowControl(id)
   return acknowledged
 }
 

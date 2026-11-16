@@ -72,7 +72,7 @@ function capWebglTextureAtlas(addon: WebglAddon): void {
   ) {
     renderer._deviceMaxTextureSize = MAX_WEBGL_TEXTURE_SIZE
     renderer._refreshCharAtlas()
-    addon.clearTextureAtlas()
+    // RA: acquireTextureAtlas shares matching font/theme/DPI configs; do not wipe siblings on attach.
   }
 }
 

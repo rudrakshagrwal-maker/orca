@@ -13,6 +13,8 @@ import { registerE2eTerminalPtyDataInjection } from '../instrumentation/e2e-term
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
 
 export function bindLiveDataCallback(session: ConnectPanePtySession): void {
+  // RA: activity detection is metadata work, not a per-chunk renderer update.
+  let lastOutputActivityAt = -Infinity
   session.dataCallback = (
     data: string,
     meta?: PtyDataMeta,
@@ -62,7 +64,11 @@ export function bindLiveDataCallback(session: ConnectPanePtySession): void {
       session.hasReceivedPtyOutput = true
       recordAgentHibernationPaneOutput(session.cacheKey)
       // Why: output is the agent-start signal that ends the relaxed no-evidence process-scan cadence (a starting agent always prints).
-      session.agentCompletionCoordinator.observeOutputActivity()
+      const now = performance.now()
+      if (now - lastOutputActivityAt >= 250) {
+        lastOutputActivityAt = now
+        session.agentCompletionCoordinator.observeOutputActivity()
+      }
     }
     session.observeStartupDraftPasteReadiness(data)
     session.resetHiddenOutputRestoreIfPtyChanged()
@@ -95,7 +101,9 @@ export function bindLiveDataCallback(session: ConnectPanePtySession): void {
         })
       }
       // RA: main retains shell facts; hidden renderers perform no shell-integration scan.
-      if (session.deps.isVisibleRef.current) session.commandLifecycle.handlePtyData(data)
+      if (session.deps.isVisibleRef.current) {
+        session.commandLifecycle.handlePtyData(data)
+      }
     }
     session.commandCodeOutputStatusDetector?.observe(data)
     const codexBackfillNotice = session.codexBackfillErrorDetector?.observe(data)

@@ -92,7 +92,15 @@ export function takeQueuedChunk(entry: QueueEntry, limit: number): QueuedWrite |
     }
 
     // Never split inside DEC 2026 or its residual close marker leaves painting frozen until drain/1000ms timeout. remaining > 0 guarantees a positive cut, so the loop cannot stall.
-    const splitAt = resolveSynchronizedOutputSafeSplit(chunk.data, remaining)
+    let splitAt = resolveSynchronizedOutputSafeSplit(chunk.data, remaining)
+    // RA: preserve surrogate pairs across frame boundaries so xterm never sees half an emoji.
+    const code = chunk.data.charCodeAt(splitAt - 1)
+    if (code >= 0xd800 && code <= 0xdbff) {
+      splitAt -= 1
+    }
+    if (splitAt === 0) {
+      break
+    }
     const prefix = chunk.data.slice(0, splitAt)
     if (dataParts) {
       dataParts.push(prefix)
@@ -187,6 +195,8 @@ export function enqueueChunk(
 ): void {
   // Own queued data so producer slices cannot pin larger PTY or restore buffers.
   const owned = flattenRetainedSlice(data)
+  // RA: retain this flag through partial drains; notices may share the same queue.
+  entry.hasDeliveryCredit ||= options?.ackCredit !== undefined
   entry.chunks.push({
     data: owned,
     retainedChars: owned.length,
