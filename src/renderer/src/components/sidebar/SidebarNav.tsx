@@ -1,6 +1,6 @@
 import { backgroundJobsDisabled } from '../../../../shared/fork-background-policy'
 import React from 'react'
-import { BookOpen, CalendarClock, EyeOff, Files, List, Search, Smartphone } from 'lucide-react'
+import { BookOpen, CalendarClock, EyeOff, Files, Search, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/index'
 import { cn } from '@/lib/class-names'
@@ -27,7 +27,8 @@ export function shouldShowMobileButton(
 export function shouldShowAutomationsButton(
   settings: Partial<Pick<GlobalSettings, 'showAutomationsButton'>> | null | undefined
 ): boolean {
-  return settings?.showAutomationsButton !== false
+  void settings // RA: automations never run in this fork, so the entry stays hidden.
+  return false
 }
 
 export function shouldShowArtifactsButton(
@@ -55,7 +56,6 @@ const SidebarNav = React.memo(function SidebarNav() {
   // Subscribe across this memo boundary; translate still handles pseudo-localization.
   useTranslation()
   const worktreePaletteShortcutCombos = useShortcutKeyComboDetails('worktree.palette')
-  const openTaskPage = useAppStore((s) => s.openTaskPage) // RA: no provider toolbar/probes until opened.
   const openAutomationsPage = useAppStore((s) => s.openAutomationsPage)
   const openMobilePage = useAppStore((s) => s.openMobilePage)
   const openArtifactsPage = useAppStore((s) => s.openArtifactsPage)
@@ -119,16 +119,6 @@ const SidebarNav = React.memo(function SidebarNav() {
             />
           ))}
         </span>
-      </button>
-      {/* RA: Tasks navigation starts no provider discovery or hover prefetch. */}
-      <button
-        type="button"
-        onClick={() => openTaskPage()}
-        aria-current={activeView === 'tasks' ? 'page' : undefined}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] font-medium text-worktree-sidebar-foreground/60 hover:bg-worktree-sidebar-foreground/8"
-      >
-        <List className="size-4 shrink-0" />
-        {t('auto.components.sidebar.SidebarNav.tasks', 'Tasks')}
       </button>
 
       {showArtifactsButton ? (
