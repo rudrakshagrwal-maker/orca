@@ -2,7 +2,7 @@
 // browser tab through the bundled CLI, and fail on any crash report. Typecheck and unit tests
 // cannot see a renderer error boundary; this can.
 import { spawn, execFile } from 'node:child_process'
-import { existsSync, readFileSync, mkdtempSync, writeFileSync, realpathSync } from 'node:fs'
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, realpathSync, openSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -60,7 +60,15 @@ if (!existsSync(appExe) || !existsSync(cli)) {
   process.exit()
 }
 
-const app = spawn(appExe, [], { detached: true, stdio: 'ignore', windowsHide: false })
+// Why debug port + main logging: when the browser step fails, the gate prints renderer and main state.
+const mainLog = join(tmpdir(), 'orca-boot-main.log')
+const logFd = openSync(mainLog, 'w')
+const app = spawn(appExe, ['--remote-debugging-port=9334', '--enable-logging'], {
+  detached: true,
+  stdio: ['ignore', logFd, logFd],
+  windowsHide: false,
+  env: { ...process.env, ELECTRON_ENABLE_LOGGING: '1' }
+})
 app.unref()
 
 try {
@@ -124,6 +132,7 @@ try {
   await sleep(10_000)
 } catch (error) {
   fail(error.message)
+  await diagnoseBrowser()
 } finally {
   const reports = crashReports()
   for (const r of reports) {
@@ -135,4 +144,55 @@ try {
   try {
     await run('taskkill', ['/F', '/T', '/IM', 'Orca.exe'], { windowsHide: true })
   } catch {}
+}
+
+async function diagnoseBrowser() {
+  try {
+    const list = await (await fetch('http://127.0.0.1:9334/json/list')).json()
+    console.log('[boot-gate] cdp targets:', list.map((t) => `${t.type}:${t.url.slice(0, 50)}`).join(' | '))
+    const page = list.find((t) => t.type === 'page')
+    const ws = new WebSocket(page.webSocketDebuggerUrl)
+    let n = 0
+    const pending = new Map()
+    ws.onmessage = (m) => {
+      const d = JSON.parse(m.data)
+      if (d.id && pending.has(d.id)) pending.get(d.id)(d.result)
+    }
+    await new Promise((r) => (ws.onopen = r))
+    const probe = async () => {
+      const out = []
+      for (const v of document.querySelectorAll('[data-browser-page-viewport-id]')) {
+        const id = v.dataset.browserPageViewportId
+        const w = v.querySelector('webview')
+        let wc = 'none'
+        let reg = '?'
+        if (w) {
+          try {
+            wc = w.getWebContentsId()
+            reg = await window.api.browser.isGuestRegistered({ browserPageId: id, webContentsId: wc })
+          } catch (e) {
+            wc = 'ERR ' + e.message
+          }
+        }
+        out.push(`${id.slice(0, 8)} display=${v.style.display} webview=${!!w} src=${w?.getAttribute('src')} wcid=${wc} registered=${reg}`)
+      }
+      return out.join('\n') || 'no page viewports'
+    }
+    const r = await new Promise((res) => {
+      const i = ++n
+      pending.set(i, res)
+      ws.send(JSON.stringify({ id: i, method: 'Runtime.evaluate', params: { expression: `(${probe.toString()})()`, returnByValue: true, awaitPromise: true } }))
+    })
+    console.log('[boot-gate] renderer pages:\n' + JSON.stringify(r?.result?.value ?? r))
+    ws.close()
+  } catch (error) {
+    console.log('[boot-gate] cdp probe failed: ' + error.message)
+  }
+  try {
+    const log = readFileSync(join(tmpdir(), 'orca-boot-main.log'), 'utf8')
+    const lines = log.split(/\r?\n/).filter((l) => /browser|webview|guest|partition|error|warn/i.test(l))
+    console.log('[boot-gate] main log (filtered, last 60):\n' + lines.slice(-60).join('\n'))
+  } catch (error) {
+    console.log('[boot-gate] no main log: ' + error.message)
+  }
 }
