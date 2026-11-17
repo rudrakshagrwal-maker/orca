@@ -7,12 +7,7 @@ import '../../../shared/orca-dispatch-status-prompt'
 import { OrcaRuntimeService } from '../orca-runtime'
 import './runtime-test-module-registration.spec'
 import { acknowledgeAgentPromptSubmit } from '../orca-runtime-test-mocks/setup.spec'
-import {
-  TEST_WORKTREE_PATH,
-  cursorBusyScreen,
-  cursorReadyScreen,
-  store
-} from './orca-runtime-test-fixtures.spec'
+import { TEST_WORKTREE_PATH, store } from './orca-runtime-test-fixtures.spec'
 
 describe('OrcaRuntimeService', () => {
   it('resolves tui-idle from a Codex ready prompt even when stale startup lines remain', async () => {

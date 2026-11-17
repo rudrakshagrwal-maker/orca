@@ -23,9 +23,6 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-const HERMES_READY =
-  '\x1b]2;\u2713 Coordinate dispatched worker \u2026 \u00b7 gpt-6.1-sol \u00b7 ~/ws\x07' +
-  '\u2500 ready \u2502 gpt 6.1 sol \u2502 7k/500k \u2502 4m 45s\r\n\u276f'
 const RULE = '\u2500'.repeat(40)
 const CLINE_READY = `${RULE}\r\n\u276f What can I do for you?\r\n${RULE}\r\n\u25cb Plan \u25cf Act (Tab)`
 

@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { truncateAiVaultListResult } from '../../shared/ai-vault/scanning/ai-vault-session-depth'
-import type { AiVaultListResult } from '../../shared/ai-vault/contracts/ai-vault-types'
 import { parseSessionCandidates } from './session-scanner-candidate-parse'
 import {
   MAX_UNLISTED_ENTRIES,
@@ -28,13 +27,7 @@ import {
   flushSessionParseCachePersist,
   resetSessionParseCachePersistenceForTests
 } from './parse-cache/session-parse-cache-persistence'
-import {
-  isolatedScanRoots,
-  jsonLines,
-  writeJsonlFile,
-  writeAntigravityTranscript,
-  writeAntigravityHistory
-} from './session-scanner-test-fixtures'
+import { isolatedScanRoots, jsonLines, writeJsonlFile } from './session-scanner-test-fixtures'
 
 let tempRoots: string[] = []
 

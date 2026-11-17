@@ -3,13 +3,7 @@ import './runtime-test-module-registration.spec'
 import { OrcaRuntimeService } from '../orca-runtime'
 import { electronMocks } from '../orca-runtime-test-mocks/setup.spec'
 import type { TerminalLayoutSnapshot } from '../../../shared/workspace-layout/terminal-tab-types'
-import {
-  TEST_WORKTREE_ID,
-  TEST_WORKTREE_PATH,
-  antigravityPromptBeforeModelReadyScreen,
-  antigravityReadyScreen,
-  store
-} from './orca-runtime-test-fixtures.spec'
+import { TEST_WORKTREE_ID, TEST_WORKTREE_PATH, antigravityReadyScreen, store } from './orca-runtime-test-fixtures.spec'
 
 describe('OrcaRuntimeService', () => {
   it('allows non-Claude foreground agents after preserved Claude agents management evidence', async () => {

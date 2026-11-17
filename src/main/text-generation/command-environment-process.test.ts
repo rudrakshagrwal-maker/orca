@@ -2,10 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterAll, describe, expect, it } from 'vitest'
-import {
-  discoverCommitMessageModelsLocal,
-  generateCommitMessageFromContext
-} from './commit-message-text-generation'
+import { generateCommitMessageFromContext } from './commit-message-text-generation'
 
 const folder = mkdtempSync(join(tmpdir(), 'orca-command-env-'))
 const script = join(folder, 'agent.cjs')

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PLUGIN_PANEL_FRAME_NAME_PREFIX } from '../../shared/plugins/frames/plugin-frame-bridge'
-import { NATIVE_CHAT_VISUAL_FRAME_NAME_PREFIX } from '../../shared/native-chat/native-chat-visual-shell'
-import { HostFrameNavigationRegistry, hostFrameKindForName } from './host-frame-navigation-guard'
+import { HostFrameNavigationRegistry } from './host-frame-navigation-guard'
 
 function frame(input: { id: number; name?: string; url?: string }) {
   let destroyed = false

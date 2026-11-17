@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { AgentHookServer, _internals } from '../../agent-hook-server'
-import { CLOSED_AGENT_STATUS_TAB_IDS_MAX } from '../../server-constants'
 import { makePaneKey } from '../../../../../shared/workspace-layout/stable-pane-id'
-import { buildBody, PANE, LEAF_2, LEAF_3 } from '../server.test-fixtures'
+import { buildBody, PANE, LEAF_2 } from '../server.test-fixtures'
 
 const { getCohortAtEmitMock, trackMock } = vi.hoisted(() => ({
   getCohortAtEmitMock: vi.fn(),

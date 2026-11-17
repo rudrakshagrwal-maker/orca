@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ParsedAgentStatusPayload } from '../../../shared/agent-status/contracts/agent-status-types'
-import { createHookListenerState } from '../../../shared/agent-hook-listener/listener-state'
-import { normalizeHookPayload } from '../../../shared/agent-hook-listener/normalization/normalize-hook-payload'
 
 const dispatchTerminalNotification = vi.fn()
 const dispatchAgentHookTerminalLifecycle = vi.fn()

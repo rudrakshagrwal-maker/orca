@@ -1,11 +1,7 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { parse as parseYaml } from 'yaml'
+import { rm } from 'node:fs/promises'
 import { afterEach, expect, it, vi } from 'vitest'
 import { planCommitMessageGeneration } from '../../shared/source-control/ai/generation/commit-message-plan'
 import { prepareSourceControlReadOnlyPlan } from './source-control-read-only-policy'
-import { stageLocalPromptFiles } from './source-control-prompt-files'
 import './source-control-local-generation'
 import './source-control-generation-lanes'
 
@@ -18,11 +14,6 @@ afterEach(async () => {
     owned.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))
   )
 })
-async function directory() {
-  const result = await mkdtemp(join(tmpdir(), 'orca-policy-test-'))
-  owned.push(result)
-  return result
-}
 function planned(agentId: 'codex' | 'kimi' | 'antigravity', agentArgs?: string) {
   const result = planCommitMessageGeneration(
     { agentId, model: agentId === 'codex' ? 'gpt-5.4-mini' : 'default', agentArgs },

@@ -1,13 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import './runtime-test-module-registration.spec'
 import { OrcaRuntimeService } from '../orca-runtime'
-import {
-  TEST_WORKTREE_ID,
-  TEST_WORKTREE_PATH,
-  antigravityPromptBeforeModelReadyScreen,
-  store,
-  syncSinglePty
-} from './orca-runtime-test-fixtures.spec'
+import { TEST_WORKTREE_ID, TEST_WORKTREE_PATH, store } from './orca-runtime-test-fixtures.spec'
 
 describe('OrcaRuntimeService', () => {
   it('observes setup command completion without waiting for its interactive shell to exit', async () => {

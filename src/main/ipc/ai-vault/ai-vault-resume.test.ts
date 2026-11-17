@@ -1,9 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { setStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/host/structured-agent-session-registry'
-import {
-  installCopyingChat,
-  PROVIDER_SESSION
-} from '../../ai-vault/structured-session-ownership.test-support'
 import { prepareAiVaultSessionResume } from './ai-vault-resume'
 
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))

@@ -3,11 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildSkillDiscoverySources } from './skill-discovery-sources'
-import {
-  clearSkillRootScanCache,
-  discoverSkills,
-  LAST_KNOWN_ROOT_SCAN_RETENTION_MS
-} from './skill-native-discovery'
+import { clearSkillRootScanCache, discoverSkills } from './skill-native-discovery'
 import '../../../shared/agent-launch/catalog/tui-agent-config'
 
 import type * as SkillRootFileWalk from './skill-root-file-walk'

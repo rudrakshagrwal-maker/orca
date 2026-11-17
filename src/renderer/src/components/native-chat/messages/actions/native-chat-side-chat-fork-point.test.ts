@@ -1,21 +1,4 @@
 // @vitest-environment happy-dom
-import { act, createElement } from 'react'
-import { renderHook } from '@testing-library/react'
-import {
-  AGENT_SESSION_CREATE_FORK_RUNTIME_CAPABILITY,
-  AGENT_SESSION_CREATE_FORK_ORIGINAL_RUNTIME_CAPABILITY
-} from '../../../../../../shared/agent-session/agent-session-create-capabilities'
-import type { AgentJournalRenderItem } from '../../../../../../shared/agent-session/journal/agent-session-journal-types'
-import { useAppStore } from '@/store'
-import { runtimeEnvironmentStatusFromSnapshot } from '../../../../../../shared/remote-runtime/host-status/runtime-host-status'
-import type { RuntimeStatus } from '../../../../../../shared/runtime-session-contracts'
-import { launchNativeChatFork } from './native-chat-fork-launch'
-import { useNativeChatFork } from './use-native-chat-fork'
-import { useNativeChatSideChatForkOffer } from './use-native-chat-side-chat'
-import {
-  NativeChatForkContext,
-  NativeChatSideChatForkPointContext
-} from './native-chat-fork-context'
 import {
   nativeChatRowOffersFork,
   nativeChatForkInventory
@@ -229,27 +212,3 @@ it('offers inherited ancestor replies in a fork of a fork while the child is run
 })
 
 
-function publishStatus(verification: 'verified' | 'checking' | 'unavailable') {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: only runtime identity/capabilities are read by these hooks.
-  const status = { runtimeId: 'runtime-a', capabilities: [...host.capabilities] } as RuntimeStatus
-  useAppStore.setState({
-    runtimeStatusByEnvironmentId: new Map([
-      [
-        'paired-host',
-        {
-          ...runtimeEnvironmentStatusFromSnapshot({
-            environmentId: 'paired-host',
-            pairingRevision: 1,
-            sequence: 1,
-            checkedAt: 1,
-            status,
-            verification,
-            transport: verification === 'verified' ? 'ready' : 'disconnected'
-          }),
-          connectionGeneration: 1,
-          hostContactEpoch: 1
-        }
-      ]
-    ])
-  })
-}
