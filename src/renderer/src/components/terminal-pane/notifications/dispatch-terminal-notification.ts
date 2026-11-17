@@ -1,16 +1,6 @@
-import {
-  resolveTerminalNotificationOwner,
-  type TerminalNotificationBinding
-} from '../../../attention/notification-subject-owner'
-import {
-  notificationExecutionHostForOwner,
-  notificationWorkspaceExecutionHostForOwner,
-  notificationSourceForOwner
-} from '../../../../../shared/notification-source'
+import type { TerminalNotificationBinding } from '../../../attention/notification-subject-owner'
 import { useAppStore } from '../../../store/index'
 import { resolveExplicitTerminalTitleAgentType as resolveCommittedTitleAgentType } from '../../../../../shared/agent-status/title/terminal-title-agent-type'
-import { buildAgentNotificationId } from '../../../../../shared/agent-notification-id'
-import { agentMainAgentVerdict } from '../../../../../shared/agent-status/lifecycle/agent-main-agent-verdict'
 import { shareCompatibleTitleIdentityGroup } from '../../../../../shared/agent-status/title/agent-title-owner'
 import { isFreshNonDoneAgentStatus } from '../../../../../shared/agent-status/contracts/agent-status-freshness'
 import type {
@@ -29,17 +19,11 @@ import type {
   AgentCompletionStatusSnapshot
 } from '../agent-completion/agent-completion-coordinator-types'
 import type { NotificationDispatchResult } from '../../../../../shared/notification-settings-types'
-import { getNotificationWorkspaceLabels } from '../../../attention/notification-workspace-labels'
 import { createTerminalAttentionSurface } from './terminal-attention-surface'
 import {
   applyAgentAttention,
-  resolveAgentAttention,
-  type AgentAttentionDeliveryRequest
+  resolveAgentAttention
 } from '../../../attention/agent-attention-policy'
-import {
-  deliverAgentAttentionNotification,
-  readAgentAttentionNotificationSound
-} from '../../../attention/agent-attention-notification-delivery'
 import { recordAgentFinishDropped } from '@/attention/agent-finish-drop-breadcrumb'
 
 const AGENT_NOTIFICATION_SNAPSHOT_MAX_AGE_MS = 10_000
@@ -143,8 +127,6 @@ export function dispatchTerminalNotification(
     })
     return false
   }
-  const agentNotificationStateStartedAt =
-    eventAgentStatusSnapshot?.stateStartedAt ?? freshStoredAgentStatus?.stateStartedAt
   const attentionDecision = resolveAgentAttention(
     {
       subject: { workspaceId: worktreeId, surfaceKey: event.paneKey },
@@ -175,58 +157,10 @@ export function dispatchTerminalNotification(
     recordAgentFinishDropped('viewed', { workspaceId: worktreeId, paneKey: event.paneKey })
   }
 
-  // Desktop settings are applied in main after independent mobile delivery.
-
-  const sound = readAgentAttentionNotificationSound(state.settings ?? {})
-  // Reused pane keys must not expose a prior turn’s prompt without a fresh current snapshot.
-  const agentSnapshot = agentStatus
-    ? {
-        agentType: agentStatus.agentType,
-        agentState: agentStatus.state,
-        agentPrompt: agentStatus.prompt,
-        agentToolName: agentStatus.toolName,
-        agentToolInput: agentStatus.toolInput,
-        agentLastAssistantMessage: agentStatus.lastAssistantMessage,
-        agentTurnOutcome: agentMainAgentVerdict(agentStatus) ?? undefined
-      }
-    : {}
-  const notificationId =
-    event.source === 'agent-task-complete'
-      ? buildAgentNotificationId({
-          worktreeId,
-          paneKey: event.paneKey,
-          // Carry hook timing after PTY teardown so OS/unread events share the same dismissible identity.
-          stateStartedAt: agentNotificationStateStartedAt
-        })
-      : null
-
-  let requested = false
-  const requestDelivery = (request: AgentAttentionDeliveryRequest): void => {
-    requested = true
-    const owner = resolveTerminalNotificationOwner(state, worktreeId, event)
-    const executionHost = notificationExecutionHostForOwner(owner)
-    deliverAgentAttentionNotification(
-      {
-        source: event.source,
-        ...(notificationId ? { notificationId } : {}),
-        worktreeId: request.workspaceId,
-        workspaceExecutionHostId: notificationWorkspaceExecutionHostForOwner(owner),
-        ...(executionHost ? { executionHost } : {}),
-        paneKey: request.subjectKey ?? undefined,
-        ...getNotificationWorkspaceLabels(state, request.workspaceId, event.terminalTitle),
-        notificationSourceId: notificationSourceForOwner(owner, state),
-        terminalTitle: event.terminalTitle,
-        isActiveWorktree: request.workspaceIsActive,
-        ...agentSnapshot
-      },
-      sound,
-      event.onDispatchResult
-    )
-  }
-
   applyAgentAttention(attentionDecision, {
     unread: state.markAgentAttentionUnread,
-    requestDelivery
+    // Native notification delivery is removed; retain the workspace's unread marker.
+    requestDelivery: () => event.onDispatchResult?.(null)
   })
-  return requested
+  return false
 }

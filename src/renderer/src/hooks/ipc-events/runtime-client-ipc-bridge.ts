@@ -101,14 +101,6 @@ export function registerRuntimeClientIpcBridge(
     event: RuntimeClientEvent,
     generation = getEnvironmentSshStateGeneration(environmentId)
   ): void => {
-    if (event.type === 'notificationAttentionAcknowledged') {
-      void window.api.notifications
-        .acknowledgeAttention(event.acknowledgement, toRuntimeExecutionHostId(environmentId))
-        .catch((error: unknown) =>
-          console.warn('[notifications] Remote acknowledgement failed', error)
-        )
-      return
-    }
     if (applyHostWorkspaceRowEvent(environmentId, event)) {
       return
     }
@@ -175,7 +167,7 @@ export function registerRuntimeClientIpcBridge(
       )
       return
     }
-    
+
     // This window builds its sidebar from its own store, never from a host's phone feed.
     if (event.type === 'sidebarInputsChanged') {
       return

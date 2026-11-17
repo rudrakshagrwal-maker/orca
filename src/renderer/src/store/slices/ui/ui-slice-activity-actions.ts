@@ -2,9 +2,7 @@ import type { StoredAgentAttentionUnread } from '@/attention/agent-attention-con
 import { emitAgentSubjectReads } from '@/attention/agent-subject-read-actions'
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
 import {
-  collectAcknowledgedAgentNotificationId,
   latestAgentTurnTimestamp,
-  resolvePaneKeyWorktreeIdFromTabs,
   usableTimestamp
 } from './ui-slice-agent-notification-acknowledgement'
 
@@ -24,7 +22,6 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
     acknowledgedAgentsByPaneKey: {},
     acknowledgeAgents: (paneKeys, reads, intent) => {
       emitAgentSubjectReads(paneKeys, reads, intent)
-      const notificationIdsToDismiss = new Set<string>()
       set((s) => {
         if (paneKeys.length === 0) {
           return s
@@ -42,27 +39,10 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
           let stamp = now
           const liveEntry = s.agentStatusByPaneKey?.[key]
           if (liveEntry) {
-            collectAcknowledgedAgentNotificationId({
-              state: s,
-              ids: notificationIdsToDismiss,
-              worktreeId: resolvePaneKeyWorktreeIdFromTabs(s, key) ?? liveEntry.worktreeId,
-              paneKey: key,
-              stateStartedAt: liveEntry.stateStartedAt,
-              previousAckAt: prev
-            })
             stamp = Math.max(stamp, latestAgentTurnTimestamp(liveEntry))
           }
           const retained = s.retainedAgentsByPaneKey?.[key]
           if (retained) {
-            collectAcknowledgedAgentNotificationId({
-              state: s,
-              ids: notificationIdsToDismiss,
-              worktreeId: retained.worktreeId,
-              ptyId: retained.tab.ptyId,
-              paneKey: key,
-              stateStartedAt: retained.entry.stateStartedAt,
-              previousAckAt: prev
-            })
             stamp = Math.max(stamp, latestAgentTurnTimestamp(retained.entry))
           }
           for (const unsupported of migrationUnsupported) {
@@ -91,10 +71,6 @@ export function createUiActivityActions(set: UISliceSet, _get: UISliceGet): Acti
           ...(nextManual ? { manuallyUnreadTurnsByPaneKey: nextManual } : {})
         }
       })
-      // Dismiss main’s announced subjects; rebuilt IDs cover restart-empty notification records.
-      if (paneKeys.length > 0 && typeof window !== 'undefined') {
-        void window.api?.notifications?.dismiss?.([...notificationIdsToDismiss], paneKeys)
-      }
     },
     unacknowledgeAgents: (paneKeys) =>
       set((s) => {

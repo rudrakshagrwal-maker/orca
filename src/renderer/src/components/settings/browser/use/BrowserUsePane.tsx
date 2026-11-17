@@ -1,22 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ORCA_CLI_SKILL_NAME } from '@/lib/skills/installation/agent-feature-skill-names'
 import { BROWSER_USE_ENABLED_STORAGE_KEY } from '@/lib/browser/browser-use-setup-state'
-import {
-  GLOBAL_AGENT_SKILL_SOURCE_KINDS,
-  useInstalledAgentSkill
-} from '@/hooks/skills/discovery/useInstalledAgentSkills'
-import { useActiveProjectSkillRuntime } from '@/hooks/skills/runtime/useActiveProjectSkillRuntime'
-import { cn } from '@/lib/class-names'
 import { useAppStore } from '../../../../store/index'
 import '../../../../../../shared/constants'
 import { BROWSER_FAMILY_LABELS } from '../../../../../../shared/browser/browser-family-labels'
-import { SearchableSetting } from '../../section-layout/SearchableSetting'
 import { matchesSettingsSearch } from '../../search/settings-search'
 import { getBrowserUsePaneSearchEntries } from './browser-use-search'
 import { BrowserUseExamples } from './BrowserUseExamples'
-import { BrowserUseComputerUseNotice } from './BrowserUseComputerUseNotice'
 import { BrowserUseEnableSwitch } from './BrowserUseEnableSwitch'
-import { BrowserUseSkillStep } from './BrowserUseSkillStep'
 import { BrowserUseCookieImportStep } from './BrowserUseCookieImportStep'
 import { useTranslate } from '@/i18n/use-translate'
 
@@ -26,16 +16,13 @@ type BrowserUseSetupProps = {
 }
 
 export function BrowserUseSetup({
-  onConfigureMoreBrowsers,
-  onOpenComputerUse
+  onConfigureMoreBrowsers
 }: BrowserUseSetupProps = {}): React.JSX.Element {
   const t = useTranslate()
   const searchQuery = useAppStore((s) => s.settingsSearchQuery)
   const browserSessionProfiles = useAppStore((s) => s.browserSessionProfiles)
   const fetchBrowserSessionProfiles = useAppStore((s) => s.fetchBrowserSessionProfiles)
   const browserSessionImportState = useAppStore((s) => s.browserSessionImportState)
-
-  const activeSkillRuntime = useActiveProjectSkillRuntime()
 
   const [browserUseEnabled, setBrowserUseEnabled] = useState<boolean>(() => {
     return localStorage.getItem(BROWSER_USE_ENABLED_STORAGE_KEY) === '1'
@@ -59,28 +46,15 @@ export function BrowserUseSetup({
   const defaultProfile = browserSessionProfiles.find((p) => p.id === 'default')
   const cookiesImported = !!defaultProfile?.source
 
-  const {
-    installed: skillDetected,
-    loading: skillLoading,
-    error: skillError,
-    refresh: refreshSkill
-  } = useInstalledAgentSkill(ORCA_CLI_SKILL_NAME, {
-    enabled: browserUseEnabled,
-    discoveryTarget: activeSkillRuntime.discoveryTarget,
-    sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
-  })
-
   const isImportingDefault =
     browserSessionImportState?.profileId === 'default' &&
     browserSessionImportState.status === 'importing'
 
-  const showSkillStep = matchesSettingsSearch(searchQuery, [getBrowserUsePaneSearchEntries()[0]])
   const showCookieImportStep = matchesSettingsSearch(searchQuery, [
     getBrowserUsePaneSearchEntries()[1]
   ])
-  const steps = [skillDetected, cookiesImported]
+  const steps = [cookiesImported]
   const completedCount = steps.filter(Boolean).length
-  const skillDisabled = Boolean(activeSkillRuntime.installDisabledReason)
 
   const sourceLabel = defaultProfile?.source
     ? `${BROWSER_FAMILY_LABELS[defaultProfile.source.browserFamily] ?? defaultProfile.source.browserFamily}${defaultProfile.source.profileName ? ` (${defaultProfile.source.profileName})` : ''}`
@@ -138,39 +112,6 @@ export function BrowserUseSetup({
           />
         </div>
       </div>
-
-      {onOpenComputerUse ? (
-        <BrowserUseComputerUseNotice onOpenComputerUse={onOpenComputerUse} />
-      ) : null}
-
-      {showSkillStep ? (
-        <SearchableSetting
-          title={t(
-            'auto.components.settings.BrowserUsePane.4451b3c0a6',
-            'Install browser use skill'
-          )}
-          description={t(
-            'auto.components.settings.BrowserUsePane.68ea76eb71',
-            "Install the Browser Use skill so agents can operate Orca's browser."
-          )}
-          keywords={getBrowserUsePaneSearchEntries()[0].keywords}
-          className={cn(
-            'rounded-xl border border-border/60 bg-card/50 p-4',
-            skillDisabled && 'opacity-60'
-          )}
-        >
-          <BrowserUseSkillStep
-            skillDetected={skillDetected}
-            skillLoading={skillLoading}
-            skillError={activeSkillRuntime.installDisabledReason ?? skillError}
-            disabled={skillDisabled}
-            onBeforeInstall={() => {
-              useAppStore.getState().recordFeatureInteraction('agent-browser-setup')
-            }}
-            onRecheck={refreshSkill}
-          />
-        </SearchableSetting>
-      ) : null}
 
       {showCookieImportStep ? (
         <BrowserUseCookieImportStep

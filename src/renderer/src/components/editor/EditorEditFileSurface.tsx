@@ -11,7 +11,6 @@ import {
   CsvViewer,
   CsvPagedViewer,
   ImageViewer,
-  IpynbViewer,
   MermaidViewer,
   MonacoEditor,
   MediaViewer
@@ -51,7 +50,6 @@ export function EditorEditFileSurface({
   isMermaid,
   isSvg = false,
   isCsv,
-  isNotebook,
 
   mdViewMode,
   inlineMarkdownRenderState,
@@ -318,18 +316,6 @@ export function EditorEditFileSurface({
       onDirtyStateHint={activeFile.readOnly ? undefined : handleDirtyStateHint}
       onContentChange={activeFile.readOnly ? undefined : handleContentChange}
       onSave={activeFile.readOnly ? undefined : handleSave}
-    />
-  ) : isNotebook && mdViewMode === 'rich' ? (
-    <IpynbViewer
-      key={activeFile.id}
-      content={currentContent}
-      fileId={activeFile.id}
-      filePath={activeFile.filePath}
-      worktreeId={activeFile.worktreeId}
-      scrollCacheKey={`${editorViewStateKey}:notebook`}
-      onContentChange={handleContentChange}
-      onDirtyStateHint={handleDirtyStateHint}
-      onSave={handleSave}
     />
   ) : (
     monacoEditor

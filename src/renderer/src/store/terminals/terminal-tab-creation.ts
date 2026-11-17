@@ -1,5 +1,4 @@
 import { resolveTerminalCreatedShell } from './terminal-created-shell'
-import { warnIfZCodeCannotOpenSession } from '@/components/terminal-pane/provider-notices/zcode-capability/zcode-missing-tui-notice'
 import { clearWorktreeSleepIntent } from '@/lib/workspace/sleep/worktree-sleep-intent'
 import {
   isValidHostTerminalTabId,
@@ -133,11 +132,6 @@ export function createTerminalTabCreationActions(
         // Switch point: a tab main already made is drawn with main's creation facts.
         if (ORCA_LAYOUT_OWNER_IS_MAIN) {
           tab = withMainTerminalFacts(tab)
-        }
-        if (options?.launchAgent === 'zcode') {
-          // Why here: this is where a ZCode launch is first known, and it runs before the
-          // pane connects, so the explanation can beat the stack trace to the screen.
-          void warnIfZCodeCannotOpenSession()
         }
         const validTargetGroupId =
           requestedGroupId && worktreeGroups?.some((group) => group.id === requestedGroupId)

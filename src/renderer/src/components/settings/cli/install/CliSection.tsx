@@ -1,29 +1,18 @@
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../../../shared/execution-host'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { FolderOpen, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CliInstallStatus } from '../../../../../../shared/cli-install-types'
 import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
-import { ORCA_CLI_SKILL_NAME } from '@/lib/skills/installation/agent-feature-skill-names'
-import {
-  GLOBAL_AGENT_SKILL_SOURCE_KINDS,
-  useInstalledAgentSkill
-} from '@/hooks/skills/discovery/useInstalledAgentSkills'
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { Button } from '../../../ui/button'
 import { Label } from '../../../ui/label'
 import { Switch } from '../../../ui/switch'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../ui/tooltip'
-import { AgentSkillSetupPanel } from '../../../skills/setup/AgentSkillSetupPanel'
 import { CliRegistrationDialog } from './CliRegistrationDialog'
-import {
-  getSelectedAgentRuntime,
-  getSkillDiscoveryTargetForRuntime
-} from '../../../../lib/skills/runtime/skill-runtime-command'
 import { WslCliRegistration } from './WslCliRegistration'
 import { SettingsGroup } from '../../section-layout/SettingsGroup'
 import { useCliRegistrationActions } from './use-cli-registration-actions'
-import { useLocalCliSkillFreshnessName } from '../../../../hooks/skills/freshness/use-local-cli-skill-freshness-name'
 import { translate } from '@/i18n/i18n'
 import { useTranslate, type Translate } from '@/i18n/use-translate'
 import { formatCliUserFacingDetail } from '@/lib/cli/cli-user-facing-detail'
@@ -63,42 +52,12 @@ function getFallbackCommandName(platform: string): string {
   return platform === 'linux' ? 'orca-ide' : 'orca'
 }
 
-export function CliSection({
-  currentPlatform,
-  settings,
-  wslSupportedPlatform = false,
-  wslAvailable = false,
-  wslCapabilitiesLoading = false
-}: CliSectionProps): React.JSX.Element {
+export function CliSection({ currentPlatform }: CliSectionProps): React.JSX.Element {
   const t = useTranslate()
   const [status, setStatus] = useState<CliInstallStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const mountedRef = useMountedRef()
-  const agentRuntime = useMemo(
-    () =>
-      getSelectedAgentRuntime(settings, wslSupportedPlatform, wslAvailable, wslCapabilitiesLoading),
-    [settings, wslAvailable, wslCapabilitiesLoading, wslSupportedPlatform]
-  )
-  const cliSkillFreshnessName = useLocalCliSkillFreshnessName(agentRuntime)
-  const skillRuntime = useMemo(
-    () => ({
-      discoveryTarget: getSkillDiscoveryTargetForRuntime(agentRuntime),
-      discoveryRuntimeTarget: { kind: 'local' } as const,
-      bundledSkillTarget: agentRuntime.runtime === 'wsl' ? null : ({ kind: 'local' } as const)
-    }),
-    [agentRuntime]
-  )
-  const {
-    installed: cliSkillDetected,
-    loading: cliSkillLoading,
-    error: cliSkillError,
-    refresh: refreshCliSkill
-  } = useInstalledAgentSkill(ORCA_CLI_SKILL_NAME, {
-    discoveryTarget: skillRuntime.discoveryTarget,
-    runtimeTarget: skillRuntime.discoveryRuntimeTarget,
-    sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
-  })
   const handleStatusChange = useCallback(
     (nextStatus: CliInstallStatus): void => {
       if (mountedRef.current) {
@@ -301,26 +260,6 @@ export function CliSection({
             </div>
           ) : null}
         </div>
-
-        {!isBrowserManaged ? (
-          <AgentSkillSetupPanel
-            variant="row"
-            title={t('settings.general.cli.skillTitle', 'Orca skill for agents')}
-            description={t(
-              'auto.components.settings.CliSection.e8012c03a1',
-              'Enables agents to use Orca workspace, terminal, and progress commands.'
-            )}
-            skillNames={[ORCA_CLI_SKILL_NAME]}
-            target={skillRuntime.bundledSkillTarget}
-            // COMPAT(wsl-bridge): removed when WSL runs as an orcad host.
-            terminalRuntime={agentRuntime}
-            installed={cliSkillDetected}
-            loading={cliSkillLoading}
-            error={cliSkillError}
-            onRecheck={refreshCliSkill}
-            freshnessSkillName={cliSkillFreshnessName}
-          />
-        ) : null}
 
         <WslCliRegistration currentPlatform={currentPlatform} />
       </SettingsGroup>

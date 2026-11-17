@@ -96,7 +96,7 @@ export function BrowserUseCookieImportStep({
     >
       <div className="flex items-start gap-3">
         <StepBadge
-          index={2}
+          index={1}
           state={cookiesImported ? 'done' : isImportingDefault ? 'in-progress' : 'pending'}
         />
         <div className="min-w-0 flex-1 space-y-1">

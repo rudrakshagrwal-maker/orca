@@ -5,7 +5,6 @@ import type { AppState } from '../../types'
 import type { WorkspaceAttentionSlice } from './workspace-attention-contract'
 import {
   collectRemovedAttention,
-  dismissReadNotifications,
   sameMarkers,
   type RemovedAttention
 } from './attention-removal-follow-up'
@@ -59,18 +58,13 @@ export const createWorkspaceAttentionSlice: StateCreator<
         : { unreadAgentCompletionPanes: { ...s.unreadAgentCompletionPanes, [paneKey]: reason } }
     )
   }
-  /** Removes every marker of the tabs and dismisses their panes' notifications. */
-  const removeAndDismiss = (tabIds: Iterable<string>): RemovedAttention | null => {
+  const removeAttention = (tabIds: Iterable<string>): RemovedAttention | null => {
     const before = get()
     set((s) => {
       const next = removeTabsAttention(s, tabIds)
       return sameMarkers(s, next) ? s : next
     })
-    const removed = collectRemovedAttention(before, get())
-    if (removed) {
-      dismissReadNotifications(removed.paneKeys)
-    }
-    return removed
+    return collectRemovedAttention(before, get())
   }
   const paneAttentionEnabled = (): boolean => get().settings?.experimentalTerminalAttention === true
 
@@ -108,7 +102,7 @@ export const createWorkspaceAttentionSlice: StateCreator<
     },
     readOnScreenAttention: ({ workspaceIds, targets }, { screenArrived }) => {
       // Read marker-free flags on screen arrival (manual unread/restart/peer), not on every scan.
-      if (removeAndDismiss(targets.map((target) => target.tabId)) !== null || screenArrived) {
+      if (removeAttention(targets.map((target) => target.tabId)) !== null || screenArrived) {
         for (const workspaceId of workspaceIds) {
           settleWorkspaceUnreadFlag(set, get, workspaceId, onScreenHostId(get(), workspaceId))
         }
@@ -117,7 +111,7 @@ export const createWorkspaceAttentionSlice: StateCreator<
     setWorkspaceUnreadByUser: (worktreeId, isUnread, executionHostId) => {
       if (!isUnread) {
         noteWorkspaceRead(worktreeId)
-        const removed = removeAndDismiss(workspaceMarkerTabIds(get(), worktreeId))
+        const removed = removeAttention(workspaceMarkerTabIds(get(), worktreeId))
         // Journal-positioned chat alerts retire only with the explicit read that bounds them.
         if (removed) {
           emitAgentSubjectReads([...removed.paneKeys], undefined, 'explicit')

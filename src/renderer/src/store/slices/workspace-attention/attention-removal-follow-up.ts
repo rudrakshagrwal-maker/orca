@@ -109,15 +109,7 @@ export function collectRemovedAttention(
   return removed.paneKeys.size > 0 || removed.workspaceIds.size > 0 ? removed : null
 }
 
-/** One dismiss per operation; main retires each pane's Notification Center thread and announced ids. */
-export function dismissReadNotifications(paneKeys: ReadonlySet<string>): void {
-  if (paneKeys.size === 0 || typeof window === 'undefined') {
-    return
-  }
-  void window.api?.notifications?.dismiss?.([], [...paneKeys])?.catch(() => {})
-}
-
-/** After marker-removing updates, settle affected workspace flags and dismiss pane notifications; no marker removal leaves manual unread intact. */
+/** After marker-removing updates, settle affected workspace flags; no marker removal leaves manual unread intact. */
 export function settleAttentionRemovedBy(
   set: WorkspaceAttentionSet,
   get: WorkspaceAttentionGet,
@@ -142,5 +134,4 @@ export function settleAttentionRemovedBy(
       settleWorkspaceUnreadFlag(set, get, workspaceId)
     }
   }
-  dismissReadNotifications(removed.paneKeys)
 }

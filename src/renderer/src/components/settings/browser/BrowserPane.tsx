@@ -13,7 +13,6 @@ import { BrowserLinkRoutingSetting } from './routing/BrowserLinkRoutingSetting'
 import { BrowserLinkRoutingModifierSetting } from './routing/BrowserLinkRoutingModifierSetting'
 import { BrowserLinkRoutingBackgroundSetting } from './routing/BrowserLinkRoutingBackgroundSetting'
 import { BrowserTerminalLinkActionsSetting } from './routing/BrowserTerminalLinkActionsSetting'
-import { BrowserLocalhostWorktreeLabelsSetting } from './routing/BrowserLocalhostWorktreeLabelsSetting'
 import { BrowserClientHostedRemoteSetting } from './routing/BrowserClientHostedRemoteSetting'
 import { BrowserSshWorkspaceRoutingSetting } from './routing/BrowserSshWorkspaceRoutingSetting'
 import { BrowserProfileScopeSetting } from './profiles/BrowserProfileScopeSetting'
@@ -60,11 +59,7 @@ function cancelBrowserSessionCookieScrollFrames(frameIds: MutableRefObject<numbe
   frameIds.current = []
 }
 
-export function BrowserPane({
-  settings,
-  updateSettings,
-  onOpenComputerUse
-}: BrowserPaneProps): React.JSX.Element {
+export function BrowserPane({ settings, updateSettings }: BrowserPaneProps): React.JSX.Element {
   const t = useTranslate()
   const languageRevision = useUiLanguageRevision()
   const searchQuery = useAppStore((s) => s.settingsSearchQuery)
@@ -122,7 +117,6 @@ export function BrowserPane({
   const showLinkRouting = matchesSettingsSearch(searchQuery, [browserSearchEntries[3]])
   const showLinkRoutingModifier = matchesSettingsSearch(searchQuery, [browserSearchEntries[4]])
   const showTerminalLinkActions = matchesSettingsSearch(searchQuery, [browserSearchEntries[5]])
-  const showLocalhostLabels = matchesSettingsSearch(searchQuery, [browserSearchEntries[6]])
   const showCookies = matchesSettingsSearch(searchQuery, [browserSearchEntries[7]])
   const showClientHostedRemote = matchesSettingsSearch(searchQuery, [browserSearchEntries[8]])
   const showSshWorkspaceRouting = matchesSettingsSearch(searchQuery, [browserSearchEntries[9]])
@@ -252,10 +246,7 @@ export function BrowserPane({
     <div ref={setBrowserPaneRootNode} className="space-y-8">
       {showBrowserUse ? (
         <SettingsGroup>
-          <BrowserUseSetup
-            onConfigureMoreBrowsers={scrollToSessionCookies}
-            onOpenComputerUse={onOpenComputerUse}
-          />
+          <BrowserUseSetup onConfigureMoreBrowsers={scrollToSessionCookies} />
         </SettingsGroup>
       ) : null}
 
@@ -333,18 +324,9 @@ export function BrowserPane({
         />
       ) : null}
 
-      {showLocalhostLabels || showProfileScope ? (
+      {showProfileScope ? (
         <SettingsGroup>
-          {showLocalhostLabels ? (
-            <BrowserLocalhostWorktreeLabelsSetting
-              settings={settings}
-              updateSettings={updateSettings}
-            />
-          ) : null}
-
-          {showProfileScope ? (
-            <BrowserProfileScopeSetting settings={settings} updateSettings={updateSettings} />
-          ) : null}
+          <BrowserProfileScopeSetting settings={settings} updateSettings={updateSettings} />
         </SettingsGroup>
       ) : null}
 

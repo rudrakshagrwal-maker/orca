@@ -76,11 +76,4 @@ export function registerWorkspaceShortcutIpcBridge(unsubs: (() => void)[]): void
       }
     })
   )
-
-  unsubs.push(
-    window.api.ui.onToggleStatusBar(() => {
-      const store = useAppStore.getState()
-      store.setStatusBarVisible(!store.statusBarVisible)
-    })
-  )
 }
