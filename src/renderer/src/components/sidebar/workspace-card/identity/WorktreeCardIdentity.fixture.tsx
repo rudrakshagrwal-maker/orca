@@ -1,6 +1,7 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import { getDefaultSettings } from '../../../../../../shared/constants'
 import { defineFixture } from '../../../../component-fixtures/component-fixture'
-import { makeRepo, makeWorktree } from '../../../worktree-jump/worktree-jump-palette-test-fixtures'
+import { makeRepo, makeWorktree } from '../../../test-support/workspace-layout-test-fixtures'
 import WorktreeCard from '../surface/WorktreeCard'
 
 const repo = { ...makeRepo(), displayName: 'orca' }

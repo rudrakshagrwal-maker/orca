@@ -119,7 +119,20 @@ export function buildSettingsNavigationMetadata(
     (section) =>
       !['privacy', 'plugins', 'orca-account', 'mobile', 'setup-guide'].includes(section.id) &&
       // RA: settings retain terminal, launch, host and orchestration controls only.
-      (!backgroundJobsDisabled() || ['agents', 'orchestration', 'general', 'terminal', 'quick-commands', 'appearance', 'shortcuts', 'ssh', 'servers'].includes(section.id) || section.id.startsWith('repo-'))
+      (!backgroundJobsDisabled() ||
+        [
+          'agents',
+          'orchestration',
+          'general',
+          'terminal',
+          'quick-commands',
+          'browser',
+          'appearance',
+          'shortcuts',
+          'ssh',
+          'servers'
+        ].includes(section.id) ||
+        section.id.startsWith('repo-'))
   )
 }
 

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { ipcMain } from 'electron'
 import type { Store } from '../persistence/loading-store/store'
 import {
@@ -16,7 +17,6 @@ import type {
   RemoteWindowsTerminalCapabilities
 } from '../preflight/agent-detection'
 
-import { readZCodeInteractiveCapability } from '../zcode/interactive-capability'
 import { getPreflightWslTarget } from './preflight-runtime-target'
 import { runAsWslExecUserAct } from '../wsl/discovery/wsl-background-exec-gate'
 import { deferRefusedPreflight } from './preflight-wsl-refusal-retry'
@@ -70,10 +70,6 @@ export function registerPreflightHandlers(store?: Pick<Store, 'getSettings'>): v
         await assertAgentDetectionHostRunning(host)
         return detectAgentsOnHost(host, detectionOptions(args))
       })
-  )
-
-  ipcMain.handle('preflight:zcodeInteractiveCapability', async () =>
-    readZCodeInteractiveCapability()
   )
 
   ipcMain.handle(

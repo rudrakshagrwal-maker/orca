@@ -13,8 +13,6 @@ import { recordDurableCrashBreadcrumb } from '../crash-reporting/breadcrumbs/dur
 import { clearTrustedUIRendererWebContentsId, setTrustedUIRendererWebContentsId } from '../ipc/ui'
 import { flushUnsavedCloudSessions } from '../orca-profiles/cloud-session/profile-cloud-session-owner'
 import type { Store } from '../persistence/loading-store/store'
-import { closeDashboardPopout } from './dashboard-popout-window'
-import { closeWorkspaceSpaceWindow } from './workspace-space-window'
 import {
   installMainWindowCloseLifecycle,
   WINDOW_QUIT_RENDERER_ACK_TIMEOUT_MS
@@ -235,8 +233,6 @@ export function createMainWindow(
   })
 
   mainWindow.on('closed', () => {
-    closeDashboardPopout()
-    closeWorkspaceSpaceWindow()
     state.clearInitialRevealFallbackTimer()
     closeLifecycle.dispose()
     activity.dispose()

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
 import { revokeCustomPetBlobUrl } from '../../../components/pet/pet-blob-cache'
 import { DEFAULT_PET_ID } from '../../../components/pet/pet-models'
@@ -8,85 +9,14 @@ import {
   type CustomPet
 } from '../../../../../shared/pet-types'
 import { clampPetSize } from './ui-slice-hydration-sanitizers'
-import { readPersistedFloatingTerminalPanelViewState } from '../../../components/floating-terminal/floating-terminal-panel-view-state'
 
 export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Partial<UISlice> {
   return {
-    workspacePortScan: null,
-    workspacePortScansByKey: {},
-    workspacePortScanRefreshing: false,
-    setWorkspacePortScan: (scan) =>
-      set((state) => {
-        if (!scan) {
-          if (!state.workspacePortScan && Object.keys(state.workspacePortScansByKey).length === 0) {
-            return state
-          }
-          return { workspacePortScan: null, workspacePortScansByKey: {} }
-        }
-        if (
-          state.workspacePortScan?.key === scan.key &&
-          state.workspacePortScan.result === scan.result &&
-          state.workspacePortScansByKey[scan.key] === scan.result
-        ) {
-          return state
-        }
-        return {
-          workspacePortScan: scan,
-          workspacePortScansByKey: { ...state.workspacePortScansByKey, [scan.key]: scan.result }
-        }
-      }),
     // Why: target changes rebuild the aggregate without republishing or clearing per-host scans.
-    setWorkspacePortScanProjection: (scan) =>
-      set((state) => {
-        if (
-          state.workspacePortScan?.key === scan?.key &&
-          state.workspacePortScan?.result === scan?.result
-        ) {
-          return state
-        }
-        return { workspacePortScan: scan }
-      }),
+
     // Why: drop stale per-host scans in one store update so a large host set can't fan out notifications to every subscriber.
-    replaceWorkspacePortScans: (scansByKey, projection) =>
-      set((state) => {
-        if (
-          state.workspacePortScansByKey === scansByKey &&
-          state.workspacePortScan?.key === projection?.key &&
-          state.workspacePortScan?.result === projection?.result
-        ) {
-          return state
-        }
-        return { workspacePortScansByKey: scansByKey, workspacePortScan: projection }
-      }),
-    setWorkspacePortScanForKey: (key, result) =>
-      set((state) => {
-        const currentResult = state.workspacePortScansByKey[key]
-        if (currentResult === result || (!result && !currentResult)) {
-          return state
-        }
-        const nextScansByKey = { ...state.workspacePortScansByKey }
-        if (result) {
-          nextScansByKey[key] = result
-        } else {
-          delete nextScansByKey[key]
-        }
-        return {
-          workspacePortScansByKey: nextScansByKey,
-          workspacePortScan:
-            state.workspacePortScan?.key === key
-              ? result
-                ? { key, result }
-                : null
-              : state.workspacePortScan
-        }
-      }),
+
     // Preserve root identity so no-op writes do not notify every store subscriber.
-    setWorkspacePortScanRefreshing: (refreshing) =>
-      set((state) =>
-        state.workspacePortScanRefreshing === refreshing
-          ? state
-          : { workspacePortScanRefreshing: refreshing }
-      ),
 
     // Why: default true so enabling experimentalPet shows the pet immediately (persisted; "Hide pet" flips it false).
     petVisible: true,
@@ -192,19 +122,8 @@ export function createUiSurfaceActions(set: UISliceSet, _get: UISliceGet): Parti
           : { pendingRevealSidebarRow: null }
       ),
     scrollToDiffCommentId: null,
-    setScrollToDiffCommentId: (id) => set({ scrollToDiffCommentId: id }),
-    floatingWorkspacePath: null,
-    setFloatingWorkspacePath: (path) =>
-      set((state) =>
-        state.floatingWorkspacePath === (path || null)
-          ? state
-          : { floatingWorkspacePath: path || null }
-      ),
+    setScrollToDiffCommentId: (id) => set({ scrollToDiffCommentId: id })
+
     // Restore floating panel size/open state to avoid reopen/remaximize reflow of live TUI buffers (floating-terminal-panel-view-state).
-    floatingWorkspacePanelOpen: readPersistedFloatingTerminalPanelViewState()?.open === true,
-    setFloatingWorkspacePanelOpen: (open) =>
-      set((state) =>
-        state.floatingWorkspacePanelOpen === open ? state : { floatingWorkspacePanelOpen: open }
-      )
   }
 }

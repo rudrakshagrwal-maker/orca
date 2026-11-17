@@ -1,3 +1,4 @@
+// RA: installed fonts do not need plugin font loading.
 import type { IDisposable } from '@xterm/xterm'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../../shared/constants'
 import type { PaneManagerOptions } from '@/lib/pane-manager/pane-manager-types'
@@ -14,7 +15,7 @@ import {
   resolveTerminalScrollOnUserInput
 } from '@/lib/pane-manager/pane-terminal-options'
 import { buildFontFamily } from '../../../../../shared/monospace-font-family'
-import { pluginFontFamilyWhenLoaded } from '@/store/plugins/appearance/plugin-fonts'
+
 import { buildWindowsPtyCompatibilityOptions } from '@/lib/pane-manager/terminal-protocol/windows-pty-compatibility'
 import { buildTerminalKeyboardProtocolOptions } from '@/lib/pane-manager/terminal-protocol/terminal-keyboard-protocol'
 import { resolvePaneKeyboardProtocolAgent } from '../input/keyboard/terminal-keyboard-protocol-pane-agent'
@@ -154,9 +155,7 @@ export function createTerminalPaneManagerOptions(
         ...buildWindowsPtyCompatibilityOptions(ptyBackendContext),
         ...buildTerminalKeyboardProtocolOptions(ptyBackendContext),
         fontSize: currentSettings?.terminalFontSize ?? 14,
-        fontFamily: buildFontFamily(
-          pluginFontFamilyWhenLoaded(currentSettings?.terminalFontFamily ?? '')
-        ),
+        fontFamily: buildFontFamily(currentSettings?.terminalFontFamily ?? ''),
         fontWeight: terminalFontWeights.fontWeight,
         fontWeightBold: terminalFontWeights.fontWeightBold,
         scrollback: normalizeDesktopTerminalScrollbackRows(currentSettings?.terminalScrollbackRows),

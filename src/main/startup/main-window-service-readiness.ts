@@ -3,11 +3,7 @@ const MAIN_WINDOW_SERVICE_REQUIREMENTS = [
   ['store', 'Store must be initialized before opening the main window'],
   ['runtime', 'Runtime must be initialized before opening the main window'],
   ['stats', 'Stats must be initialized before opening the main window'],
-  ['claudeUsage', 'Claude usage store must be initialized before opening the main window'],
-  ['codexUsage', 'Codex usage store must be initialized before opening the main window'],
-  ['openCodeUsage', 'OpenCode usage store must be initialized before opening the main window'],
-  ['museUsage', 'Muse usage store must be initialized before opening the main window'],
-  ['rateLimits', 'Rate limit service must be initialized before opening the main window'],
+  // RA: unused agent stores are not prerequisites for opening terminals.
   ['codexAccounts', 'Codex account service must be initialized before opening the main window'],
   [
     'codexRuntimeHome',

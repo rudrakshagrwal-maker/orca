@@ -23,7 +23,8 @@ import {
   AgentConversationCopyStartError,
   agentConversationCopyRefusal
 } from '../../agent-conversation-copy-error'
-import { acpAgentName } from '../../../acp/session/acp-structured-agent-definitions'
+// RA: supported-agent labels do not load the removed ACP registry.
+import { formatAgentTypeLabel as acpAgentName } from '../../../../shared/agent-status/presentation/agent-type-label'
 import { structuredAgentRuntimeMetadata } from '../../../runtime/agent-session/installation/structured-agent-runtime-metadata'
 import type { StructuredAgentSessionHost } from '../host/structured-agent-session-host'
 import type { AgentSessionAttachParams } from './structured-agent-session-attach'

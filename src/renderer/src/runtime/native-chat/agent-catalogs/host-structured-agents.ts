@@ -1,3 +1,5 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
+import { isForkTuiAgent } from '../../../../../shared/agent-launch/catalog/tui-agent'
 import {
   AGENT_SESSION_AGENTS_METHOD,
   decodeAgentSessionAgentsResult,
@@ -114,7 +116,9 @@ export function loadHostStructuredAgents(
     runtimeId === null ? {} : { expectedEnvironmentRuntimeId: runtimeId }
   )
     .then((result) => {
-      const agents = decodeAgentSessionAgentsResult(result)
+      const agents = decodeAgentSessionAgentsResult(result)?.filter((row) =>
+        isForkTuiAgent(row.agent)
+      )
       if (!agents) {
         throw new Error('Invalid registered-agent response')
       }

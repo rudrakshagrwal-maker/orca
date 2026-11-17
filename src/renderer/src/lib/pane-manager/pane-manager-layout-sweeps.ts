@@ -1,4 +1,5 @@
 import type { ManagedPaneInternal } from './pane-manager-types'
+import { isTerminalOutputSuspended } from './terminal-output/pane-terminal-output-queue-registry'
 import './pane-layout/pane-tree-ops'
 import { equalizePaneSplitSizes } from './pane-layout/pane-tree-equalization'
 import { fitRevealedPane } from './terminal-fit/pane-reveal-fit'
@@ -13,7 +14,8 @@ export function fitRevealedPanes(panes: Map<number, ManagedPaneInternal>): void 
 export function refreshAllPaneTerminals(panes: Map<number, ManagedPaneInternal>): void {
   for (const pane of panes.values()) {
     try {
-      if (pane.terminal.rows > 0) {
+      // RA: restore-all sweeps leave hidden split renderers suspended.
+      if (pane.terminal.rows > 0 && !isTerminalOutputSuspended(pane.terminal)) {
         pane.terminal.refresh(0, pane.terminal.rows - 1)
       }
     } catch {

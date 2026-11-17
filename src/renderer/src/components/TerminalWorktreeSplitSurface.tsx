@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import React from 'react'
 import type { TabGroupLayoutNode } from '../../../shared/tab-types'
 import type { ActivityTerminalPortalTarget } from './activity/activity-terminal-portal'
@@ -84,7 +85,6 @@ export const WorktreeSplitSurface = React.memo(function WorktreeSplitSurface({
           hasDeferredBackgroundMounts: backgroundMountTabIds !== null,
           needsBrowserGuestPaint
         })}
-        mountEmulatorOverlay={isVisible || backgroundMountTabIds === null}
       />
     </div>
   )

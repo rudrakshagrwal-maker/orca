@@ -1,3 +1,4 @@
+import { setTerminalOutputSuspended } from './terminal-output/pane-terminal-output-queue-registry'
 import { focusPanePreservingOverlays } from './pane-focus/pane-overlay-focus'
 import type {
   ManagedPane,
@@ -93,6 +94,8 @@ export function createManagedPaneInternal(
     }
   )
   // A pane mounted behind a hidden surface defers WebGL, so its DOM blink stays focus-gated and needs no suspension.
+  // RA: hidden-at-birth panes buffer output before their PTY subscription starts.
+  setTerminalOutputSuspended(pane.terminal, host.isRenderingSuspended())
   pane.webglAttachmentDeferred = host.isRenderingSuspended()
   setTerminalLinkDetectionSuspended(pane.terminal, host.isRenderingSuspended()) // RA: hidden at birth.
   host.panes.set(id, pane)

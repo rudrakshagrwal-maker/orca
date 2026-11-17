@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 // What a paired client reads and may write of this host's settings.
 
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -30,7 +31,6 @@ export type RuntimeClientSettings = Pick<
   | 'minimaxEndpoint'
   | 'zcodePlanSite'
   | 'prBotAuthorOverrides'
-  | 'artifactSharingEnabled'
   | 'worktreeVisibilityDefaults'
   | 'agentSkillSharingEnabled'
   | 'machineName'

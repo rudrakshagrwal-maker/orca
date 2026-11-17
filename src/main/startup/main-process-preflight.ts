@@ -1,5 +1,3 @@
-import { antigravityHookService } from '../antigravity/hook-service'
-import { getRelocatedDaemonHost } from '../daemon/executable-host/windows/daemon-host-relocation'
 import { app, ipcMain, powerMonitor, session } from 'electron'
 import os from 'node:os'
 import { join } from 'node:path'
@@ -80,10 +78,6 @@ import '../orca-profiles/profile-index-store'
 import { getProfileUserDataPath, initOrcaProfilePaths } from '../orca-profiles/profile-storage-paths'
 import { recoverPendingProfileProjectMoves } from '../orca-profiles/project-transfer/profile-project-move-intent'
 import { initStatsPath } from '../stats/collector'
-import { initClaudeUsagePath } from '../claude-usage/store'
-import { initCodexUsagePath } from '../codex-usage/store'
-import { initOpenCodeUsagePath } from '../opencode-usage/store'
-import { initMuseUsagePath } from '../muse-usage/store'
 import { registerDocPreviewSchemePrivileges } from '../browser/document-preview/doc-preview-protocol'
 import { PRIVILEGED_CUSTOM_SCHEMES } from './privileged-custom-schemes'
 import { CrashReportStore } from '../crash-reporting/reports/crash-report-store'
@@ -204,9 +198,6 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   // Capture after overrides, before ready-time app naming can change userData on case-sensitive filesystems.
   initDataPath()
   startEventLoopDelayProbe('main', getCanonicalUserDataPath())
-  antigravityHookService.setWindowsRuntimePathProvider(
-    () => getRelocatedDaemonHost()?.execPath ?? process.execPath
-  )
 
   // Electron fixes the Keychain service name before ready; dev userData is already pinned so renaming cannot shift it.
   if (state.devInstanceIdentity && shouldApplyPreReadyAppName(state.devInstanceIdentity)) {
@@ -303,10 +294,6 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   )
   // Capture stats/usage paths before app naming can shift userData.
   initStatsPath()
-  initClaudeUsagePath()
-  initCodexUsagePath()
-  initOpenCodeUsagePath()
-  initMuseUsagePath()
   // Register preview privileges before ready freezes the table or webviews lose fetch/secure-origin access.
   registerDocPreviewSchemePrivileges(PRIVILEGED_CUSTOM_SCHEMES)
   // RA: Crashpad capture is disabled.

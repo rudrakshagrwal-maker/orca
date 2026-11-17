@@ -1,7 +1,5 @@
-import {
-  ALL_TUI_AGENTS,
-  TUI_AGENT_DISPLAY_NAMES
-} from '../agent-launch/catalog/tui-agent-display-names'
+import { TUI_AGENT_DISPLAY_NAMES } from '../agent-launch/catalog/tui-agent-display-names'
+import { FORK_TUI_AGENTS } from '../agent-launch/catalog/tui-agent'
 import type {
   AgentTabActionId,
   KeybindingActionId,
@@ -20,7 +18,8 @@ export function agentTabActionId(agent: TuiAgent): AgentTabActionId {
 }
 
 function buildAgentTabKeybindingDefinitions(): KeybindingDefinition[] {
-  return ALL_TUI_AGENTS.map((agent) => ({
+  // RA: only supported agents expose launch shortcuts or restore launch bindings.
+  return FORK_TUI_AGENTS.map((agent) => ({
     id: agentTabActionId(agent),
     title: `New ${TUI_AGENT_DISPLAY_NAMES[agent]} tab`,
     group: 'Agents',

@@ -1,7 +1,8 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { File, FileCog, FileLock, FileTerminal, type LucideIcon } from 'lucide-react'
 import { COMPOUND_EXTENSIONS, FILE_ICON_BY_EXTENSION } from './file-type-icon-extension-table'
 import { FILE_ICON_BY_NAME } from './file-type-icon-name-table'
-import type { ActivePluginIconTheme } from '../../store/plugins/appearance/plugin-icon-themes'
+
 
 function getFilename(filePath: string | undefined | null): string {
   if (!filePath) {
@@ -83,40 +84,9 @@ function ownExtensionIconIndex(
 
 /** The active plugin icon theme's icon index for a path: exact name, then extension, then
  *  its file icon. */
-export function getPluginFileTypeIconIndex(
-  theme: ActivePluginIconTheme | null,
-  filePath: string | undefined | null
-): number | null {
-  const filename = getFilename(filePath).toLowerCase()
-  if (!theme || !filename) {
-    return null
-  }
-  return (
-    ownIconIndex(theme.fileNames, filename) ??
-    ownExtensionIconIndex(theme.fileExtensions, filename) ??
-    ownIconIndex(theme.icons, 'file')
-  )
-}
+
 
 /** The active plugin icon theme's icon index for a folder path's last segment. Open folders try
  *  the expanded name icon, the generic open icon, then fall back like closed ones: the name
  *  icon, then the generic folder icon. */
-export function getPluginFolderIconIndex(
-  theme: ActivePluginIconTheme | null,
-  folderPath: string | undefined,
-  open: boolean
-): number | null {
-  if (!theme) {
-    return null
-  }
-  const name = getFilename(folderPath).toLowerCase()
-  const named = (entries: Partial<Record<string, number>>) =>
-    name ? ownIconIndex(entries, name) : null
-  return (
-    (open
-      ? (named(theme.folderNamesExpanded) ?? ownIconIndex(theme.icons, 'folder-open'))
-      : null) ??
-    named(theme.folderNames) ??
-    ownIconIndex(theme.icons, 'folder')
-  )
-}
+

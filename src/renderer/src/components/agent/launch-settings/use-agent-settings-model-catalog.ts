@@ -24,7 +24,12 @@ const SETTINGS_LAUNCH = { newLaunch: true, seedsModel: true }
 export function useAgentSettingsModelCatalog(
   agent: TuiAgent,
   target: RuntimeClientTarget | null
-): { catalog: AgentSessionModelCatalogResult | undefined; usesSeedModels: boolean } {
+): {
+  catalog: AgentSessionModelCatalogResult | undefined
+  usesSeedModels: boolean
+  refresh: () => void
+  refreshing: boolean
+} {
   const key = target ? `${structuredAgentSessionHostKey(target)}\u0000${agent}` : null
   // Same array until one changes: a new account or command lists different models.
   const accountSettings = useAppStore(
@@ -48,6 +53,8 @@ export function useAgentSettingsModelCatalog(
         : undefined,
     [environmentId]
   )
+  // RA: discovery beyond the launch attempt is an explicit settings action.
+  const [refreshing, setRefreshing] = useState(false)
   const [answer, setAnswer] = useState<{
     key: string
     accountSettings: readonly unknown[]
@@ -108,5 +115,19 @@ export function useAgentSettingsModelCatalog(
       ? readHostModelCatalogSnapshot(target, agent, SETTINGS_LAUNCH)
       : undefined
   const listed = catalog && catalog.origin !== 'unknown' && catalog.models.length > 0
-  return { catalog, usesSeedModels: !listed && (!target || settled !== null) }
+  const refresh = (): void => {
+    if (!target || !key || refreshing) {
+      return
+    }
+    setRefreshing(true)
+    void callStructuredAgentSession<AgentSessionModelCatalogResult>(
+      target,
+      'agentSession.modelCatalog',
+      { agent, refresh: true, waitForListing: true }
+    )
+      .then((catalog) => setAnswer({ key, accountSettings, generation, catalog }))
+      .catch(() => {})
+      .finally(() => setRefreshing(false))
+  }
+  return { catalog, usesSeedModels: !listed && (!target || settled !== null), refresh, refreshing }
 }

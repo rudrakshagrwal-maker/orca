@@ -2,12 +2,10 @@ import { getGeneralConfirmationSearchEntries } from './general-confirmations-sea
 import { getGeneralSubPageTitle } from './general-sub-pages'
 import { GENERAL_SETTING_ANCHORS, generalSetting } from './general-setting-anchors'
 import type { SettingsSearchEntry } from '../search/settings-search'
-import { getGeneralEditorSearchEntries } from '../editor/general-editor-search'
 import { translate } from '@/i18n/i18n'
 import { searchKeywords, translateSearchKeyword } from '../search/settings-search-keywords'
 import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 import { getGeneralProjectRuntimeSearchEntries } from './project-runtime/general-project-runtime-search'
-import { getGeneralSupportSearchEntries } from './general-support-search'
 import { getUpdateDelayDescription, getUpdateDelayTitle } from '../updates/update-delay-copy'
 
 export const getGeneralWorkspaceSearchDescriptors = createLocalizedCatalog(() => [
@@ -114,26 +112,6 @@ export const getGeneralNavigationSearchEntries = createLocalizedCatalog(() => [
       ...translateSearchKeyword('auto.components.settings.general.search.f8f0ac213a', 'sequential'),
       ...translateSearchKeyword('auto.components.settings.general.search.fb84767421', 'switch')
     ]
-  },
-  {
-    title: translate('settings.general.previewTabs.title', 'Preview tabs'),
-    description: translate(
-      'settings.general.previewTabs.description',
-      'Single-clicking a file reuses one preview tab until you edit or pin it.'
-    ),
-    keywords: [
-      translate(
-        'auto.components.settings.GeneralPane.editor_preview_tabs',
-        'Reuse a preview tab when browsing files'
-      ),
-      ...translateSearchKeyword('auto.components.settings.general.search.preview', 'preview'),
-      ...translateSearchKeyword('auto.components.settings.general.search.2a254b725e', 'tab'),
-      ...translateSearchKeyword('auto.components.settings.general.search.reuse', 'reuse'),
-      ...translateSearchKeyword('auto.components.settings.general.search.replace', 'replace'),
-      ...translateSearchKeyword('auto.components.settings.general.search.explorer', 'explorer'),
-      ...translateSearchKeyword('auto.components.settings.general.search.italic', 'italic'),
-      ...translateSearchKeyword('auto.components.settings.general.search.browsing', 'browsing')
-    ]
   }
 ])
 
@@ -222,10 +200,9 @@ export function getGeneralPaneSearchEntries(
     ...Object.values(getGeneralConfirmationSearchEntries()),
     ...getGeneralDestinationSearchEntries(),
     ...(options.includeProjectRuntime === false ? [] : getGeneralProjectRuntimeSearchEntries()),
-    ...getGeneralEditorSearchEntries(),
+    // RA: Retired editor, preview, and star settings have no search entry points.
     ...getGeneralCliSearchEntries(),
-    ...getGeneralUpdateSearchEntries(),
-    ...getGeneralSupportSearchEntries()
+    ...getGeneralUpdateSearchEntries()
   ]
 }
 
@@ -234,15 +211,14 @@ export const getGeneralWorkspaceSearchEntries = createLocalizedCatalog(() =>
 )
 
 export const getGeneralDestinationSearchEntries = createLocalizedCatalog(() => [
-  ...(['folder', 'worktrees', 'open-in', 'editor'] as const).map((page) => ({
+  ...(['folder', 'worktrees', 'open-in'] as const).map((page) => ({
     title: getGeneralSubPageTitle(page, translate)
   })),
   {
     title: translate('settings.general.about.title', 'About'),
     keywords: [
       ...translateSearchKeyword('settings.general.search.keywords.update', 'update'),
-      ...translateSearchKeyword('settings.general.search.keywords.version', 'version'),
-      ...translateSearchKeyword('settings.general.search.keywords.star', 'star')
+      ...translateSearchKeyword('settings.general.search.keywords.version', 'version')
     ]
   }
 ])

@@ -73,21 +73,10 @@ vi.mock('os', async (importOriginal) => {
   }
 })
 
-import '../../../antigravity/hook-service'
 import { ClaudeHookService } from '../../../claude/hook-service'
 import '../../../claude/hook-settings'
 import '../../../codex/hooks/installation/hook-service'
 import '../../../codex/hooks/installation/codex-hook-service-implementation'
-import '../../../command-code/hook-service'
-import '../../../copilot/hook-service'
-import '../../../cursor/hook-service'
-import '../../../devin/hook-service'
-import '../../../droid/hook-service'
-import '../../../gemini/hook-service'
-import '../../../grok/hook-service'
-import '../../../kimi/hook-service'
-
-import '../../../openclaude/hook-service'
 
 import { POSIX_HOOK_STDIN_READER } from './hook-stdin-contract'
 import '../commands/runtime-home-hook-command'

@@ -3,14 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { ScrollToCurrentWorkspaceToolbarButton } from './worktree-list/navigation/ScrollToCurrentWorkspaceToolbarButton'
 import { SidebarSettingsHelpMenu } from './SidebarSettingsHelpMenu'
 
-type SidebarToolbarProps = {
-  workspaceBoardOpen: boolean
-  workspaceBoardDragPreviewOpen?: boolean
-  onWorkspaceBoardToggle: () => void
-}
-
 // RA: no Workspace board button; the fork keeps the sidebar to projects and terminals.
-const SidebarToolbar = React.memo(function SidebarToolbar(_props: SidebarToolbarProps) {
+const SidebarToolbar = React.memo(function SidebarToolbar() {
   // Subscribe across this memo boundary so asynchronously applied locale changes relabel the toolbar and its children.
   useTranslation()
   return (

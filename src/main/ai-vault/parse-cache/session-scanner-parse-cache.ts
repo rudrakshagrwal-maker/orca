@@ -1,18 +1,15 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { throwIfAiVaultScanCancelled, waitForAiVaultScan } from '../ai-vault-scan-cancellation'
-import { createQoderSessionResumeState } from '../scanners/qoder/session-scanner-qoder-parser'
+
 import type { AiVaultSession } from '../../../shared/ai-vault/contracts/ai-vault-types'
 import { inSessionParseFileLane } from './session-parse-file-lane'
-import { createAntigravitySessionResumeState } from '../scanners/antigravity/session-scanner-antigravity-parser'
+
 import { createCodexSessionResumeState } from '../scanners/codex/session-scanner-codex-parser'
-import { createDroidSessionResumeState } from '../scanners/droid/session-scanner-droid-parser'
-import { createMessageGraphSessionResumeState } from '../scanners/session-scanner-graph-parsers'
+
 import { createClaudeSessionResumeState } from '../scanners/claude/session-scanner-primary-parsers'
-import { createCodebuddySessionResumeState } from '../scanners/codebuddy/session-scanner-codebuddy-parser'
-import { createGeminiJsonlSessionResumeState } from '../scanners/gemini/session-scanner-gemini-parsers'
-import { createCopilotSessionResumeState } from '../scanners/copilot/session-scanner-copilot-parser'
-import { createCursorSessionResumeState } from '../scanners/cursor/session-scanner-cursor-parser'
+
 import { countSubagentTranscripts } from '../scanners/claude/session-scanner-subagent-transcripts'
-import { countOmpSubagentTranscripts } from '../scanners/omp/session-scanner-omp-subagent-transcripts'
+
 import type { ResumableSessionParseState, SessionFileCandidate } from '../session-scanner-types'
 import { refreshCachedCodexTitle } from '../scanners/codex/session-scanner-codex-cached-title'
 import {
@@ -48,44 +45,12 @@ function resumableStateFactoryFor(
   switch (candidate.agent) {
     case 'claude':
       return (messages) => createClaudeSessionResumeState(candidate.file, messages)
-    case 'qoder':
-      return (messages) => createQoderSessionResumeState(candidate.file, messages)
-    case 'codebuddy':
-      return (messages) => createCodebuddySessionResumeState(candidate.file, messages)
+
     case 'codex':
       return (messages) =>
         createCodexSessionResumeState(candidate.file, candidate.codexHome, messages)
-    case 'cursor':
-      return (messages) => createCursorSessionResumeState(candidate.file, messages)
-    case 'copilot':
-      return (messages) => createCopilotSessionResumeState(candidate.file, messages)
-    case 'droid':
-      return (messages) => createDroidSessionResumeState(candidate.file, messages)
-    case 'openclaw':
-    case 'pi':
-    case 'omp':
-    case 'prime-agent': {
-      const agent = candidate.agent
-      return (messages) => createMessageGraphSessionResumeState(agent, candidate.file, messages)
-    }
-    case 'gemini':
-      return candidate.file.path.endsWith('.jsonl')
-        ? (messages) => createGeminiJsonlSessionResumeState(candidate.file, messages)
-        : null
-    case 'antigravity':
-      return (messages) => createAntigravitySessionResumeState(candidate.file, messages)
-    case 'devin':
-    case 'grok':
-    case 'hermes':
-    case 'jcode':
-    case 'cline':
-    case 'kimi':
-    case 'kiro':
-    case 'muse':
-    case 'opencode':
-    case 'opencode2':
-    case 'zcode':
-    case 'rovo':
+
+    default:
       return null
   }
 }
@@ -270,9 +235,7 @@ async function reuseCachedSession(
     const subagentTranscriptCount =
       session.agent === 'claude'
         ? await countSubagentTranscripts(candidate.file.path, signal)
-        : session.agent === 'omp'
-          ? await countOmpSubagentTranscripts(candidate.file.path, signal)
-          : null
+        : null
     if (
       subagentTranscriptCount !== null &&
       subagentTranscriptCount !== session.subagentTranscriptCount

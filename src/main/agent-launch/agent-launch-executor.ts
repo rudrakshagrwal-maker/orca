@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type { RuntimeTerminalCreate } from '../../shared/runtime-terminal-create-contract'
 import { decideAgentLaunchIntentMode } from './agent-launch-intent-mode'
 /** Structured launches create the workspace without an agent, then ask its host for chat support.
@@ -39,7 +40,6 @@ import {
 } from './agent-launch-legacy-host'
 import {
   AgentLaunchStructuredSessionRefusedError,
-  assertTerminalLaunchAdmissible,
   terminalLaunchInputs,
   type AgentLaunchStructuredSurface,
   type AgentLaunchWorkspaceFactory
@@ -71,7 +71,7 @@ export async function openAgentLaunch(
   const { intent, runtime } = execution
   const vocabulary = execution.vocabulary ?? DEFAULT_LAUNCH_VOCABULARY
   const preflight = execution.decidedMode ?? decideAgentLaunchIntentMode(execution)
-  assertTerminalLaunchAdmissible(intent, preflight.mode)
+
   // A caller's own preparation (intent resolution) may have outlived its request.
   assertAgentPromptRequestActive(execution.signal)
   if (execution.promptPolicy === 'legacy-host') {

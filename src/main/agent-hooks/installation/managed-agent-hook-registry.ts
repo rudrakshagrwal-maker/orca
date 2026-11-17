@@ -1,27 +1,9 @@
-import { codebuddyHookService } from '../../codebuddy/hook-service'
-import { qwenCodeHookService } from '../../qwen-code/hook-service'
-import { qoderCnHookService, qoderHookService } from '../../qoder/hook-service'
+import { isForkTuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
+// RA: unsupported hooks are neither imported nor registered.
 import type { AgentHookInstallStatus } from '../../../shared/agent-hook-listener/configuration/agent-hook-types'
 import type { HookInstallAgent } from '../../../shared/telemetry-daemon-event-schemas'
-import { ampHookService } from '../../amp/hook-service'
-import { antigravityHookService } from '../../antigravity/hook-service'
 import { claudeHookService } from '../../claude/hook-service'
 import { codexHookService } from '../../codex/hooks/installation/hook-service'
-import { commandCodeHookService } from '../../command-code/hook-service'
-import { copilotHookService } from '../../copilot/hook-service'
-import { cursorHookService } from '../../cursor/hook-service'
-import { devinHookService } from '../../devin/hook-service'
-import { dshHookService } from '../../dsh/hook-service'
-import { droidHookService } from '../../droid/hook-service'
-import { geminiHookService } from '../../gemini/hook-service'
-import { grokHookService } from '../../grok/hook-service'
-import { hermesHookService } from '../../hermes/hook-service'
-import { jcodeHookService } from '../../jcode/hook-service'
-import { kimiHookService } from '../../kimi/hook-service'
-import { kiroHookService } from '../../kiro/hook-service'
-import { museHookService } from '../../muse/hook-service'
-import { openClaudeHookService } from '../../openclaude/hook-service'
-import { zcodeHookService } from '../../zcode/hook-service'
 
 export type ManagedAgentHookInstallOptions = { userInitiated?: boolean; cliVersion?: string }
 export type ManagedAgentHookInstaller = readonly [
@@ -41,109 +23,33 @@ export type ManagedAgentHookAsyncRemover = readonly [
 ]
 export type ManagedAgentHookStatusReader = readonly [HookInstallAgent, () => AgentHookInstallStatus]
 
-export const MANAGED_AGENT_HOOK_INSTALLERS: readonly ManagedAgentHookInstaller[] = [
-  ['claude', (options) => claudeHookService.install({ claudeVersion: options?.cliVersion })],
-  ['openclaude', () => openClaudeHookService.install()],
-  ['codex', () => codexHookService.reconcileHooks()],
-  ['gemini', () => geminiHookService.install()],
-  ['qoder', () => qoderHookService.install()],
-  ['qoder-cn', () => qoderCnHookService.install()],
-  ['qwen-code', () => qwenCodeHookService.install()],
-  ['codebuddy', () => codebuddyHookService.install()],
-  ['antigravity', () => antigravityHookService.install()],
-  ['amp', () => ampHookService.install()],
-  ['cursor', () => cursorHookService.install()],
-  ['droid', () => droidHookService.install()],
-  ['command-code', () => commandCodeHookService.install()],
-  ['grok', (options) => grokHookService.install(options)],
-  ['copilot', () => copilotHookService.install()],
-  ['hermes', () => hermesHookService.install()],
-  ['devin', () => devinHookService.install()],
-  ['kimi', () => kimiHookService.install()],
-  ['muse', () => museHookService.install()],
-  ['zcode', () => zcodeHookService.install()],
-  ['dsh', () => dshHookService.install()],
-  ['jcode', () => jcodeHookService.install()],
-  ['kiro', () => kiroHookService.install()]
-]
+export const MANAGED_AGENT_HOOK_INSTALLERS: readonly ManagedAgentHookInstaller[] = (
+  [
+    ['claude', (options) => claudeHookService.install({ claudeVersion: options?.cliVersion })],
+    ['codex', () => codexHookService.reconcileHooks()]
+  ] satisfies readonly ManagedAgentHookInstaller[]
+).filter(([agent]) => isForkTuiAgent(agent))
 
-// Refresh shared launchers even after CLI removal; Amp/Hermes manage provider-native plugins separately.
-export const MANAGED_AGENT_HOOK_SCRIPT_REFRESHERS: readonly ManagedAgentHookScriptRefresher[] = [
-  ['claude', () => claudeHookService.refreshManagedScripts()],
-  ['openclaude', () => openClaudeHookService.refreshManagedScripts()],
-  ['codex', () => codexHookService.refreshManagedScripts()],
-  ['gemini', () => geminiHookService.refreshManagedScripts()],
-  ['qoder', () => qoderHookService.refreshManagedScripts()],
-  ['qoder-cn', () => qoderCnHookService.refreshManagedScripts()],
-  ['qwen-code', () => qwenCodeHookService.refreshManagedScripts()],
-  ['codebuddy', () => codebuddyHookService.refreshManagedScripts()],
-  ['antigravity', () => antigravityHookService.refreshManagedScripts()],
-  ['cursor', () => cursorHookService.refreshManagedScripts()],
-  ['droid', () => droidHookService.refreshManagedScripts()],
-  ['command-code', () => commandCodeHookService.refreshManagedScripts()],
-  ['grok', () => grokHookService.refreshManagedScripts()],
-  ['copilot', () => copilotHookService.refreshManagedScripts()],
-  ['devin', () => devinHookService.refreshManagedScripts()],
-  ['kimi', () => kimiHookService.refreshManagedScripts()],
-  ['muse', () => museHookService.refreshManagedScripts()],
-  ['zcode', () => zcodeHookService.refreshManagedScripts()],
-  ['dsh', () => dshHookService.refreshManagedScripts()],
-  ['jcode', () => jcodeHookService.refreshManagedScripts()],
-  ['kiro', () => kiroHookService.refreshManagedScripts()]
-]
+// RA: refresh only the supported agents' managed launchers.
+export const MANAGED_AGENT_HOOK_SCRIPT_REFRESHERS: readonly ManagedAgentHookScriptRefresher[] = (
+  [
+    ['claude', () => claudeHookService.refreshManagedScripts()],
+    ['codex', () => codexHookService.refreshManagedScripts()]
+  ] satisfies readonly ManagedAgentHookScriptRefresher[]
+).filter(([agent]) => isForkTuiAgent(agent))
 
-export const MANAGED_AGENT_HOOK_REMOVERS: readonly ManagedAgentHookRemover[] = [
-  ['claude', () => claudeHookService.remove()],
-  ['openclaude', () => openClaudeHookService.remove()],
-  ['codex', () => codexHookService.remove()],
-  ['gemini', () => geminiHookService.remove()],
-  ['qoder', () => qoderHookService.remove()],
-  ['qoder-cn', () => qoderCnHookService.remove()],
-  ['qwen-code', () => qwenCodeHookService.remove()],
-  ['codebuddy', () => codebuddyHookService.remove()],
-  ['antigravity', () => antigravityHookService.remove()],
-  ['amp', () => ampHookService.remove()],
-  ['cursor', () => cursorHookService.remove()],
-  ['droid', () => droidHookService.remove()],
-  ['command-code', () => commandCodeHookService.remove()],
-  ['grok', () => grokHookService.remove()],
-  ['copilot', () => copilotHookService.remove()],
-  ['hermes', () => hermesHookService.remove()],
-  ['devin', () => devinHookService.remove()],
-  ['kimi', () => kimiHookService.remove()],
-  ['muse', () => museHookService.remove()],
-  ['zcode', () => zcodeHookService.remove()],
-  ['dsh', () => dshHookService.remove()],
-  ['jcode', () => jcodeHookService.remove()],
-  ['kiro', () => kiroHookService.remove()]
-]
+export const MANAGED_AGENT_HOOK_REMOVERS: readonly ManagedAgentHookRemover[] = (
+  [
+    ['claude', () => claudeHookService.remove()],
+    ['codex', () => codexHookService.remove()]
+  ] satisfies readonly ManagedAgentHookRemover[]
+).filter(([agent]) => isForkTuiAgent(agent))
 
-export const MANAGED_AGENT_HOOK_ASYNC_REMOVERS: readonly ManagedAgentHookAsyncRemover[] = [
-  ['grok', () => grokHookService.removeAsync()]
-]
+export const MANAGED_AGENT_HOOK_ASYNC_REMOVERS: readonly ManagedAgentHookAsyncRemover[] = []
 
-export const MANAGED_AGENT_HOOK_STATUS_READERS: readonly ManagedAgentHookStatusReader[] = [
-  ['claude', () => claudeHookService.getStatus()],
-  ['openclaude', () => openClaudeHookService.getStatus()],
-  ['codex', () => codexHookService.getStatus()],
-  ['gemini', () => geminiHookService.getStatus()],
-  ['qoder', () => qoderHookService.getStatus()],
-  ['qoder-cn', () => qoderCnHookService.getStatus()],
-  ['qwen-code', () => qwenCodeHookService.getStatus()],
-  ['codebuddy', () => codebuddyHookService.getStatus()],
-  ['antigravity', () => antigravityHookService.getStatus()],
-  ['amp', () => ampHookService.getStatus()],
-  ['cursor', () => cursorHookService.getStatus()],
-  ['droid', () => droidHookService.getStatus()],
-  ['grok', () => grokHookService.getStatus()],
-  ['command-code', () => commandCodeHookService.getStatus()],
-  ['copilot', () => copilotHookService.getStatus()],
-  ['hermes', () => hermesHookService.getStatus()],
-  ['devin', () => devinHookService.getStatus()],
-  ['kimi', () => kimiHookService.getStatus()],
-  ['muse', () => museHookService.getStatus()],
-  ['zcode', () => zcodeHookService.getStatus()],
-  ['dsh', () => dshHookService.getStatus()],
-  ['jcode', () => jcodeHookService.getStatus()],
-  ['kiro', () => kiroHookService.getStatus()]
-]
+export const MANAGED_AGENT_HOOK_STATUS_READERS: readonly ManagedAgentHookStatusReader[] = (
+  [
+    ['claude', () => claudeHookService.getStatus()],
+    ['codex', () => codexHookService.getStatus()]
+  ] satisfies readonly ManagedAgentHookStatusReader[]
+).filter(([agent]) => isForkTuiAgent(agent))

@@ -1,15 +1,11 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 // Build agent launch resolvers with production composition over test doubles so tests exercise the shared path.
 
 import type { AgentSessionRecordStore } from '../records/agent-session-record-store'
 import { agentSessionRefusalError } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
 import type { AgentSessionJournalIdentity } from '../../../../shared/agent-session/journal/agent-session-journal-identity'
 import type { AgentChatPermissionChoice } from '../../../../shared/agent-launch/permissions/agent-chat-permission-mode'
-import type { AcpLaunchSpec } from '../../../acp/launch/acp-launch-contract'
-import { acpStructuredAgentDefinition } from '../../../acp/session/acp-structured-agent-definitions'
-import {
-  acpStructuredLaunchPart,
-  type AcpStructuredLaunchPartDeps
-} from '../../../acp/launch/acp-structured-launch-resolution'
+
 import { CLAUDE_STRUCTURED_AGENT } from '../../../claude/structured/claude-structured-agent-definition'
 import type { ClaudeEnvDeps } from '../../../claude/structured/launch/claude-structured-child-env'
 import {
@@ -23,8 +19,7 @@ import {
 } from '../../../codex/structured/launch/codex-structured-launch-resolution'
 import type { PrepareNativeChatVisuals } from '../../../native-chat/native-chat-visuals-delivery'
 import type { StructuredAgentCommandSettings } from '../../../native-chat/structured-agent-command-resolution'
-import { PI_RPC_AGENT } from '../../../pi/rpc-agent-definition'
-import { piRpcLaunchPart, type PiRpcLaunchPartDeps } from '../../../pi/rpc-launch-resolution'
+
 import type { StructuredAgentDefinition } from '../../../native-chat/agent-session-wire/providers/structured-agent-definition'
 import {
   composeStructuredLaunch,
@@ -132,26 +127,8 @@ export function createCodexStructuredLaunchResolver(
 }
 
 /** Unsealed unless a token is passed: the env an agent part produced, before the seal. */
-export function createAcpStructuredLaunchResolver(
-  spec: AcpLaunchSpec,
-  deps: LaunchTestSources &
-    Omit<AcpStructuredLaunchPartDeps, 'dataDirectory'> &
-    Partial<Pick<AcpStructuredLaunchPartDeps, 'dataDirectory'>>
-) {
-  return withTestSpawnToken(
-    acpStructuredAgentDefinition(spec),
-    launchSources(deps),
-    acpStructuredLaunchPart(spec, { dataDirectory: '/orca-data', ...deps }),
-    null
-  )
-}
 
 /** Unsealed unless a token is passed: the env an agent part produced, before the seal. */
-export function createPiRpcLaunchResolver(deps: LaunchTestSources & PiRpcLaunchPartDeps) {
-  const resolve = withTestSpawnToken(PI_RPC_AGENT, launchSources(deps), piRpcLaunchPart(deps), null)
-  return (identity: AgentSessionJournalIdentity, spawnToken: string | null = null) =>
-    resolve({ identity, spawnToken })
-}
 
 /** Seal Claude with TEST_SPAWN_TOKEN unless overridden; resolveEnv overlays resolveInheritedEnv, which defaults to process.env. */
 export function createClaudeStructuredLaunchResolver(

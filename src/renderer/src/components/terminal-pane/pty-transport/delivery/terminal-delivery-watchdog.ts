@@ -1,3 +1,5 @@
+import { hasVisibleRendererPtys } from './pty-renderer-delivery-claims'
+import { getWindowParkVisible } from '@/lib/window-activity/window-park-visibility'
 /** Invoke can survive dead main → renderer push delivery; ACK probes use that same dead push channel, so detect and pull-restore through invoke. Skip IPC while output flows or no PTY expects delivery. */
 import { e2eConfig } from '@/app-shell/startup/e2e-config'
 import type { PtyRendererDeliveryHealthReply } from '../../../../../../shared/terminal/pty/diagnostics/pty-renderer-delivery-health'
@@ -66,6 +68,10 @@ function isMainDeliveryStalled(health: PtyRendererDeliveryHealthReply): boolean 
 }
 
 async function runWatchdogTick(): Promise<void> {
+  // RA: hidden panes and windows make no delivery-health polling calls.
+  if (!getWindowParkVisible() || !hasVisibleRendererPtys()) {
+    return
+  }
   const deps = watchdogDeps
   const report = window.api?.pty?.reportRendererDeliveryState
   if (!deps || typeof report !== 'function') {

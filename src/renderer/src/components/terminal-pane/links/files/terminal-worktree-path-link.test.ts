@@ -1,7 +1,8 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import { describe, expect, it } from 'vitest'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import { getConnectionIdFromState } from '@/lib/workspace/ownership/connection-owner-resolution'
-import { makeRepo, makeWorktree } from '../../../worktree-jump/worktree-jump-palette-test-fixtures'
+import { makeRepo, makeWorktree } from '../../../test-support/workspace-layout-test-fixtures'
 import {
   normalizeWorktreeRootPathForTerminalLink,
   resolveKnownWorktreeRootPathLink

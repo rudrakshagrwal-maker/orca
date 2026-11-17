@@ -1,29 +1,15 @@
-import { LinearIcon } from '@/components/icons/LinearIcon'
-import { getAccountsPaneSearchEntries } from '@/components/settings/accounts/accounts-search'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { getAgentsPaneSearchEntries } from '@/components/settings/agents/agents-search'
-import { getComputerUsePaneSearchEntries } from '@/components/settings/computer-use/computer-use-search'
+
 import { getGeneralPaneSearchEntries } from '@/components/settings/general/general-search'
-import { getIntegrationsPaneSearchEntries } from '@/components/settings/integrations/integrations-search'
-import { getLinearAgentSkillPaneSearchEntries } from '@/components/settings/skills/linear/linear-agent-skill-search'
-import { getMobileSettingsPaneSearchEntries } from '@/components/settings/mobile/mobile-settings-search'
-import { getOrcaAccountSettingsSearchEntries } from '@/components/settings/accounts/orca/orca-account-settings-search'
-import { OrcaLogoSettingsIcon } from '@/components/settings/page/orca-logo-settings-icon'
+
 import { getOrchestrationPaneSearchEntries } from '@/components/settings/orchestration/orchestration-search'
-import { getVoicePaneSearchEntries } from '@/components/settings/voice/voice-pane-search'
+
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 import type { SettingsNavSection } from '@/components/settings/navigation/settings-navigation-types'
-import {
-  Blocks,
-  Bot,
-  CircleUserRound,
-  Mic,
-  MousePointerClick,
-  Network,
-  SlidersHorizontal,
-  Smartphone,
-  UserCog
-} from 'lucide-react'
+import { Bot, Network, SlidersHorizontal } from 'lucide-react'
 import type { SettingsNavigationBuildOptions } from './settings-navigation-build-options'
 
 export function buildCapabilitySettingsSections(
@@ -49,18 +35,7 @@ export function buildCapabilitySettingsSections(
       }),
       group: 'capabilities'
     },
-    {
-      id: 'accounts',
-      title: t('auto.hooks.useSettingsNavigationMetadata.f70ac54d38', 'AI Provider Accounts'),
-      description: t(
-        'auto.hooks.useSettingsNavigationMetadata.b1c2f8b0ac',
-        'Optional account switching and usage setup for Claude, Codex, Gemini, OpenCode Go, MiniMax, and Grok.'
-      ),
-      icon: UserCog,
-      searchEntries: getAccountsPaneSearchEntries(),
-      group: 'capabilities',
-      badge: t('auto.hooks.useSettingsNavigationMetadata.7c79d3b7bf', 'Optional')
-    },
+
     {
       id: 'orchestration',
       title: t('auto.hooks.useSettingsNavigationMetadata.58a868e8e4', 'Orchestration'),
@@ -75,47 +50,8 @@ export function buildCapabilitySettingsSections(
       group: 'capabilities'
     },
     // Expose only with connected Linear; its skill needs linked provider capability.
-    ...(isLinearConnected
-      ? [
-          {
-            id: 'linear',
-            title: t('auto.hooks.useSettingsNavigationMetadata.linearTitle', 'Linear'),
-            description: t(
-              'auto.hooks.useSettingsNavigationMetadata.linearDescription',
-              'How Linear works in Orca, setup checklist, agent skill, and example prompts.'
-            ),
-            icon: LinearIcon,
-            searchEntries: getLinearAgentSkillPaneSearchEntries(),
-            group: 'capabilities'
-          }
-        ]
-      : []),
-    ...(showDesktopOnlySettings
-      ? [
-          {
-            id: 'computer-use',
-            title: t('auto.hooks.useSettingsNavigationMetadata.b35e92364b', 'Computer Use'),
-            description: t(
-              'auto.hooks.useSettingsNavigationMetadata.0059bd17f3',
-              'Enable agents to control any app on your computer.'
-            ),
-            icon: MousePointerClick,
-            searchEntries: getComputerUsePaneSearchEntries(),
-            group: 'capabilities'
-          },
-          {
-            id: 'voice',
-            title: t('auto.hooks.useSettingsNavigationMetadata.6a50cdcd7c', 'Voice'),
-            description: t(
-              'auto.hooks.useSettingsNavigationMetadata.8ac3de82f5',
-              'Local speech-to-text dictation with on-device models.'
-            ),
-            icon: Mic,
-            searchEntries: getVoicePaneSearchEntries(),
-            group: 'capabilities'
-          }
-        ]
-      : [])
+    ...(isLinearConnected ? [] : []),
+    ...(showDesktopOnlySettings ? [] : [])
   ]
 }
 
@@ -125,45 +61,8 @@ export function buildSetupSettingsSections(
 ): SettingsNavSection[] {
   const showDesktopOnlySettings = !isWebClient
   return [
-    ...(showDesktopOnlySettings
-      ? [
-          {
-            id: 'orca-account',
-            title: t('auto.components.settings.orcaAccount.title', 'Orca Account'),
-            description: t(
-              'auto.components.settings.orcaAccount.description',
-              'Share work instantly and reach your desktop from Orca Mobile wherever you are.'
-            ),
-            icon: CircleUserRound,
-            searchEntries: getOrcaAccountSettingsSearchEntries(),
-            group: 'setup'
-          }
-        ]
-      : []),
-    {
-      id: 'setup-guide',
-      title: t('auto.hooks.useSettingsNavigationMetadata.ded9e9032f', 'Onboarding checklist'),
-      description: t(
-        'auto.hooks.useSettingsNavigationMetadata.5f32ac08f3',
-        'Finish the onboarding checklist for core Orca workflows.'
-      ),
-      icon: OrcaLogoSettingsIcon,
-      searchEntries: [
-        {
-          title: t('auto.hooks.useSettingsNavigationMetadata.ded9e9032f', 'Onboarding checklist'),
-          description: t(
-            'auto.hooks.useSettingsNavigationMetadata.17005c73d4',
-            'Open the onboarding checklist for setup and milestone steps.'
-          ),
-          keywords: [
-            t('auto.hooks.useSettingsNavigationMetadata.ea0b1bc7b8', 'setup guide'),
-            t('auto.hooks.useSettingsNavigationMetadata.0505d0df29', 'get started with Orca'),
-            t('auto.hooks.useSettingsNavigationMetadata.724c440e72', 'getting started')
-          ]
-        }
-      ],
-      group: 'setup'
-    },
+    ...(showDesktopOnlySettings ? [] : []),
+
     {
       id: 'general',
       title: t('auto.hooks.useSettingsNavigationMetadata.13241992bd', 'General'),
@@ -175,31 +74,7 @@ export function buildSetupSettingsSections(
       searchEntries: getGeneralPaneSearchEntries({ includeProjectRuntime: isLocalWindowsHost }),
       group: 'setup'
     },
-    {
-      id: 'integrations',
-      title: t('auto.hooks.useSettingsNavigationMetadata.2b043783ef', 'Integrations'),
-      description: t(
-        'auto.hooks.useSettingsNavigationMetadata.33a5e1d597',
-        'Connect GitHub, GitLab, Linear, and source-hosting services.'
-      ),
-      icon: Blocks,
-      searchEntries: getIntegrationsPaneSearchEntries(),
-      group: 'setup'
-    },
-    ...(showDesktopOnlySettings
-      ? [
-          {
-            id: 'mobile',
-            title: t('auto.hooks.useSettingsNavigationMetadata.1cd25673df', 'Mobile'),
-            description: t(
-              'auto.hooks.useSettingsNavigationMetadata.95a1886d94',
-              'Control terminals and agents from your phone.'
-            ),
-            icon: Smartphone,
-            searchEntries: getMobileSettingsPaneSearchEntries(),
-            group: 'setup'
-          }
-        ]
-      : [])
+
+    ...(showDesktopOnlySettings ? [] : [])
   ]
 }

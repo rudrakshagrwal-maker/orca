@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import { selectWslHostsServing } from '../../use-wsl-hosts-enabled'
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { shallow } from 'zustand/shallow'
@@ -165,7 +166,7 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
         worktrees,
         repoMap,
         repoOfWorktree,
-        prGroupOf: createSidebarPRGroupReader(repoMap, args.prCache),
+        prGroupOf: createSidebarPRGroupReader(repoMap, null),
         repoOrder,
         workspaceStatuses: args.workspaceStatuses,
         projectOrderBy: args.projectOrderBy,
@@ -191,7 +192,6 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
       worktrees,
       repoMap,
       repoOfWorktree,
-      args.prCache,
       defaultHostId,
       repoOrder,
       args.workspaceStatuses,
@@ -224,7 +224,7 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
     repoMap,
     worktreeMap: args.worktreeMap,
     worktreeLineageById: args.worktreeLineageById,
-    prCache: args.prCache,
+
     workspaceStatuses: args.workspaceStatuses,
     projectGroups: args.visibleProjectGroupsForRows,
     projectGrouping: args.projectGrouping,

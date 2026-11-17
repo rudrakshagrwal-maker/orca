@@ -1,7 +1,10 @@
 import { createLocalWorkerStartDispatch } from './local-worker-start-dispatch'
-import { queueWorkerAboveRam, takeRamQueuedWorkerRetention } from '../../../../../memory/worker-ram-admission' // RA: before any worker process.
+import {
+  queueWorkerAboveRam,
+  takeRamQueuedWorkerRetention
+} from '../../../../../memory/worker-ram-admission' // RA: before any worker process.
 import { refuseClaimedWorkerTerminal } from '../../../../orchestration/db/worker-dispatch/worker-terminal-claim'
-import { probeWorkerOpenCodeModelLaunchSupport } from './worker-opencode-model-preflight'
+
 import { resolveWorkerConfiguredAgentParams } from './worker-configured-agent-preflight'
 import { waitForWorkerAgentReady } from '../../../../terminal/wait/launched-agent-composer-readiness'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
@@ -87,25 +90,11 @@ export async function startLocalWorker(args: {
           worktree: requestedWorktree === 'current' ? `id:${callerWorkspaceId}` : requestedWorktree
         }
   })
-  let openCodeModelLaunchSupported = false
-  if (!createsWorktree && launchParams.agent === 'opencode' && launchParams.model) {
-    const callerWorkspaceId = await resolveDispatchCallerWorktreeId(
-      runtime,
-      params.from,
-      callerSession
-    )
-    openCodeModelLaunchSupported = await probeWorkerOpenCodeModelLaunchSupport(
-      runtime,
-      launchParams,
-      { worktree: requestedWorktree === 'current' ? `id:${callerWorkspaceId}` : requestedWorktree }
-    )
-  }
 
   const { agent, launch } = prepareLocalWorkerStart({
     params: launchParams,
     createsWorktree,
-    runtime,
-    openCodeModelLaunchSupported
+    runtime
   })
 
   const coordinatorWorktreeId = await resolveDispatchCallerWorktreeId(
@@ -257,7 +246,9 @@ export async function startLocalWorker(args: {
         setupState: setupReceipt.state,
         terminalOwnership: external ? 'external' : 'created'
       })
-      if (takeRamQueuedWorkerRetention(started.dispatch.id)) db.retainWorkerTerminalResource(started.dispatch.id) // RA: queued --keep-open applies before prompt delivery.
+      if (takeRamQueuedWorkerRetention(started.dispatch.id)) {
+        db.retainWorkerTerminalResource(started.dispatch.id)
+      } // RA: queued --keep-open applies before prompt delivery.
       if (workerChat) {
         rebindReusedStructuredWorker(terminalHandle, db)
       }
@@ -318,26 +309,64 @@ export async function startLocalWorker(args: {
     return result
   }
   const queued = await queueWorkerAboveRam({
-    row: { id: started.dispatch.id, worktreeId: resolvedWorktree?.id ?? coordinatorWorktreeId, parentHandle: params.from, label: task.task_title || params.name || 'Worker' },
+    row: {
+      id: started.dispatch.id,
+      worktreeId: resolvedWorktree?.id ?? coordinatorWorktreeId,
+      parentHandle: params.from,
+      label: task.task_title || params.name || 'Worker'
+    },
     limit: () => runtime.getWorkerRamLimitPercent(),
-    current: () => db.getWorkerDispatch(started.dispatch.id)?.state === 'starting' && db.getDispatchContextById(started.dispatch.id)?.status === 'pending' && !db.isWorkerStopRequested(started.dispatch.id) && (!started.dispatch.creator_dispatch_id || !db.isWorkerStopRequested(started.dispatch.creator_dispatch_id)),
+    current: () =>
+      db.getWorkerDispatch(started.dispatch.id)?.state === 'starting' &&
+      db.getDispatchContextById(started.dispatch.id)?.status === 'pending' &&
+      !db.isWorkerStopRequested(started.dispatch.id) &&
+      (!started.dispatch.creator_dispatch_id ||
+        !db.isWorkerStopRequested(started.dispatch.creator_dispatch_id)),
     run: async () => {
       const receipt = await launchWorker()
-      if (receipt && typeof receipt === 'object' && 'state' in receipt && receipt.state !== 'ready') {
-        escalateWorkerFailure(db, started.dispatch, {
-          id: `ram-start-${started.dispatch.id}`,
-          from: `dispatch:${started.dispatch.id}`,
-          mailbox: () => dispatchReportMailbox(db, started.dispatch),
-          describe: (name) => ({ subject: 'Deferred worker start needs attention', body: `RAM admission released ${name}, but startup did not become ready; inspect worker-show for this dispatch before retrying.` }),
-          payload: { taskId: task.id, dispatchId: started.dispatch.id, state: receipt.state }
-        }, (to, type) => runtime.notifyMessageArrived(to, type))
+      if (
+        receipt &&
+        typeof receipt === 'object' &&
+        'state' in receipt &&
+        receipt.state !== 'ready'
+      ) {
+        escalateWorkerFailure(
+          db,
+          started.dispatch,
+          {
+            id: `ram-start-${started.dispatch.id}`,
+            from: `dispatch:${started.dispatch.id}`,
+            mailbox: () => dispatchReportMailbox(db, started.dispatch),
+            describe: (name) => ({
+              subject: 'Deferred worker start needs attention',
+              body: `RAM admission released ${name}, but startup did not become ready; inspect worker-show for this dispatch before retrying.`
+            }),
+            payload: { taskId: task.id, dispatchId: started.dispatch.id, state: receipt.state }
+          },
+          (to, type) => runtime.notifyMessageArrived(to, type)
+        )
       }
       return receipt
     }
   })
   if (queued) {
-    db.recordWorkerStage({ dispatchId: started.dispatch.id, stage: 'ram_queued', worktreeId: resolvedWorktree?.id })
-    return { runId: run.id, taskId: task.id, dispatchId: started.dispatch.id, state: 'queued', stage: 'ram_queued', effects, residualResources: [], mode, launch: launch.receipt, next: 'Queued for RAM. Do not resend; the worker starts after 30 seconds below the memory limit. End your turn; Orca wakes you when it reports.' }
+    db.recordWorkerStage({
+      dispatchId: started.dispatch.id,
+      stage: 'ram_queued',
+      worktreeId: resolvedWorktree?.id
+    })
+    return {
+      runId: run.id,
+      taskId: task.id,
+      dispatchId: started.dispatch.id,
+      state: 'queued',
+      stage: 'ram_queued',
+      effects,
+      residualResources: [],
+      mode,
+      launch: launch.receipt,
+      next: 'Queued for RAM. Do not resend; the worker starts after 30 seconds below the memory limit. End your turn; Orca wakes you when it reports.'
+    }
   }
   return launchWorker()
 }

@@ -1,4 +1,5 @@
-import type { AppState } from '@/store/types'
+// RA: Projects listing no longer subscribes to task-provider caches.
+
 import {
   getWorktreeExecutionHostId,
   type ExecutionHostId
@@ -35,7 +36,7 @@ export function getWorktreeRevealCollapsedGroupKeys(args: {
   collapsedGroups: ReadonlySet<string>
   groupBy: WorktreeGroupBy
   pinnedDisplayPolicy: PinnedWorktreeDisplayPolicy
-  prCache: AppState['prCache'] | null
+
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectGroups: readonly ProjectGroup[]
   projectGrouping?: ProjectGroupingModel
@@ -52,7 +53,7 @@ export function getWorktreeRevealCollapsedGroupKeys(args: {
       sortBy: 'smart',
       worktrees: [...(args.visibleWorktrees ?? args.worktrees)],
       repoMap: args.repoMap,
-      prGroupOf: createSidebarPRGroupReader(args.repoMap, args.prCache),
+      prGroupOf: createSidebarPRGroupReader(args.repoMap, null),
       workspaceStatuses: args.workspaceStatuses,
       projectOrderBy: 'manual',
       lineageById: { ...args.worktreeLineageById },

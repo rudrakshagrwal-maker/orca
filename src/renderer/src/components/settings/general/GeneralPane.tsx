@@ -4,9 +4,6 @@ import { useEffect, useRef } from 'react'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
 import { useAppStore } from '../../../store/index'
 import { CliSection } from '../cli/install/CliSection'
-import { GeneralEditorSettingsSection } from '../editor/GeneralEditorSettingsSection'
-import { GeneralAutoSaveSetting } from '../editor/GeneralAutoSaveSetting'
-import { GeneralSupportSection } from './GeneralSupportSection'
 import { GeneralUpdateSettingsSection } from '../updates/GeneralUpdateSettingsSection'
 import { GeneralWorkspaceSettingsSection } from './GeneralWorkspaceSettingsSection'
 import {
@@ -14,13 +11,9 @@ import {
   getGeneralNavigationSearchEntries,
   getGeneralUpdateSearchEntries
 } from './general-search'
-import { getGeneralEditorSearchDescriptors } from '../editor/general-editor-search'
-import { getGeneralSupportSearchEntries } from './general-support-search'
 import { getGeneralProjectRuntimeSearchEntries } from './project-runtime/general-project-runtime-search'
 import { RecentTabOrderControl } from '../appearance/RecentTabOrderControl'
 import { matchesSettingsSearch, type SettingsSearchEntry } from '../search/settings-search'
-import { SearchableSetting } from '../section-layout/SearchableSetting'
-import { SettingsSwitchRow } from '../form-controls/SettingsFormControls'
 import { SettingsNavigationRow } from '../form-controls/SettingsNavigationRow'
 import { useTranslate } from '@/i18n/use-translate'
 import { DefaultWindowsProjectRuntimeSetting } from './project-runtime/DefaultWindowsProjectRuntimeSetting'
@@ -77,11 +70,7 @@ export function GeneralPane(props: GeneralPaneProps): React.JSX.Element {
   const refreshRemoteUpdates = useAppStore((state) => state.refreshRemoteServerUpdates)
   const remoteUpdatesRequested = useRef(false)
   const showAbout =
-    !props.subPage &&
-    matchesSettingsSearch(query, [
-      ...getGeneralUpdateSearchEntries(),
-      ...getGeneralSupportSearchEntries()
-    ])
+    !props.subPage && matchesSettingsSearch(query, [...getGeneralUpdateSearchEntries()])
   useEffect(() => {
     if (showAbout && !remoteUpdatesRequested.current) {
       remoteUpdatesRequested.current = true
@@ -109,10 +98,9 @@ function GeneralPaneView({
   const defaultsSupported = target.kind === 'local' || target.environmentId === defaultsRuntimeId
   const sourceDefaultsSupported =
     defaultsSupported && (target.kind === 'local' || target.environmentId === sourceRuntimeId)
-  if (query.trim() === '' && subPage) {
-    return subPage === 'editor' ? (
-      <GeneralEditorSettingsSection {...props} />
-    ) : (
+  // RA: old editor deep links return to the retained General controls.
+  if (query.trim() === '' && subPage && subPage !== 'editor') {
+    return (
       <GeneralWorkspaceSettingsSection
         {...props}
         page={subPage}
@@ -150,13 +138,7 @@ function GeneralRootSettings({
   const tabsEntries = getGeneralNavigationSearchEntries()
   const runtimeEntries = getGeneralProjectRuntimeSearchEntries()
   const showRuntime = shouldShowProjectRuntimeSection(wslSupportedPlatform, query, runtimeEntries)
-  const autoSaveEntries = getGeneralEditorSearchDescriptors()
-    .filter((descriptor) => descriptor.page === null)
-    .map(({ entry }) => entry)
-  const aboutMatches = matchesSettingsSearch(query, [
-    ...getGeneralUpdateSearchEntries(),
-    ...getGeneralSupportSearchEntries()
-  ])
+  const aboutMatches = matchesSettingsSearch(query, [...getGeneralUpdateSearchEntries()])
   const worktreeDefaults = settings.worktreeVisibilityDefaults
   const visibilitySummary =
     Object.keys(worktreeDefaults?.sourcePreferences?.builtIn ?? {}).length ||
@@ -168,7 +150,8 @@ function GeneralRootSettings({
         : t('settings.general.worktrees.hidden', 'All hidden')
   return (
     <>
-      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} /> {/* RA: no heavy feature subscriptions. */}
+      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} />{' '}
+      {/* RA: no heavy feature subscriptions. */}
       {matchesSettingsSearch(query, tabsEntries) ? (
         <SettingsGroup title={t('settings.general.tabs.title', 'Tabs')}>
           <RecentTabOrderControl
@@ -176,40 +159,7 @@ function GeneralRootSettings({
             keywords={getTabOrderControlSearchKeywords(tabsEntries)}
             updateSettings={updateSettings}
           />
-          <SearchableSetting
-            title={t('settings.general.previewTabs.title', 'Preview tabs')}
-            description={t(
-              'settings.general.previewTabs.description',
-              'Single-clicking a file reuses one preview tab until you edit or pin it.'
-            )}
-            keywords={[
-              'preview',
-              'tab',
-              'editor',
-              'explorer',
-              'reuse',
-              'replace',
-              'italic',
-              t(
-                'auto.components.settings.GeneralPane.editor_preview_tabs',
-                'Reuse a preview tab when browsing files'
-              )
-            ]}
-          >
-            <SettingsSwitchRow
-              label={t('settings.general.previewTabs.title', 'Preview tabs')}
-              description={t(
-                'settings.general.previewTabs.description',
-                'Single-clicking a file reuses one preview tab until you edit or pin it.'
-              )}
-              checked={settings.editorPreviewTabsEnabled ?? true}
-              onChange={() =>
-                updateSettings({
-                  editorPreviewTabsEnabled: !(settings.editorPreviewTabsEnabled ?? true)
-                })
-              }
-            />
-          </SearchableSetting>
+          {/* RA: preview/editor tab controls are retired with the editor. */}
         </SettingsGroup>
       ) : null}
       {showNavigation || showRuntime ? (
@@ -262,28 +212,6 @@ function GeneralRootSettings({
         </SettingsGroup>
       ) : null}
       <GeneralConfirmationsSection settings={settings} updateSettings={updateSettings} />
-      {showNavigation || matchesSettingsSearch(query, autoSaveEntries) ? (
-        <SettingsGroup
-          title={t('auto.components.settings.GeneralEditorSettingsSection.45c6e85c4d', 'Editor')}
-        >
-          <GeneralAutoSaveSetting settings={settings} updateSettings={updateSettings} />
-          {showNavigation ? (
-            <SettingsNavigationRow
-              title={getGeneralSubPageTitle('editor', t)}
-              description={t(
-                'settings.general.editor.description',
-                'Saving, editor, diff and Markdown options'
-              )}
-              value={
-                settings.diffDefaultView === 'side-by-side'
-                  ? t('settings.general.editor.sideBySide', 'Side-by-side diffs')
-                  : t('settings.general.editor.inline', 'Inline diffs')
-              }
-              onClick={() => onSelectSubPage('editor')}
-            />
-          ) : null}
-        </SettingsGroup>
-      ) : null}
       {matchesSettingsSearch(query, getGeneralCliSearchEntries()) ? (
         <CliSection
           currentPlatform={getDesktopPlatformFromUserAgent(navigator.userAgent)}
@@ -293,11 +221,7 @@ function GeneralRootSettings({
           wslCapabilitiesLoading={wslCapabilitiesLoading}
         />
       ) : null}
-      {aboutMatches ? (
-        <GeneralUpdateSettingsSection>
-          <GeneralSupportSection hasPrecedingSections={false} inline />
-        </GeneralUpdateSettingsSection>
-      ) : null}
+      {aboutMatches ? <GeneralUpdateSettingsSection /> : null}
     </>
   )
 }

@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import { getDefaultSettings } from '../../../../../../shared/constants'
 import type { Project, ProjectHostSetup } from '../../../../../../shared/project-types'
 import type { Repo } from '../../../../../../shared/repo-types'
@@ -11,7 +12,6 @@ import {
   group,
   lineage,
   mainWt,
-  prEntry,
   repo,
   wt
 } from './sidebar-list-golden-factories.test-fixture'
@@ -172,13 +172,7 @@ export function buildGoldenStoreState(
       folder('fw-review', 'pg-folders', { workspaceStatus: 'in-review', manualOrder: 7 }),
       folder('fw-remote', 'pg-remote-folders', { connectionId: 'gpu-vm', sortOrder: 1 })
     ],
-    prCache: {
-      [`${orca.id}::feat-a`]: prEntry(11, 'open'),
-      [`${orca.id}::feat-b`]: prEntry(12, 'merged'),
-      [`${orca.id}::Zeta`]: prEntry(13, 'closed'),
-      [`ssh:gpu-vm::${orcaSsh.id}::remote-x`]: prEntry(21, 'draft'),
-      [`runtime:env-1::${api.id}::api-y`]: prEntry(31, 'open')
-    },
+
     detectedWorktreesByRepo: {
       [ext.id]: {
         repoId: ext.id,

@@ -1,10 +1,11 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { runProcess } from '@orca/process-host'
 import {
   parsePsArgsLine,
   splitCommandLineArgv,
   sweepProcessIdentities,
   type ProcessIdentityRow
-} from '../opencode/opencode-client-sweep'
+} from '../process-identity/sweep-process-identities'
 import { LOG_PREDICATE } from './macos-tcc-prompt-watch'
 
 // Match legacy builds that spawned log stream without a lifetime wrapper.

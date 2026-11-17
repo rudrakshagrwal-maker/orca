@@ -1,3 +1,12 @@
+import { BROWSER_CORE_METHODS } from './browser/browser-core'
+import { BROWSER_EXTRA_METHODS } from './browser/browser-extras'
+import { BROWSER_IDENTITY_METHODS } from './browser/browser-identity-rpc'
+import { BROWSER_CLIENT_HOST_METHODS } from './browser/browser-client-host'
+import { BROWSER_CLIENT_FILE_CHANNEL_METHODS } from './browser/browser-client-file-channel'
+import { BROWSER_NETWORK_TUNNEL_METHODS } from './browser/browser-network-tunnel'
+import { BROWSER_SCREENCAST_METHODS } from './browser/browser-screencast'
+import { DESKTOP_BROWSER_BRIDGE_RPC_METHODS } from './browser/desktop-browser-bridge'
+import { STRUCTURED_AGENT_SESSION_OPTIONS_READ_METHODS } from './structured-sessions/catalog/structured-agent-session-options-read'
 import { STATUS_METHODS } from './host-management/status'
 import { SIDEBAR_INPUT_METHODS } from './sidebar-inputs/sidebar-inputs'
 import { ORCAD_TERMINAL_CENSUS_METHODS } from './orcad/orcad-terminal-census'
@@ -11,7 +20,7 @@ import { TERMINAL_METHODS } from './terminal/terminal'
 import { TERMINAL_ORPHAN_METHODS } from './terminal/terminal-orphan'
 import { ORCHESTRATION_METHODS } from './orchestration/orchestration'
 import { STATS_METHODS } from './host-management/stats'
-import { DIAGNOSTICS_METHODS } from './host-management/diagnostics'
+
 import { TERMINAL_DAEMON_METHODS } from './terminal/terminal-daemon'
 import { ACCOUNT_METHODS } from './accounts/accounts'
 import { PREFLIGHT_METHODS } from './preflight/preflight'
@@ -28,7 +37,6 @@ import { HOST_CAPABILITY_METHODS } from './host-management/host-capabilities'
 import { RUNTIME_CLIENT_CAPABILITY_METHODS } from './client-events/runtime-client-capabilities'
 import { UPDATER_METHODS } from './updater/updater'
 import { AGENT_SESSION_METHODS } from './terminal/agent-session'
-import { MANAGED_RUNTIME_INSTALL_METHODS } from './host-management/managed-runtime-install'
 import { AGENT_LAUNCH_METHODS } from './agent-launch/agent-launch'
 import {
   LAYOUT_APPLY_METHODS,
@@ -40,6 +48,16 @@ import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../../shared/sidebar-inputs-s
 
 // RA: only import terminal/orchestration RPC; disabled handlers must stay outside startup.
 export const ALL_RPC_METHODS = [
+  // RA: agent-browser CLI and embedded browser RPC remain registered.
+  ...BROWSER_CORE_METHODS,
+  ...BROWSER_EXTRA_METHODS,
+  ...BROWSER_IDENTITY_METHODS,
+  ...BROWSER_CLIENT_HOST_METHODS,
+  ...BROWSER_CLIENT_FILE_CHANNEL_METHODS,
+  ...BROWSER_NETWORK_TUNNEL_METHODS,
+  ...BROWSER_SCREENCAST_METHODS,
+  ...DESKTOP_BROWSER_BRIDGE_RPC_METHODS,
+
   ...STATUS_METHODS,
   ...ORCAD_TERMINAL_CENSUS_METHODS,
   ...ORCAD_MIGRATION_METHODS,
@@ -49,13 +67,16 @@ export const ALL_RPC_METHODS = [
   ...AGENT_ACTIVITY_METHODS,
   ...REFERENCE_METHODS,
   ...AGENT_SESSION_METHODS,
-  ...MANAGED_RUNTIME_INSTALL_METHODS,
+  // RA: terminal launch settings retain model reads/explicit refresh without enabling chat surfaces.
+  ...STRUCTURED_AGENT_SESSION_OPTIONS_READ_METHODS.filter(
+    (method) => method.name === 'agentSession.modelCatalog'
+  ),
   ...AGENT_LAUNCH_METHODS,
   ...TERMINAL_METHODS,
   ...TERMINAL_ORPHAN_METHODS,
   ...ORCHESTRATION_METHODS,
   ...STATS_METHODS,
-  ...DIAGNOSTICS_METHODS,
+  
   ...TERMINAL_DAEMON_METHODS,
   ...ACCOUNT_METHODS,
   ...PREFLIGHT_METHODS,

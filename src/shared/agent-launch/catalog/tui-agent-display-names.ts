@@ -1,4 +1,4 @@
-import type { TuiAgent } from './tui-agent'
+import { FORK_TUI_AGENTS, type TuiAgent } from './tui-agent'
 
 /** English names for shared/nonlocalized keybinding surfaces; keep aligned with renderer agent-catalog.tsx labels. */
 export const TUI_AGENT_DISPLAY_NAMES: Record<TuiAgent, string> = {
@@ -49,8 +49,8 @@ export const TUI_AGENT_DISPLAY_NAMES: Record<TuiAgent, string> = {
   jcode: 'Jcode'
 }
 
-/** Derive the exhaustive list here so shared modules need no renderer import. */
-export const ALL_TUI_AGENTS = Object.keys(TUI_AGENT_DISPLAY_NAMES) as readonly TuiAgent[]
+// RA: shared launch/shortcut inventories use the same roster as desktop pickers.
+export const ALL_TUI_AGENTS: readonly TuiAgent[] = FORK_TUI_AGENTS
 
 /** The display name of `agent`, or null when it names no TUI agent. */
 export function tuiAgentDisplayName(agent: string): string | null {

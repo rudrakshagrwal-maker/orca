@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { tabAgentLaunchOptionDisabled } from './tab-agent-launch-options'
 import { terminalPendingLabel } from './new-tab-agent-menu-model'
 import React, { useEffect, useRef, useState } from 'react'
@@ -13,7 +14,7 @@ import {
   TerminalSquare
 } from 'lucide-react'
 import { AgentIcon } from '@/components/agent/icons/AgentIcon'
-import { PluginContributionIcon } from '../plugins/PluginContributionIcon'
+
 import { cn } from '@/lib/class-names'
 import { FilePathCursorTooltip, FilenameFirstPath } from '@/components/file-path-cursor-tooltip'
 import { translate } from '@/i18n/i18n'
@@ -281,12 +282,6 @@ function getActionPresentation(
         <Globe className="size-3.5 shrink-0" aria-hidden="true" />
       ) : option.option.kind === 'new-markdown' ? (
         <FilePlus className="size-3.5 shrink-0" aria-hidden="true" />
-      ) : option.option.kind === 'new-plugin-file' ? (
-        <PluginContributionIcon
-          url={option.option.pluginNewFile?.iconUrl}
-          fallback={FilePlus}
-          className="size-3.5 shrink-0"
-        />
       ) : option.option.kind === 'open-markdown' ? (
         <FileText className="size-3.5 shrink-0" aria-hidden="true" />
       ) : option.option.kind === 'new-simulator' || option.option.kind === 'go-to-simulator' ? (

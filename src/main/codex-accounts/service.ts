@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { execFileSync, spawn } from 'node:child_process'
 import { assertWslDistroAllowed } from '@orca/process-host/wsl-distro-allowlist'
 import type { WindowsHostInteractiveLoginSpawn } from '../../shared/windows-interactive-login-spawn'
@@ -7,11 +8,10 @@ import type {
   CodexRateLimitAccountsState,
   CodexSystemDefaultIdentity
 } from '../../shared/managed-account-types'
-import type { CodexRateLimitResetResult } from '../../shared/rate-limit-types'
-import type { CodexResetCreditExpectedScope } from '../../shared/codex-reset-credit-scope'
+
 import type { CodexRuntimeHomeService } from './runtime-home-service'
 import type { Store } from '../persistence/loading-store/store'
-import type { RateLimitService } from '../rate-limits/service/rate-limit-service'
+
 import { admitSelfInitiatedTreeKill } from '../pty/process-retirement/own-chromium-tree-kill-guard'
 import type { CodexAccountSelectionTarget } from './runtime-selection'
 import { CodexAccountIdentity, type ResolvedCodexIdentity } from './codex-account-identity'
@@ -19,14 +19,13 @@ import { CodexConfigMirror } from './codex-config-mirror'
 import { runCodexLoginSession, type CodexLoginChild } from './codex-login-session'
 import { CodexManagedHomePath } from './codex-managed-home-path'
 import { CodexManagedHomeLifecycle } from './codex-managed-home-lifecycle'
-import { CodexResetCreditCoordinator } from './codex-reset-credit-coordinator'
+
 import { CodexAccountSelection } from './codex-account-selection'
 import { CodexAccountRegistration } from './codex-account-registration'
 import type {
   CodexAccountAddTarget,
   CodexAccountReauthenticateOptions,
-  CodexAccountServiceLifecycle,
-  CodexResetCreditConsumeResult
+  CodexAccountServiceLifecycle
 } from './codex-account-service-types'
 import { toCodexManagedAccountSummary } from './codex-account-service-types'
 import { CODEX_LOGIN_CANCELLED_MESSAGE } from '../../shared/codex-auth-errors'
@@ -86,13 +85,13 @@ export class CodexAccountService {
   private readonly configMirror: CodexConfigMirror
   private readonly managedHomePaths: CodexManagedHomePath
   private readonly managedHomes: CodexManagedHomeLifecycle
-  private readonly resetCredits: CodexResetCreditCoordinator
+
   private readonly selection: CodexAccountSelection
   private readonly registration: CodexAccountRegistration
 
   constructor(
     store: Store,
-    rateLimits: RateLimitService,
+    _usage: unknown,
     private readonly runtimeHome: CodexRuntimeHomeService,
     lifecycle: CodexAccountServiceLifecycle = {}
   ) {
@@ -104,18 +103,10 @@ export class CodexAccountService {
     this.configMirror = new CodexConfigMirror(store, (path, accountId) =>
       this.managedHomePaths.assert(path, accountId)
     )
-    this.resetCredits = new CodexResetCreditCoordinator({
-      store,
-      rateLimits,
-      runtimeHome,
-      managedHomePaths: this.managedHomePaths,
-      serializeMutation: (operation) => this.serializeMutation(operation),
-      getSnapshot: () => this.getSnapshot(),
-      toSummary: (account) => this.toSummary(account)
-    })
+
     this.selection = new CodexAccountSelection({
       store,
-      rateLimits,
+
       runtimeHome,
       configMirror: this.configMirror,
       lifecycle,
@@ -124,12 +115,11 @@ export class CodexAccountService {
         this.identity.readFromTrustedHome(
           this.managedHomePaths.assertHostOwnership(path, accountId)
         ),
-      removeManagedHome: (path, accountId) => this.safeRemoveManagedHome(path, accountId),
-      discardResetAttempts: (accountId) => this.resetCredits.discardForRemovedAccount(accountId)
+      removeManagedHome: (path, accountId) => this.safeRemoveManagedHome(path, accountId)
     })
     this.registration = new CodexAccountRegistration({
       store,
-      rateLimits,
+
       runtimeHome,
       readIdentityFromHome: (path, accountId) => this.readIdentityFromHome(path, accountId),
       selection: this.selection,
@@ -243,17 +233,6 @@ export class CodexAccountService {
   ): Promise<CodexRateLimitAccountsState> {
     this.supersedePendingLogin()
     return this.serializeMutation(() => this.selection.select(accountId, target))
-  }
-
-  consumeRateLimitResetCredit(
-    idempotencyKey: string,
-    expectedScope: CodexResetCreditExpectedScope
-  ): Promise<CodexResetCreditConsumeResult> {
-    return this.resetCredits.consume(idempotencyKey, expectedScope)
-  }
-
-  async consumeCurrentRateLimitResetCredit(): Promise<CodexRateLimitResetResult> {
-    return this.resetCredits.consumeCurrent()
   }
 
   private getSnapshot(): CodexRateLimitAccountsState {

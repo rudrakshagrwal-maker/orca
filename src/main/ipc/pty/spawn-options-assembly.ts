@@ -1,12 +1,11 @@
 import { withClaudeAgentViewPlugin } from '../../../shared/claude-agent-view-launch'
 import { resolveStartupShell } from '../../../shared/agent-launch/startup/tui-agent-startup-shell'
 import { resolveLocalWindowsAgentStartupShell } from '../../../shared/windows-terminal-shell'
-import { getAppEnvironment } from '../../../shared/app-environment'
+
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { isTuiAgent } from '../../../shared/agent-launch/catalog/tui-agent-config'
 import { withCodexTerminalServerIsolationEnv } from '../../../shared/codex-terminal-server-isolation'
-import { getLegacyOpenCodeEnvKeysToDelete } from '../../opencode/legacy-shared-config-dir'
-import { prepareOpenCodePtyLaunch } from '../../opencode/opencode-pty-launch'
+
 import { LEGACY_TERMINAL_SHIM_REMOTE_ENV_KEYS } from '../../pty/shell-startup/legacy-terminal-shim-dir'
 import { PI_PROCESS_OWNER_ENV_KEYS } from '../../pty/shell-startup/pi-process-owner-env'
 import { planCodexNoDaemonLaunch } from '../../pty/shell-startup/codex-no-daemon-launch-command'
@@ -62,10 +61,6 @@ export function assemblePtySpawnEnvDeletions(input: {
       // Disable legacy hooks on old hosts while preserving ORCA_REAL pointers needed by Windows shims.
       input.isDaemonHostSpawn || input.connectionId ? LEGACY_TERMINAL_SHIM_REMOTE_ENV_KEYS : [],
       input.isDaemonHostSpawn ? getInheritedAgentHookEnvKeysToDelete(env) : [],
-      // The daemon must judge its own inherited value; main may have a different config.
-      !input.connectionId && !input.isDaemonHostSpawn
-        ? getLegacyOpenCodeEnvKeysToDelete(env, getAppEnvironment().getPath('userData'))
-        : [],
       // Local/relay providers also merge ambient env, so remove inherited session stamps on every path.
       getInheritedAgentSessionStampEnvKeysToDelete(env),
       input.skipCodexHomeEnv ? CODEX_HOME_ENV_KEYS : [],
@@ -136,25 +131,13 @@ export async function assemblePtySpawnLaunchOptions(input: PtySpawnLaunchOptions
       terminalWindowsShell: input.shellOverride ?? input.getSettings?.()?.terminalWindowsShell
     })
   )
-  const openCodeLaunch = await prepareOpenCodePtyLaunch({
-    command: input.launchCommand,
-    agent: launchAgent,
-    env: input.env,
-    envToDelete: input.envToDelete,
-    cwd: input.cwd,
-    connectionId,
-    isFreshLaunch: !input.preAdoptedStablePane && input.launchCommand !== undefined,
-    shell,
-    ...(input.codexRuntime === 'wsl'
-      ? { wsl: { distro: input.expectedWslDistro ?? undefined } }
-      : {})
-  })
-  const env = openCodeLaunch.env
+  // RA: supported agents use the original launch environment directly.
+  const env = input.env
   const pluginDir = !connectionId ? env?.ORCA_CLAUDE_AGENT_VIEW_PLUGIN_DIR : undefined
   const launchCommand =
-    pluginDir && openCodeLaunch.command
-      ? withClaudeAgentViewPlugin(openCodeLaunch.command, pluginDir, shell)
-      : openCodeLaunch.command
+    pluginDir && input.launchCommand
+      ? withClaudeAgentViewPlugin(input.launchCommand, pluginDir, shell)
+      : input.launchCommand
   promoteAgentTeamsShimPath(env, input.requestedAgentTeamsPath)
   const spawnOptions: PtySpawnOptions = {
     cols: args.cols,

@@ -1,13 +1,8 @@
-import type { ArtifactWriteRequest } from '../../../../../shared/artifacts/artifacts'
-import { ARTIFACT_MAX_CONTENT_BYTES } from '../../../../../shared/artifacts/artifacts'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { getRuntimePathBasename } from '../../../../../shared/cross-platform-path'
-import { ArtifactPublishPreparationError } from '@/components/artifacts/artifact-publish-flow'
-import {
-  canonicalArtifactFilePath,
-  fileArtifactSourceKey,
-  LOCAL_FILE_ARTIFACT_OWNER
-} from '@/lib/files/artifacts/file-artifact-source-key'
-import { userNamedFileAccess } from '@/lib/files/access/local-file-access'
+
+import { canonicalArtifactFilePath } from '@/lib/files/artifacts/file-artifact-source-key'
 
 export type ShareableBrowserArtifactFile = {
   fileName: string
@@ -38,41 +33,4 @@ export function getShareableBrowserArtifactFile(url: string): ShareableBrowserAr
   }
   const fileName = getRuntimePathBasename(filePath)
   return fileName ? { fileName, filePath } : null
-}
-
-export async function readBrowserHtmlArtifactRequest(url: string): Promise<ArtifactWriteRequest> {
-  const file = getShareableBrowserArtifactFile(url)
-  if (!file) {
-    throw new ArtifactPublishPreparationError('unsupported')
-  }
-  try {
-    const stat = await window.api.fs.stat({
-      filePath: file.filePath,
-      access: userNamedFileAccess()
-    })
-    if (stat.isDirectory) {
-      throw new ArtifactPublishPreparationError('unsupported')
-    }
-    if (stat.size > ARTIFACT_MAX_CONTENT_BYTES) {
-      throw new ArtifactPublishPreparationError('too-large')
-    }
-    const result = await window.api.fs.readFile({
-      filePath: file.filePath,
-      access: userNamedFileAccess()
-    })
-    if (result.isBinary) {
-      throw new ArtifactPublishPreparationError('binary')
-    }
-    return {
-      sourceKey: fileArtifactSourceKey(LOCAL_FILE_ARTIFACT_OWNER, file.filePath),
-      content: result.content,
-      contentType: 'text/html',
-      fileName: file.fileName
-    }
-  } catch (error) {
-    if (error instanceof ArtifactPublishPreparationError) {
-      throw error
-    }
-    throw new ArtifactPublishPreparationError('unreadable')
-  }
 }

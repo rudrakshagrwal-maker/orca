@@ -1,7 +1,6 @@
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { app, nativeTheme } from 'electron'
 import { performance } from 'node:perf_hooks'
-import { StarNagService } from '../star-nag/service'
 import { startPreGoneCrashSampling } from '../crash-reporting/process-exits/process-gone-diagnostics'
 import { refuseRealtimeSchedulingUnderZeroRtTime } from './linux-realtime-scheduling-guard'
 import { recordProcessGoneCrash } from './main-window-lifecycle-flags'
@@ -42,26 +41,12 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   initializeMainProcessObservers()
   initializeMainProcessAccountServices()
   const runtime = initializeMainProcessRuntime()
-  // RA: skip both construction and module loading of the automation scheduler.
-  if (!backgroundJobsDisabled()) {
-    const { initializeMainProcessAutomations } = await import('./main-process-automations')
-    initializeMainProcessAutomations()
-  }
+  // RA: automations and plugins have no startup services.
   configureRuntimeServices(runtime)
   installFirstWorkRenameHookSubscription()
-  // RA: do not load marketplace and worker implementations into the terminal runtime.
-  if (!backgroundJobsDisabled()) {
-    const { initializeMainProcessPlugins } = await import('./main-process-plugins')
-    await initializeMainProcessPlugins(runtime)
-  }
-  state.starNag = new StarNagService(store, state.stats!)
-  // RA: retain user-invoked star IPC without starting automatic nags.
-  state.starNag.registerIpcHandlers()
-  // RA: browser proxies, emulator bridges and dispatchers stay outside terminal startup imports.
-  if (!backgroundJobsDisabled()) {
-    const { initializeMainProcessBrowserRuntime } = await import('./main-process-browser-runtime')
-    initializeMainProcessBrowserRuntime(runtime)
-  }
+  // RA: embedded browsers remain available to orchestration agents.
+  const { initializeMainProcessBrowserRuntime } = await import('./main-process-browser-runtime')
+  initializeMainProcessBrowserRuntime(runtime)
   // Finish recorded deletes and old trash left across crashes; defer disk sweeps so they do not compete with first paint/catalog hydration.
   runAfterFirstWindowShown(() => {
     void sweepStaleWorktreeTrash(

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useState } from 'react'
 import {
   BrowserChromeToolbar,
@@ -25,8 +26,7 @@ export function DocPreviewToolbar({
   elementTools,
   markupActive,
   onToggleMarkup,
-  markupDisabled,
-  shareControl
+  markupDisabled
 }: {
   identity: DocPreviewDocumentIdentity
   /** The browser page this preview is open in — what an address commit converts. */
@@ -45,7 +45,6 @@ export function DocPreviewToolbar({
   onToggleMarkup: () => void
   markupDisabled: boolean
   /** Absent for documents a share link can't render. */
-  shareControl?: React.ReactNode
 }): React.JSX.Element {
   const t = useTranslate()
   const [reloadMenuOpen, setReloadMenuOpen] = useState(false)
@@ -90,7 +89,7 @@ export function DocPreviewToolbar({
         // Reserve the once-per-install draw hint for browsing panes.
         canShowDiscoveryHint: false
       }}
-      shareControl={shareControl}
+
       overflowMenu={(overflow) => (
         <DocPreviewOverflowMenu
           onReload={onReload}

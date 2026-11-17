@@ -1,7 +1,8 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import { useMemo } from 'react'
 import type { WorktreeOccurrencePlan } from '../../../../../../shared/worktree-occurrence-plan'
 import { getWorktreeRevealCollapsedGroupKeys } from '../navigation/worktree-reveal-group-keys'
-import type { AppState } from '@/store/types'
+
 import type { ProjectGroup } from '../../../../../../shared/project-group-types'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { WorkspaceStatusDefinition, Worktree } from '../../../../../../shared/worktree/types'
@@ -29,7 +30,7 @@ export function useEffectiveCollapsedGroups(args: {
   repoMap: Map<string, Repo>
   worktreeMap: Map<string, Worktree>
   worktreeLineageById: Record<string, WorktreeLineage>
-  prCache: AppState['prCache'] | null
+
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectGroups: readonly ProjectGroup[]
   projectGrouping: ProjectGroupingModel
@@ -49,7 +50,7 @@ export function useEffectiveCollapsedGroups(args: {
     repoMap,
     worktreeMap,
     worktreeLineageById,
-    prCache,
+
     workspaceStatuses,
     projectGroups,
     projectGrouping,
@@ -92,7 +93,7 @@ export function useEffectiveCollapsedGroups(args: {
       collapsedGroups,
       groupBy,
       pinnedDisplayPolicy,
-      prCache,
+
       workspaceStatuses,
       projectGroups,
       projectGrouping
@@ -110,7 +111,6 @@ export function useEffectiveCollapsedGroups(args: {
     worktrees,
     visibleWorktrees,
     filterRepoIds,
-    prCache,
     projectGroups,
     projectGrouping,
     repoMap,

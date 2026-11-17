@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 // @vitest-environment happy-dom
 import React, { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -5,10 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store/index'
 import { useWorktreeActivityStatus } from './use-worktree-activity-status'
 import { useWorktreeActivityStatuses } from './use-worktree-activity-statuses'
-import {
-  PaletteLiveStatusProvider,
-  PaletteWorktreeStatusDot
-} from '@/components/cmd-j/palette-live-status'
+
 import { TooltipProvider } from '@/components/ui/tooltip'
 import type { AgentStatusEntry } from '../../../../../../shared/agent-status/contracts/agent-status-types'
 import type { Tab } from '../../../../../../shared/tab-types'
@@ -31,7 +29,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-type ChatStatusConsumer = 'sidebar' | 'parent picker' | 'palette'
+type ChatStatusConsumer = 'sidebar' | 'parent picker'
 function ChatSidebarProbe({ worktreeId }: { worktreeId: string }): React.JSX.Element {
   return <span data-chat-status>{useWorktreeActivityStatus(worktreeId)}</span>
 }
@@ -77,14 +75,8 @@ function mountChatConsumers(consumer: ChatStatusConsumer): void {
   const content =
     consumer === 'parent picker' ? (
       <ChatParentPickerProbe ids={ids} />
-    ) : consumer === 'sidebar' ? (
-      <ChatSidebarProbe worktreeId={TARGET_WORKTREE_ID} />
     ) : (
-      <PaletteLiveStatusProvider active>
-        <span data-chat-status>
-          <PaletteWorktreeStatusDot worktree={{ id: TARGET_WORKTREE_ID }} />
-        </span>
-      </PaletteLiveStatusProvider>
+      <ChatSidebarProbe worktreeId={TARGET_WORKTREE_ID} />
     )
   act(() => root?.render(<TooltipProvider>{content}</TooltipProvider>))
 }
@@ -96,7 +88,7 @@ function chatStatusLabels(): string[] {
   )
 }
 
-describe.each<ChatStatusConsumer>(['sidebar', 'parent picker', 'palette'])(
+describe.each<ChatStatusConsumer>(['sidebar', 'parent picker'])(
   '%s chat-only status subscriptions',
   (consumer) => {
     it('observes chat evidence live while preserving agent priority', () => {

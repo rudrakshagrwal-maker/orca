@@ -1,7 +1,6 @@
 import type { BrowserWindow } from 'electron'
 import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
 import { setMigrationUnsupportedPtyListener } from '../agent-hooks/observations/migration-unsupported-pty-state'
-import { getDashboardPopoutWindow } from '../window/dashboard-popout-window'
 import { stopSyntheticTitleSpinnerTimer } from './synthetic-title-runtime'
 import { mainProcessState as state } from './main-process-state'
 import { createAgentPermissionTaskbarAlert } from '../window/agent-permission-taskbar-alert'
@@ -105,7 +104,6 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
         ...(isReplay === true ? { isReplay: true } : {})
       }
       state.mainWindow?.webContents.send('agentStatus:set', statusEvent)
-      getDashboardPopoutWindow()?.webContents.send('agentStatus:set', statusEvent)
       // A facet-only republish (progress tick) is not a state the agent entered.
       if (programStatusOnly !== true) {
         options.onRecordAgentState(payload.agentType ?? 'unknown', payload.state)
@@ -120,7 +118,6 @@ export function installMainWindowAgentStatusListeners(options: MainWindowAgentSt
       return
     }
     state.mainWindow?.webContents.send('agentStatus:clear', clear)
-    getDashboardPopoutWindow()?.webContents.send('agentStatus:clear', clear)
   })
   setMigrationUnsupportedPtyListener((event) => {
     if (state.mainWindow?.isDestroyed()) {

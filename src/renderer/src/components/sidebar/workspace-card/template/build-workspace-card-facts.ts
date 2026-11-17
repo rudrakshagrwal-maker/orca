@@ -1,3 +1,4 @@
+// RA: legacy templates receive empty removed-feature facts without service requests.
 import { getWorkspaceAttachments } from '../../../../../../shared/workspace-attachments/workspace-attachments'
 import type { WorktreeCardProperty } from '../../../../../../shared/ui-chrome-types'
 import type {
@@ -88,22 +89,22 @@ export function buildWorkspaceCardFacts(card: WorktreeCardController): Workspace
         }
       : null,
     checks: {
-      total: card.reviewChecks.total,
-      passing: card.reviewChecks.passed,
-      failing: card.reviewChecks.failed,
-      pending: card.reviewChecks.pending
+      total: 0,
+      passing: 0,
+      failing: 0,
+      pending: 0
     },
     links: {
       count: getWorkspaceAttachments(worktree).length,
-      issue: Boolean(card.hoverIssue),
-      linearIssue: Boolean(card.hoverLinearIssue),
-      jiraIssue: Boolean(card.hoverJiraIssue)
+      issue: false,
+      linearIssue: false,
+      jiraIssue: false
     },
     provenance: {
       automation: Boolean(worktree.automationProvenance),
       cli: Boolean(worktree.cliProvenance)
     },
-    ports: { count: card.workspacePorts.length },
+    ports: { count: 0 },
     lineage: {
       childCount: card.lineageChildCount,
       collapsed: card.lineageCollapsed,

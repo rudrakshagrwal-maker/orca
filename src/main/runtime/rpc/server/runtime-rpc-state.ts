@@ -160,7 +160,7 @@ export class RuntimeRpcState {
     this.relayRevokeOutbox = new RelayRevokeOutbox(userDataPath)
     this.pushUnregisterOutbox = new PushUnregisterOutbox(userDataPath)
     this.authenticatedSourceRecorder = new AuthenticatedSourceRecorder(userDataPath)
-    this.runtime.configureNotificationDismissalStore(userDataPath)
+    // RA: terminal orchestration does not initialize mobile notification persistence.
   }
 
   /** Counts a client message for idle exit, from receipt until its dispatch settles. */

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { RuntimeServiceCommandSurface } from '../../construction/runtime-service-command-surface'
 import type { OrcaRuntimeWithCloseStructuredAgentSessionTab as ChatPresentation } from '../../session-tabs/structured-session-tab-close'
 import {
@@ -179,10 +180,6 @@ export abstract class OrcaRuntimeWithTerminalDrivers extends OrcaRuntimeWithFitO
   }
 
   protected readonly edgeCommands = new RuntimeEdgeCommandController({
-    jiraHost: {
-      getSettings: () => this.requireStore().getSettings(),
-      getAgentEnvironment: () => this.accounts.getCommitMessageAgentEnvironment()
-    },
     browserHost: {
       getRuntimeId: () => this.getRuntimeId(),
       getAgentBrowserBridge: () => this.agentBrowserBridge,
@@ -230,22 +227,7 @@ export abstract class OrcaRuntimeWithTerminalDrivers extends OrcaRuntimeWithFitO
       notifyRemoteViewersChanged: (browserPageId, hasRemoteViewers) =>
         this.notifier?.browserRemoteViewersChanged?.(browserPageId, hasRemoteViewers)
     },
-    getBrowserCommands: () => this.browserCommands,
-    emulatorHost: {
-      getEmulatorBridge: () => this.emulatorBridge,
-      resolveEmulatorWorkspaceId: (selector) => this.resolveEmulatorWorkspaceId(selector),
-      resolveEmulatorCleanupWorkspaceId: (selector) =>
-        this.resolveEmulatorCleanupWorkspaceId(selector),
-      getAuthoritativeWindow: () => this.getAuthoritativeWindow(),
-      getSettings: () => this.requireStore().getSettings(),
-      updateEmulatorSettings: (updates) => {
-        const store = this.requireStore()
-        if (!store.updateSettings) {
-          throw new Error('This host cannot save emulator preferences.')
-        }
-        store.updateSettings(updates, { notifyListeners: true })
-      }
-    }
+    getBrowserCommands: () => this.browserCommands
   })
 
   // Tests and diagnostics replace screencast startup; other edge methods stay pre-bound.

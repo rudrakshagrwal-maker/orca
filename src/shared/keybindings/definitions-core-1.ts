@@ -30,14 +30,7 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Mod+Shift+R']),
     conflictGroup: 'menu'
   },
-  {
-    id: 'worktree.palette',
-    title: 'Switch worktree',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'global', 'worktree', 'switch', 'jump'],
-    defaultBindings: platformBindings(['Mod+K'])
-  },
+
   {
     id: 'worktree.navigateUp',
     title: 'Previous worktree',
@@ -100,26 +93,7 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Mod+Shift+Backspace']),
     allowInTerminal: true
   },
-  {
-    id: 'workspace.openBoard',
-    title: 'Toggle Workspace Board',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: [
-      'shortcut',
-      'global',
-      'workspace',
-      'board',
-      'kanban',
-      'worktree',
-      'toggle',
-      'open',
-      'close'
-    ],
-    // Why: configurable but unbound by default, to not take a global chord from terminal/browser/editor users.
-    defaultBindings: platformBindings([]),
-    allowInTerminal: true
-  },
+
   {
     id: 'dashboard.toggle',
     title: 'Toggle Agent Dashboard',
@@ -170,22 +144,7 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
     searchKeywords: ['shortcut', 'dictation', 'voice', 'speech', 'microphone'],
     defaultBindings: platformBindings(['Mod+E'])
   },
-  {
-    id: 'view.tasks',
-    title: 'Open Tasks',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'tasks', 'github issues', 'linear'],
-    defaultBindings: platformBindings([])
-  },
-  {
-    id: 'view.plugins',
-    title: 'Open Plugins',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'plugins', 'extensions', 'marketplace'],
-    defaultBindings: { darwin: ['Mod+Alt+X'], linux: ['Mod+Shift+Y'], win32: ['Mod+Shift+Y'] }
-  },
+
   {
     id: 'sidebar.left.toggle',
     title: 'Toggle Sidebar',
@@ -194,58 +153,7 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
     searchKeywords: ['shortcut', 'sidebar', 'left'],
     defaultBindings: platformBindings(['Mod+B'])
   },
-  {
-    id: 'sidebar.right.toggle',
-    title: 'Toggle Right Sidebar',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'sidebar', 'right'],
-    defaultBindings: platformBindings(['Mod+L'])
-  },
-  {
-    id: 'sidebar.explorer.toggle',
-    title: 'Show Explorer',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'sidebar', 'explorer', 'files'],
-    defaultBindings: platformBindings(['Mod+Shift+E'])
-  },
-  {
-    id: 'sidebar.search.toggle',
-    title: 'Show Search',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'sidebar', 'search'],
-    defaultBindings: platformBindings(['Mod+Shift+F'])
-  },
-  {
-    id: 'sidebar.sourceControl.toggle',
-    title: 'Show Source Control',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'sidebar', 'source control', 'git'],
-    defaultBindings: platformBindings(['Mod+Shift+G'])
-  },
-  {
-    id: 'sidebar.checks.toggle',
-    title: 'Show Checks',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'sidebar', 'checks', 'ci'],
-    defaultBindings: platformBindings([])
-  },
-  {
-    id: 'sidebar.ports.toggle',
-    title: 'Show Ports',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'sidebar', 'ports'],
-    defaultBindings: {
-      darwin: ['Mod+Shift+I'],
-      linux: [],
-      win32: []
-    }
-  },
+
   {
     id: 'sidebar.sleepingWorkspaces.toggle',
     title: 'Toggle Sleeping Workspaces',
@@ -273,37 +181,5 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
     searchKeywords: ['shortcut', 'sidebar', 'worktree', 'focus'],
     // Why: keep zoom.reset on the browser-standard Mod+0; this chord was unreachable while it shared that default (#8584).
     defaultBindings: platformBindings(['Mod+Shift+0'])
-  },
-  {
-    id: 'floatingTerminal.toggle',
-    title: 'Toggle Floating Terminal',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: ['shortcut', 'floating terminal', 'terminal'],
-    defaultBindings: platformBindings(['Mod+Alt+A']),
-    allowInTerminal: true
-  },
-  {
-    id: 'floatingWorkspace.maximize',
-    title: 'Maximize Floating Workspace Panel',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: [
-      'shortcut',
-      'floating',
-      'workspace',
-      'panel',
-      'floating workspace',
-      'workspace panel',
-      'maximize',
-      'expand'
-    ],
-    // Why: pairs with floatingTerminal.toggle (Cmd+Opt+A) so maximize stays one-handed; macOS-only, Linux/Windows unbound.
-    defaultBindings: {
-      darwin: ['Mod+Alt+Shift+A'],
-      linux: [],
-      win32: []
-    },
-    allowInTerminal: true
   }
 ]

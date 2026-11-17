@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { Suspense, type JSX, type Ref } from 'react'
 import { useAppStore } from '@/store'
 import { findFirstIndexedWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner-index'
@@ -11,7 +12,7 @@ import type { EditorToggleValue } from './view-mode/EditorViewToggle'
 import { shouldShowEditorPanelHeader } from './editor-header'
 import { getUntitledFileRoot } from './untitled-file-rename-path'
 import { useTranslate } from '@/i18n/use-translate'
-import type { ArtifactWriteRequest } from '../../../../shared/artifacts/artifacts'
+
 import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-record-fields'
 
 type EditorPanelRenderModel = ReturnType<typeof getEditorPanelRenderModel>
@@ -43,7 +44,7 @@ type EditorPanelShellProps = {
   onToggleMarkdownTableOfContents: () => void
   onToggleMarkdownFrontmatter: () => void
   onExportMarkdownToPdf: () => void
-  createArtifactRequest?: () => Promise<ArtifactWriteRequest>
+  
   onContentChange: (content: string) => void
   onContentChangeForFile: (file: OpenFile, content: string) => void
   onDirtyStateHint: (dirty: boolean) => void
@@ -83,7 +84,7 @@ export function EditorPanelShell({
   onToggleMarkdownTableOfContents,
   onToggleMarkdownFrontmatter,
   onExportMarkdownToPdf,
-  createArtifactRequest,
+  
   onContentChange,
   onContentChangeForFile,
   onDirtyStateHint,
@@ -107,7 +108,7 @@ export function EditorPanelShell({
           isCsv={model.isCsv}
           isNotebook={model.isNotebook}
           isSvg={model.isSvg}
-          customEditorTitles={model.customEditorTitles}
+
           hasEditorToggle={model.hasEditorToggle}
           availableEditorToggleModes={model.availableEditorToggleModes}
           effectiveToggleValue={model.effectiveToggleValue}
@@ -131,7 +132,7 @@ export function EditorPanelShell({
           onToggleMarkdownTableOfContents={onToggleMarkdownTableOfContents}
           onToggleMarkdownFrontmatter={onToggleMarkdownFrontmatter}
           onExportMarkdownToPdf={onExportMarkdownToPdf}
-          createArtifactRequest={createArtifactRequest}
+          
         />
       )}
       <Suspense fallback={<EditorLoadingFallback />}>
@@ -149,7 +150,7 @@ export function EditorPanelShell({
           isSvg={model.isSvg}
           isCsv={model.isCsv}
           isNotebook={model.isNotebook}
-          customEditor={model.activeCustomEditor}
+
           mdViewMode={model.mdViewMode}
           inlineMarkdownRenderState={model.inlineMarkdownRenderState}
           isChangesMode={model.isDiffSurface && !model.isSingleDiff}

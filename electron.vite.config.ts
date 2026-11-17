@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { markdownParserAliases } from './config/build-plugins/markdown-parser-exports'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
@@ -309,8 +310,6 @@ export const electronViteConfig: UserConfig = {
         output: { charset: 'ascii' },
         input: {
           index: resolve('src/renderer/index.html'),
-          popout: resolve('src/renderer/popout.html'),
-          space: resolve('src/renderer/space.html'),
           web: resolve('src/renderer/web-index.html')
         }
       }

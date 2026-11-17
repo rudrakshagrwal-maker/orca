@@ -1,7 +1,8 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import React from 'react'
 
 import { cn } from '@/lib/class-names'
-import { useWslHostOffForRepo } from '../../use-wsl-host-off-review'
+
 import { WorktreeCardStatusSlot } from './WorktreeCardStatusSlot'
 import type { WorktreeCardController } from '../controller/use-worktree-card-controller'
 
@@ -13,7 +14,6 @@ export function WorktreeCardStatusLane({
   card: WorktreeCardController
   showUnreadAction: boolean
 }): React.JSX.Element {
-  const reviewStale = useWslHostOffForRepo(card.repo)
   return (
     <div
       className={cn(
@@ -31,11 +31,9 @@ export function WorktreeCardStatusLane({
         unreadTooltip={card.unreadTooltip}
         onPointerDown={card.stopQuickActionPointerPropagation}
         onToggleUnread={card.handleToggleUnreadQuick}
-        prDisplay={card.statusLaneReview}
-        reviewChecks={card.reviewChecks.total > 0 ? card.reviewChecks : undefined}
+
         newCardStyle={card.newCardStyle}
         hasBranchIdentity={Boolean(card.branchIdentityDisplay)}
-        reviewStale={reviewStale}
       />
     </div>
   )

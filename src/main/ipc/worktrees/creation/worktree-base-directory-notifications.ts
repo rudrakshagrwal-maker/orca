@@ -1,3 +1,4 @@
+import { invalidateGitSessionMetadata } from '../../../git/command-runner/git-session-metadata-cache'
 import type { BrowserWindow } from 'electron'
 import { basename } from 'node:path'
 import type { WorktreeBaseCollectedChanges } from './worktree-base-directory-change-collector'
@@ -72,6 +73,10 @@ export function scheduleWorktreeBaseNotification(
   if (watch.disposed || watch.mainWindow.isDestroyed()) {
     clearPendingWorktreeBaseNotifications(watch)
     return
+  }
+  // RA: terminal-created worktree changes invalidate the session metadata too.
+  if (changes.structureRepoIds?.length) {
+    invalidateGitSessionMetadata()
   }
   for (const repoId of changes.structureRepoIds ?? []) {
     watch.pendingStructureRepoIds.add(repoId)

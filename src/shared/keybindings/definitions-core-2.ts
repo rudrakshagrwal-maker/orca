@@ -3,29 +3,6 @@ import { platformBindings } from './definitions-support'
 
 export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
   {
-    id: 'floatingWorkspace.minimize',
-    title: 'Minimize Floating Workspace Panel',
-    group: 'Global',
-    scope: 'global',
-    searchKeywords: [
-      'shortcut',
-      'floating',
-      'workspace',
-      'panel',
-      'floating workspace',
-      'workspace panel',
-      'minimize',
-      'hide'
-    ],
-    // Why: unbound everywhere since floatingTerminal.toggle owns show/hide; this exists only for an explicit user-bound "hide panel" shortcut.
-    defaultBindings: {
-      darwin: [],
-      linux: [],
-      win32: []
-    },
-    allowInTerminal: true
-  },
-  {
     id: 'zoom.in',
     title: 'Zoom In',
     group: 'Global',

@@ -18,7 +18,8 @@ import {
 } from './federation-setup'
 import { FederationAttachStartParams } from '../../../../shared/rpc-contract/orchestration-federation-start-params'
 import { failFederatedAttachmentWithReceipt } from './federation-start-receipt'
-import { prepareFederationWorkerLaunchOnHost } from '../../rpc/methods/orchestration/worker/worker-opencode-model-preflight'
+// RA: federation uses the same Claude/Codex preflight as local workers.
+import { prepareFederationConfiguredWorkerStart as prepareFederationWorkerLaunchOnHost } from '../../rpc/methods/orchestration/worker/worker-configured-agent-preflight'
 import {
   isWorkerStartTimeoutWithinTimerLimit,
   resolveWorkerStartReadinessTimeoutMs

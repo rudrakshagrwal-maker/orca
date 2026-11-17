@@ -1,3 +1,4 @@
+import { agentModelCatalogStore } from '../../../../../native-chat/agent-model-catalog/agent-model-catalog-store'
 import { AGENT_SESSION_COHERENT_MODEL_CATALOG_CAPABILITY } from '../../../../../../shared/agent-session/structured-agent-session-surface-capabilities'
 // options reads at-rest records/catalogs or the live provider; modelCatalog reads stored/start-published facts without waiting on attach.
 // Older hosts return method_not_found (mobile may see forbidden); clients retain static seeds.
@@ -81,8 +82,13 @@ export const STRUCTURED_AGENT_SESSION_OPTIONS_READ_METHODS = [
     permission: 'workspace',
     params: ModelCatalogParams,
     // Session reads may build the host; session-less terminal reads must not open unused structured journals.
-    handler: async ({ worktree, ...params }, ctx) => {
+    handler: async ({ worktree, refresh, ...params }, ctx) => {
       requireStructuredAgentAudience(ctx, params.agent)
+      // RA: regular catalog reads never reset the per-launch probe budget.
+      if (refresh) {
+        agentModelCatalogStore.expireAgent(params.agent)
+        agentModelCatalogStore.discoveryAttempts.reset(params.agent)
+      }
       const host =
         params.sessionId === undefined
           ? null

@@ -1,16 +1,9 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { RuntimeTerminalAgentStatus } from '../../../shared/runtime-terminal-contracts'
 import { RuntimeGitCommands } from '../integrations/git/orca-runtime-git'
-import { RuntimeHostedReviewCommands } from '../integrations/reviews/runtime-hosted-review-commands'
-import { RuntimeGitHubRepositoryQueryCommands } from '../integrations/github/runtime-github-repository-query-commands'
-import { RuntimeGitLabQueryCommands } from '../integrations/gitlab/runtime-gitlab-query-commands'
-import { recordGitLabProjectRecent } from '../../gitlab/projects/gitlab-project-recents'
-import { RuntimeGitLabMutationCommands } from '../integrations/gitlab/runtime-gitlab-mutation-commands'
-import { RuntimeGitHubReviewQueryCommands } from '../integrations/github/runtime-github-review-query-commands'
-import { RuntimeGitHubReviewMutationCommands } from '../integrations/github/runtime-github-review-mutation-commands'
-import { RuntimeGitHubIssueCommentCommands } from '../integrations/github/runtime-github-issue-comment-commands'
-import { RuntimeGitHubProjectCommands } from '../integrations/github/runtime-github-project-commands'
+
 import { RuntimeRepositoryHooksCommands } from '../repositories/runtime-repository-hooks-commands'
-import { RuntimeRepositoryIssueCommand } from '../repositories/runtime-repository-issue-command'
+
 import { ClientHostedBrowserRowPublisher } from '../browser/client-pages/client-hosted-browser-row-publication'
 import { getRuntimeBrowserPageRegistry } from '../browser/client-pages/runtime-browser-page-registry'
 import { getBrowserHostLeaseRegistry } from '../browser-host/leases/browser-host-lease-registry-instance'
@@ -90,79 +83,8 @@ export abstract class OrcaRuntimeWithRepositoryCommands extends OrcaRuntimeWithF
 
   protected readonly leafPtyAbsenceProbes = new Map<string, Promise<boolean>>()
 
-  protected readonly hostedReviews = new RuntimeHostedReviewCommands({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    resolveTarget: (args) => this.resolveHostedReviewTarget(args),
-    getExecutionOptions: (repo, admissionTier) =>
-      this.getHostedReviewExecutionOptions(repo, admissionTier),
-    recordCreated: (repoId, number, url) => {
-      if (!this.stats || this.stats.hasCountedPR(url)) {
-        return
-      }
-      this.stats.record({
-        type: 'pr_created',
-        at: Date.now(),
-        repoId,
-        meta: { prNumber: number, prUrl: url }
-      })
-    }
-  })
-
-  protected readonly gitHubRepositoryQueries = new RuntimeGitHubRepositoryQueryCommands({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo)
-  })
-
-  protected readonly gitLabQueryCommands = new RuntimeGitLabQueryCommands({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo),
-    recordProjectRecent: (projectRef) => {
-      if (!this.store?.updateSettings) {
-        return
-      }
-      const store = this.store
-      recordGitLabProjectRecent(
-        {
-          getSettings: () => store.getSettings(),
-          updateSettings: (updates) => store.updateSettings?.(updates)
-        },
-        projectRef.host,
-        projectRef.path
-      )
-    }
-  })
-
-  protected readonly gitLabMutationCommands = new RuntimeGitLabMutationCommands({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo)
-  })
-
-  protected readonly gitHubReviewQueries = new RuntimeGitHubReviewQueryCommands({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo)
-  })
-
-  protected readonly gitHubReviewMutations = new RuntimeGitHubReviewMutationCommands({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo)
-  })
-
-  protected readonly gitHubIssueComments = new RuntimeGitHubIssueCommentCommands({
-    resolveTarget: (args) => this.resolveHostedReviewTarget(args),
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo)
-  })
-
-  protected readonly gitHubProjectCommands = new RuntimeGitHubProjectCommands()
-
   protected readonly repositoryHooks = new RuntimeRepositoryHooksCommands({
     resolveRepo: (selector) => this.resolveRepoSelector(selector)
-  })
-
-  protected readonly repositoryIssueCommand = new RuntimeRepositoryIssueCommand({
-    resolveRepo: (selector) => this.resolveRepoSelector(selector),
-    getLocalGitArgs: (repo) => this.getLocalGitExecutionOptionArgs(repo),
-    getStore: () => this.store
   })
 
   protected readonly clientHostedBrowserRows = new ClientHostedBrowserRowPublisher({

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useTranslate } from '@/i18n/use-translate'
 import { getConnectionIdForFile } from '@/lib/workspace/ownership/connection-context'
 import type { MarkdownViewMode, OpenFile } from '@/store/slices/editor/types/open-file'
@@ -20,15 +21,11 @@ import { EditorFileLoadErrorView } from './EditorFileLoadErrorView'
 import { RecoverableRenderErrorBoundary } from '../error-boundaries/RecoverableRenderErrorBoundary'
 import type { FileContent } from './editor-panel-content-types'
 import { CustomEditorExternalChangeBanner } from './external-changes/CustomEditorExternalChangeBanner'
-import { PluginFileTypeSuggestion } from './PluginFileTypeSuggestion'
+
 import { BinaryFileDefaultAppButton } from './BinaryFileDefaultAppButton'
 import type { useMarkdownDocuments } from './markdown/documents/useMarkdownDocuments'
 import { EditorMarkdownFileSurface } from './EditorMarkdownFileSurface'
 import type { MarkdownRenderState } from './markdown/render-mode/markdown-render-mode'
-import type { ActivePluginCustomEditor } from '@/store/plugins/file-editors/plugin-custom-editors'
-import { PluginEditorSourceFallbackNotice } from './PluginEditorNeedsDesktopNotice'
-import PluginCustomEditorFrame from './PluginCustomEditorFrame'
-import PluginBytesCustomEditorSurface from './PluginBytesCustomEditorSurface'
 
 // Retry is a user act: it may start a stopped WSL distro.
 const USER_RETRY = { wakeWslDistro: true }
@@ -55,7 +52,7 @@ export function EditorEditFileSurface({
   isSvg = false,
   isCsv,
   isNotebook,
-  customEditor,
+
   mdViewMode,
   inlineMarkdownRenderState,
   isChangesMode,
@@ -89,7 +86,7 @@ export function EditorEditFileSurface({
   isSvg?: boolean
   isCsv: boolean
   isNotebook: boolean
-  customEditor?: ActivePluginCustomEditor | null
+
   mdViewMode: MarkdownViewMode
   inlineMarkdownRenderState: MarkdownRenderState | null
   isChangesMode: boolean
@@ -144,18 +141,7 @@ export function EditorEditFileSurface({
       />
     )
   }
-  if (customEditor?.contentKind === 'bytes') {
-    return (
-      <PluginBytesCustomEditorSurface
-        key={`${activeFile.id}\u0000${customEditor.key}`}
-        editor={customEditor}
-        file={activeFile}
-        fileContent={fileContent}
-        onSave={handleSave}
-        reloadContent={reloadContent}
-      />
-    )
-  }
+
   if (fileContent.isBinary) {
     if (fileContent.mediaUrl && !fileContent.isImage) {
       return (
@@ -188,8 +174,6 @@ export function EditorEditFileSurface({
     }
     return (
       <div className="flex h-full flex-col">
-        <PluginEditorSourceFallbackNotice fileId={activeFile.id} filePath={activeFile.filePath} />
-        <PluginFileTypeSuggestion filePath={activeFile.filePath} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
           {t('auto.components.editor.EditorContent.b9de81ba52', 'Binary file — cannot display')}
           {fileContent.byteSource && (
@@ -290,18 +274,7 @@ export function EditorEditFileSurface({
     </RecoverableRenderErrorBoundary>
   )
 
-  const editorSurface = customEditor ? (
-    <PluginCustomEditorFrame
-      key={`${activeFile.id}\u0000${customEditor.key}`}
-      editor={customEditor}
-      fileId={activeFile.id}
-      content={currentContent}
-      readOnly={activeFile.readOnly === true}
-      onContentChange={handleContentChange}
-      onSave={handleSave}
-      onDirtyHint={handleDirtyStateHint}
-    />
-  ) : isMarkdown ? (
+  const editorSurface = isMarkdown ? (
     <EditorMarkdownFileSurface
       activeFile={activeFile}
       viewStateScopeId={viewStateScopeId}
@@ -365,15 +338,7 @@ export function EditorEditFileSurface({
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       {externalChangeBanner}
-      {customEditor ? null : (
-        <PluginEditorSourceFallbackNotice fileId={activeFile.id} filePath={activeFile.filePath} />
-      )}
-      {customEditor ? null : (
-        <PluginFileTypeSuggestion
-          filePath={activeFile.filePath}
-          purpose={monacoLanguage === 'plaintext' ? 'open' : 'editor'}
-        />
-      )}
+
       {activeFile.conflict && (
         <ConflictBanner
           file={activeFile}

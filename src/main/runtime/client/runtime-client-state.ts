@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { OrcaRuntimeWithStateFields } from '../construction/runtime-construction'
 import {
   persistClientHostedBrowserPages,
@@ -14,8 +15,8 @@ import {
 } from '../../../shared/execution-host'
 import type { IPtyProvider } from '../../providers/pty-provider-contract'
 import { killAllProcessesForWorktree } from '../workspaces/removal/worktree-teardown'
-import type { MemorySnapshot, StatsSummary } from '../../../shared/process-stats-types'
-import { collectMemorySnapshot } from '../../memory/collector'
+import type { StatsSummary } from '../../../shared/process-stats-types';
+
 import type { PersistedUIState } from '../../../shared/persisted-ui-state-types'
 import { isDeepStrictEqual } from 'node:util'
 import type {
@@ -30,7 +31,6 @@ import type { TerminalQuickCommandMutation } from '../../../shared/terminal/quic
 import type { NativeChatSessionOptionSettingsMutation } from '../../../shared/native-chat/input/native-chat-session-options'
 import type { WorktreeTerminalStopOptions } from '../terminal/stop/worktree-terminal-stop-options'
 import type { PtyLivenessVerdict } from '../../../shared/terminal/pty/lifecycle/pty-liveness-verdict'
-import type { Automation } from '../../../shared/automations/automation-definition'
 
 export abstract class OrcaRuntimeWithPtyForegroundProcessReads extends OrcaRuntimeWithStateFields {
   abstract retireStructuredAgentSessionTabFromSnapshot(sessionId: string): boolean
@@ -169,12 +169,7 @@ export abstract class OrcaRuntimeWithPtyForegroundProcessReads extends OrcaRunti
     return this.stats?.getSummary() ?? null
   }
 
-  getMemorySnapshot(): Promise<MemorySnapshot> {
-    if (!this.store) {
-      throw new Error('runtime_unavailable')
-    }
-    return collectMemorySnapshot(this.store)
-  }
+  
 
   getUIState(): PersistedUIState {
     if (!this.store?.getUI) {
@@ -257,9 +252,5 @@ export abstract class OrcaRuntimeWithPtyForegroundProcessReads extends OrcaRunti
 
   updateClientNativeChatSessionOptions(mutation: NativeChatSessionOptionSettingsMutation): void {
     this.clientSettings.updateNativeChatSessionOptions(mutation)
-  }
-
-  listAutomations(): Automation[] {
-    return this.automation.list()
   }
 }

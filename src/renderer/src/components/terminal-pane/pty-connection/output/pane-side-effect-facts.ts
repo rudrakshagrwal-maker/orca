@@ -1,5 +1,5 @@
-import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
-import { useAppStore } from '@/store'
+
+
 import { registerTerminalSideEffectFactConsumer } from '../../pty-transport/output/terminal-side-effect-facts-handler'
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
 
@@ -23,18 +23,10 @@ export function bindPaneSideEffectFacts(session: ConnectPanePtySession): void {
         onAgentBecameWorking: session.onAgentBecameWorking,
         onAgentExited: session.onAgentExited,
         onCommandFinished: session.handleCommandFinished,
-        onPrLink: (link) =>
-          useAppStore
-            .getState()
-            .observeTerminalGitHubPullRequestLink(session.deps.worktreeId, link, {
-              tabId: session.deps.tabId,
-              paneKey: makePaneKey(session.deps.tabId, session.pane.leafId),
-              ptyId: session.transport.getPtyId(),
-              executionHostId: session.transport.getExecutionHostId?.() ?? undefined
-            }),
+        
         // Pane policy owns Command Code settling against the live row; main supplies scrape facts only.
-        onCommandCodeWorking: session.seedCommandCodeOutputWorkingStatus,
-        onCommandCodeDone: session.scheduleCommandCodeOutputDoneStatus,
+        
+        
         ...(session.shouldOwnAgentStatusInRenderer
           ? { onAgentStatus: (payload) => session.handleRendererOwnedAgentStatus(payload) }
           : {}),

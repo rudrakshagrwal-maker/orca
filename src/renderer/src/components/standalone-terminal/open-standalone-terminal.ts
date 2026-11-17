@@ -1,3 +1,4 @@
+// RA: keep terminal input support independently of the removed dashboard.
 /** Reuse pane Unicode/link/IME/shortcut and kitty policy outside panes; callers own transport and parse-completion backpressure. */
 import { Terminal, type ITerminalInitOnlyOptions, type ITerminalOptions } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
@@ -10,13 +11,13 @@ import type { MacOptionAsAlt } from '@/components/terminal-pane/input/keyboard/t
 import { subscribeToTerminalUserInput } from '@/components/terminal-pane/input/terminal-user-input-signal'
 import { installTerminalNativeCopyGutterTrim } from '@/components/terminal-pane/clipboard/terminal-native-copy-gutter'
 import { isWindowsUserAgent } from '@/app-shell/platform/user-agent-platform'
-import type { PreviewTerminalLinkHandlers } from '../dashboard-popout/preview-terminal-links'
-import { installPreviewTerminalCompatibility } from '../dashboard-popout/preview-terminal-compatibility'
-import { createPreviewClipboardPaster } from '../dashboard-popout/preview-terminal-paste'
-import { installPreviewImeBridge } from '../dashboard-popout/preview-terminal-ime-bridge'
-import { installPreviewTerminalKeyHandler } from '../dashboard-popout/preview-terminal-key-handler'
-import { installPreviewTerminalAppMenuClipboard } from '../dashboard-popout/preview-terminal-app-menu-clipboard'
-import { installPreviewTerminalRightClickPaste } from '../dashboard-popout/preview-terminal-right-click-paste'
+import type { PreviewTerminalLinkHandlers } from '../standalone-terminal/preview-terminal-links'
+import { installPreviewTerminalCompatibility } from '../standalone-terminal/preview-terminal-compatibility'
+import { createPreviewClipboardPaster } from '../standalone-terminal/preview-terminal-paste'
+import { installPreviewImeBridge } from '../standalone-terminal/preview-terminal-ime-bridge'
+import { installPreviewTerminalKeyHandler } from '../standalone-terminal/preview-terminal-key-handler'
+import { installPreviewTerminalAppMenuClipboard } from '../standalone-terminal/preview-terminal-app-menu-clipboard'
+import { installPreviewTerminalRightClickPaste } from '../standalone-terminal/preview-terminal-right-click-paste'
 
 export type StandaloneTerminalArgs = {
   container: HTMLElement

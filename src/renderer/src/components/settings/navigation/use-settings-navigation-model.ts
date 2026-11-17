@@ -1,23 +1,17 @@
+// RA: navigation probes only the retained orchestration skill.
 import { useCallback, useMemo } from 'react'
 import { applyDocumentTheme } from '@/app-shell/appearance/document-theme'
 import { resolvePaintedTheme } from '@/app-shell/appearance/terminal-app-theme'
 import { useSettingsNavigationMetadata } from '@/hooks/useSettingsNavigationMetadata'
 import type { SettingsNavInstallStatus } from '@/components/settings/navigation/settings-navigation-types'
-import {
-  COMPUTER_USE_SKILL_NAME,
-  ORCHESTRATION_SKILL_NAME
-} from '@/lib/skills/installation/agent-feature-skill-names'
-import {
-  getAgentSkillNavInstallStatus,
-  getLinearAgentSkillNavInstallStatus
-} from '@/components/settings/navigation/agent-skill-nav-install-status'
+import { ORCHESTRATION_SKILL_NAME } from '@/lib/skills/installation/agent-feature-skill-names'
+import { getAgentSkillNavInstallStatus } from '@/components/settings/navigation/agent-skill-nav-install-status'
 import { getProjectHostSetupProjectionFromState } from '../../../store/projects/project-host-setup-selector'
 import { getSettingsSectionSearchEntries, rankSettingsSearchItems } from '../search/settings-search'
 import { deriveNeededSectionIds } from '../page/settings-load-performance'
 import { DESKTOP_TERMINAL_SCROLLBACK_ROW_PRESETS as SCROLLBACK_PRESETS_ROWS } from '../../../../../shared/terminal/replay/terminal-scrollback-policy'
 import type { SettingsStoreModel } from '../page/use-settings-store-model'
 import type { SettingsInteractionController } from '../page/use-settings-interaction-controller'
-import { hasReadyVoiceModel } from './settings-navigation-foundations'
 
 export function useSettingsNavigationModel(
   model: SettingsStoreModel,
@@ -48,13 +42,7 @@ export function useSettingsNavigationModel(
   const baseNavSections = useSettingsNavigationMetadata()
   const { installed: orchestrationSkillInstalled, loading: orchestrationSkillLoading } =
     model.orchestrationSkill
-  const {
-    installed: linearSkillInstalled,
-    loading: linearSkillLoading,
-    skills: linearSkills
-  } = model.linearSkill
-  const { installed: computerUseSkillInstalled, loading: computerUseSkillLoading } =
-    model.computerUseSkill
+
   const capabilityInstallStatusBySectionId = useMemo(() => {
     const applicableSkillPlan = model.skillFreshnessApplies ? model.skillPlan : null
     const next = new Map<string, SettingsNavInstallStatus>([
@@ -68,52 +56,11 @@ export function useSettingsNavigationModel(
         })
       ]
     ])
-    if (model.linearConnected) {
-      next.set(
-        'linear',
-        getLinearAgentSkillNavInstallStatus({
-          skills: linearSkills,
-          installed: linearSkillInstalled,
-          loading: linearSkillLoading,
-          plan: applicableSkillPlan
-        })
-      )
-    }
-    if (model.showDesktopOnlySettings) {
-      next.set(
-        'computer-use',
-        getAgentSkillNavInstallStatus({
-          name: COMPUTER_USE_SKILL_NAME,
-          installed: computerUseSkillInstalled,
-          loading: computerUseSkillLoading,
-          plan: applicableSkillPlan
-        })
-      )
-      if (model.settings) {
-        next.set(
-          'voice',
-          model.voiceModelStatesLoading
-            ? 'checking'
-            : hasReadyVoiceModel(model.settings, model.modelStates)
-              ? 'installed'
-              : 'install'
-        )
-      }
-    }
+
     return next
   }, [
-    computerUseSkillInstalled,
-    computerUseSkillLoading,
-    linearSkillInstalled,
-    linearSkillLoading,
-    linearSkills,
-    model.linearConnected,
-    model.modelStates,
-    model.settings,
-    model.showDesktopOnlySettings,
     model.skillFreshnessApplies,
     model.skillPlan,
-    model.voiceModelStatesLoading,
     orchestrationSkillInstalled,
     orchestrationSkillLoading
   ])

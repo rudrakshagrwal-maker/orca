@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useMemo } from 'react'
 import { ArrowDown, ArrowUp, Columns2, Eye, FileText, ListTree, Rows2 } from 'lucide-react'
 import { useAppStore } from '@/store'
@@ -21,9 +22,9 @@ import { EditorPanelHeaderPath } from './EditorPanelHeaderPath'
 import { useDiffNavigation } from './diff/review/diff-navigation-context'
 import { useShortcutKeyDetails } from '@/hooks/useShortcutLabel'
 import { ShortcutKeyCombo } from '@/components/ShortcutKeyCombo'
-import type { ArtifactWriteRequest } from '../../../../shared/artifacts/artifacts'
-import { ArtifactPublishButton } from '@/components/artifacts/ArtifactPublishButton'
-import { editorArtifactSourceKey } from './editor-artifact-upload'
+
+
+
 
 const NO_CUSTOM_EDITOR_TITLES: Readonly<Record<CustomEditorToggleValue, string>> = {}
 
@@ -61,7 +62,7 @@ type EditorPanelHeaderProps = {
   onToggleMarkdownTableOfContents: () => void
   onToggleMarkdownFrontmatter: () => void
   onExportMarkdownToPdf: () => void
-  createArtifactRequest?: () => Promise<ArtifactWriteRequest>
+  
 }
 
 export function EditorPanelHeader({
@@ -97,7 +98,7 @@ export function EditorPanelHeader({
   onToggleMarkdownTableOfContents,
   onToggleMarkdownFrontmatter,
   onExportMarkdownToPdf,
-  createArtifactRequest
+  
 }: EditorPanelHeaderProps): React.JSX.Element {
   const t = useTranslate()
   const { owner: commentOwner, comments: diffComments } = useVisibleWorktreeDiffComments(
@@ -325,13 +326,7 @@ export function EditorPanelHeader({
           </Tooltip>
         </TooltipProvider>
       )}
-      {!isDiffSurface && createArtifactRequest ? (
-        <ArtifactPublishButton
-          sourceKey={editorArtifactSourceKey(activeFile)}
-          className="size-6 [&_svg]:size-3.5!"
-          createRequest={createArtifactRequest}
-        />
-      ) : null}
+      
       <EditorPanelActionsMenu
         fileLocationActions={
           activeFile.mode === 'edit' ||

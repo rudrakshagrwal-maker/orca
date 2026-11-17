@@ -1,4 +1,5 @@
-import { retainOpenCodeWriterTopology } from './cli-writer-observation'
+import { isForkTuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
+
 import { AgentHookAttributionDiagnostics } from '../../../shared/agent-hook-listener/state/agent-hook-attribution-diagnostics'
 import {
   buildSpoolHookBody,
@@ -14,10 +15,7 @@ import {
   isAgentHookSource,
   type AgentHookSource
 } from '../../../shared/agent-hook-listener/transport/agent-hook-relay'
-import {
-  bindOpenCodeTuiSession,
-  isOpenCodeSharedServerPost
-} from '../../../shared/agent-hook-listener/opencode-session-registry'
+
 import type { EnrichedAgentHookEventPayload, NormalizedLocalHook } from './server-types'
 import { AgentHookServerTmuxStatus } from './server-tmux-status'
 import { getClaudeObservedConfigDirs } from '../../claude-accounts/claude-profile-installed-router'
@@ -120,35 +118,14 @@ export abstract class AgentHookServerIngestNormalization extends AgentHookServer
   protected normalizeLocalHookPayload(
     source: AgentHookSource,
     body: unknown,
-    isReplay = false
+    _isReplay = false
   ): NormalizedLocalHook {
+    // RA: removed integrations cannot acquire status ownership or start background binders.
+    if (!isForkTuiAgent(source)) {
+      return { event: undefined }
+    }
     if (source !== 'claude' || typeof body !== 'object' || body === null) {
-      const event = normalizeHookPayload(this.state, source, body, this.env, {
-        admitOpenCodeTui: (identity) => {
-          const disposition = this.getAgentStatusDisposition(identity.paneKey, {
-            ...identity,
-            source,
-            isReplay
-          })
-          if (disposition === 'restart') {
-            this.observations.rebind(identity.paneKey)
-          }
-          return disposition !== 'suppress'
-        }
-      })
-      retainOpenCodeWriterTopology(event, source, body)
-      if (
-        event &&
-        event.hookEventName === 'SessionStart' &&
-        isOpenCodeSharedServerPost(source, body)
-      ) {
-        this.kickOpenCodeBinder()
-      }
-      return {
-        event,
-        onAccepted: () =>
-          bindOpenCodeTuiSession(this.state, source, body, event?.providerSession?.id)
-      }
+      return { event: normalizeHookPayload(this.state, source, body, this.env) }
     }
     const rawPaneKey = (body as Record<string, unknown>).paneKey
     const paneKey = typeof rawPaneKey === 'string' ? rawPaneKey.trim() : ''

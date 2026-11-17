@@ -86,7 +86,6 @@ function installBeforeQuitHandler(): void {
     }
     state.isQuitting = true
     flushUnsavedCloudSessions()
-    state.desktopRelayService?.fenceAndCloseNow()
     desktopConnectorCloud()?.fence()
     state.runtimeRpc?.setMobileRelayPairingProvider(null)
     state.unsubscribeAgentAwakeStatusChanges?.()
@@ -96,7 +95,6 @@ function installBeforeQuitHandler(): void {
     // Beforeunload may veto; wait for ref locks now but uninstall only after committed quit. isQuitting already blocks new attempts.
     state.repoMaintenanceShutdown = awaitPackedRefsLockRelease()
     // Delay PTY cleanup until scrollback capture; exit events otherwise unmount the renderer callbacks.
-    state.rateLimits?.stop()
     // History GC is idempotent and rescheduled next launch; a vetoed quit costs only a deferred sweep.
     cancelHistoryGc()
   })
@@ -116,7 +114,6 @@ function installWillQuitHandler(): void {
     const paneGridFlush = state.runtime?.flushPaneGrids() ?? null
     // A renderer can veto before-quit; push must survive until quit is committed.
     markHostShuttingDown()
-    state.desktopPushService?.stop()
     state.unsubscribeSystemResumeBroadcast?.()
     state.unsubscribeSystemResumeBroadcast = null
     state.stopDesktopPresenceReporter?.()
@@ -134,26 +131,12 @@ function installWillQuitHandler(): void {
     // Remove the Windows tray icon only after renderer vetoes are past.
     destroySystemTray()
     // Final stats flush closes working sessions synchronously; quit supplies no terminating hook to preserve their duration.
-    state.starNag?.stop()
-    state.automations?.stop()
-    // Why: plugin hosts are forked children; dispose sends shutdown and
-    // escalates to SIGKILL so they cannot outlive the app. The promise joins
-    // the teardown barrier below — quitting before it resolves would let
-    // Electron exit first and orphan the hosts.
-    state.pluginKillListService?.dispose()
-    state.pluginKillListService = null
-    state.pluginMarketplaceService = null
-    state.pluginMarketplaceInstaller = null
-    state.pluginAutoUpdater?.dispose()
-    state.pluginAutoUpdater = null
-    state.pluginUpdateReviewNotices = null
-    const pluginHostShutdown = state.pluginService?.dispose() ?? Promise.resolve()
+    // RA: no removed scheduler/plugin services participate in shutdown.
     const codexBackfillRecoveryShutdown = stopCodexStateDbBackfillRecoveries()
     stopCodexAccountSessionBridges()
     // Stamp resume reasons before stopping sessions; an update restart was not a user quit.
     setStructuredAgentSessionTeardownTrigger(updateQuitInProgress ? 'update' : 'quit')
     const structuredAgentSessionShutdown = stopStructuredAgentSessionRuntime()
-    state.pluginService = null
     setUnreadDockBadgeCount(0)
     // Wait briefly for ref maintenance instead of killing mid-prune and stranding its lock; an orphan can finish safely.
     const refMaintenanceShutdown = settleWithinMs(
@@ -205,8 +188,6 @@ function installWillQuitHandler(): void {
         .catch(() => {})
     browserManager.setBrowserGuestStateChangedListener(null)
     browserManager.setOffscreenTabOpener(null)
-    const emulatorShutdown =
-      state.runtime?.getEmulatorBridge()?.destroyAllSessions() ?? Promise.resolve()
     const finalStore = state.store
     const beginSshShutdownAndFinalSave = () => {
       // Mark SSH leases detached synchronously immediately before final flush; no await may separate mutation from save.
@@ -235,13 +216,7 @@ function installWillQuitHandler(): void {
     const sshShutdown = Promise.resolve(finalSaves).then((saves) => saves.sshShutdown)
     const storeFlush = Promise.resolve(finalSaves).then((saves) => saves.storeFlush)
     const watcherShutdown = Promise.resolve(finalSaves).then((saves) => saves.watcherShutdown)
-    // Capture queued usage writes before awaiting teardown or quit can lose the last enabled/scan snapshot.
-    const usageCacheFlush = Promise.all([
-      state.claudeUsage?.flush(),
-      state.codexUsage?.flush(),
-      state.openCodeUsage?.flush(),
-      state.museUsage?.flush()
-    ]).then(() => {})
+    // RA: no usage tracking queues remain to flush.
     disposeDesktopBrowserBridge()
     const browserClientHostShutdown = shutdownPairedRuntimeBrowserClientHosts()
     const skillUploadShutdown = state.runtime?.disposeSkillUploadSessions() ?? Promise.resolve()
@@ -260,11 +235,7 @@ function installWillQuitHandler(): void {
           })
           .catch((error) => console.error('[runtime] Failed to stop local RPC transport:', error))
       : Promise.resolve()
-    // After session and RPC teardown, which can still retire notifications; will-quit is past every veto.
-    const notificationDismissalClose = Promise.allSettled([
-      structuredAgentSessionShutdown,
-      rpcStopAndClear
-    ]).then(() => state.runtime?.closeNotificationDismissals())
+    // RA: mobile notification persistence is removed from the quit barrier.
     // Normal quits preserve the detached daemon for warm reattach; dev-parent death leaves its temporary profile ownerless.
     const daemonTeardown = isDevParentShutdownRequested() ? shutdownDaemon() : disconnectDaemon()
     // Bound unsettled transports and final writes so quit cannot hang (#9447). Failures still exit; atomic swaps preserve old files if the final debounce is lost.
@@ -273,18 +244,14 @@ function installWillQuitHandler(): void {
       { name: 'browser', promise: browserShutdown },
       { name: 'runtime-rpc', promise: rpcStopAndClear },
       { name: 'watchers', promise: watcherShutdown },
-      { name: 'emulator', promise: emulatorShutdown },
       { name: 'browser-client-hosts', promise: browserClientHostShutdown },
       { name: 'local-ssh-browser-routes', promise: localSshRouteShutdown },
       { name: 'ssh', promise: sshShutdown },
-      { name: 'plugin-hosts', promise: pluginHostShutdown },
       { name: 'skill-uploads', promise: skillUploadShutdown },
       { name: 'grok-hooks', promise: grokHookCleanup },
       { name: 'ref-maintenance', promise: refMaintenanceShutdown },
       { name: 'codex-backfill-recovery', promise: codexBackfillRecoveryShutdown },
       { name: 'structured-agent-session', promise: structuredAgentSessionShutdown },
-      { name: 'usage-cache', promise: usageCacheFlush },
-      { name: 'notification-dismissals', promise: notificationDismissalClose },
       { name: 'stats', promise: statsFlush },
       { name: 'state', promise: storeFlush }
     ])

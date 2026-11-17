@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { AgentLaunchPreferences } from '../../../../../../shared/agent-session/agent-session-host-authority'
 import { checkAgentLaunchModelPreferences } from '../../../../../../shared/agent-launch/choices/agent-launch-model-preferences'
 import { ORCHESTRATION_WORKER_LAUNCH_PREFERENCES_RUNTIME_CAPABILITY } from '../../../../../../shared/orchestration/orchestration-runtime-capabilities'
@@ -45,7 +46,7 @@ export function createPendingWorkerLaunchReceipt(args: {
 
 export function resolveWorkerLaunchPreferences(args: {
   agent: TuiAgent
-  openCodeModelLaunchSupported?: boolean
+
   createsWorktree?: boolean
   model?: string
   effort?: string

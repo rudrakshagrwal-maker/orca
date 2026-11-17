@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { randomUUID } from 'node:crypto'
 import type {
   ClaudeAccountSignIn,
@@ -8,8 +9,7 @@ import { claudeStateFile, readClaudeFolderLogin } from './claude-account-folder'
 import type {
   ClaudeAccountRuntime,
   ClaudeAccountSelection,
-  ClaudeAccountStore,
-  ClaudeAccountUsage
+  ClaudeAccountStore
 } from './claude-account-selection'
 import type { ClaudeCommandConfig } from './claude-command-process'
 import { findDuplicateClaudeAccount } from './claude-duplicate-account'
@@ -29,7 +29,7 @@ export class ClaudeAccountRegistration {
   constructor(
     private readonly deps: {
       store: ClaudeAccountStore
-      rateLimits: ClaudeAccountUsage
+
       runtimeAuth: ClaudeAccountRuntime
       selection: ClaudeAccountSelection
     }
@@ -83,7 +83,7 @@ export class ClaudeAccountRegistration {
     signIn: Omit<ClaudeAccountSignIn, 'configDir'>,
     notSignedInMessage = CLAUDE_SIGN_IN_NOT_FINISHED_MESSAGE
   ): Promise<ClaudeRateLimitAccountsState> {
-    const { store, rateLimits, runtimeAuth, selection } = this.deps
+    const { store, runtimeAuth, selection } = this.deps
     const saved = selection.findAccount(signIn.accountId)
     const target = saved ? getClaudeSelectionTargetForAccount(saved) : signInTarget(signIn)
     // Merge onboarding into the state file created by login.
@@ -128,10 +128,10 @@ export class ClaudeAccountRegistration {
         }
       ]
     })
-    rateLimits.evictInactiveClaudeCache(signIn.accountId)
+
     // Publish the new folder for terminals using the selected account.
     await runtimeAuth.syncForCurrentSelection(target)
-    selection.refreshUsage(undefined, target)
+
     return selection.list()
   }
 }

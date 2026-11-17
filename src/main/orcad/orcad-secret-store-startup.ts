@@ -1,14 +1,10 @@
 import { join } from 'node:path'
+import { homedir } from 'node:os'
 import { prepareOrcadSecretStore } from './orcad-host-adapters'
 
+// RA: keep host encryption ready without visiting removed integrations' credential stores.
 export async function prepareOrcadSecretStoreAndMigrate(userDataPath: string): Promise<void> {
-  const { getSecretStore } = await import('../../shared/secret-store')
   const { reportSecretProtectionGap } = await import('../host/secret-protection-report')
-  const { migratePlaintextCredentials, orcadCredentialRoot } =
-    await import('./orcad-plaintext-credential-migration')
-  // Keep sealing keys outside disposable ORCA_USER_DATA roots.
-  if (await prepareOrcadSecretStore(orcadCredentialRoot(), userDataPath)) {
-    migratePlaintextCredentials(getSecretStore())
-  }
+  await prepareOrcadSecretStore(join(homedir(), '.orca'), userDataPath)
   reportSecretProtectionGap({ dataFile: join(userDataPath, 'orca-data.json') })
 }

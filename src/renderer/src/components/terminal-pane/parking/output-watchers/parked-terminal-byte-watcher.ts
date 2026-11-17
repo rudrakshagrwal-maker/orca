@@ -1,3 +1,4 @@
+// RA: Terminal panes retain buffered output without removed background services.
 /** Keep mounted-pane bell/title/completion/PR-link policy active while parking unmounts TerminalPane. */
 import { isClaudeIdleEdge } from '@/components/terminal-pane/agent-status/agent-idle-edge'
 import type { AgentIdleEdgeMeta } from '../../../../../../shared/terminal/output/terminal-output-side-effects'
@@ -5,21 +6,16 @@ import { resolveTerminalNotificationOwner } from '@/attention/notification-subje
 import type { NotificationWorkspaceOwner } from '../../../../../../shared/notification-source'
 import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
 import { useAppStore } from '@/store/index'
-import { createTerminalGitHubPRLinkDetector } from '../../../../../../shared/terminal/links/terminal-github-pr-link-detector'
+
 import {
   AGENT_TASK_COMPLETE_NOTIFICATION_GRACE_MS,
   AGENT_TASK_COMPLETE_NOTIFICATION_MAX_WAIT_MS,
   isAgentTaskCompleteOsNotificationEnabledFromState,
   isAgentTaskCompleteTrackingEnabledFromState
 } from '../../notifications/agent-task-complete-policy'
-import { createCommandCodeOutputStatusDetector } from '../../../../../../shared/command-code-output-status'
-import { createOsc133CommandFinishedScanner } from '../../../../../../shared/terminal/output/terminal-osc133-command-finished'
-import {
-  createParkedTerminalCommandStatusPolicy,
-  readInFlightCommandCodeTurn
-} from './parked-terminal-command-status'
-import { subscribeToPtyData } from '../../pty-transport/delivery/pty-data-sidecar-subscriptions'
-import { createPtyOutputProcessor } from '../../pty-transport/output/pty-output-processor'
+
+import { createParkedTerminalCommandStatusPolicy } from './parked-terminal-command-status'
+
 import { isRendererHiddenPtyDeliveryGateEnabled } from '../../pty-transport/delivery/terminal-hidden-delivery-gate'
 import {
   isMainTerminalSideEffectAuthorityForPty,
@@ -245,44 +241,20 @@ export function startParkedTerminalByteWatcher(
     isRendererHiddenPtyDeliveryGateEnabled(useAppStore.getState().settings)
 
   // Reuse live-path parsing and seed working identity for completion after park.
-  const processor = factSideEffectAuthority
-    ? null
-    : createPtyOutputProcessor({
-        ...(options.initialTitle !== undefined ? { initialAgentTitle: options.initialTitle } : {}),
-        ...sideEffectCallbacks
-      })
+
   // In byte mode, scan PR links; main-authority mode already receives them as facts.
-  const observeTerminalGitHubPRLink = factSideEffectAuthority
-    ? null
-    : createTerminalGitHubPRLinkDetector()
+
   // Byte mode uses the same shared parsers as mounted panes; main mode receives equivalent facts.
-  const commandFinishedScanner = factSideEffectAuthority
-    ? null
-    : createOsc133CommandFinishedScanner(commandStatusPolicy.onCommandFinished)
+
   // Seed Command Code’s in-flight turn: the banner is gone and the recreated detector otherwise misses return to idle.
-  const commandCodeOutputStatusDetector = factSideEffectAuthority
-    ? null
-    : createCommandCodeOutputStatusDetector({
-        inFlightTurn: readInFlightCommandCodeTurn(paneKey),
-        onWorking: commandStatusPolicy.onCommandCodeWorking,
-        onDone: commandStatusPolicy.onCommandCodeDone
-      })
+
   const unregisterFactConsumer = factSideEffectAuthority
     ? registerTerminalSideEffectFactConsumer({
         ptyId,
         // Why: ordinary park already has a pane-owned title; the flag below requests a snapshot only when no pane did.
         callbacks: {
           ...sideEffectCallbacks,
-          onCommandFinished: commandStatusPolicy.onCommandFinished,
-          onCommandCodeWorking: commandStatusPolicy.onCommandCodeWorking,
-          onCommandCodeDone: commandStatusPolicy.onCommandCodeDone,
-          onPrLink: (link) =>
-            useAppStore.getState().observeTerminalGitHubPullRequestLink(worktreeId, link, {
-              tabId,
-              paneKey,
-              ptyId,
-              executionHostId: workspaceOwner?.executionHostId ?? undefined
-            })
+          onCommandFinished: commandStatusPolicy.onCommandFinished
         },
         // Only activation-deferred panes need an initial title snapshot; ordinary parks already have a pane title.
         restoreTitleOnRegister: options.restoreTitleOnRegister === true
@@ -294,27 +266,7 @@ export function startParkedTerminalByteWatcher(
     ? acquireHiddenRendererPtyDeliveryClaim(ptyId)
     : null
 
-  const processLiveData = (data: string): void => {
-    if (!processor) {
-      return
-    }
-    processor.processData(data, {})
-    commandFinishedScanner?.scan(data)
-    commandCodeOutputStatusDetector?.observe(data)
-    if (observeTerminalGitHubPRLink) {
-      for (const link of observeTerminalGitHubPRLink(data)) {
-        useAppStore.getState().observeTerminalGitHubPullRequestLink(worktreeId, link, {
-          tabId,
-          paneKey,
-          ptyId,
-          executionHostId: workspaceOwner?.executionHostId ?? undefined
-        })
-      }
-    }
-  }
   // Paired hosts deliver facts on the environment stream; parked PTYs consume no multiplex slots or raw bytes.
-  const unsubscribeByteParsers =
-    processor === null ? null : subscribeToPtyData(ptyId, processLiveData)
 
   const dispose = (): void => {
     if (disposed) {
@@ -322,14 +274,13 @@ export function startParkedTerminalByteWatcher(
     }
     disposed = true
     // Drop the per-cycle processor gauge before store/IPC cleanup can throw and strand it.
-    processor?.disposePendingSideEffectGauge()
+
     // Unhide before reveal remount registers handlers so main resumes delivery and emits its restore marker.
     releaseHiddenDeliveryClaim?.()
-    unsubscribeByteParsers?.()
+
     unregisterFactConsumer?.()
     // Dispose old policy state before the revealed pane’s parsers take over.
-    processor?.clearAccumulatedState()
-    commandFinishedScanner?.reset()
+
     commandStatusPolicy.dispose()
     clearBellNotificationTimer()
     clearAgentTaskCompleteTimer()

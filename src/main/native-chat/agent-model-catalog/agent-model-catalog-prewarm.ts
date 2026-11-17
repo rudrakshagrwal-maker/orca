@@ -1,3 +1,4 @@
+import { isForkTuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import type { AgentSessionAccountHome } from '../../../shared/agent-session/lifecycle/agent-session-account-home'
 import type {
   AgentModelCatalogService,
@@ -49,6 +50,8 @@ export async function prewarmAgentModelCatalog(
   // Unused agents wait for their first chat instead of spawning speculative probes.
   const used = Object.keys(probes).filter(
     (agent) =>
+      // RA: old saved agents cannot start probes on launch.
+      isForkTuiAgent(agent) &&
       !deps.listsInChatFolder?.has(agent) &&
       (deps.store.hasEntryForAgent(agent) || deps.hasChatRecords?.(agent) === true)
   )

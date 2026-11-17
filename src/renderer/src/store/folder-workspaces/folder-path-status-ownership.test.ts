@@ -1,10 +1,11 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import type * as RuntimeRpcCallModule from '@/runtime/rpc/calls/runtime-rpc-call'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FolderWorkspacePathStatus } from '../../../../shared/folder-workspaces/folder-workspace-path-status'
 
 import './folder-path-status'
 import '../../../../shared/project-groups'
-import { makeFolderWorkspace } from '@/components/worktree-jump/worktree-jump-palette-test-fixtures'
+import { makeFolderWorkspace } from '@/components/test-support/workspace-layout-test-fixtures'
 import { createTestStore } from '../testing/app-store-test-fixture'
 
 const mocks = vi.hoisted(() => ({ getPathStatus: vi.fn(), callRuntimeRpc: vi.fn() }))

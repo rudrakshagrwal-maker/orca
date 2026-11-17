@@ -1,4 +1,5 @@
-import { CLAUDE_PRE_TOOL_USE_DECISION } from '../agent-hooks/tool-events/agent-tool-plugin-hooks'
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
+import { CLAUDE_PRE_TOOL_USE_DECISION } from '../agent-hooks/server/claude-hook-decision-protocol'
 import { CLAUDE_PERMISSION_REQUEST_DECISION } from '../agent-hooks/server/claude-permission-hook-hold'
 
 /**

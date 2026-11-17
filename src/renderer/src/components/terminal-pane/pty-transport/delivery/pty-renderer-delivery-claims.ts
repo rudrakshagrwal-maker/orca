@@ -15,6 +15,11 @@ export type RendererPtyVisibilityClaimOwner = object & {
 const visibilityClaimsByOwner = new Map<RendererPtyVisibilityClaimOwner, VisibilityClaim>()
 const visibleClaimCounts = new Map<string, number>()
 
+// RA: the watchdog only polls while a mounted terminal is visible.
+export function hasVisibleRendererPtys(): boolean {
+  return visibleClaimCounts.size > 0
+}
+
 function sendHiddenState(ptyId: string, hidden: boolean): void {
   recordTerminalFreezeBreadcrumb(hidden ? 'renderer-gate-mark' : 'renderer-gate-unmark', {
     id: redactPtyIdForDiagnostics(ptyId)

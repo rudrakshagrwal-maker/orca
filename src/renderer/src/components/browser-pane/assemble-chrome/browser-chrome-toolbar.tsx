@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useRef } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -50,7 +51,6 @@ export function BrowserChromeToolbar({
   elementTools,
   markup,
   notes,
-  shareControl,
   overflowMenu,
   closeTabOwner,
   showTourAnchors = false,
@@ -71,7 +71,7 @@ export function BrowserChromeToolbar({
   markup: BrowserChromeMarkupTool
   notes?: BrowserChromeNoteActions | null
   /** Share beside a document chip, which can't hold a nested button the way the address field does. */
-  shareControl?: React.ReactNode
+
   overflowMenu: (props: BrowserChromeOverflowMenuProps) => React.ReactNode
   /** The page whose tab the toolbar X closes in a floating split, where the panel's one tab row may be showing another split. */
   closeTabOwner: { worktreeId: string; browserPageId: string }
@@ -118,7 +118,6 @@ export function BrowserChromeToolbar({
       reloadLabel={reloadLabel}
       showTourAnchors={showTourAnchors}
     >
-      {shareControl}
       <BrowserAnnotateSplitButton
         tools={elementTools}
         markup={markup}

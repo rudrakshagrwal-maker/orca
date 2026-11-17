@@ -3,9 +3,10 @@ import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import type { WorkspaceSessionState } from '../../../../shared/workspace-session/workspace-session-state-types'
 import { layoutContainsLeafId } from '../../../../shared/workspace-layout/terminal-pane-tree'
 import { worktreeIdsEqual } from '../../../../shared/worktree/id'
-import { RuntimeArtifactOperations } from '../../artifacts/runtime-artifact-operations'
+// RA: persisted terminals do not inherit artifact sharing operations.
+import { LegacyWorkerTerminalSurface } from '../../orchestration/terminal-authority/legacy-worker-terminal-surface'
 
-export abstract class OrcaRuntimeWithHasExactPersistedTerminalSurfaceIdentity extends RuntimeArtifactOperations {
+export abstract class OrcaRuntimeWithHasExactPersistedTerminalSurfaceIdentity extends LegacyWorkerTerminalSurface {
   protected abstract getOwnWorkspaceSessionForWorktree(
     worktreeId: string
   ): WorkspaceSessionState | null

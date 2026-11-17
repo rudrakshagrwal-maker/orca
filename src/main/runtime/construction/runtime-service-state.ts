@@ -18,7 +18,6 @@ import type { RuntimeWorktreeLifecycleEvent } from '../workspaces/lifecycle/work
 import type * as WorktreeScan from '../workspaces/catalog/runtime-worktree-scan-state'
 import type { AgentBrowserBridge } from '../../browser/agent-browser/agent-browser-bridge'
 import type { BrowserBackend } from '../../browser/browser-backend'
-import type { EmulatorBridge } from '../../emulator/emulator-bridge'
 import { RuntimeResolvedWorktreeCache } from '../workspaces/catalog/runtime-resolved-worktree-cache'
 import { RuntimeWorktreeLineageController } from '../workspaces/lineage/runtime-worktree-lineage-controller'
 import { createRuntimeAgentProjections } from './runtime-agent-projections'
@@ -35,9 +34,7 @@ import {
 import { RuntimeTerminalList, sleepingTerminalLeaf } from '../terminal/query/runtime-terminal-list'
 import { RuntimeManagedWorktreeQueries } from '../workspaces/catalog/runtime-managed-worktree-queries'
 import { RuntimePtyForegroundAgent } from '../terminal/lifecycle/runtime-pty-foreground-agent'
-import { OpenCodeRunLifetimeStatus } from '../terminal/output/opencode-run-lifetime-status'
-import { readLocalPtyForegroundCommandLine } from '../terminal/lifecycle/local-pty-foreground-command-line'
-import { isAgentStatusHooksEnabledForAgent } from '../../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
+
 import { RuntimeTerminalAgentStatusQuery } from '../terminal/query/runtime-terminal-agent-status-query'
 import type { OrchestrationDb } from '../orchestration/db/orchestration-db'
 import { OrchestrationMailboxOwner } from '../orchestration/mailbox/routing/mailbox-owner'
@@ -103,8 +100,6 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
   protected agentBrowserBridge: AgentBrowserBridge | null = null
 
   protected offscreenBrowserBackend: BrowserBackend | null = null
-
-  protected emulatorBridge: EmulatorBridge | null = null
 
   protected readonly resolvedWorktrees = new RuntimeResolvedWorktreeCache()
 
@@ -282,32 +277,6 @@ export abstract class OrcaRuntimeWithStopRequestedPtyIds extends OrcaRuntimeWith
         this.touchMobileSessionSnapshotsForPty(ptyId)
       }
     }
-  })
-
-  protected readonly openCodeRunLifetime = new OpenCodeRunLifetimeStatus({
-    isObservablePty: (ptyId) => {
-      const pty = this.ptysById.get(ptyId)
-      // SSH/WSL foregrounds belong to the host/guest, not this process.
-      return !!pty && !pty.connectionId && !pty.wslDistro && !this.wslDistroByPtyId.has(ptyId)
-    },
-    isStatusEnabled: (agent) =>
-      isAgentStatusHooksEnabledForAgent(this.store?.getSettings?.(), agent),
-    readForegroundProcessName: async (ptyId) => {
-      const read = await this.ptyForegroundAgent.read(ptyId)
-      return read?.available ? read.process : null
-    },
-    readForegroundCommandLine: (ptyId, foregroundProcess) =>
-      readLocalPtyForegroundCommandLine(ptyId, foregroundProcess),
-    // Renderer command-finished can drop unchanged status rows; publish Done after that fact.
-    publish: (ptyId, payload, yieldsToHookSince) =>
-      this.runAfterPendingTerminalSideEffectFacts(ptyId, () =>
-        this.emitTerminalAgentStatusEvents(
-          ptyId,
-          { payloads: [payload] },
-          { origin: 'process', yieldsToHookSince }
-        )
-      ),
-    now: () => Date.now()
   })
 
   protected readonly terminalAgentStatus = new RuntimeTerminalAgentStatusQuery({

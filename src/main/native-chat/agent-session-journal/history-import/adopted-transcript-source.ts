@@ -1,14 +1,12 @@
-import { dirname, join } from 'node:path'
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
+
 import { sessionIdFromFileName } from '../../../ai-vault/session-scanner-accumulator'
 import type { AgentType } from '../../../../shared/agent-status/contracts/agent-status-types'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
-import { readNodeFileWithinLimit } from '../../../../shared/file-content/node-bounded-file-reader'
+
 import { extractString, parseJsonObject } from '../../../ai-vault/session-scanner-values'
 import { asRecord } from '../../../ai-vault/session-scanner-record-value'
 
-import { readOpenCodeTranscriptSignalViaWorker } from '../../../ai-vault/scanners/opencode/reader-transport/session-scanner-opencode-sqlite-worker-spawn'
-import { samePiDirectory } from '../../../pi/rpc-launch-resolution'
-import { admitTranscriptPath } from '../../transcript-path-admission'
 import { adoptedDirectoryProbes } from './adopted-directory-probe'
 
 export type AdoptedTranscriptSource = {
@@ -23,7 +21,7 @@ export async function assertAdoptedSourceIdentity(
   actual: { sessionId: string | null; cwd: string | null },
   requireCwd = true,
   signal?: AbortSignal,
-  agent?: AgentType
+  _agent?: AgentType
 ): Promise<void> {
   if (actual.sessionId !== source.providerSessionId) {
     throw new Error('The saved conversation does not match the requested provider identity.')
@@ -40,10 +38,7 @@ export async function assertAdoptedSourceIdentity(
   ) {
     return
   }
-  const matched =
-    agent === 'pi'
-      ? await samePiDirectory(actual.cwd, source.workspaceCwd)
-      : await adoptedDirectoryProbes.matches(source.workspaceCwd, actual.cwd, signal)
+  const matched = await adoptedDirectoryProbes.matches(source.workspaceCwd, actual.cwd, signal)
   if (!matched) {
     throw new Error('This conversation belongs to another directory.')
   }
@@ -76,27 +71,9 @@ export function adoptedTranscriptSourceObserver(input: {
         sawCodexMetadata = true
         const payload = asRecord(record.payload)
         sessionId = extractString(payload?.id) ?? sessionId
-      } else if ((input.agent === 'omp' || input.agent === 'pi') && record.type === 'session') {
-        sessionId = extractString(record.id)
-        cwd = extractString(record.cwd)
       }
     },
     async validate() {
-      if (input.agent === 'grok') {
-        const summaryPath = join(dirname(input.filePath), 'summary.json')
-        if (!(await admitTranscriptPath(dirname(input.filePath), summaryPath))) {
-          throw new Error('The conversation summary is outside its storage directory.')
-        }
-        const { buffer } = await readNodeFileWithinLimit(summaryPath, input.maxSourceBytes, {
-          regularFileOnly: true
-        })
-        const summary = asRecord(asRecord(JSON.parse(buffer.toString('utf8')))?.info)
-        sessionId = extractString(summary?.id) ?? sessionIdFromFileName(dirname(input.filePath))
-        cwd = extractString(summary?.cwd)
-      }
-      if (input.agent === 'pi' && sessionIdFromFileName(input.filePath) !== sessionId) {
-        throw new Error('The saved conversation header does not match its file identity.')
-      }
       await assertAdoptedSourceIdentity(
         input.source,
         { sessionId, cwd },
@@ -106,27 +83,4 @@ export function adoptedTranscriptSourceObserver(input: {
       )
     }
   }
-}
-
-export async function validateAdoptedOpenCodeSource(
-  dbPath: string,
-  source: AdoptedTranscriptSource,
-  signal?: AbortSignal
-): Promise<void> {
-  const metadata = await readOpenCodeTranscriptSignalViaWorker(
-    {
-      dbPath,
-      sessionId: source.providerSessionId
-    },
-    signal
-  )
-  await assertAdoptedSourceIdentity(
-    source,
-    {
-      sessionId: metadata ? source.providerSessionId : null,
-      cwd: metadata?.cwd ?? null
-    },
-    true,
-    signal
-  )
 }

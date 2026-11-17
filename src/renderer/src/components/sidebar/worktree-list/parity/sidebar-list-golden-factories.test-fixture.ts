@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import type { FolderWorkspace } from '../../../../../../shared/folder-workspaces/folder-workspace-types'
 import type { PRState } from '../../../../../../shared/github/pull-request-types'
 import type { ProjectGroup } from '../../../../../../shared/project-group-types'

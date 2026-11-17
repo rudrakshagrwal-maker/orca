@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { DiffTooLargeNotice } from '../large-files/DiffTooLargeNotice'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { editor } from 'monaco-editor'
@@ -21,7 +22,7 @@ import { monacoFindOptions } from '../../monaco-find-options'
 import { buildEditorUnicodeHighlightOptions } from '../../editor-unicode-highlight-options'
 import { installDiffEditorShiftWheelScroll } from '../monaco-view/diff-editor-shift-wheel-scroll'
 import { installCombinedDiffCursorReveal } from '../../combined-diff/scroll-viewport/combined-diff-cursor-reveal'
-import { usePluginSyntaxLanguage } from '../../use-plugin-syntax-language'
+
 import {
   PLUGIN_SYNTAX_EDITOR_OPTIONS,
   applyModelLanguage
@@ -73,7 +74,7 @@ export function DiffSectionBody({
   onMount
 }: DiffSectionBodyProps): React.JSX.Element {
   const t = useTranslate()
-  const language = usePluginSyntaxLanguage(section.path, coreLanguage)
+  const language = coreLanguage
   const monacoTheme = useMonacoTheme(isDark)
   const renderLimit = section.largeDiffRenderLimit?.limited ? section.largeDiffRenderLimit : null
   const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null)

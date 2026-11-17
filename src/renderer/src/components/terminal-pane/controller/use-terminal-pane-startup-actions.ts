@@ -1,8 +1,9 @@
+// RA: Terminal panes retain buffered output without removed background services.
 import { useQueuedTabStartupAcknowledgement } from '../mounting/use-queued-tab-startup-acknowledgement'
 import { useVisibleTerminalMeasurement } from '../viewport/use-visible-terminal-measurement'
 import { useIssueCommandSplitSettlement } from '../layout/split/use-issue-command-split-settlement'
 import { useRestoredSessionBannerActions } from '../session-restore/use-restored-session-banner-actions'
-import { useTerminalSessionSaveRecovery } from '../errors/use-terminal-session-save-recovery'
+
 import { useTerminalQuickCommandEditor } from '../quick-commands/use-terminal-quick-command-editor'
 import { useTerminalLinkRoutingPreference } from '../links/use-terminal-link-routing-preference'
 import { useRef } from 'react'
@@ -23,16 +24,14 @@ export function useTerminalPaneStartupActions(controller: TerminalPaneStoreContr
     isVisible,
     managerRef,
     onPtyExit,
-    openSpacePage,
     quickCommandEditorHostId,
-    refreshWorkspaceSpace,
     requestLinkRoutingPreference,
     sessionRestoredBannerPaneIds,
     setQuickCommandDraft,
     setQuickCommandEditorHostId,
     setQuickCommandEditorOpen,
     setSessionRestoredBannerPaneIds,
-    setSessionStateSaveFailureMessage,
+
     setShouldMeasureHiddenStartup,
     setTerminalError,
     setTerminalErrorsByPaneId,
@@ -67,11 +66,7 @@ export function useTerminalPaneStartupActions(controller: TerminalPaneStoreContr
     sessionRestoredBannerPaneIds,
     containerRef
   })
-  const { openDiskSpaceAnalyzer } = useTerminalSessionSaveRecovery({
-    setSessionStateSaveFailureMessage,
-    openSpacePage,
-    refreshWorkspaceSpace
-  })
+
   const {
     quickCommandRepoId,
     quickCommandRepoLabel,
@@ -115,7 +110,6 @@ export function useTerminalPaneStartupActions(controller: TerminalPaneStoreContr
     clearSessionRestoredBannerForPane,
     showRestoredSessionBanner,
     dismissSessionRestoredBanner,
-    openDiskSpaceAnalyzer,
     quickCommandRepoId,
     quickCommandRepoLabel,
     quickCommandGroupId,

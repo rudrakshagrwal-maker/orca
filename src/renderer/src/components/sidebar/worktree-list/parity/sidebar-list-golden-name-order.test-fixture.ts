@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import type { Worktree } from '../../../../../../shared/worktree/types'
 import type { AppState } from '@/store/types'
 import { GOLDEN_NOW, folder, group, repo, wt } from './sidebar-list-golden-factories.test-fixture'
@@ -64,7 +65,7 @@ export function goldenNameOrderState(): Partial<AppState> {
       folder('fw-angstrom-accent', 'pg-eclair', { name: 'Ångström' }),
       folder('fw-eclair', 'pg-angstrom', { name: 'eclair' })
     ],
-    prCache: {},
+
     detectedWorktreesByRepo: {},
     pendingWorktreeCreations: {}
   }

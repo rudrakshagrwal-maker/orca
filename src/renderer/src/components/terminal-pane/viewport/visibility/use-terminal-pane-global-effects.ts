@@ -1,3 +1,7 @@
+import {
+  getWindowParkVisible,
+  subscribeWindowParkVisibility
+} from '@/lib/window-activity/window-park-visibility'
 import { useRendererPtyVisibilityClaims } from '../../pty-transport/delivery/use-renderer-pty-visibility-claims'
 import { useActiveRendererPty } from '../../pty-transport/delivery/use-active-renderer-pty'
 import { syncPaneOutputCadences } from '../../pty-transport/renderer-active-pty'
@@ -5,7 +9,7 @@ import { useTerminalPaneExpandEvent } from '../../layout/expand/use-terminal-pan
 import { useTerminalPaneFocusEvent } from '../../input/focus/use-terminal-pane-focus-event'
 import { useTerminalProgrammaticPasteEvent } from '../../input/paste/use-terminal-programmatic-paste-event'
 import { useTerminalDictationInsertEvent } from '../../input/paste/use-terminal-dictation-insert-event'
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
 import type { PtyTransport } from '../../pty-transport/pty-transport-types'
 import type { IDisposable } from '@xterm/xterm'
@@ -47,7 +51,6 @@ export function useTerminalPaneGlobalEffects({
   isChatViewMode = false,
   isWorktreeActive = isVisible,
   isSyncFitEnabled,
-  warmRendererWhileHidden = false,
   paneCount,
   managerRef,
   containerRef,
@@ -63,8 +66,13 @@ export function useTerminalPaneGlobalEffects({
   const hasCompletedVisibleResumeRef = useRef(false)
   const renderingSuspendedByVisibilityRef = useRef(false)
   const hiddenReasonRef = useRef<TerminalHiddenReason | null>(null)
-  const warmedWhileHiddenRef = useRef(false)
-  const rendererVisible = isVisible && isWorktreeActive
+  // RA: document-hidden windows suspend the same way as hidden tabs.
+  const windowVisible = useSyncExternalStore(
+    subscribeWindowParkVisibility,
+    getWindowParkVisible,
+    getWindowParkVisible
+  )
+  const rendererVisible = isVisible && isWorktreeActive && windowVisible
   // Watch leaf → PTY rebinds even without activity/visibility changes so main grants the live PTY its interactive reserve.
   const activeLeafPtyId = useAppStore((state) => {
     const layout = state.terminalLayoutsByTabId[tabId]
@@ -99,7 +107,7 @@ export function useTerminalPaneGlobalEffects({
 
   useRendererPtyVisibilityClaims({ paneTransportsRef, rendererVisible })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const manager = managerRef.current
     if (!manager) {
       return
@@ -132,32 +140,10 @@ export function useTerminalPaneGlobalEffects({
       wasWorktreeActiveRef.current = isWorktreeActive
       hasCompletedVisibleResumeRef.current = true
       hiddenReasonRef.current = null
-      warmedWhileHiddenRef.current = false
       applyPendingFollowOutputRequests()
       return
     }
-    if (warmRendererWhileHidden && isWorktreeActive === false) {
-      if (wasVisible) {
-        captureViewportPositions(false)
-      }
-      manager.resumeRendering()
-      warmedWhileHiddenRef.current = true
-      renderingSuspendedByVisibilityRef.current = false
-      hiddenReasonRef.current = 'surface'
-      wasVisibleRef.current = false
-      wasWorktreeActiveRef.current = isWorktreeActive
-      return
-    }
-    if (warmedWhileHiddenRef.current) {
-      // Warm-up ended without a reveal; release the context like any hidden worktree.
-      warmedWhileHiddenRef.current = false
-      manager.suspendRendering()
-      renderingSuspendedByVisibilityRef.current = true
-      hiddenReasonRef.current = 'surface'
-      wasVisibleRef.current = false
-      wasWorktreeActiveRef.current = isWorktreeActive
-      return
-    }
+    // RA: hidden panes always suspend; speculative warm WebGL is retired.
     const hiddenState = hideTerminalVisibility({
       manager,
       wasVisible,
@@ -176,7 +162,6 @@ export function useTerminalPaneGlobalEffects({
     isChatViewMode,
     isWorktreeActive,
     rendererVisible,
-    warmRendererWhileHidden,
     applyPendingFollowOutputRequests,
     captureViewportPositions,
     containerRef,

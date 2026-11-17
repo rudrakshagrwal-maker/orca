@@ -23,6 +23,48 @@ function success(...ids: string[]): AgentModelCatalogSuccess {
 }
 
 describe('agent model catalog store', () => {
+  // RA: display reads cannot silently replace the launch discovery after its TTL.
+  it('retains the launch catalog until explicit refresh and fences other accounts', async () => {
+    let now = 1_000
+    const store = new AgentModelCatalogStore({ oncePerLaunch: true, now: () => now })
+    const first = await store.refresh('account-a', 'codex', async () => ({
+      ...success('gpt-5'),
+      origin: 'probe'
+    }))
+    expect(first?.models[0]?.id).toBe('gpt-5')
+    now = 3_600_000
+    expect(store.isStale(first!)).toBe(false)
+    expect(
+      (await store.refresh('account-a', 'codex', async () => success('unexpected')))?.models[0]?.id
+    ).toBe('gpt-5')
+    expect(
+      await store.refresh('account-b', 'codex', async () => success('wrong-account'))
+    ).toBeNull()
+    store.expireAgent('codex')
+    store.discoveryAttempts.reset('codex')
+    expect(
+      (await store.refresh('account-a', 'codex', async () => success('gpt-6')))?.models[0]?.id
+    ).toBe('gpt-6')
+  })
+
+  it('holds a failed launch discovery until explicit refresh and refuses removed providers', async () => {
+    const store = new AgentModelCatalogStore({ oncePerLaunch: true })
+    expect(
+      await store.refresh('claude-account', 'claude', async () => {
+        throw new Error('offline')
+      })
+    ).toBeNull()
+    expect(
+      await store.refresh('claude-account', 'claude', async () => success('unexpected'))
+    ).toBeNull()
+    expect(await store.refresh('removed', 'hermes', async () => success('unexpected'))).toBeNull()
+    store.expireAgent('claude')
+    store.discoveryAttempts.reset('claude')
+    expect(
+      (await store.refresh('claude-account', 'claude', async () => success('sonnet')))?.models[0]
+        ?.id
+    ).toBe('sonnet')
+  })
   it("keeps a live child's default effort through a listing that names none, across a restart", async () => {
     const directory = mkdtempSync(join(tmpdir(), 'agent-model-catalog-'))
     const store = new AgentModelCatalogStore()

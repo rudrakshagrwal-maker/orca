@@ -16,6 +16,38 @@ import {
   terminalOutputSchedulerDebugState
 } from './pane-terminal-output-scheduler-debug'
 
+// RA: bounded output stays queued while hidden, including explicit flush requests.
+const suspendedTerminals = new WeakSet<object>()
+export function isTerminalOutputSuspended(terminal: object): boolean {
+  return suspendedTerminals.has(terminal)
+}
+export function setTerminalOutputSuspended(
+  terminal: ForegroundTerminalOutputTarget,
+  suspended: boolean
+): void {
+  if (suspended) {
+    suspendedTerminals.add(terminal)
+    discardForegroundRenderSettle(terminal)
+    cancelTerminalWriteStallWatch(terminal)
+    const entry = queuedByTerminal.get(terminal)
+    if (entry) {
+      fireQueuedAckCredits(entry)
+      for (let index = entry.chunkIndex; index < entry.chunks.length; index++) {
+        entry.chunks[index].ackCredit = undefined
+      }
+      clearTimeout(entry.foregroundHoldSafetyTimer ?? undefined)
+      clearTimeout(entry.foregroundCoalesceTimer ?? undefined)
+      entry.foregroundHoldSafetyTimer = null
+      entry.foregroundCoalesceTimer = null
+      entry.foregroundHold = false
+      entry.foregroundCoalesce = false
+    }
+  } else {
+    suspendedTerminals.delete(terminal)
+    scheduleDrain(0)
+  }
+}
+
 export type TerminalOutputBeforeWrite = (data: string) => void
 type TerminalBacklogRecoveryRequest = () => boolean
 export type TerminalOutputParsedCallback = () => void

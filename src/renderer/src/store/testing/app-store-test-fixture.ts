@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { create, type StateCreator } from 'zustand'
 import type { AppState } from '../types'
 
@@ -9,23 +10,14 @@ import { createTabsSlice } from '../slices/tabs/create-tabs-slice'
 import { createUISlice } from '../slices/ui/create-ui-slice'
 import { createSettingsSlice } from '../slices/settings/create-settings-slice'
 import { createKeybindingsSlice } from '../slices/keybindings/keybindings'
-import { createGitHubSlice } from '../github/github'
-import { createHostedReviewSlice } from '../slices/hosted-review/hosted-review'
-import { createLinearSlice } from '../slices/linear/linear'
+
 import { createPreflightSlice } from '../slices/preflight/preflight'
-import { createJiraSlice } from '../slices/jira/jira'
+
 import { createEditorSlice } from '../slices/editor/create-editor-slice'
 import { createStatsSlice } from '../slices/process-stats/stats'
-import { createMemorySlice } from '../slices/process-stats/memory'
-import { createWorkspaceSpaceSlice } from '../slices/workspace-cleanup/workspace-space'
-import {
-  createClaudeUsageSlice,
-  createCodexUsageSlice,
-  createMuseUsageSlice,
-  createOpenCodeUsageSlice
-} from '../slices/usage/usage-provider-slices'
+
 import { createBrowserSlice } from '../slices/browser/create-browser-slice'
-import { createRateLimitSlice } from '../slices/usage/rate-limits'
+
 import { createSshSlice } from '../slices/ssh/create-ssh-slice'
 import { createRuntimeEnvironmentSshSlice } from '../slices/ssh/runtime-environment-ssh'
 import { createWslHostsSlice } from '../slices/wsl/wsl-hosts'
@@ -39,15 +31,14 @@ import { createDictationSlice } from '../slices/dictation/dictation'
 import { createWorkspaceCleanupSlice } from '../slices/workspace-cleanup/create-workspace-cleanup-slice'
 import { createWorkspaceCleanupBrowseSlice } from '../slices/workspace-cleanup/workspace-cleanup-browse'
 import { createRuntimeStatusSlice } from '../slices/runtime-status/create-runtime-status-slice'
-import { createPullRequestGenerationSlice } from '../slices/hosted-review/generation/pull-request-generation'
-import { createCommitMessageGenerationSlice } from '../slices/hosted-review/generation/commit-message-generation'
+
 import { createPinnedTabCloseConfirmSlice } from '../slices/tabs/pinned-tab-close-confirm'
 import { createRecentlyClosedTerminalTabsSlice } from '../terminals/recently-closed-terminal-tabs'
 import { createRecentlyClosedTabsSlice } from '../slices/tabs/recently-closed-tabs'
 import { createOrcaProfilesSlice } from '../slices/orca-profiles/create-orca-profiles-slice'
-import { createNewIssueDraftSlice } from '../slices/task-creation/new-issue-draft'
+
 import { createFeedbackDraftSlice } from '../slices/feedback/feedback-draft'
-import { createTaskCreationDraftsSlice } from '../slices/task-creation/task-creation-drafts'
+
 import { createRemoteServerUpdatesSlice } from '../slices/runtime-host-updates/remote-server-updates'
 import { createTerminalQuickCommandHostsSlice } from '../terminals/terminal-quick-command-hosts'
 import { createStructuredSessionLaunchDirectorySlice } from '../slices/agent-status/structured-session-launch-directories'
@@ -81,21 +72,10 @@ export function createTestStore(
         ...createUISlice(...a),
         ...createSettingsSlice(...a),
         ...createKeybindingsSlice(...a),
-        ...createGitHubSlice(...a),
-        ...createHostedReviewSlice(...a),
-        ...createLinearSlice(...a),
         ...createPreflightSlice(...a),
-        ...createJiraSlice(...a),
         ...createEditorSlice(...a),
         ...createStatsSlice(...a),
-        ...createMemorySlice(...a),
-        ...createWorkspaceSpaceSlice(...a),
-        ...createClaudeUsageSlice(...a),
-        ...createCodexUsageSlice(...a),
-        ...createOpenCodeUsageSlice(...a),
-        ...createMuseUsageSlice(...a),
         ...createBrowserSlice(...a),
-        ...createRateLimitSlice(...a),
         ...createSshSlice(...a),
         ...createRuntimeEnvironmentSshSlice(...a),
         ...createWslHostsSlice(...a),
@@ -109,15 +89,11 @@ export function createTestStore(
         ...createWorkspaceCleanupSlice(...a),
         ...createWorkspaceCleanupBrowseSlice(...a),
         ...createRuntimeStatusSlice(...a),
-        ...createPullRequestGenerationSlice(...a),
-        ...createCommitMessageGenerationSlice(...a),
         ...createPinnedTabCloseConfirmSlice(...a),
         ...createRecentlyClosedTerminalTabsSlice(...a),
         ...createRecentlyClosedTabsSlice(...a),
         ...createOrcaProfilesSlice(...a),
-        ...createNewIssueDraftSlice(...a),
         ...createFeedbackDraftSlice(...a),
-        ...createTaskCreationDraftsSlice(...a),
         ...createRemoteServerUpdatesSlice(...a),
         ...createTerminalQuickCommandHostsSlice(...a),
         ...createStructuredSessionLaunchDirectorySlice(...a),

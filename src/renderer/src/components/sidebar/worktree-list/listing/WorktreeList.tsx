@@ -1,17 +1,18 @@
+// RA: new-workspace composer entry points are removed; CLI worktree creation remains.
 import React, { useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useAppStore } from '@/store/index'
 import { selectCrossStoreFolderChildrenById } from '@/store/slices/worktrees/metadata/cross-store-lineage-parents'
-import { useShallow } from 'zustand/react/shallow'
+
 import {
   useAllWorktrees,
   useWorktreeMap
 } from '@/store/slices/worktrees/listing/use-worktree-catalog'
 import { useProjectHostSetupProjection } from '@/store/projects/use-project-host-setup-projection'
 import { useRepoMap } from '@/store/repos/use-repository-catalog'
-import type { ProjectGroup } from '../../../../../../shared/project-group-types'
+
 import type { Repo } from '../../../../../../shared/repo-types'
-import { openHeaderCreateComposer } from '../rows/header-create-workspace-target'
+
 import {
   getRepoExecutionHostId,
   getSettingsFocusedExecutionHostId
@@ -22,7 +23,7 @@ import {
   getProjectGroupHeaderKey,
   isProjectSectionGroupKey
 } from '../../../../../../shared/sidebar-list/group-keys'
-import { selectWorktreeListReviewCacheInputs } from './review-cache-inputs'
+
 import type { VirtualizedScrollAnchor } from '@/hooks/useVirtualizedScrollAnchor'
 import { SidebarWorktreeListDialogs } from '../rows/ProjectGroupDialogs'
 import { SidebarWorktreeListEmptyState } from './EmptyState'
@@ -117,10 +118,7 @@ const WorktreeList = React.memo(function WorktreeList({
   const projectGroups = useAppStore((s) => s.projectGroups ?? EMPTY_PROJECT_GROUPS)
   const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
   const settings = useAppStore((s) => s.settings)
-  const cardProps = useAppStore((s) => s.worktreeCardProperties)
-  const { prCache, hostedReviewCache } = useAppStore(
-    useShallow((s) => selectWorktreeListReviewCacheInputs(s, groupBy, cardProps))
-  )
+
   const pinnedDisplayPolicy = getPinnedWorktreeDisplayPolicy(settings)
   const defaultHostId = getSettingsFocusedExecutionHostId(settings)
   const projectHostSetupProjection = useProjectHostSetupProjection()
@@ -158,7 +156,7 @@ const WorktreeList = React.memo(function WorktreeList({
     folderWorkspaces,
     projectGrouping,
     detectedWorktreesByRepo,
-    prCache,
+
     agentSendTargetWorktreeId
   })
   const visibleProjectRepoIdsBySection = useMemo(
@@ -228,18 +226,6 @@ const WorktreeList = React.memo(function WorktreeList({
         repoId: repo.id,
         displayName: repo.displayName,
         hostId: getRepoExecutionHostId(repo)
-      })
-    },
-    [openModal]
-  )
-  const handleCreateFolderWorkspace = useCallback(
-    (projectGroup: ProjectGroup) => {
-      if (!projectGroup.parentPath) {
-        return
-      }
-      openModal('new-workspace-composer', {
-        initialProjectGroupId: projectGroup.id,
-        telemetrySource: 'sidebar'
       })
     },
     [openModal]
@@ -336,7 +322,6 @@ const WorktreeList = React.memo(function WorktreeList({
         toggleGroup={handleToggleGroup}
         onToggleAllProjects={projectCollapseKeys.length > 0 ? handleToggleAllProjects : undefined}
         collapsedGroups={effectiveCollapsedGroups}
-        handleCreateForRepo={openHeaderCreateComposer}
         handleOpenRepoSettings={handleOpenRepoSettings}
         handleOpenWorktreeVisibility={handleOpenWorktreeVisibility}
         handleShowImportedWorktrees={externalWorktreeCards.handleShowImportedWorktrees}
@@ -355,7 +340,7 @@ const WorktreeList = React.memo(function WorktreeList({
         handleRenameProjectGroup={projectGroupDialogs.handleRenameProjectGroup}
         handleDeleteProjectGroup={projectGroupDialogs.handleDeleteProjectGroup}
         handleRefreshProjectGroup={projectGroupDialogs.handleRefreshProjectGroup}
-        handleCreateFolderWorkspace={handleCreateFolderWorkspace}
+
         activeModal={activeModal}
         pendingRevealWorktree={pendingRevealWorktree}
         pendingRevealSidebarRow={pendingRevealSidebarRow}
@@ -378,8 +363,7 @@ const WorktreeList = React.memo(function WorktreeList({
         allRepoIds={rowModel.allRepoIds}
         onReorderHostSections={rowModel.handleReorderHostSections}
         onHostDragActiveChange={rowModel.setHostDragActive}
-        prCache={prCache}
-        hostedReviewCache={hostedReviewCache}
+
         workspaceStatuses={boardStatuses}
         projectGrouping={projectGrouping}
         projectGroups={projectGroups}

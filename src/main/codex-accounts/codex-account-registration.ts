@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { randomUUID } from 'node:crypto'
 import { copyFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
@@ -11,7 +12,7 @@ import type {
   CodexRateLimitAccountsState
 } from '../../shared/managed-account-types'
 import type { Store } from '../persistence/loading-store/store'
-import type { RateLimitService } from '../rate-limits/service/rate-limit-service'
+
 import type { CodexRuntimeHomeService } from './runtime-home-service'
 import type { ResolvedCodexIdentity } from './codex-account-identity'
 import type {
@@ -27,13 +28,12 @@ import {
   getCodexSelectionTargetForAccount,
   getSelectedCodexAccountIdForTarget,
   normalizeCodexRuntimeSelection,
-  setSelectedCodexAccountIdForTarget,
-  type CodexAccountSelectionTarget
+  setSelectedCodexAccountIdForTarget
 } from './runtime-selection'
 
 type CodexAccountRegistrationDependencies = {
   store: Store
-  rateLimits: RateLimitService
+
   runtimeHome: CodexRuntimeHomeService
   readIdentityFromHome: (
     managedHomePath: string,
@@ -156,7 +156,7 @@ export class CodexAccountRegistration {
     this.dependencies.runtimeHome.clearLastWrittenAuthJson(accountId)
     this.dependencies.runtimeHome.syncForCurrentSelection(accountTarget)
     // Reauthentication can change identity, so refresh quota without reusing the old account cache.
-    this.startQuotaRefresh(undefined, accountTarget)
+
     return this.dependencies.selection.snapshot()
   }
 
@@ -264,21 +264,8 @@ export class CodexAccountRegistration {
       throw error
     }
 
-    const outgoingAccountId = getSelectedCodexAccountIdForTarget(settings, targetSelection)
     // Cache outgoing usage without delaying the already-persisted account addition.
-    this.startQuotaRefresh(outgoingAccountId, targetSelection)
-    return this.dependencies.selection.snapshot()
-  }
 
-  private startQuotaRefresh(
-    outgoingAccountId: string | null | undefined,
-    target: CodexAccountSelectionTarget | undefined
-  ): void {
-    // Slow quota probes must not delay or fail an already-persisted account change.
-    void this.dependencies.rateLimits
-      .refreshForCodexAccountChange(outgoingAccountId, target)
-      .catch((error) => {
-        console.error('[codex-accounts] Quota refresh after account change failed:', error)
-      })
+    return this.dependencies.selection.snapshot()
   }
 }

@@ -22,6 +22,9 @@ export const gitApi = {
   status: (args: {
     worktreePath: string
     connectionId?: string
+    // RA: sidebar summaries skip untracked scans and expensive diff/upstream probes.
+    summaryOnly?: boolean
+    refreshMetadata?: boolean
     includeIgnored?: boolean
     bypassEffectiveUpstreamNegativeCache?: boolean
     reuseLineStats?: boolean

@@ -1,4 +1,4 @@
-import { readAcpForkSupport } from '../../../acp/capabilities/acp-fork-support'
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { supportsSessionAccountUsage } from '../../../../shared/agent-session/agent-session-account-usage'
 import { structuredAgentSessionCatalogScopeOwned } from './structured-agent-session-catalog-reads'
 import { withinAgentModelCatalogRead } from '../../agent-model-catalog/agent-model-catalog-operation'
@@ -252,7 +252,7 @@ export async function readStructuredAgentSessionOptions(
       capabilities?.fork === 'checkpoint'
         ? 'supported'
         : capabilities?.fork === 'tip'
-          ? (live?.forkSupport ?? readAcpForkSupport(agent))
+          ? (live?.forkSupport ?? 'unsupported')
           : 'unsupported',
     ...(supportsSessionAccountUsage(record) ? { accountUsage: true as const } : {}),
     ...(live?.effortFixed

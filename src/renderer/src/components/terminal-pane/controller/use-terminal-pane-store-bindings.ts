@@ -1,3 +1,4 @@
+// RA: Terminal panes retain buffered output without removed background services.
 import { useTerminalStartupMeasurementState } from '../mounting/use-terminal-startup-measurement-state'
 import { useRestoredBannerPaneState } from '../session-restore/use-restored-banner-pane-state'
 import { useQueuedIssueCommandSplit } from '../layout/split/use-queued-issue-command-split'
@@ -16,8 +17,6 @@ export function useTerminalPaneStoreBindings(controller: TerminalPaneChatControl
     consumeTabIssueCommandSplit,
     consumeTabStartupCommand,
     markTerminalBell,
-    openSpacePage,
-    refreshWorkspaceSpace,
     setRuntimePaneTitle,
     setTabLayout,
     setTabLocalOnlyScrollback,
@@ -53,8 +52,6 @@ export function useTerminalPaneStoreBindings(controller: TerminalPaneChatControl
     updateTabPtyId,
     clearTabPtyId,
     markTerminalBell,
-    openSpacePage,
-    refreshWorkspaceSpace,
     settings,
     updateSettings,
     requestLinkRoutingPreference,

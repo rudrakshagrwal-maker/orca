@@ -1,30 +1,21 @@
+import { FORK_TUI_AGENTS } from '../../shared/agent-launch/catalog/tui-agent'
 import type { HandlerContext } from '../dispatch'
 import { printResult } from '../format'
 import { RuntimeClientError } from '../runtime-client'
-import { ANTIGRAVITY_ACCOUNTS_RUNTIME_CAPABILITY } from '../../shared/account-runtime-capabilities'
-import type {
-  AntigravityAccountState,
-  AntigravityAccountTarget
-} from '../../shared/antigravity-account-types'
+
 import type {
   ClaudeRateLimitAccountsState,
-  CodexRateLimitAccountsState,
-  ManagedDataAccountProvider,
-  ManagedDataAccountsState
+  CodexRateLimitAccountsState
 } from '../../shared/managed-account-types'
-import type { RuntimeStatus } from '../../shared/runtime-types'
-import { getWslAccountTarget } from './account-wsl-location'
-import {
-  formatAccountsBlock,
-  formatAntigravityAccounts,
-  formatDataAccounts
-} from './account-list-format'
-import { assertDataAccountsSupported, listDataAccounts } from './data-account-commands'
 
-const ACCOUNT_AGENTS = ['claude', 'codex', 'opencode', 'devin', 'antigravity'] as const
+import { getWslAccountTarget } from './account-wsl-location'
+import { formatAccountsBlock } from './account-list-format'
+
+// RA: account commands use the same source roster as terminal launch.
+const ACCOUNT_AGENTS = FORK_TUI_AGENTS
 type AccountAgent = (typeof ACCOUNT_AGENTS)[number]
 
-const AGENT_FLAG_HINT = 'Use --agent claude|codex|opencode|devin|antigravity.'
+const AGENT_FLAG_HINT = 'Use --agent claude|codex.'
 const ACCOUNT_FLAG_HINT = 'Use --account <id|email|label|system> from `orca account list`.'
 
 /** One saved account and the names `--account` may call it by (email, label, subject). */
@@ -110,100 +101,12 @@ function codexAccounts({ client, cwd, json }: HandlerContext): ProviderAccounts 
   }
 }
 
-function dataAccounts(ctx: HandlerContext, provider: ManagedDataAccountProvider): ProviderAccounts {
-  const { client, json } = ctx
-  const label = provider === 'opencode' ? 'OpenCode' : 'Devin'
-  const read = async () => {
-    await assertDataAccountsSupported(ctx)
-    const response =
-      await client.call<Partial<Record<ManagedDataAccountProvider, ManagedDataAccountsState>>>(
-        'accounts.listData'
-      )
-    const state = response.result[provider]
-    if (!state) {
-      throw new RuntimeClientError(
-        'incompatible_runtime',
-        'Managed accounts are unavailable on this host.'
-      )
-    }
-    return { ...response, result: state }
-  }
-  const print = async (method: string, accountId: string | null) =>
-    printResult(
-      await client.call<ManagedDataAccountsState>(method, { provider, accountId }),
-      json,
-      (state) => formatDataAccounts(label, state)
-    )
-  return {
-    label,
-    hasSystemDefault: true,
-    choices: async () =>
-      (await read()).result.accounts.map((account) => ({ id: account.id, names: [account.label] })),
-    list: () => listDataAccounts(ctx, provider),
-    select: (accountId) => print('accounts.selectData', accountId),
-    remove: (accountId) => print('accounts.removeData', accountId)
-  }
-}
-
-async function supportsAntigravityAccounts({ client }: HandlerContext): Promise<boolean> {
-  const status = await client.call<RuntimeStatus>('status.get')
-  return status.result.capabilities?.includes(ANTIGRAVITY_ACCOUNTS_RUNTIME_CAPABILITY) ?? false
-}
-
-function antigravityTarget(cwd: string): AntigravityAccountTarget {
-  return getWslAccountTarget(cwd) ?? { runtime: 'host' }
-}
-
-function antigravityAccounts(ctx: HandlerContext): ProviderAccounts {
-  const { client, cwd, json } = ctx
-  const target = antigravityTarget(cwd)
-  const read = async () => {
-    if (!(await supportsAntigravityAccounts(ctx))) {
-      throw new RuntimeClientError(
-        'incompatible_runtime',
-        'Update or restart this Orca host to manage Antigravity accounts.'
-      )
-    }
-    return client.call<AntigravityAccountState>('accounts.antigravityList', target)
-  }
-  const print = async (method: string, accountId: string) =>
-    printResult(
-      await client.call<AntigravityAccountState>(method, { target, accountId }),
-      json,
-      formatAntigravityAccounts
-    )
-  return {
-    label: 'Antigravity',
-    // Why: the native `agy` login is always one of the saved accounts; there is no
-    // separate system sign-in to fall back to.
-    hasSystemDefault: false,
-    choices: async () =>
-      (await read()).result.accounts.map((account) => ({
-        id: account.id,
-        names: [account.email, account.subject]
-      })),
-    list: async () => printResult(await read(), json, formatAntigravityAccounts),
-    select: async (accountId) => {
-      if (accountId === null) {
-        throw new RuntimeClientError('invalid_argument', 'Antigravity has no system default.')
-      }
-      await print('accounts.antigravitySelect', accountId)
-    },
-    remove: (accountId) => print('accounts.antigravityRemove', accountId)
-  }
-}
-
 function providerAccounts(ctx: HandlerContext, agent: AccountAgent): ProviderAccounts {
   switch (agent) {
     case 'claude':
       return claudeAccounts(ctx)
     case 'codex':
       return codexAccounts(ctx)
-    case 'opencode':
-    case 'devin':
-      return dataAccounts(ctx, agent)
-    case 'antigravity':
-      return antigravityAccounts(ctx)
   }
 }
 
@@ -328,22 +231,3 @@ export async function listAgentAccounts(ctx: HandlerContext, agentFlag: unknown)
 }
 
 /** The Antigravity block for the full `orca account list`, or null on a host that cannot read it. */
-export async function readAntigravityAccountsForList(
-  ctx: HandlerContext
-): Promise<AntigravityAccountState | null> {
-  if (!(await supportsAntigravityAccounts(ctx))) {
-    return null
-  }
-  // Why: a host can advertise the capability yet have no native credential adapter
-  // (Linux Secret Service today). The overview must still show every other provider;
-  // `orca account list --agent antigravity` keeps reporting the reason.
-  try {
-    const response = await ctx.client.call<AntigravityAccountState>(
-      'accounts.antigravityList',
-      antigravityTarget(ctx.cwd)
-    )
-    return response.result
-  } catch {
-    return null
-  }
-}

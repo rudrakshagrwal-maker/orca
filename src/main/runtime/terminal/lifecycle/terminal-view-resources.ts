@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type {
   TerminalIdentityRawInputs,
   TerminalIdentityReadContext
@@ -7,7 +8,7 @@ import { TerminalIdentitySource } from '../identity/terminal-identity-source'
 import type { WaitBlockedCheckState } from '../wait/wait-blocked-check-state'
 import { OrcaRuntimeWithStopRequestedPtyIds } from '../../construction/runtime-service-state'
 import { RuntimeSubscriptionRegistry } from '../../client/runtime-subscription-registry'
-import { RuntimeMobileNotificationController } from '../../push/notifications/runtime-mobile-notification-controller'
+
 import type {
   ProviderBufferAcquisition,
   RuntimeHeadlessTerminal,
@@ -86,8 +87,6 @@ export abstract class OrcaRuntimeWithFitOverrideListeners extends OrcaRuntimeWit
   >()
 
   protected readonly subscriptions = new RuntimeSubscriptionRegistry()
-
-  protected readonly mobileNotifications = new RuntimeMobileNotificationController()
 
   protected readonly pairedRendererSessionOwnedPtyIds = new Set<string>()
 

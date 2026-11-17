@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { decideAgentLaunchIntentMode } from '../../../../agent-launch/agent-launch-intent-mode'
 /** Resolve selectors and validate terminal reuse without creating a surface. */
 
@@ -7,7 +8,7 @@ import type {
   AgentLaunchModeReceipt
 } from '../../../../../shared/agent-launch/contracts/agent-launch-intent'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
-import { assertTerminalLaunchAdmissible } from '../../../../agent-launch/agent-launch-surface-factories'
+
 import type { AgentLaunchParams } from '../../../../../shared/rpc-contract/agent-launch-params'
 import { resolveAgentLaunchModeOnHost } from '../../../../agent-launch/agent-launch-mode'
 
@@ -108,6 +109,6 @@ export async function resolveUnlaunchedIntent(
           }
         )
       : preflight
-  assertTerminalLaunchAdmissible(intent, decidedMode.mode)
+
   return { intent, decidedMode }
 }

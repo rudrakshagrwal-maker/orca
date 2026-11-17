@@ -8,7 +8,8 @@ import {
 } from '../orca-runtime-test-mocks/setup.spec'
 import { createSetupRunnerScript } from '../../workspace-hooks/worktree-runner-script'
 import { getEffectiveHooks } from '../../workspace-hooks/hooks'
-import { listWorktrees } from '../../git/worktrees/catalog/worktree-scan-cache'
+// RA: creation reconciles through the strict listing, so the fixture must supply that owner.
+import { listWorktreesSharedStrict } from '../../git/worktrees/catalog/worktree-scan-cache'
 import { setRuntimeDesktopSurface } from '../construction/runtime-desktop-surface'
 import { shouldRunSetupForCreate } from '../../workspace-hooks/effective-hook-config'
 import { makeRuntimeStoreWithWorkspaceSession, store } from './orca-runtime-test-fixtures.spec'
@@ -84,7 +85,7 @@ async function createActivated(options: {
     runnerScriptPath: RUNNER,
     envVars: { ORCA_ROOT_PATH: '/tmp/repo', ORCA_WORKTREE_PATH: WORKTREE_PATH }
   })
-  vi.mocked(listWorktrees).mockResolvedValue([
+  vi.mocked(listWorktreesSharedStrict).mockResolvedValue([
     {
       path: WORKTREE_PATH,
       head: 'def',

@@ -7,7 +7,7 @@ import { getRepoHostIdentity } from '../../../../shared/repo-host-identity'
 import { callRuntimeRpc } from '../../runtime/rpc/calls/runtime-rpc-call'
 import { runtimeTargetForOwnerEnvironment } from '../../runtime/rpc/targets/runtime-client-target'
 import { defaultCreationHost } from '@/runtime/hosts/selection/default-creation-host'
-import { markOnboardingProjectAdded } from '@/components/onboarding/onboarding-project-checklist'
+
 import { translate } from '@/i18n/i18n'
 import {
   getRepoExecutionHostId,
@@ -193,12 +193,11 @@ export function createRepoAddActions(
 
     addNonGitFolder: async (path, options) => {
       try {
-        const hadProjectBeforeAdd = get().repos.length > 0
         const repo = await get().addRepoPath(path, 'folder', options)
         if (!repo) {
           return null
         }
-        const onboardingBeforeAdd = await markOnboardingProjectAdded('addedFolder')
+
         // Why: focus the new folder so the add is visible; lazy-import worktree-activation to avoid a circular module load (it imports the store root).
         const executionHostId =
           options?.runtimeEnvironmentId === undefined
@@ -211,23 +210,11 @@ export function createRepoAddActions(
           (worktree) => executionHostId === undefined || worktree.hostId === executionHostId
         )
         if (folderWorktree) {
-          // Why: lazy-import to avoid a circular module load (the launch graph imports the store root).
-          const {
-            resolveDismissedOnboardingFolderAgentLaunch,
-            revealOnboardingFolderWithAgentLaunch
-          } = await import('@/components/onboarding/onboarding-folder-agent-launch')
-          // Why: adding the first folder from Landing skips onboarding's completeRepo hook; carry the default agent into the first terminal here.
-          const launch = await resolveDismissedOnboardingFolderAgentLaunch({
-            worktreeId: folderWorktree.id,
-            store: get(),
-            onboarding: onboardingBeforeAdd,
-            hasExistingProject: hadProjectBeforeAdd,
-            executionHostId: executionHostId ?? LOCAL_EXECUTION_HOST_ID
-          })
-          await revealOnboardingFolderWithAgentLaunch({
-            worktreeId: folderWorktree.id,
-            executionHostId,
-            launch
+          // RA: adding a folder reveals it without starting an onboarding flow.
+          const { activateAndRevealWorkspace } =
+            await import('@/lib/workspace/activation/worktree-activation')
+          activateAndRevealWorkspace(folderWorktree.id, {
+            ...(executionHostId ? { executionHostId } : {})
           })
         }
         return repo

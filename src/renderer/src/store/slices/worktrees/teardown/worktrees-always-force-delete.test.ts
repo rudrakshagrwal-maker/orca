@@ -1,3 +1,4 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import '../../../../../../shared/constants'
 import { makeWorktree } from '../worktree.test-fixture'
@@ -6,7 +7,7 @@ import {
   deferred
 } from '../../workspace-cleanup/workspace-cleanup-slice-test-harness'
 import { assertWorkspaceCleanupAgentStopApproved } from '../../workspace-cleanup/workspace-cleanup-agent-evidence'
-import { makeAgentEntry } from '@/components/worktree-jump/worktree-jump-palette-test-fixtures'
+import { makeAgentEntry } from '@/components/test-support/workspace-layout-test-fixtures'
 import { createCompatibleRuntimeStatusResponse } from '../../../../runtime/rpc/testing/runtime-compatibility-test-fixture'
 import {
   createTestStore,

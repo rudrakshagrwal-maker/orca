@@ -1,18 +1,15 @@
-import { defineMethod, defineStreamingMethod, type RpcContext } from '../../core'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+import { defineMethod, type RpcContext } from '../../core'
 import type { OrcadFeature } from '../../orcad-feature-readiness'
 import { rpcCallerOperationKey } from '../../rpc-caller-identity'
 import { HostAccountSignInFlows } from '../../../agent-session/environment/host-account-sign-in-flows'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
 import {
-  AddDataAccountParams,
-  SelectDataAccountParams,
-  RemoveDataAccountParams,
   AccountsUnsubscribeParams,
   BeginClaudeSignInParams,
   FinishClaudeSignInParams,
   AddClaudeFromConfigDirParams,
   AddCodexFromHomeParams,
-  ConsumeCodexResetCreditParams,
   ListAccountsParams,
   RemoveAccountParams,
   SelectAccountParams,
@@ -24,13 +21,10 @@ import {
   HostAccountSignInCodeParams
 } from '../../../../../shared/rpc-contract/accounts-params'
 import { HostAccountLaunchEnvParams } from '../../../../../shared/agent-launch/startup/host-account-launch-env'
-import { withTimeout } from '../../../../../shared/promise-timeout-fallback'
 
 // Use a per-process counter: same-millisecond subscriptions must not evict each other's cleanup.
-let accountsSubscriptionSeq = 0
 
 // Why 10s: well under the CLI's 60s request timeout even when several Codex homes probe slowly.
-const STALE_USAGE_WAIT_MS = 10_000
 
 const hostSignIns = new WeakMap<OrcaRuntimeService, HostAccountSignInFlows>()
 function hostSignInFlows(runtime: OrcaRuntimeService): HostAccountSignInFlows {
@@ -101,53 +95,14 @@ const ACCOUNT_METHOD_DEFINITIONS = [
       return {}
     }
   }),
-  defineMethod({
-    name: 'accounts.listData',
-    permission: 'workspace',
-    params: null,
-    handler: async (_, { runtime }) => runtime.getDataAccountsSnapshot()
-  }),
-  defineMethod({
-    name: 'accounts.addDataFromHome',
-    permission: 'accounts-admin',
-    params: AddDataAccountParams,
-    handler: async (params, { runtime, clientKind }) => {
-      if (clientKind !== undefined) {
-        throw new Error('Adding accounts is only available on the Orca host runtime.')
-      }
-      return runtime.addDataAccountFromHome(params.provider, params.sourceDataHome, params.label)
-    }
-  }),
-  defineMethod({
-    name: 'accounts.selectData',
-    permission: 'accounts-admin',
-    params: SelectDataAccountParams,
-    handler: async (params, { runtime }) =>
-      runtime.selectDataAccount(params.provider, params.accountId)
-  }),
-  defineMethod({
-    name: 'accounts.removeData',
-    permission: 'accounts-admin',
-    params: RemoveDataAccountParams,
-    handler: async (params, { runtime }) =>
-      runtime.removeDataAccount(params.provider, params.accountId)
-  }),
+
   defineMethod({
     name: 'accounts.list',
     permission: 'workspace',
     params: ListAccountsParams,
     handler: async (params, { runtime }) => {
       // Refresh before replying: unfocused desktop polling and unopened account caches can leave mobile usage stale.
-      if (params.refreshUsage) {
-        await runtime.refreshAccountsForMobile()
-      } else if (params.refreshStaleUsage) {
-        // Slow inactive-account probes keep running; the caller gets what settled in time.
-        await withTimeout(
-          runtime.refreshAccountsForMobileSubscriber(),
-          STALE_USAGE_WAIT_MS,
-          undefined
-        )
-      }
+
       return runtime.getAccountsSnapshot()
     }
   }),
@@ -174,13 +129,7 @@ const ACCOUNT_METHOD_DEFINITIONS = [
     handler: async (params, { runtime }) =>
       runtime.selectCodexAccountForTarget(params.accountId, params.target)
   }),
-  defineMethod({
-    name: 'accounts.consumeCodexResetCredit',
-    permission: 'accounts-admin',
-    params: ConsumeCodexResetCreditParams,
-    handler: async (params, { runtime }) =>
-      runtime.consumeCodexRateLimitResetCredit(params.idempotencyKey, params.expectedScope)
-  }),
+
   defineMethod({
     name: 'accounts.removeClaude',
     permission: 'accounts-admin',
@@ -247,55 +196,7 @@ const ACCOUNT_METHOD_DEFINITIONS = [
       hostSignInFlows(ctx.runtime).cancel(signInOwner(ctx), flowId)
   }),
   // Stream rate-limit polls and account switches to mobile without reopening the screen.
-  defineStreamingMethod({
-    name: 'accounts.subscribe',
-    permission: 'workspace',
-    params: null,
-    handler: async (_params, { runtime, connectionId, signal, caller }, emit) => {
-      if (signal?.aborted) {
-        return
-      }
-      const stopped = Promise.withResolvers<void>()
-      const unsubscribe = runtime.onAccountsChanged((snapshot) => {
-        emit({ type: 'snapshot', snapshot })
-      })
-      // A paired client watching keeps polls running without a window; the host's own renderer follows window focus.
-      const releaseUsageViewer =
-        caller?.kind === 'paired-device'
-          ? runtime.getUsageRateLimits()?.addUsageViewer()
-          : undefined
 
-      // Key cleanup by socket plus sequence so sibling sockets and concurrent subscribes cannot evict each other.
-      const seq = ++accountsSubscriptionSeq
-      const subscriptionId = `accounts-${connectionId ?? 'inproc'}-${seq}`
-      const release = (): void => runtime.cleanupSubscription(subscriptionId)
-      runtime.registerSubscriptionCleanup(
-        subscriptionId,
-        () => {
-          signal?.removeEventListener('abort', release)
-          unsubscribe()
-          releaseUsageViewer?.()
-          stopped.resolve()
-        },
-        connectionId
-      )
-
-      try {
-        if (signal?.aborted) {
-          release()
-        } else {
-          signal?.addEventListener('abort', release, { once: true })
-          // Publish a snapshot immediately, then refresh stale data; reconnect must not force repeated provider fetches.
-          emit({ type: 'ready', subscriptionId, snapshot: runtime.getAccountsStreamSnapshot() })
-          void runtime.refreshAccountsForMobileSubscriber()
-        }
-        await stopped.promise
-        emit({ type: 'end' })
-      } finally {
-        release()
-      }
-    }
-  }),
   defineMethod({
     name: 'accounts.unsubscribe',
     permission: 'workspace',

@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { claudeScriptedChild } from '../../claude/claude-scripted-child.test-fixture'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -12,7 +13,7 @@ import {
   HOST_TEST_SESSION as SESSION
 } from '../../native-chat/agent-session-wire/host/testing/structured-agent-session-host-test-data'
 import { createStructuredAgentSessionLogger } from '../../native-chat/agent-session-wire/host/structured-agent-session-logger'
-import { piScriptedChild } from '../../pi/pi-scripted-child.test-fixture'
+
 import { codexScriptedChild } from '../../codex/structured/session-lifecycle/codex-scripted-child.test-fixture'
 import type { ScriptedAgentChild } from './installation/structured-agent-scripted-child.test-fixture'
 import {
@@ -47,7 +48,7 @@ afterEach(async () => {
 })
 
 async function failedStart(
-  agent: 'pi' | 'codex' | 'grok' | 'claude',
+  agent: 'codex' | 'claude',
   script: ScriptedAgentChild,
   unanswered = false
 ) {
@@ -75,9 +76,7 @@ async function failedStart(
           accountHome:
             agent === 'claude'
               ? { variable: 'CLAUDE_CONFIG_DIR', path: root }
-              : agent === 'pi'
-                ? { variable: 'PI_CODING_AGENT_DIR', path: root }
-                : { variable: 'GROK_HOME', path: root },
+              : { variable: 'CODEX_HOME', path: root },
           location: {
             executionHostId: 'local',
             wslDistro: null,
@@ -108,7 +107,7 @@ async function failedStart(
   if (!sent.ok) {
     throw new Error(JSON.stringify(sent.refusal))
   }
-  const expectedAttempts = unanswered || agent === 'grok' || agent === 'claude' ? 5 : 1
+  const expectedAttempts = unanswered || agent === 'claude' ? 5 : 1
   for (let attempt = 1; attempt <= expectedAttempts; attempt++) {
     // Retries back off 100·2^n ms (800 ms before the fifth spawn); each poll jumps 100 ms.
     await vi.waitFor(
@@ -156,7 +155,4 @@ it('Claude keeps unanswered early exits within five attempts', async () => {
 })
 it('Codex keeps unanswered early exits within five attempts', async () => {
   await failedStart('codex', codexScriptedChild(), true)
-})
-it('Pi keeps unanswered early exits within five attempts', async () => {
-  await failedStart('pi', piScriptedChild(), true)
 })

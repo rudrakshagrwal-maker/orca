@@ -1,5 +1,6 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { Dispatch, RefObject, SetStateAction } from 'react'
-import { ArtifactPublishButton } from '@/components/artifacts/ArtifactPublishButton'
+
 import { useShortcutLabel } from '@/hooks/useShortcutLabel'
 import { useAppStore } from '@/store'
 import type { BrowserReloadTrigger } from '../navigate/browser-reload-action'
@@ -13,10 +14,7 @@ import { BrowserOpenSourceFileButton, BrowserPageStateChips } from './browser-ad
 import { useBrowserExtensionToolbar } from './use-browser-extension-toolbar'
 import { SshEgressIndicator } from './browser-egress-indicator'
 import { destroyPersistentWebview } from '../host-guest/webview-registry'
-import {
-  getShareableBrowserArtifactFile,
-  readBrowserHtmlArtifactRequest
-} from '../describe-page/browser-artifact-upload'
+import { getShareableBrowserArtifactFile } from '../describe-page/browser-artifact-upload'
 import {
   canOpenBrowserFileInWorkspaceEditor,
   openBrowserFileSource
@@ -74,7 +72,7 @@ export function BrowserPageToolbar({
   browserAnnotationsLength,
   notes,
   onOpenFind,
-  shareableArtifactFile,
+
   currentBrowserUrl,
   externalUrl
 }: {
@@ -193,13 +191,6 @@ export function BrowserPageToolbar({
                 isActive={isActive}
               />
               {openSourceFile ? <BrowserOpenSourceFileButton onOpen={openSourceFile} /> : null}
-              {shareableArtifactFile ? (
-                <ArtifactPublishButton
-                  sourceKey={shareableArtifactFile.filePath}
-                  size="icon-xs"
-                  createRequest={() => readBrowserHtmlArtifactRequest(currentBrowserUrl)}
-                />
-              ) : null}
             </>
           }
           loading={loading}

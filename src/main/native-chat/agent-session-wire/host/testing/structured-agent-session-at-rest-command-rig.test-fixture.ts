@@ -1,10 +1,9 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 // @vitest-environment happy-dom
 import { cleanup } from '@testing-library/react'
 
 import type { CommandMenuRendererFixtureModule } from '../../../../../shared/agent-session/agent-session-command-menu.test-fixture-contract'
 
-import { OMP } from '../../../../acp/discovery/testing/acp-command-discovery.test-fixture'
-import { acpStructuredAgentDefinition } from '../../../../acp/session/acp-structured-agent-definitions'
 import { CLAUDE_STRUCTURED_AGENT } from '../../../../claude/structured/claude-structured-agent-definition'
 import { StructuredAgentRegistry } from '../../providers/structured-agent-registry'
 import { StructuredAgentSessionAdapterRouter } from '../../providers/structured-agent-session-adapter-router'
@@ -33,7 +32,6 @@ import {
   HOST_TEST_NOW,
   HOST_TEST_SESSION as SESSION,
   hostTestAttachParams,
-  hostTestOperationId,
   resetHostTestOperationIds
 } from './structured-agent-session-host-test-data'
 import {
@@ -131,7 +129,7 @@ export async function openHost(
     implementation.atRestCommands = undefined
   }
   const agents = new StructuredAgentRegistry(
-    structuredAgentsDeclaringNothing([CLAUDE_STRUCTURED_AGENT, acpStructuredAgentDefinition(OMP)])
+    structuredAgentsDeclaringNothing([CLAUDE_STRUCTURED_AGENT])
       .definitions()
       .map((definition) => ({ definition, adapter: implementation }))
   )
@@ -205,34 +203,16 @@ afterEach(async () => {
   await rm(directory, { recursive: true, force: true })
 })
 
-export async function attachContext(provider: 'claude' | 'omp', index: number): Promise<string> {
+export async function attachContext(provider: 'claude', index: number): Promise<string> {
   const sessionId = crypto.randomUUID()
-  if (provider === 'omp') {
-    await store.reserveOwner({
-      sessionId,
-      provider,
-      location: { ...store.getRecord(SESSION)!.location, workspaceId: `workspace-${index}` },
-      accountHome: { variable: 'PI_CODING_AGENT_DIR', path: account },
-      expectedFence: null,
-      spawnToken: crypto.randomUUID(),
-      claimKeyId: 'key',
-      handoffOperationId: null,
-      probe: { outcome: 'reservation-unused' },
-      operation: { callerKey: 'test', operationId: hostTestOperationId(), fingerprint: sessionId },
-      now: clock
-    })
-    return sessionId
-  }
+
   const attached = await host.attach(
     caller,
     hostTestAttachParams(null, {
       envelope: { ...hostTestAttachParams(null).envelope, sessionId },
       provider,
       agent: provider,
-      accountHome:
-        provider === 'claude'
-          ? { variable: 'CLAUDE_CONFIG_DIR', path: account }
-          : { variable: 'PI_CODING_AGENT_DIR', path: account },
+      accountHome: { variable: 'CLAUDE_CONFIG_DIR', path: account },
       location: { ...store.getRecord(SESSION)!.location, workspaceId: `workspace-${index}` },
       providerHandle: { kind: 'claude', sessionId: crypto.randomUUID(), leafUuid: null }
     })

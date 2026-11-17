@@ -2,13 +2,13 @@ import { isRemoteRuntimePtyId } from '../../../../../../shared/remote-runtime/re
 import { scheduleRuntimeGraphSync } from '@/runtime/sync-runtime-graph/graph-sync-scheduler'
 import { useAppStore } from '@/store'
 import { notifyCodexPaneBoundForStaleSweep } from '@/lib/agent-session/accounts/codex/codex-stale-pane-sweep'
-import { createTerminalGitHubPRLinkDetector } from '../../../../../../shared/terminal/links/terminal-github-pr-link-detector'
+
 import { setRendererPtyVisibilityClaim } from '../../pty-transport/delivery/pty-renderer-delivery-claims'
 import { shouldIgnoreStalePanePtyLayoutBinding } from '../reattach/pane-pty-layout-binding'
 import type { ConnectPanePtySession } from '../connect-pane-pty-session'
 
 export function installActivePanePtyBinding(session: ConnectPanePtySession): void {
-  session.observeTerminalGitHubPRLink = createTerminalGitHubPRLinkDetector()
+  
   session.reportPanePtyVisibility = (ptyId: string | null | undefined, visible: boolean): void => {
     if (!ptyId || isRemoteRuntimePtyId(ptyId)) {
       // Remote-runtime streams bypass main’s renderer-visibility registry.

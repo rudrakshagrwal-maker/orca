@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { homedir } from 'node:os'
 import { basename, join, type posix } from 'node:path'
 import type { SkillDiscoverySource, SkillProvider, SkillSourceKind } from '../../../shared/skills'
@@ -10,11 +11,7 @@ import {
 } from '../../../shared/skill-install-providers'
 import type { SkillProviderRootOverrides } from '../providers/skill-provider-destinations'
 import { stablePathId } from './skill-discovery-classification'
-import {
-  resolveDefaultHermesSkillsRoot,
-  resolveEnvironmentHermesSkillsRoot,
-  resolveEnvironmentSkillProviderRoots
-} from '../providers/skill-provider-runtime-roots'
+import { resolveEnvironmentSkillProviderRoots } from '../providers/skill-provider-runtime-roots'
 
 export type SkillScanRoot = Omit<SkillDiscoverySource, 'exists' | 'skippedReason'>
 type SkillDiscoveryPathApi = Pick<typeof posix, 'basename' | 'join'>
@@ -96,9 +93,7 @@ export function buildSkillDiscoverySources(
   const providerRootOverrides =
     args.providerRootOverrides ?? (args.pathApi ? {} : resolveEnvironmentSkillProviderRoots())
   // Read HERMES_HOME only on this process's host; a custom path adapter describes another host with POSIX Hermes defaults.
-  const hermesSkillsRoot = args.pathApi
-    ? pathApi.join(home, '.hermes', 'skills')
-    : (resolveEnvironmentHermesSkillsRoot() ?? resolveDefaultHermesSkillsRoot({ homeDir: home }))
+
   const roots: SkillScanRoot[] = [
     // Why: Codex reads `.agents/skills` today; this legacy home still holds older installs.
     source(
@@ -126,58 +121,10 @@ export function buildSkillDiscoverySources(
       'codex'
     ),
     // Provider home roots also receive global npx installs; canonical roots alone miss them.
-    ...providerHomeSources(home, pathApi, providerRootOverrides),
+    ...providerHomeSources(home, pathApi, providerRootOverrides)
     // Why: discovery-only agent folders; installs for these agents go to the canonical root.
-    source(
-      'home-opencode',
-      'OpenCode home',
-      pathApi.join(home, '.config', 'opencode', 'skills'),
-      'home',
-      ['agent-skills'],
-      'opencode'
-    ),
-    source(
-      'home-pi',
-      'Pi home',
-      pathApi.join(home, '.pi', 'agent', 'skills'),
-      'home',
-      ['agent-skills'],
-      'pi'
-    ),
-    source(
-      'home-omp',
-      'OMP home',
-      pathApi.join(home, '.omp', 'agent', 'skills'),
-      'home',
-      ['agent-skills'],
-      'omp'
-    ),
-    source(
-      'home-qoder',
-      'Qoder home',
-      pathApi.join(home, '.qoder', 'skills'),
-      'home',
-      ['agent-skills'],
-      'qoder'
-    ),
-    source('home-hermes', 'Hermes home', hermesSkillsRoot, 'home', ['agent-skills'], 'hermes'),
-    source(
-      'home-prime-agent',
-      'Prime Agent home',
-      pathApi.join(home, '.prime', 'agent', 'skills'),
-      'home',
-      ['agent-skills'],
-      'prime-agent'
-    ),
+
     // Why: Muse installs to `.agents/skills` but also reads XDG config home.
-    source(
-      'home-muse',
-      'Muse home',
-      pathApi.join(home, '.config', 'muse', 'skills'),
-      'home',
-      ['agent-skills'],
-      'muse'
-    )
   ]
 
   const projectPaths = new Set<string>()
@@ -204,24 +151,8 @@ export function buildSkillDiscoverySources(
         ['agent-skills'],
         null
       ),
-      ...providerRepoSources(repoPath, label, pathApi),
+      ...providerRepoSources(repoPath, label, pathApi)
       // OpenCode and Qoder also read their own project folders; they install into the canonical root above.
-      source(
-        `repo-qoder-${stablePathId(repoPath)}`,
-        `${label} .qoder`,
-        pathApi.join(repoPath, '.qoder', 'skills'),
-        'repo',
-        ['agent-skills'],
-        'qoder'
-      ),
-      source(
-        `repo-opencode-${stablePathId(repoPath)}`,
-        `${label} .opencode`,
-        pathApi.join(repoPath, '.opencode', 'skills'),
-        'repo',
-        ['agent-skills'],
-        'opencode'
-      )
     )
   }
 

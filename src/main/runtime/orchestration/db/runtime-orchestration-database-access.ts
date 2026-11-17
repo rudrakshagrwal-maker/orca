@@ -3,9 +3,10 @@ import { OrchestrationDb } from './orchestration-db'
 import { committedHandBackTypes, type MailHandBack } from './messages/helper-mailbox-hand-back'
 import { existsSync } from 'node:fs'
 import { closeOrphanedTerminalApprovals } from '../workers/approvals/terminal-approval-orphans'
-import { OrcaRuntimeWithAutomationApiOperations } from '../../workspaces/persisted-surfaces/automation-api-operations'
+// RA: orchestration storage does not inherit the deleted automation API.
+import { OrcaRuntimeWithCrewOperations } from '../../workspaces/persisted-surfaces/crew-operations'
 
-export abstract class RuntimeOrchestrationDatabaseAccess extends OrcaRuntimeWithAutomationApiOperations {
+export abstract class RuntimeOrchestrationDatabaseAccess extends OrcaRuntimeWithCrewOperations {
   abstract ensureOrchestrationFederationRelay(runId?: string): void
 
   protected abstract scheduleRestoredMessageRepoints(): void

@@ -4,14 +4,13 @@ import type {
   ClaudeRateLimitAccountsState
 } from '../../shared/managed-account-types'
 import type { GlobalSettings } from '../../shared/global-settings-types'
-import type { RateLimitService } from '../rate-limits/service/rate-limit-service'
+
 import { claudeStateFile, readClaudeFolderLogin } from './claude-account-folder'
 import { savedWslClaudeAccountHome } from './claude-profile-wsl-paths'
 import type { ClaudeRuntimeAuthService } from './runtime-auth-service'
 import {
   getClaudeSelectionTargetForAccount,
   getClaudeWslSelectionKey,
-  getSelectedClaudeAccountIdForTarget,
   normalizeClaudeAccountSelectionTarget,
   normalizeClaudeRuntimeSelection,
   pruneInvalidClaudeRuntimeSelection,
@@ -55,15 +54,13 @@ export type ClaudeAccountRuntime = Pick<
   >
 }
 
-export type ClaudeAccountUsage = Pick<
-  RateLimitService,
-  'evictInactiveClaudeCache' | 'refreshForClaudeAccountChange'
->
+// RA: legacy auth callers may still supply the old positional argument; it is never used.
+export type ClaudeAccountUsage = unknown
 
 export class ClaudeAccountSelection {
   constructor(
     private readonly store: ClaudeAccountStore,
-    private readonly rateLimits: ClaudeAccountUsage,
+    _usage: ClaudeAccountUsage,
     private readonly runtimeAuth: ClaudeAccountRuntime
   ) {}
 
@@ -144,7 +141,7 @@ export class ClaudeAccountSelection {
     const account = this.requireAccount(accountId)
     const settings = this.store.getSettings()
     const target = getClaudeSelectionTargetForAccount(account)
-    const wasSelected = getSelectedClaudeAccountIdForTarget(settings, target) === accountId
+
     const nextSelection = removeClaudeAccountIdFromSelection(
       normalizeClaudeRuntimeSelection(settings),
       accountId
@@ -170,8 +167,7 @@ export class ClaudeAccountSelection {
     })
     // Removing the last account also removes the selection file.
     await this.runtimeAuth.syncForCurrentSelection(target)
-    this.rateLimits.evictInactiveClaudeCache(accountId)
-    this.refreshUsage(wasSelected ? accountId : undefined, target)
+
     return this.list()
   }
 
@@ -200,7 +196,7 @@ export class ClaudeAccountSelection {
       effectiveTarget = accountTarget
     }
     const previous = this.store.getSettings()
-    const outgoingAccountId = getSelectedClaudeAccountIdForTarget(previous, effectiveTarget)
+
     const nextSelection = setSelectedClaudeAccountIdForTarget(
       normalizeClaudeRuntimeSelection(previous),
       accountId,
@@ -223,21 +219,11 @@ export class ClaudeAccountSelection {
       })
       throw error
     }
-    this.refreshUsage(outgoingAccountId, effectiveTarget)
+
     return this.list()
   }
 
   /** Usage failures must not undo account changes. */
-  refreshUsage(
-    outgoingAccountId: string | null | undefined,
-    target: ClaudeAccountSelectionTarget | undefined
-  ): void {
-    void this.rateLimits
-      .refreshForClaudeAccountChange(outgoingAccountId ?? undefined, target)
-      .catch((error: unknown) =>
-        console.warn('[claude-accounts] Usage unavailable after account change:', error)
-      )
-  }
 
   findAccount(accountId: string): ClaudeManagedAccount | undefined {
     return this.store.getSettings().claudeManagedAccounts.find((entry) => entry.id === accountId)

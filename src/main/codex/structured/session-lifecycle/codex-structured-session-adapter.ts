@@ -1,5 +1,6 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { copyCodexConversation } from '../../codex-conversation-copy'
-import { readCodexSessionAccountUsage } from './codex-session-account-usage'
+
 import * as permission from '../turns/codex-structured-turn-permission'
 import { projectCodexSessionOptions } from '../catalog/codex-structured-service-tier'
 import type { AgentSessionBackgroundTaskState } from '../../../../shared/agent-session/agent-session-background-task-wire'
@@ -86,7 +87,6 @@ export class CodexStructuredSessionAdapter implements SessionAdapter {
 
   copyConversation: NonNullable<SessionAdapter['copyConversation']> = (input) =>
     copyCodexConversation(input, this.deps.providerInvocation)
-  readAccountUsage = readCodexSessionAccountUsage(this.sessions, () => this.deps.providerInvocation)
 
   supportsLocation = supportsCodexStructuredLocation
 

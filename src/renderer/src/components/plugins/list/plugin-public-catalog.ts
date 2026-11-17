@@ -1,7 +1,8 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type {
   PluginMarketplaceHostListing,
   PluginMarketplaceHostSourceState
-} from '../../../../../preload/api-types'
+} from '../../../../../preload/api/plugin-host-api'
 import {
   isOfficialMarketplaceGitSource,
   isSameGitRepository

@@ -1,7 +1,6 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { SessionOptionValue } from '../../shared/native-chat/input/native-chat-session-options'
 import { conversationRecordReader } from './orchestration/addressing/session-lineage/structured-session-lineage'
-import type { RuntimeLinearCommandSurface } from './integrations/linear/runtime-linear-command-surface'
-import { installRuntimeLinearCommandSurface } from './integrations/linear/runtime-linear-command-surface'
 import { publishNativeChatPreferenceChanges } from './agent-session/launch/runtime-native-chat-preference-events'
 import { publishSettingsChanges } from './client/settings/runtime-settings-change-events'
 import { publishWorkspaceViewChanges } from './sidebar-inputs/runtime-workspace-view-change-events'
@@ -338,7 +337,6 @@ class OrcaRuntimeService extends OrcaRuntimeSidebarBase {
 }
 // Linear installs these methods on the final runtime prototype below.
 // oxlint-disable-next-line typescript/consistent-type-definitions -- SAFETY: This merge models the installed Linear API.
-interface OrcaRuntimeService extends RuntimeLinearCommandSurface {}
 
 type OrcaRuntimeServiceExport = RuntimeCommandSurfaceHost<OrcaRuntimeService>
 const OrcaRuntimeServiceExport: {
@@ -346,4 +344,3 @@ const OrcaRuntimeServiceExport: {
   readonly prototype: OrcaRuntimeServiceExport
 } = OrcaRuntimeService
 export { OrcaRuntimeServiceExport as OrcaRuntimeService }
-installRuntimeLinearCommandSurface(OrcaRuntimeServiceExport.prototype)

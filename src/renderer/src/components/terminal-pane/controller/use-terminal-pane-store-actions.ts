@@ -1,3 +1,4 @@
+// RA: Terminal panes retain buffered output without removed background services.
 import { useMemo } from 'react'
 import { useAppStore } from '../../../store/index'
 
@@ -15,8 +16,6 @@ export function useTerminalPaneStoreActions() {
       consumeTabStartupCommand: state.consumeTabStartupCommand,
       isPtyShutdownPending: state.isPtyShutdownPending,
       markTerminalBell: state.markTerminalBell,
-      openSpacePage: state.openSpacePage,
-      refreshWorkspaceSpace: state.refreshWorkspaceSpace,
       setCacheTimerStartedAt: state.setCacheTimerStartedAt,
       setRuntimePaneTitle: state.setRuntimePaneTitle,
       setTabCanExpandPane: state.setTabCanExpandPane,
@@ -45,8 +44,6 @@ export const TERMINAL_PANE_STORE_ACTION_KEYS = [
   'consumeTabStartupCommand',
   'isPtyShutdownPending',
   'markTerminalBell',
-  'openSpacePage',
-  'refreshWorkspaceSpace',
   'setCacheTimerStartedAt',
   'setRuntimePaneTitle',
   'setTabCanExpandPane',

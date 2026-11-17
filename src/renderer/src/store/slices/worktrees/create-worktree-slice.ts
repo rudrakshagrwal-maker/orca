@@ -1,4 +1,4 @@
-import { createObserveTerminalGitHubPullRequestLink } from './session/worktree-terminal-reference'
+
 import type { StateCreator } from 'zustand'
 import type { AppState } from '../../types'
 import type { WorktreeSlice } from './worktree-slice-contract'
@@ -33,7 +33,7 @@ import {
 } from './teardown/worktree-delete-state'
 import { createForceDeletePreservedBranch } from './teardown/force-delete-preserved-branch'
 import { createUpdateWorktreeMeta } from './metadata/update-worktree-meta'
-import { createEnsureHostedReviewPushTarget } from './metadata/hosted-review-push-target-ensure'
+
 import { createUpdateWorktreesMeta } from './metadata/update-worktrees-meta'
 import {
   guardUpdateWorktreeMetaHostStatus,
@@ -83,10 +83,10 @@ export const createWorktreeSlice: StateCreator<AppState, [], [], WorktreeSlice> 
   forceDeletePreservedBranch: createForceDeletePreservedBranch(set, get),
   clearWorktreeDeleteState: createClearWorktreeDeleteState(set, get),
   updateWorktreeMeta: guardUpdateWorktreeMetaHostStatus(createUpdateWorktreeMeta(set, get), get),
-  ensureHostedReviewPushTarget: createEnsureHostedReviewPushTarget(set, get),
+  
   updateWorktreesMeta: guardUpdateWorktreesMetaHostStatus(createUpdateWorktreesMeta(set, get), get),
   setWorktreesPinnedAndReveal: createSetWorktreesPinnedAndReveal(set, get),
-  observeTerminalGitHubPullRequestLink: createObserveTerminalGitHubPullRequestLink(get),
+  
   bumpWorktreeActivity: createBumpWorktreeActivity(set, get),
   markWorktreeVisited: createMarkWorktreeVisited(set, get),
   pruneLastVisitedTimestamps: createPruneLastVisitedTimestamps(set, get),

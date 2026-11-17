@@ -1,10 +1,11 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { expect, it, vi } from 'vitest'
 import { AGENT_JOURNAL_THREAD_SCOPE } from '../../../../../shared/agent-session/journal/agent-session-journal-types'
 import { agentSessionJournalProviderHandle } from '../../../../../shared/agent-session/lifecycle/agent-session-provider-handle-encoding'
 import type { AgentSessionTurnCompletionEvent } from '../../../../../shared/agent-session/view/agent-session-turn-completion-wire'
 import { structuredAttentionOrigin } from '../../../../../shared/agent-session/agent-session-attention'
 import { agentJournalSubmissionKey } from '../../../../../shared/agent-session/journal/agent-session-journal-item-key'
-import { createAnnouncedNotificationRegistry } from '../../../../notifications/announced-notification-registry'
+
 import * as journalRestore from '../../../agent-session-journal/replay/journal-open'
 import * as journalFactory from '../../../agent-session-journal/journal-store-factory'
 import type { AgentSessionExecutionLocation } from '../../../../../shared/agent-session/lifecycle/agent-session-record'
@@ -223,34 +224,19 @@ it('acknowledges a post-rewind completion after normal idle retirement without r
       throw new Error('completion has no journal position')
     }
     expect(origin.journalCursor).toEqual(journal.cursor())
-    const announcements = createAnnouncedNotificationRegistry()
-    announcements.record('chat-pane', 'completed', origin)
-    announcements.record('other-pane', 'other-scope', {
-      ...origin,
-      scope: { ...origin.scope, workspaceId: 'another-workspace' }
-    })
+
     rig.clock.now += IDLE_MS + 1
     await sweepOnce(rig.host)
     await vi.waitFor(() => expect(rig.host.hasSession(SESSION)).toBe(false))
     expect(rig.adapter.closeSession).toHaveBeenCalledWith(SESSION, undefined)
     const retiredCursor = journal.cursor()
-    announcements.record('chat-pane', 'later-unread', {
-      ...origin,
-      journalCursor: { ...retiredCursor, sequence: retiredCursor.sequence + 1 }
-    })
+
     const acquisitions = rig.adapter.acquire.mock.calls.length
     const reopen = vi.spyOn(journalFactory, 'openAgentSessionJournal')
     const restore = vi.spyOn(journalRestore, 'restoreJournal')
     try {
       const reads = await rig.host.attentionReads.workspace(HOST_TEST_LOCATION)
-      expect(
-        announcements
-          .takeAcknowledged({ worktree: HOST_TEST_LOCATION, reads })
-          .map((entry) => entry.id)
-      ).toEqual(['completed'])
-      expect(announcements.hasAnnouncement({ notificationId: 'completed' })).toBe(false)
-      expect(announcements.hasAnnouncement({ notificationId: 'later-unread' })).toBe(true)
-      expect(announcements.hasAnnouncement({ notificationId: 'other-scope' })).toBe(true)
+
       expect(reads).toEqual([
         { sessionId: SESSION, scope: HOST_TEST_LOCATION, observedCursor: retiredCursor }
       ])

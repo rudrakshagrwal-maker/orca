@@ -1,47 +1,28 @@
 import React from 'react'
-import { FilePlus, FileText, Globe, Smartphone, TerminalSquare } from 'lucide-react'
+import { Globe, TerminalSquare } from 'lucide-react'
 import { useTranslate } from '@/i18n/use-translate'
 import { DropdownMenuItem, DropdownMenuShortcut } from '@/components/ui/dropdown-menu'
-import { MobileEmulatorTabIntroCallout } from '../emulator-pane/MobileEmulatorTabIntroCallout'
 import { ShellIcon } from './shell-icons'
-import { useAppStore } from '@/store'
-import { usePluginNewFiles } from '@/store/plugins/file-creation/plugin-new-files'
-import { PluginContributionIcon } from '../plugins/PluginContributionIcon'
 import type { WindowsShellMenuEntry } from './tab-bar-windows-shell-options'
-import {
-  isMacOs,
-  type resolveWindowsPowerShellImplementationSetting
-} from './use-tab-bar-runtime-model'
+import type { resolveWindowsPowerShellImplementationSetting } from './use-tab-bar-runtime-model'
 import type { TabBarProps } from './tab-bar-props'
 import { resolveWindowsShellLaunchTarget } from './windows-shell-launch'
 
 export function TabBarStaticCreateMenu({
-  groupId,
-  terminalOnly,
-  mobileEmulatorEnabled,
-  managedBrowserCreationEnabled,
-  mobileEmulatorCreationEnabled,
-  workspaceHasSimulatorTab,
-  showMobileEmulatorIntroCallout,
   props,
+  terminalOnly,
+  managedBrowserCreationEnabled,
+  newBrowserShortcut,
   windowsShellEntries,
   defaultWindowsPowerShellImplementation,
   pwshAvailable,
   newTerminalShortcut,
-  newBrowserShortcut,
-  newSimulatorShortcut,
-  newFileShortcut,
-  openMarkdownShortcut,
   queueNewActiveTerminalFocusAfterNewTabMenuClose
 }: {
   props: TabBarProps
   groupId: string
   terminalOnly: boolean
-  mobileEmulatorEnabled: boolean
   managedBrowserCreationEnabled: boolean
-  mobileEmulatorCreationEnabled: boolean
-  workspaceHasSimulatorTab: boolean
-  showMobileEmulatorIntroCallout: boolean
   windowsShellEntries: WindowsShellMenuEntry[] | undefined
   defaultWindowsPowerShellImplementation: ReturnType<
     typeof resolveWindowsPowerShellImplementationSetting
@@ -55,15 +36,7 @@ export function TabBarStaticCreateMenu({
   queueNewActiveTerminalFocusAfterNewTabMenuClose: () => void
 }): React.ReactNode {
   const t = useTranslate()
-  const {
-    newTabMenuOrder = 'default',
-    onNewTerminalTab,
-    onNewTerminalWithShell,
-    onNewBrowserTab,
-    onNewSimulatorTab,
-    onNewFileTab,
-    onOpenFileTab
-  } = props
+  const { onNewTerminalTab, onNewTerminalWithShell } = props
   const defaultTerminalMenuItems =
     windowsShellEntries && onNewTerminalWithShell ? (
       windowsShellEntries.map((entry, index) => {
@@ -105,112 +78,17 @@ export function TabBarStaticCreateMenu({
         <DropdownMenuShortcut>{newTerminalShortcut}</DropdownMenuShortcut>
       </DropdownMenuItem>
     )
-  const newBrowserMenuItem =
-    !terminalOnly && managedBrowserCreationEnabled ? (
-      <DropdownMenuItem
-        onSelect={onNewBrowserTab}
-        className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-      >
-        <Globe className="size-4 text-muted-foreground" />
-        {t('auto.components.tab.bar.TabBar.4833fb2cbe', 'New Browser Tab')}
-        <DropdownMenuShortcut>{newBrowserShortcut}</DropdownMenuShortcut>
-      </DropdownMenuItem>
-    ) : null
-  const newSimulatorMenuItem =
-    !terminalOnly && mobileEmulatorEnabled && mobileEmulatorCreationEnabled && onNewSimulatorTab ? (
-      workspaceHasSimulatorTab ? (
-        <DropdownMenuItem
-          onSelect={onNewSimulatorTab}
-          className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-        >
-          <Smartphone className="size-4 text-muted-foreground" />
-          {t('auto.components.tab.bar.TabBar.b426bb2615', 'Go to Mobile Emulator')}
-          <DropdownMenuShortcut>{newSimulatorShortcut}</DropdownMenuShortcut>
-        </DropdownMenuItem>
-      ) : (
-        <DropdownMenuItem
-          onSelect={onNewSimulatorTab}
-          className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-        >
-          <Smartphone className="size-4 text-muted-foreground" />
-          {t('auto.components.tab.bar.TabBar.fd2b42aaa3', 'New Mobile Emulator')}
-          <DropdownMenuShortcut>{newSimulatorShortcut}</DropdownMenuShortcut>
-        </DropdownMenuItem>
-      )
-    ) : null
-  const newMarkdownMenuItem =
-    !terminalOnly && onNewFileTab ? (
-      <DropdownMenuItem
-        onSelect={onNewFileTab}
-        className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-      >
-        <FilePlus className="size-4 text-muted-foreground" />
-        {t('auto.components.tab.bar.TabBar.3d5d6c960d', 'New Markdown')}
-        <DropdownMenuShortcut>{newFileShortcut}</DropdownMenuShortcut>
-      </DropdownMenuItem>
-    ) : null
-  const pluginNewFiles = usePluginNewFiles()
-  const pluginNewFileMenuItems =
-    !terminalOnly && onNewFileTab
-      ? pluginNewFiles.map((newFile) => (
-          <DropdownMenuItem
-            key={newFile.key}
-            onSelect={() => {
-              void useAppStore.getState().openNewPluginFileInActiveWorkspace(newFile, groupId)
-            }}
-            className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-          >
-            <PluginContributionIcon
-              url={newFile.iconUrl}
-              fallback={FilePlus}
-              className="size-4 text-muted-foreground"
-            />
-            {newFile.title}
-          </DropdownMenuItem>
-        ))
-      : null
-  const openMarkdownMenuItem =
-    !terminalOnly && onOpenFileTab ? (
-      <DropdownMenuItem
-        onSelect={onOpenFileTab}
-        className="gap-2 rounded-[7px] px-2 py-1.5 text-[12px] leading-5 font-medium"
-      >
-        <FileText className="size-4 text-muted-foreground" />
-        {t('auto.components.tab.bar.TabBar.4f327c8b3d', 'Open Markdown...')}
-        {openMarkdownShortcut ? (
-          <DropdownMenuShortcut>{openMarkdownShortcut}</DropdownMenuShortcut>
-        ) : null}
-      </DropdownMenuItem>
-    ) : null
-  const mobileEmulatorIntroMenuBlock =
-    showMobileEmulatorIntroCallout &&
-    !terminalOnly &&
-    isMacOs &&
-    mobileEmulatorEnabled &&
-    mobileEmulatorCreationEnabled &&
-    onNewSimulatorTab ? (
-      <MobileEmulatorTabIntroCallout />
-    ) : null
-
-  return newTabMenuOrder === 'markdown-first' ? (
-    <>
-      {newMarkdownMenuItem}
-      {pluginNewFileMenuItems}
-      {openMarkdownMenuItem}
-      {defaultTerminalMenuItems}
-      {newBrowserMenuItem}
-      {newSimulatorMenuItem}
-      {mobileEmulatorIntroMenuBlock}
-    </>
-  ) : (
+  // RA: retain embedded browser creation beside terminal launches.
+  return (
     <>
       {defaultTerminalMenuItems}
-      {newBrowserMenuItem}
-      {newMarkdownMenuItem}
-      {pluginNewFileMenuItems}
-      {openMarkdownMenuItem}
-      {newSimulatorMenuItem}
-      {mobileEmulatorIntroMenuBlock}
+      {!terminalOnly && managedBrowserCreationEnabled ? (
+        <DropdownMenuItem onSelect={props.onNewBrowserTab}>
+          <Globe className="size-4 text-muted-foreground" />
+          {t('auto.components.tab.bar.TabBar.4833fb2cbe', 'New Browser Tab')}
+          <DropdownMenuShortcut>{newBrowserShortcut}</DropdownMenuShortcut>
+        </DropdownMenuItem>
+      ) : null}
     </>
   )
 }

@@ -1,10 +1,11 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 // @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { useAppStore } from '@/store'
 import type { Worktree } from '../../../../../../shared/worktree/types'
-import { makeWorktree } from '../../../worktree-jump/worktree-jump-palette-test-fixtures'
+import { makeWorktree } from '../../../test-support/workspace-layout-test-fixtures'
 import { buildWorktreeManualOrderCatalog } from './worktree-manual-order-catalog'
 import { useWorktreeStatusMutations } from './use-status-mutations'
 import {

@@ -7,10 +7,11 @@ import {
 } from '../../../shared/agent-status/contracts/agent-status-subject'
 import { structuredStatusLegacyEvent } from './server-structured-status-row'
 import type { AgentHookSource } from '../../../shared/agent-hook-listener/transport/agent-hook-relay'
-import { AgentHookServerOpenCodeBinder } from './server-opencode-binder'
+// RA: supported agents do not need an OpenCode database polling layer.
+import { AgentHookServerPersistence } from './server-persistence'
 import { tmuxCliWriterEvent } from './cli-writer-observation'
 
-export abstract class AgentHookServerTmuxStatus extends AgentHookServerOpenCodeBinder {
+export abstract class AgentHookServerTmuxStatus extends AgentHookServerPersistence {
   private tmuxOwner: TmuxAgentHookOwner | undefined
   private tmuxRootResolver: (paneKey: string) => Promise<TmuxManagedPty | null> = async () => null
 

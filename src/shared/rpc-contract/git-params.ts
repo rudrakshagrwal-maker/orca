@@ -13,6 +13,9 @@ export const WorktreeSelector = z.object({
 })
 
 export const GitStatusParams = WorktreeSelector.extend({
+  // RA: summary reads and explicit metadata invalidation work on every runtime host.
+  summaryOnly: z.boolean().optional(),
+  refreshMetadata: z.boolean().optional(),
   admissionTier: OptionalGitAdmissionTier,
   includeIgnored: z.boolean().optional(),
   includeLineStats: z.boolean().optional(),

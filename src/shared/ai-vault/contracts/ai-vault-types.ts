@@ -1,35 +1,10 @@
 import type { AiVaultScanIssueText } from '../scanning/ai-vault-scan-issue-copy'
-import type { TuiAgent } from '../../agent-launch/catalog/tui-agent'
+import { FORK_TUI_AGENTS } from '../../agent-launch/catalog/tui-agent'
 import type { AgentSessionAccountHome } from '../../agent-session/lifecycle/agent-session-account-home'
 import type { ExecutionHostId, ExecutionHostScope } from '../../execution-host'
 
-export const AI_VAULT_AGENTS = [
-  'claude',
-  'codebuddy',
-  'qoder',
-  'codex',
-  'hermes',
-  'pi',
-  'omp',
-  'prime-agent',
-  'cursor',
-  'gemini',
-  'antigravity',
-  'rovo',
-  'copilot',
-  'opencode',
-  'opencode2',
-  'zcode',
-  'grok',
-  'openclaw',
-  'devin',
-  'droid',
-  'cline',
-  'kimi',
-  'muse',
-  'jcode',
-  'kiro'
-] as const satisfies readonly TuiAgent[]
+// RA: history helpers may read legacy records but never enumerate removed agents.
+export const AI_VAULT_AGENTS = FORK_TUI_AGENTS
 
 // RPC clamps scopePaths to this bound because paths only widen discovery; matching producer-side caps are optional.
 export const AI_VAULT_SCOPE_PATHS_MAX_COUNT = 64
@@ -44,7 +19,32 @@ export function isAiVaultScanCancelledError(error: unknown): boolean {
   )
 }
 
-export type AiVaultAgent = (typeof AI_VAULT_AGENTS)[number]
+export type AiVaultAgent =
+  | 'claude'
+  | 'codebuddy'
+  | 'qoder'
+  | 'codex'
+  | 'hermes'
+  | 'pi'
+  | 'omp'
+  | 'prime-agent'
+  | 'cursor'
+  | 'gemini'
+  | 'antigravity'
+  | 'rovo'
+  | 'copilot'
+  | 'opencode'
+  | 'opencode2'
+  | 'zcode'
+  | 'grok'
+  | 'openclaw'
+  | 'devin'
+  | 'droid'
+  | 'cline'
+  | 'kimi'
+  | 'muse'
+  | 'jcode'
+  | 'kiro'
 
 export function isAiVaultAgent(value: unknown): value is AiVaultAgent {
   return AI_VAULT_AGENTS.some((agent) => agent === value)

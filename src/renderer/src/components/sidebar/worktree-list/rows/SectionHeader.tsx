@@ -1,3 +1,4 @@
+// RA: new-workspace composer entry points are removed; CLI worktree creation remains.
 import {
   getRootProjectHeaderKey,
   getRootProjectHeaderOccurrenceKey
@@ -14,7 +15,6 @@ import '@/store/project-groups/project-group-owner-routing'
 import { getRepoExecutionHostId } from '../../../../../../shared/execution-host'
 import {
   getHeaderDragRepo,
-  isSingleHostProjectHeader,
   type GroupHeaderRow
 } from '../../../../../../shared/sidebar-list/row-types'
 import { PINNED_GROUP_KEY } from '../../../../../../shared/sidebar-list/group-keys'
@@ -29,19 +29,10 @@ import {
   getProjectGroupHeaderPaddingLeft,
   WORKTREE_SECTION_HEADER_PADDING_LEFT
 } from './indentation'
-import {
-  FolderPathStatusIndicator,
-  isFolderWorkspaceCreateDisabled
-} from './FolderPathStatusIndicator'
+import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
 import { RepoScanUnavailableIndicator } from './RepoScanUnavailableIndicator'
-import {
-  ProjectGroupCreateWorkspaceButton,
-  ProjectGroupHeaderMenu
-} from './project-group-header-actions'
-import {
-  RepoHeaderCreateWorkspaceButton,
-  RepoHeaderProjectActionsMenu
-} from './repo-header-project-actions'
+import { ProjectGroupHeaderMenu } from './project-group-header-actions'
+import { RepoHeaderProjectActionsMenu } from './repo-header-project-actions'
 import {
   handleRepoHeaderCollapseAffordancePointerDown,
   shouldIgnoreRepoHeaderToggle,
@@ -369,32 +360,12 @@ export function renderWorktreeSectionHeaderRow(
               />
             ) : null}
 
-            {folderBackedProjectGroup ? (
-              <ProjectGroupCreateWorkspaceButton
-                projectGroup={folderBackedProjectGroup}
-                label={label}
-                pathStatus={projectGroupPathStatus}
-                disabled={isFolderWorkspaceCreateDisabled(projectGroupPathStatus)}
-                onCreate={ctx.onCreateFolderWorkspace}
-              />
-            ) : null}
-
             {row.repo && ctx.groupBy === 'repo' ? (
               <RepoHeaderProjectActionsMenu
                 repo={row.repo}
                 label={label}
                 projectGroups={ctx.projectGroups}
                 actions={ctx.projectActions}
-              />
-            ) : null}
-
-            {row.repo && ctx.groupBy === 'repo' ? (
-              <RepoHeaderCreateWorkspaceButton
-                key={`${row.repo.executionHostId ?? 'local'}:${row.repo.connectionId ?? ''}`}
-                repo={row.repo}
-                label={label}
-                pinHost={isSingleHostProjectHeader(row)}
-                onCreateForRepo={ctx.projectActions.onCreateForRepo}
               />
             ) : null}
           </ProjectHeaderActions>

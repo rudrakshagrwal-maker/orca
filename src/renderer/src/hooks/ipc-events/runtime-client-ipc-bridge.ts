@@ -1,5 +1,5 @@
 import '@/store/slices/linear/linear-issue-read'
-import { consumeLinearIssueRead } from '@/store/slices/linear/linear-issue-read-lifecycle'
+
 import { dispatchTerminalSideEffectBatch } from '@/components/terminal-pane/pty-transport/output/terminal-side-effect-facts-handler'
 import { emitAutomationsChangedWindowEvent } from '@/components/automations/events/automations-changed-window-event'
 import { applyHostWorkspaceRowEvent } from './worktree-metadata-set-events'
@@ -177,14 +177,7 @@ export function registerRuntimeClientIpcBridge(
       )
       return
     }
-    if (event.type === 'linearLinkedIssueUpdated') {
-      void consumeLinearIssueRead(
-        useAppStore.getState().refreshLinearIssue(event.identifier, event.workspaceId)
-      ).catch((error) => {
-        console.error('Failed to refresh updated Linear issue:', error)
-      })
-      return
-    }
+    
     // This window builds its sidebar from its own store, never from a host's phone feed.
     if (event.type === 'sidebarInputsChanged') {
       return

@@ -31,6 +31,10 @@ export async function readStatusPorcelain(
   options: GetStatusOptions,
   limit: number
 ): Promise<StatusPorcelainRead> {
+  // RA: terminal sidebar only needs tracked dirtiness and branch counters.
+  if (options.summaryOnly) {
+    return streamStatusPorcelain([...STATUS_ARGS, '-uno'], worktreePath, options, limit)
+  }
   // Git never uses the untracked cache when it also collects ignored paths.
   if (options.includeIgnored) {
     return streamAllUntracked(worktreePath, options, limit, ['--ignored=matching'])

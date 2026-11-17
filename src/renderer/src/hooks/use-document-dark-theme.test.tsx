@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 // @vitest-environment happy-dom
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,8 +15,7 @@ vi.mock('@/store', () => ({
     })
 }))
 
-import { usePluginViewCaptureStore } from '@/store/plugins/capture/plugin-view-capture'
-import { useDocumentDarkTheme, useSettingsDarkTheme } from './use-document-dark-theme'
+import { useDocumentDarkTheme } from './use-document-dark-theme'
 
 function installMatchMedia(initialMatches: boolean): {
   emit: (matches: boolean) => void
@@ -46,7 +46,7 @@ const originalMatchMedia = window.matchMedia
 
 afterEach(() => {
   cleanup()
-  usePluginViewCaptureStore.getState().end()
+
   settingsState.theme = 'system'
   resetSystemPrefersDarkSubscriptionForTests()
   window.matchMedia = originalMatchMedia
@@ -63,18 +63,5 @@ describe('useDocumentDarkTheme', () => {
 
     act(() => media.emit(false))
     expect(result.current).toBe(false)
-  })
-})
-
-describe('a plugin shot --theme capture', () => {
-  it('paints its mode while it runs, then the setting again', () => {
-    settingsState.theme = 'light'
-    installMatchMedia(false)
-    const { result } = renderHook(() => [useSettingsDarkTheme(), useDocumentDarkTheme()])
-    expect(result.current).toEqual([false, false])
-    act(() => usePluginViewCaptureStore.getState().begin({ panelWidth: null, dark: true }))
-    expect(result.current).toEqual([true, true])
-    act(() => usePluginViewCaptureStore.getState().end())
-    expect(result.current).toEqual([false, false])
   })
 })

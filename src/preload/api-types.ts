@@ -1,45 +1,28 @@
 import type {
   ClaudeAccountsApi,
   CodexAccountsApi,
-  CodexConfigSyncApi,
-  CursorAccountsApi,
-  GrokAccountsApi,
-  MinimaxCredentialsApi,
-  ZcodePlanCredentialsApi
+  CodexConfigSyncApi
 } from './api/agent-account-api'
 import type { HooksApi } from './api/agent-hook-api'
 import type { SkillsApi } from './api/agent-skill-api'
 import type { AgentAwakeApi, AgentStatusApi } from './api/agent-status-api'
-import type {
-  ClaudeUsageApi,
-  CodexUsageApi,
-  MuseUsageApi,
-  OpenCodeUsageApi,
-  RateLimitsApi
-} from './api/agent-usage-api'
+
 import type { AiVaultApi } from './api/ai-vault-api'
 import type { AppApi, E2EApi, PlatformApi } from './api/app-api'
-import type { AutomationsApi } from './api/automation-api'
+
 import type { BrowserApi } from './api/browser/browser-api'
 import type { CliApi } from './api/cli-install-api'
 import type { CrashReportsApi, FeedbackApi } from './api/crash-report-api'
-import type { DashboardApi, TerminalPreviewApi } from './api/dashboard-api'
+import type { TerminalPreviewApi } from './api/dashboard-api'
 import type { DocPreviewApi } from './api/doc-preview-api'
-import type { EmulatorApi } from './api/emulator-api'
+
 import type { EphemeralVmApi } from './api/ephemeral-vm-api'
 import type { ExportApi, FilesystemApi } from './api/filesystem-api'
 import type { GitInspectionApi } from './api/git-inspection-api'
 import type { GitOperationApi } from './api/git-operation-api'
-import type { GithubAccountApi } from './api/github-account-api'
-import type { GithubPullRequestApi } from './api/github-pull-request-api'
-import type { GithubWorkItemApi } from './api/github-work-item-api'
-import type { GitLabApi } from './api/gitlab-api'
-import type { BitbucketApi, HostedReviewApi } from './api/hosted-review-api'
-import type { JiraApi } from './api/jira-api'
-import type { LinearApi } from './api/linear-api'
-import type { MobileApi } from './api/mobile-api'
+
 import type { NativeChatApi } from './api/native-chat-api'
-import type { OnboardingApi, StarNagApi } from './api/onboarding-api'
+
 import type { OrcaProfileApi } from './api/orca-profile-api'
 import type {
   ComputerUsePermissionsApi,
@@ -50,7 +33,7 @@ import type {
 import type { PetApi } from './api/pet-api'
 import type { AppIconApi } from './api/app-icon-api'
 import type { BrowserPasswordsApi } from './api/browser-passwords-api'
-import type { PluginsApi } from './api/plugin-host-api'
+
 import type { PreflightApi } from './api/preflight-api'
 import type { PtyApi } from './api/pty-api'
 import type { ProjectGroupsApi, ProjectsApi, RepositoryApi } from './api/repository-api'
@@ -64,12 +47,12 @@ import type { SpeechApi } from './api/speech-api'
 import type { SshApi } from './api/ssh-api'
 import type { PlainSshTerminalApi } from './api/plain-ssh-terminal-bridge'
 import type { LegacyRelayBridgeApi } from './api/legacy-relay-bridge-api'
-import type { DiagnosticsApi, MemoryApi, StatsApi, TelemetryApi } from './api/telemetry-api'
+import type { DiagnosticsApi, StatsApi, TelemetryApi } from './api/telemetry-api';
 import type { UiCommandEventApi } from './api/ui-command-event-api'
 import type { UiWindowApi } from './api/ui-window-api'
 import type { UpdaterApi } from './api/updater-api'
-import type { WorkspaceCleanupApi, WorkspaceSpaceApi } from './api/workspace-cleanup-api'
-import type { LocalhostWorktreeLabelsApi, WorkspacePortsApi } from './api/workspace-port-api'
+import type { WorkspaceCleanupApi } from './api/workspace-cleanup-api'
+import type { LocalhostWorktreeLabelsApi } from './api/workspace-port-api'
 import type { LinkPreviewApi } from './api/link-preview-api'
 import type { WorkspaceSessionApi } from './api/workspace-session-api'
 import type { FolderWorkspacesApi, SparsePresetsApi, WorktreeApi } from './api/worktree-api'
@@ -89,20 +72,13 @@ export type PreloadApi = {
   sparsePresets: SparsePresetsApi
   worktrees: WorktreeApi
   workspaceCleanup: WorkspaceCleanupApi
-  workspaceSpace: WorkspaceSpaceApi
-  workspacePorts: WorkspacePortsApi
+
   linkPreview: LinkPreviewApi
   pty: PtyApi
   feedback: FeedbackApi
   crashReports: CrashReportsApi
   export: ExportApi
-  gh: Merged<GithubPullRequestApi & GithubWorkItemApi & GithubAccountApi>
-  hostedReview: HostedReviewApi
-  gl: GitLabApi
-  bitbucket: BitbucketApi
-  linear: LinearApi
-  jira: JiraApi
-  starNag: StarNagApi
+
   telemetryTrack: TelemetryApi['telemetryTrack']
   telemetrySetOptIn: TelemetryApi['telemetrySetOptIn']
   diagnostics: DiagnosticsApi
@@ -118,8 +94,7 @@ export type PreloadApi = {
   codexConfigSync: CodexConfigSyncApi
   preflight: PreflightApi
   notifications: NotificationsApi
-  onboarding: OnboardingApi
-  dashboard: DashboardApi
+
   terminalPreview: TerminalPreviewApi
   macosTccPrompts: MacosTccPromptsApi
   developerPermissions: DeveloperPermissionsApi
@@ -130,7 +105,7 @@ export type PreloadApi = {
   appIcon: AppIconApi
   browser: BrowserApi
   browserPasswords: BrowserPasswordsApi
-  emulator: EmulatorApi
+
   hooks: HooksApi
   ephemeralVm: EphemeralVmApi
   cache: WorkspaceSessionApi['cache']
@@ -139,11 +114,7 @@ export type PreloadApi = {
   notebook: FilesystemApi['notebook']
   docPreview: DocPreviewApi['docPreview']
   stats: StatsApi
-  memory: MemoryApi
-  claudeUsage: ClaudeUsageApi
-  codexUsage: CodexUsageApi
-  openCodeUsage: OpenCodeUsageApi
-  museUsage: MuseUsageApi
+
   aiVault: AiVaultApi
   nativeChat: NativeChatApi
   fs: FilesystemApi['fs']
@@ -151,49 +122,34 @@ export type PreloadApi = {
   ui: Merged<UiCommandEventApi & UiWindowApi>
   runtime: RuntimeApi['runtime']
   runtimeEnvironments: RuntimeApi['runtimeEnvironments']
-  rateLimits: RateLimitsApi
-  opencodeGoCredentials: {
-    getStatus: () => Promise<{ apiKeyConfigured: boolean }>
-    saveApiKey: (key: string) => Promise<{ apiKeyConfigured: boolean }>
-    clearApiKey: () => Promise<{ apiKeyConfigured: boolean }>
-  }
-  minimaxCredentials: MinimaxCredentialsApi
-  zcodePlanCredentials: ZcodePlanCredentialsApi
-  grokAccounts: GrokAccountsApi
-  cursorAccounts: CursorAccountsApi
+
   ssh: SshApi
   /** Desktop only: an unmanaged ssh login to a host whose move is blocked. */
   plainSsh?: PlainSshTerminalApi
   /** COMPAT(legacy-relay-bridge): desktop-only, revisit 2027-01-15. */
   legacyRelayBridge?: LegacyRelayBridgeApi
-  automations: AutomationsApi
+
   wsl: RuntimeApi['wsl']
   wslMove: WslMoveApi
   wslDriveProject: WslDriveProjectApi
   wslDriveUnc: WslDriveUncConversionApi
   pwsh: RuntimeApi['pwsh']
   gitBash: RuntimeApi['gitBash']
-  plugins: PluginsApi
+
   agentStatus: AgentStatusApi
-  mobile: MobileApi
+
   speech: SpeechApi
 }
 
-export type {
-  ClaudeUsageApi,
-  CodexUsageApi,
-  MuseUsageApi,
-  OpenCodeUsageApi
-} from './api/agent-usage-api'
 export type { AiVaultApi } from './api/ai-vault-api'
-export type { AutomationsApi, ExternalAutomationManagerResult } from './api/automation-api'
+
 export type { AppApi } from './api/app-api'
 export type {
   BrowserApi,
   DetectedBrowserInfo,
   DetectedBrowserProfileInfo
 } from './api/browser/browser-api'
-export type { EmulatorApi } from './api/emulator-api'
+
 export type { ExportApi } from './api/filesystem-api'
 export type {
   NativeChatApi,
@@ -203,20 +159,7 @@ export type {
   NativeChatSubscribeArgs,
   NativeChatSubscriptionFrame
 } from './api/native-chat-api'
-export type {
-  PluginAutoUpdateEvent,
-  PluginHostCustomEditor,
-  PluginHostNewFile,
-  PluginHostInstallResult,
-  PluginHostInstallSource,
-  PluginHostListEntry,
-  PluginHostLogLine,
-  PluginHostPanel,
-  PluginHostStatus,
-  PluginMarketplaceHostInstallPreview,
-  PluginMarketplaceHostListing,
-  PluginMarketplaceHostSourceState
-} from './api/plugin-host-api'
+
 export type {
   PreflightApi,
   PreflightRuntimeContext,
@@ -237,7 +180,6 @@ export type {
   DiagnosticsBundlePayload,
   DiagnosticsStatusPayload,
   DiagnosticsUploadPayload,
-  MemoryApi,
   StatsApi
 } from './api/telemetry-api'
 
@@ -247,3 +189,53 @@ declare global {
     api: PreloadApi
   }
 }
+
+// RA: desktop omits deleted bridges; the wider contract remains shared with remote clients.
+export type DesktopPreloadApi = Omit<
+  PreloadApi,
+  | 'plugins'
+  | 'workspacePorts'
+  | 'linear'
+  | 'jira'
+  | 'starNag'
+  | 'onboarding'
+  | 'dashboard'
+  | 'emulator'
+  | 'claudeUsage'
+  | 'codexUsage'
+  | 'openCodeUsage'
+  | 'museUsage'
+  | 'opencodeGoCredentials'
+  | 'minimaxCredentials'
+  | 'zcodePlanCredentials'
+  | 'grokAccounts'
+  | 'cursorAccounts'
+  | 'automations'
+  | 'mobile'
+  | 'memory'
+  | 'rateLimits'
+  | 'ui'
+  | 'workspaceSpace'
+> & { ui: DesktopUiApi }
+
+// RA: removed UI destinations have no desktop IPC listeners or invoke bridge.
+export type DesktopUiApi = Omit<
+  PreloadApi['ui'],
+  | 'getJiraQuickFilters'
+  | 'setJiraQuickFilters'
+  | 'getJiraSavedFilters'
+  | 'mutateJiraSavedFilters'
+  | 'onOpenSkillShare'
+  | 'consumePendingSkillShare'
+  | 'onOpenPluginInstallLink'
+  | 'consumePendingPluginInstallLink'
+  | 'onOpenSetupGuide'
+  | 'onOpenFeatureTour'
+  | 'onToggleRightSidebar'
+  | 'onToggleWorktreePalette'
+  | 'onToggleFloatingTerminal'
+  | 'onOpenNewWorkspace'
+  | 'onOpenWorkspaceBoard'
+  | 'onOpenTasks'
+  | 'onToggleAgentDashboard'
+>

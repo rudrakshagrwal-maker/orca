@@ -1,7 +1,7 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   hasExplicitWorkspaceReviewSelection,
-  getWorkspaceReviewPersistenceUpdates,
-  getWorkspaceReviewRefreshHints
+  getWorkspaceReviewPersistenceUpdates
 } from './workspace-attachment-review-selection'
 import {
   getWorkspaceAttachments,
@@ -33,9 +33,9 @@ import { withPendingSidebarRowWrites } from '@/components/sidebar/sidebar-feed/s
 import { isRuntimeSelectorNotFoundError } from '../listing/runtime-worktree-rpc-errors'
 import { runtimeTargetForWorktreeOwner } from '../listing/worktree-owner-target'
 import { runtimeTargetForWorkspaceOwner } from '@/lib/workspace/ownership/resolve-owner'
-import { hasUniqueIndexedRepositoryHost } from '@/lib/workspace/ownership/repository-owner-index'
+
 import { resolveReviewRepository } from '@/lib/source-control/review/review-owner'
-import { getRepoExecutionHostId } from '../../../../../../shared/execution-host'
+
 import type { WorktreeSliceGet, WorktreeSliceSet } from '../listing/worktree-slice-types'
 import type { WorktreeSlice } from '../worktree-slice-contract'
 
@@ -212,25 +212,6 @@ export function createUpdateWorktreeMeta(
       )
       if (deferUpdate) {
         set(buildUpdate)
-      }
-      if (
-        !options?.suppressHostedReviewRefresh &&
-        reviewRepo &&
-        hasUniqueIndexedRepositoryHost(
-          get().repos,
-          reviewRepo.id,
-          getRepoExecutionHostId(reviewRepo)
-        ) &&
-        reviewBranch &&
-        typeof get().fetchHostedReviewForBranch === 'function'
-      ) {
-        // Why: refetch against post-update links so a cache entry from the previous provider link can't keep showing the removed review.
-        void get().fetchHostedReviewForBranch(reviewRepo.path, reviewBranch, {
-          repoId: reviewRepo.id,
-          repoOwnerExecutionHostId: getRepoExecutionHostId(reviewRepo),
-          ...getWorkspaceReviewRefreshHints(targetEnriched, worktreeForUpdate),
-          force: true
-        })
       }
     } catch (err) {
       if (isRuntimeSelectorNotFoundError(err)) {

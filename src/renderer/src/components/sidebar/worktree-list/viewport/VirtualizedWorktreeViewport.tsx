@@ -1,3 +1,4 @@
+// RA: new-workspace composer entry points are removed; CLI worktree creation remains.
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { selectSidebarLineageParentIdentities } from '@/store/slices/worktrees/metadata/cross-store-lineage-parents'
@@ -81,8 +82,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     handleCreateGroupFromRepo,
     handleMoveProjectToGroup,
     handleRemoveProjectFromGroup,
-    handleRemoveProject,
-    handleCreateForRepo
+    handleRemoveProject
   } = props
   // Why stable: a new object re-renders every project header's menu tree on each workspace switch.
   const projectActions = useMemo<RepoHeaderProjectActions>(
@@ -94,8 +94,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
       onCreateGroupFromRepo: handleCreateGroupFromRepo,
       onMoveProjectToGroup: handleMoveProjectToGroup,
       onRemoveProjectFromGroup: handleRemoveProjectFromGroup,
-      onRemoveProject: handleRemoveProject,
-      onCreateForRepo: handleCreateForRepo
+      onRemoveProject: handleRemoveProject
     }),
     [
       settings,
@@ -105,8 +104,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
       handleCreateGroupFromRepo,
       handleMoveProjectToGroup,
       handleRemoveProjectFromGroup,
-      handleRemoveProject,
-      handleCreateForRepo
+      handleRemoveProject
     ]
   )
 
@@ -198,7 +196,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     groupBy,
     pinnedDisplayPolicy,
     defaultHostId: props.defaultHostId,
-    prCache: props.prCache,
+
     workspaceStatuses,
     settings,
     projectGroups: props.visibleProjectGroups ?? projectGroups,

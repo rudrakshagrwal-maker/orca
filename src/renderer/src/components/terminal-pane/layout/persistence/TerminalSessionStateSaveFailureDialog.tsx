@@ -1,3 +1,4 @@
+// RA: Terminal panes retain buffered output without removed background services.
 import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,13 +15,11 @@ import { isTerminalSessionStorageCapacityFailure } from '../../../../../../share
 export function TerminalSessionStateSaveFailureDialog({
   open,
   failureMessage,
-  onDismiss,
-  onOpenSpaceAnalyzer
+  onDismiss
 }: {
   open: boolean
   failureMessage: string
   onDismiss: () => void
-  onOpenSpaceAnalyzer: () => void
 }): React.JSX.Element {
   const t = useTranslate()
   const capacityFailure = isTerminalSessionStorageCapacityFailure(failureMessage)
@@ -72,14 +71,6 @@ export function TerminalSessionStateSaveFailureDialog({
               'Dismiss'
             )}
           </Button>
-          {capacityFailure && (
-            <Button type="button" size="sm" onClick={onOpenSpaceAnalyzer}>
-              {t(
-                'auto.components.terminal.pane.TerminalSessionStateSaveFailureDialog.6bee0c8f17',
-                'Open Disk Space Analyzer'
-              )}
-            </Button>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

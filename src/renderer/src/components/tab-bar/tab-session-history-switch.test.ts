@@ -1,3 +1,4 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import { applyProviderSessionOnlyUpdate } from '@/hooks/ipc-events/agent-status-partial-updates'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAppStore } from '@/store/index'
@@ -6,7 +7,7 @@ import {
   makeRepo,
   makeTerminalTab,
   makeWorktree
-} from '../worktree-jump/worktree-jump-palette-test-fixtures'
+} from '../test-support/workspace-layout-test-fixtures'
 
 import { resolveCliChatResumeSource } from './cli-chat-resume-source'
 

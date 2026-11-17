@@ -1,41 +1,24 @@
-import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
-import { memo, Suspense, useCallback, useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
 import { useTranslate } from '@/i18n/use-translate'
-import { useAppStore } from '@/store/index'
-import { usePluginViewCaptureStore } from '@/store/plugins/capture/plugin-view-capture'
-import { pendingCreationOpensNativeChat } from '@/lib/workspace/creation/pending-worktree-creation'
-import { showsFloatingRightSidebarToggle } from '@/components/right-sidebar/visibility/right-sidebar-visibility'
+
 import Sidebar from '../components/Sidebar'
 import { RecoverableRenderErrorBoundary } from '../components/error-boundaries/RecoverableRenderErrorBoundary'
-import { FloatingTerminalToggleButton } from '../components/floating-terminal/FloatingTerminalToggleButton'
+
 import { TerminalWorkbenchContainer } from '../components/TerminalWorkbenchContainer'
 import type { VirtualizedScrollAnchor } from '../hooks/useVirtualizedScrollAnchor'
 import { TitlebarLeftControls } from './TitlebarLeftControls'
-import { RightSidebarToggle, TitlebarMainStrip } from './TitlebarMainStrip'
+import { TitlebarMainStrip } from './TitlebarMainStrip'
 import type { AppChromeLayout } from './use-app-chrome-layout'
-import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
 
 // Skips the shell render each workspace switch causes; its props only change on toggle.
-const MemoFloatingTerminalToggleButton = memo(FloatingTerminalToggleButton)
+
 // RA: disabled panels stay outside the boot import graph; orchestration remains in Projects.
-const RightSidebar = lazy(() => import('../components/right-sidebar/index'))
 
 const Landing = lazy(() => import('../components/Landing'))
-const WorktreeCreationPanel = lazy(
-  () => import('../components/worktree-creation/WorktreeCreationPanel')
-)
-const PendingNativeChatCreation = lazy(
-  () => import('../components/worktree-creation/PendingNativeChatCreation')
-)
-const TaskPage = lazy(() => import('../components/task-page/TaskPage'))
-const AutomationsPage = lazy(() => import('../components/automations/AutomationsPage'))
-const ActivityPrototypePage = lazy(() => import('../components/activity/ActivityPrototypePage'))
+
 const Settings = lazy(() => import('../components/settings/Settings'))
-const SkillsPage = lazy(() => import('../components/skills/SkillsPage'))
-const ArtifactsPage = lazy(() => import('../components/artifacts/ArtifactsPage'))
-const WorkspaceSpacePage = lazy(() => import('../components/workspace-space/WorkspaceSpacePage'))
-const MobilePage = lazy(() => import('../components/mobile/MobilePage'))
+
 const Terminal = lazy(() => import('../components/Terminal'))
 
 type WorktreeSidebarScrollRefs = {
@@ -78,39 +61,13 @@ function WorktreeSidebar({
 }
 
 // A chat-bound creation shows the chat itself, usable before its worktree exists.
-function PendingCreationSurface(props: {
-  creationId: string
-  reserveCollapsedSidebarHeaderSpace: boolean
-}): React.JSX.Element {
-  const opensChat = useAppStore((s) => {
-    const entry = s.pendingWorktreeCreations[props.creationId]
-    return entry ? pendingCreationOpensNativeChat(entry) : false
-  })
-  return !backgroundJobsDisabled() && opensChat ? <PendingNativeChatCreation {...props} /> : <WorktreeCreationPanel {...props} />
-}
 
 function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element {
-  const { activeView, hasActiveWorktree, activePendingCreationId, creationLayoutActive } = layout
+  const { activeView, hasActiveWorktree, creationLayoutActive } = layout
   return (
     <>
       {activeView === 'settings' ? <Settings /> : null}
-      {!backgroundJobsDisabled() ? (
-        <>
-        {activeView === 'skills' ? <SkillsPage /> : null}
-        {activeView === 'artifacts' ? <ArtifactsPage /> : null}
-        {activeView === 'tasks' ? <TaskPage /> : null}
-        {activeView === 'automations' ? <AutomationsPage /> : null}
-        {activeView === 'activity' ? <ActivityPrototypePage /> : null}
-        {activeView === 'space' ? <WorkspaceSpacePage /> : null}
-        {activeView === 'mobile' ? <MobilePage /> : null}
-        </>
-      ) : null}
-      {activeView === 'terminal' && creationLayoutActive && activePendingCreationId ? (
-        <PendingCreationSurface
-          creationId={activePendingCreationId}
-          reserveCollapsedSidebarHeaderSpace={layout.leftTitlebarChromeLayout.isFloating}
-        />
-      ) : null}
+
       {activeView === 'terminal' && !hasActiveWorktree && !creationLayoutActive ? (
         <Landing />
       ) : null}
@@ -118,25 +75,16 @@ function ActivePage({ layout }: { layout: AppChromeLayout }): React.JSX.Element 
   )
 }
 
-export function AppWorkspaceShell(props: {
-  layout: AppChromeLayout
-  floatingWorkspace: FloatingWorkspacePanelState
-}): React.JSX.Element {
+export function AppWorkspaceShell(props: { layout: AppChromeLayout }): React.JSX.Element {
   const t = useTranslate()
-  const { layout, floatingWorkspace } = props
+  const { layout } = props
   const titlebarLeftControls = <TitlebarLeftControls layout={layout} />
   const titlebarMainStrip = <TitlebarMainStrip layout={layout} />
   // Keep scroll memory above sidebar view remounts to preserve list position.
   const scrollOffsetRef = useRef(0)
   const scrollAnchorRef = useRef<VirtualizedScrollAnchor>(null)
   const sidebarScrollRefs = { scrollOffsetRef, scrollAnchorRef }
-  const { setOpenWithFocus } = floatingWorkspace
   // `orca plugin shot` captures the right sidebar, which the parked launcher floats over.
-  const capturingPluginShot = usePluginViewCaptureStore((s) => s.capturing)
-  const toggleFloatingWorkspace = useCallback(
-    () => setOpenWithFocus((open) => !open),
-    [setOpenWithFocus]
-  )
 
   return (
     // Avoid active-worktree reset keys that remount whole surfaces during wake.
@@ -211,20 +159,7 @@ export function AppWorkspaceShell(props: {
               ) : null}
               <div className="relative flex flex-1 min-w-0 min-h-0 overflow-hidden">
                 {/* Match the open sidebar header’s alignment to prevent toggle jitter. */}
-                {showsFloatingRightSidebarToggle(layout) && (
-                  <div
-                    className="absolute top-0 z-10 flex items-center h-[36px]"
-                    style={
-                      {
-                        // Why: --window-controls-width keeps the toggle clear of the fixed window-controls overlay (138px on custom chrome, 0px otherwise); no internal spacer — one would cover the pane-actions Ellipsis button with an unclickable div.
-                        right: 'var(--window-controls-width)',
-                        WebkitAppRegion: 'no-drag'
-                      } as React.CSSProperties
-                    }
-                  >
-                    <RightSidebarToggle />
-                  </div>
-                )}
+
                 <div className="flex flex-1 min-w-0 min-h-0 flex-col">
                   {layout.shouldMountTerminalWorkbench ? (
                     <TerminalWorkbenchContainer isVisible={layout.terminalWorkbenchVisible}>
@@ -259,35 +194,11 @@ export function AppWorkspaceShell(props: {
                     </RecoverableRenderErrorBoundary>
                   </Suspense>
                 </div>
-                {floatingWorkspace.showToggleButton && !capturingPluginShot ? (
-                  <MemoFloatingTerminalToggleButton
-                    open={floatingWorkspace.open}
-                    onToggle={toggleFloatingWorkspace}
-                  />
-                ) : null}
               </div>
             </div>
           </div>
         </div>
         {/* Retain the shell for stable layout while heavy panels disconnect; tasks can unmount it. */}
-        {!backgroundJobsDisabled() && layout.showRightSidebarControls ? (
-          <RecoverableRenderErrorBoundary
-            boundaryId="right-sidebar"
-            surface="right-sidebar"
-            resetKey={
-              layout.rightSidebarTab === 'explorer'
-                ? `${layout.rightSidebarTab}:${layout.rightSidebarExplorerView}`
-                : layout.rightSidebarTab
-            }
-            title={t('auto.App.ed6b168d00', 'The right sidebar hit an error.')}
-            description={t(
-              'auto.App.8d1e160ed1',
-              'Retry the sidebar or switch tabs to reload this surface.'
-            )}
-          >
-            <RightSidebar />
-          </RecoverableRenderErrorBoundary>
-        ) : null}
       </div>
     </RecoverableRenderErrorBoundary>
   )

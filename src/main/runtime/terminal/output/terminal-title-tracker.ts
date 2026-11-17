@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { OrcaRuntimeWithEmitDaemonPtyTransientFact } from './terminal-transient-facts'
 import { getDecorativeTitleGateKey } from '../../../../shared/agent-status/title/agent-decorative-title-signature'
 import { shouldEmitTitleFactForFrame } from './decorative-title-fact-emission'
@@ -161,14 +162,11 @@ export abstract class OrcaRuntimeWithGetUnpersistedTrackedTitleForPty extends Or
         onProgramActivity: (activity) => {
           this.applyPtyProgramActivity(ptyId, activity)
         },
-        onCommandStarted: () => {
-          this.openCodeRunLifetime.onCommandStarted(ptyId)
-        },
+
         onCommandFinished: (exitCode: number | null) => {
           void this.recheckHookAgentPresenceForPty(ptyId)
           this.retirePtyAgentLaunchAuthority(ptyId)
           this.recordTerminalSideEffectFact(ptyId, { kind: 'command-finished', exitCode })
-          this.openCodeRunLifetime.onCommandFinished(ptyId, exitCode)
         },
         onBell: () => {
           this.recordTerminalSideEffectFact(ptyId, { kind: 'bell' })

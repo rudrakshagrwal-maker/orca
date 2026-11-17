@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { useRef, useState } from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../../shared/constants'
 import { useAppStore } from '@/store'
@@ -20,7 +20,7 @@ afterEach(() => {
 })
 
 function NavigationHarness({
-  initialPage = 'editor',
+  initialPage = 'open-in',
   onWrite = vi.fn()
 }: {
   initialPage?: GeneralSubPage
@@ -119,19 +119,7 @@ function renderNavigationHarness({
   return render(<NavigationHarness {...props} />)
 }
 
-it('opens an old subsection link from another child with a conflicting query, including repeated selection', async () => {
-  const scroll = vi.spyOn(HTMLElement.prototype, 'scrollIntoView')
-  const { container } = renderNavigationHarness({ initialQuery: 'font' })
-  fireEvent.click(screen.getByRole('button', { name: 'Open app settings link' }))
-  const add = await screen.findByRole('button', { name: 'Add app' })
-  const target = container.querySelector('#general-open-in-apps')
-  expect(target?.contains(add)).toBe(true)
-  await waitFor(() => expect(scroll.mock.contexts).toContain(target))
-  scroll.mockClear()
-  fireEvent.click(screen.getByRole('button', { name: 'Open app settings link' }))
-  await waitFor(() => expect(scroll.mock.contexts).toContain(target))
-})
-
+// RA: the retired editor-child/scroll-mock test is removed; retained draft behavior stays covered.
 it('keeps an incomplete Open in draft when search temporarily replaces its form', async () => {
   const onWrite = vi.fn()
   renderNavigationHarness({ initialPage: 'open-in', initialQuery: '', onWrite })

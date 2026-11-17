@@ -6,7 +6,7 @@ import { readFetchResponseTextWithinLimit } from '../../../shared/fetch-response
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import { getVersionChannel, MAIN_RELEASE_REPO } from '../../../shared/release-channel'
 import { getMainHttpClient } from '../../network/http-client'
-import { writePluginFileAtomically } from '../../plugins/installation/plugin-atomic-file-write'
+import { writeSessionFileAtomically } from '../../storage/session-atomic-file-write'
 import {
   activateAgentStateRules,
   BUNDLED_AGENT_STATE_RULES,
@@ -168,7 +168,7 @@ export class AgentStateRulesLiveUpdater {
     this.downloaded = bundle
     this.activate()
     try {
-      await writePluginFileAtomically(this.cachePath(run.channel), text)
+      await writeSessionFileAtomically(this.cachePath(run.channel), text)
     } catch (error) {
       warn(`downloaded rules not cached: ${describeError(error)}`)
     }
@@ -231,7 +231,9 @@ export function startAgentStateRulesLiveUpdates(
   onActivated: AgentStateRulesLiveUpdateDeps['onActivated']
 ): void {
   // RA: OSC 7501 status needs no downloaded classification rules or background fetches.
-  if (backgroundJobsDisabled()) return
+  if (backgroundJobsDisabled()) {
+    return
+  }
   const environment = getAppEnvironment()
   const updater = new AgentStateRulesLiveUpdater({
     userDataPath: environment.getPath('userData'),

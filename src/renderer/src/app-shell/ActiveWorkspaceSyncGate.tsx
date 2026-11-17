@@ -6,7 +6,7 @@ import { useWebSessionTabsSync } from '../runtime/web-session-tabs-sync/use-web-
 export function ActiveWorkspaceSyncGate(): null {
   const workspaceSessionReady = useAppStore((s) => s.workspaceSessionReady)
   useWebSessionTabsSync()
-  // Poll above the removable sidebar to keep rebase/merge badges fresh; wait for session readiness to protect first paint.
+  // RA: refresh on focus/selection only; the sidebar no longer owns git timers.
   useGitStatusPolling({ enabled: workspaceSessionReady })
   // RA: editor watchers and hosted-review publishers stay unloaded.
   return null

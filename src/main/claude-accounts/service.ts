@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type {
   ClaudeAccountSignIn,
   ClaudeRateLimitAccountsState,
@@ -27,15 +28,15 @@ export class ClaudeAccountService {
 
   constructor(
     store: ClaudeAccountStore,
-    rateLimits: ClaudeAccountUsage,
+    _usage: ClaudeAccountUsage,
     private readonly runtimeAuth: ClaudeAccountRuntime &
       Pick<ClaudeRuntimeAuthService, 'getRuntimeConfigDir'>,
     private readonly runLoginCommand = runClaudeCommandProcess
   ) {
-    this.selection = new ClaudeAccountSelection(store, rateLimits, runtimeAuth)
+    this.selection = new ClaudeAccountSelection(store, undefined, runtimeAuth)
     this.registration = new ClaudeAccountRegistration({
       store,
-      rateLimits,
+
       runtimeAuth,
       selection: this.selection
     })

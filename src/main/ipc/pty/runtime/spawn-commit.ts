@@ -7,48 +7,46 @@ import { startupCwdFallbackOutcome } from '../spawn-startup-target'
 import { commitPtySpawn } from '../spawn-commit-assembly'
 import type { PtySpawnPaneBinding } from '../spawn-commit-binding'
 import { spawnCommitBindingOrigin } from '../../../persistence/loading-store/terminal-bindings/pty-binding-span'
-import { commitPtyWithOpenCodePromptIntent } from '../../../opencode/opencode-startup-prompt-owner'
 
 export async function commitRuntimePtySpawn(ctx: RuntimePtySpawnState) {
-  return commitPtyWithOpenCodePromptIntent(ctx, () => {
-    const args = ctx.args
-    const startupCwdFallback = startupCwdFallbackOutcome(ctx.startupCwdFallback, ctx.result)
-    // Fallback may follow an access error; only proven absence authorizes changing the saved folder.
-    const correctStartupCwd = startupCwdFallback ? ctx.correctStartupCwd : undefined
-    const ensure = ctx.result.agentSessionEnsure
-    return commitPtySpawn({
-      state: ctx,
-      nativeWindowsConptySpawn: isNativeWindowsLocalPtySpawn({
-        connectionId: args.connectionId,
-        cwd: args.cwd,
-        shellOverride: ctx.daemonShellOverride
-      }),
-      seedPaneKey: ctx.spawnIdentityPaneKey,
-      paneBinding: runtimeSpawnPaneBinding(ctx, correctStartupCwd),
-      expectedSourceBinding: ctx.hostSessionBinding?.expectedSourceBinding,
-      adoptedAgentSession: ensure?.disposition === 'adopted' ? ensure : undefined,
-      registration: {
-        store: ctx.hostSessionBinding?.store ?? ctx.deps.store,
-        worktreeId: args.worktreeId,
-        shellOverride: ctx.daemonShellOverride,
-        rendererLaunchAuthority: null,
-        launchedAgent: null,
-        // The runtime's own create records its launch once the spawn commits.
-        freshSpawn: false
-      },
-      preAllocatedHandle: args.preAllocatedHandle,
-      // Runtime spawns bypass renderer IPC; publish reverse pane lookup for hooks and cleanup.
-      paneKey: normalizeValidPaneKey(ctx.env?.ORCA_PANE_KEY),
-      resumeArgvDropped: ctx.codexResumeArgvDropped,
-      codexLaunchEnv: ctx.env,
-      initiallyHidden: args.initiallyHidden === true,
-      hiddenDelivery: 'runtime-owned',
-      response: {
-        ...provenSpawnResponse(ctx.result, ctx.provedSnapshotSeq),
-        savedStartupCwd: correctStartupCwd ?? ctx.requestedCwd,
-        ...(startupCwdFallback ? { startupCwdFallback } : {})
-      }
-    })
+  // RA: commit directly; unsupported startup-prompt ownership is removed.
+  const args = ctx.args
+  const startupCwdFallback = startupCwdFallbackOutcome(ctx.startupCwdFallback, ctx.result)
+  // Fallback may follow an access error; only proven absence authorizes changing the saved folder.
+  const correctStartupCwd = startupCwdFallback ? ctx.correctStartupCwd : undefined
+  const ensure = ctx.result.agentSessionEnsure
+  return commitPtySpawn({
+    state: ctx,
+    nativeWindowsConptySpawn: isNativeWindowsLocalPtySpawn({
+      connectionId: args.connectionId,
+      cwd: args.cwd,
+      shellOverride: ctx.daemonShellOverride
+    }),
+    seedPaneKey: ctx.spawnIdentityPaneKey,
+    paneBinding: runtimeSpawnPaneBinding(ctx, correctStartupCwd),
+    expectedSourceBinding: ctx.hostSessionBinding?.expectedSourceBinding,
+    adoptedAgentSession: ensure?.disposition === 'adopted' ? ensure : undefined,
+    registration: {
+      store: ctx.hostSessionBinding?.store ?? ctx.deps.store,
+      worktreeId: args.worktreeId,
+      shellOverride: ctx.daemonShellOverride,
+      rendererLaunchAuthority: null,
+      launchedAgent: null,
+      // The runtime's own create records its launch once the spawn commits.
+      freshSpawn: false
+    },
+    preAllocatedHandle: args.preAllocatedHandle,
+    // Runtime spawns bypass renderer IPC; publish reverse pane lookup for hooks and cleanup.
+    paneKey: normalizeValidPaneKey(ctx.env?.ORCA_PANE_KEY),
+    resumeArgvDropped: ctx.codexResumeArgvDropped,
+    codexLaunchEnv: ctx.env,
+    initiallyHidden: args.initiallyHidden === true,
+    hiddenDelivery: 'runtime-owned',
+    response: {
+      ...provenSpawnResponse(ctx.result, ctx.provedSnapshotSeq),
+      savedStartupCwd: correctStartupCwd ?? ctx.requestedCwd,
+      ...(startupCwdFallback ? { startupCwdFallback } : {})
+    }
   })
 }
 

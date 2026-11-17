@@ -1,4 +1,5 @@
 import type { ManagedPane, ManagedPaneInternal } from '../pane-manager-types'
+import { isTerminalOutputSuspended } from '../terminal-output/pane-terminal-output-queue-registry'
 import { isManagedPaneDisplayNone } from '../terminal-fit/pane-display-visibility'
 import { requestFullViewportPresent } from './terminal-render-pause-release'
 
@@ -72,6 +73,10 @@ function schedulePresentWhenDisplayed(pane: ManagedPaneInternal): void {
 
 /** Retain the coherent canvas during DEC 2026: mid-frame forced painting exposes erase/repaint flashes (#32198). Reveal/atlas recovery waits, bounded by xterm’s synchronized-output safety timeout. */
 export function presentPaneViewport(pane: ManagedPane): void {
+  // RA: delayed reveal/atlas callbacks cannot repaint hidden tabs or sibling splits.
+  if (isTerminalOutputSuspended(pane.terminal)) {
+    return
+  }
   const internal = pane as ManagedPaneInternal
   if (internal.webglDisabledAfterContextLoss) {
     return

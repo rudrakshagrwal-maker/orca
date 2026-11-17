@@ -1,4 +1,3 @@
-import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import {
   localhostLabelRouteForHttpLink,
   openLabeledLocalhostLink
@@ -180,8 +179,8 @@ function executeHttpLink(
     return 'none'
   }
   const { worktreeId, allowRemoteInApp, forceInApp, sourceOwner } = opts
-  // RA: links use the system browser even when old settings request embedded tabs.
-  const forceSystemBrowser = backgroundJobsDisabled() || opts.forceSystemBrowser
+  // RA: terminal links keep their embedded-browser preference.
+  const forceSystemBrowser = opts.forceSystemBrowser
   if (sourceOwner?.kind === 'unknown') {
     return 'none'
   }
@@ -283,7 +282,7 @@ function executeHttpLink(
     return 'orca-browser'
   }
 
-  const localhostRoute = !backgroundJobsDisabled() && state ? localhostLabelRouteForHttpLink(url, state, sourceOwner) : null
+  const localhostRoute = state ? localhostLabelRouteForHttpLink(url, state, sourceOwner) : null
   if (!localhostRoute) {
     void openSystemHttpLink(url)
     return 'system-browser'
@@ -301,7 +300,6 @@ export async function resolveLocalhostHttpLinkDisplayUrl(
   url: string,
   sourceOwner?: HttpLinkSourceOwner
 ): Promise<string | null> {
-  if (backgroundJobsDisabled()) return null
   const state = storeAccessor?.()
   if (!state) {
     return null

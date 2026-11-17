@@ -1,8 +1,6 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 // Use session launch resolvers, including missing-program env refresh, for probes so catalogs match the binary/account sessions actually use.
 
-import { createAcpModelCatalogProbe } from '../../../acp/discovery/acp-model-catalog-probe'
-import { acpListingNeedsChatFolder } from '../../../acp/discovery/acp-model-discovery-policy'
-import type { AcpLaunchSpec } from '../../../acp/launch/acp-launch-contract'
 import {
   createClaudeModelCatalogProbe,
   type ClaudeModelCatalogProbeDeps
@@ -69,30 +67,6 @@ export function claudeModelCatalogDiscovery(
     probe: createClaudeModelCatalogProbe({
       ...claudeListingDeps(context),
       resolveLaunchArgs: () => context.deps.resolveLaunchArgs('claude')
-    })
-  }
-}
-
-export function acpModelCatalogDiscovery(
-  spec: AcpLaunchSpec,
-  { deps, environment }: StructuredAgentModelCatalogContext
-): AgentModelCatalogDiscovery {
-  const discovery = spec.modelDiscovery
-  if (discovery.kind === 'unavailable') {
-    return { kind: 'unavailable', reason: discovery.reason }
-  }
-  return {
-    kind: 'probe',
-    listingNamesConfiguredModel: discovery.listingNamesConfiguredModel,
-    ...(acpListingNeedsChatFolder(discovery) ? { listsInChatFolder: true as const } : {}),
-    probe: createAcpModelCatalogProbe(spec, {
-      resolveEnvironment: environment.resolveBaseEnvironment,
-      refreshEnvironmentAfterMiss: environment.refreshAfterMissingProgram,
-      dataDirectory: deps.stateDirectory,
-      ...(deps.resolveAgentLaunchEnv ? { resolveLaunchEnv: deps.resolveAgentLaunchEnv } : {}),
-      ...(deps.resolveAgentCommandSettings
-        ? { resolveCommandSettings: deps.resolveAgentCommandSettings }
-        : {})
     })
   }
 }

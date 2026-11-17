@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { ipcMain } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { placeUnshownLiveTerminalsBestEffort } from '../runtime/terminal/adoption/unshown-live-terminal-placement'
@@ -84,8 +85,7 @@ export function registerMainProcessIpcHandlers(): void {
   ipcMain.handle('ui:quitAfterStoppingAllSessions', (event) =>
     quitAfterRendererStoppedAllSessions(event.sender.id)
   )
-  ipcMain.handle('ui:consumePendingSkillShare', () => state.skillShareDeepLinks.consume())
-  ipcMain.handle('ui:consumePendingPluginInstallLink', () => state.pluginInstallLinks.consume())
+
   // Pull delivers cold-start Open With and proves the listener is ready for later pushes.
   ipcMain.handle('ui:consumePendingMarkdownFileOpens', async () => {
     state.osDocumentOpenListenerReady = true

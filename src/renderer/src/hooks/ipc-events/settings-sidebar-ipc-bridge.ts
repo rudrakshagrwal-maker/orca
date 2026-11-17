@@ -1,12 +1,8 @@
-import { canShowRightSidebarForView } from '@/components/right-sidebar/visibility/right-sidebar-visibility'
-import { runBuiltInOrReplacement } from '@/lib/plugins/commands/plugin-command-replacements'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { showTerminalShortcutCaptureNotification } from '@/lib/notifications/terminal-shortcut-capture-notification'
-import { TOGGLE_FLOATING_TERMINAL_EVENT } from '@/components/floating-terminal/floating-terminal'
-import { subscribeToUnpairedDeviceAuthNotification } from '../unpaired-device-auth-notification'
-import { translate } from '@/i18n/i18n'
-import { toast } from 'sonner'
+
 import { useAppStore } from '../../store/index'
-import { openPluginInstallLink } from '../../store/plugins/navigation/plugin-preview-request'
 
 function getShortcutPlatform(): NodeJS.Platform {
   if (navigator.userAgent.includes('Mac')) {
@@ -25,13 +21,6 @@ export function registerSettingsAndSidebarIpcBridge(unsubs: (() => void)[]): voi
     })
   )
 
-  const unsubscribeOpenSkillShare = window.api.ui.onOpenSkillShare?.((shareId) => {
-    useAppStore.getState().openSkillShare(shareId)
-  })
-  if (unsubscribeOpenSkillShare) {
-    unsubs.push(unsubscribeOpenSkillShare)
-  }
-
   // Why: a tray "Settings…" click can fire before this attaches; consume any queued intent (?. guards stale preload).
   void window.api.ui
     .consumePendingOpenSettings?.()
@@ -42,69 +31,9 @@ export function registerSettingsAndSidebarIpcBridge(unsubs: (() => void)[]): voi
     })
     .catch(() => {})
 
-  const pendingSkillShare = window.api.ui.consumePendingSkillShare?.()
-  if (pendingSkillShare && typeof pendingSkillShare.then === 'function') {
-    void pendingSkillShare
-      .then((shareId) => {
-        if (shareId) {
-          useAppStore.getState().openSkillShare(shareId)
-        }
-      })
-      .catch(() => {})
-  }
-
-  unsubs.push(window.api.ui.onOpenPluginInstallLink?.(openPluginInstallLink) ?? (() => {}))
-  const pendingPluginLink = window.api.ui.consumePendingPluginInstallLink?.()
-  if (pendingPluginLink && typeof pendingPluginLink.then === 'function') {
-    void pendingPluginLink
-      .then((link) => {
-        if (link) {
-          openPluginInstallLink(link)
-        }
-      })
-      .catch(() => {})
-  }
-
-  unsubs.push(
-    window.api.ui.onOpenSetupGuide?.(() => {
-      useAppStore.getState().openModal('setup-guide', { telemetrySource: 'help_menu' })
-    }) ?? (() => {})
-  )
-
   // Lost-registry auth loops need a visible remedy on either end; main throttles this notice once per session.
-  unsubs.push(
-    subscribeToUnpairedDeviceAuthNotification(window.api.mobile, () => {
-      toast.warning(
-        translate(
-          'auto.hooks.useIpcEvents.ef223fbb6b',
-          'A device tried to connect but is not paired'
-        ),
-        {
-          id: 'unpaired-device-auth-failure',
-          description: translate(
-            'auto.hooks.useIpcEvents.11992d0337',
-            'If this was your phone or another Orca client, re-pair it from Settings → Mobile.'
-          ),
-          // Why: main emits this recovery path once per session, so it must remain visible until acted on or dismissed.
-          duration: Infinity,
-          action: {
-            label: translate('auto.hooks.useIpcEvents.6573cfe955', 'Open Mobile Settings'),
-            onClick: () => {
-              const store = useAppStore.getState()
-              store.openSettingsTarget({ pane: 'mobile', repoId: null })
-              store.openSettingsPage()
-            }
-          }
-        }
-      )
-    })
-  )
 
-  unsubs.push(
-    window.api.ui.onOpenFeatureTour(() => {
-      useAppStore.getState().openModal('feature-wall', { source: 'help_menu' })
-    })
-  )
+  
 
   // Why: View > Appearance toggles settings in main and broadcasts; merge into the store for an immediate re-render.
   unsubs.push(
@@ -158,34 +87,7 @@ export function registerSettingsAndSidebarIpcBridge(unsubs: (() => void)[]): voi
 
   unsubs.push(
     window.api.ui.onToggleLeftSidebar(() => {
-      runBuiltInOrReplacement('sidebar.left.toggle', () => useAppStore.getState().toggleSidebar())
-    })
-  )
-
-  unsubs.push(
-    window.api.ui.onToggleRightSidebar(() => {
-      const store = useAppStore.getState()
-      if (!canShowRightSidebarForView(store.activeView)) {
-        return
-      }
-      runBuiltInOrReplacement('sidebar.right.toggle', () => store.toggleRightSidebar())
-    })
-  )
-
-  unsubs.push(
-    window.api.ui.onToggleWorktreePalette(() => {
-      const store = useAppStore.getState()
-      if (store.activeModal === 'worktree-palette') {
-        store.closeModal()
-        return
-      }
-      store.openModal('worktree-palette')
-    })
-  )
-
-  unsubs.push(
-    window.api.ui.onToggleFloatingTerminal(() => {
-      window.dispatchEvent(new CustomEvent(TOGGLE_FLOATING_TERMINAL_EVENT))
+      ;(() => useAppStore.getState().toggleSidebar())()
     })
   )
 

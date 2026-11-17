@@ -1,8 +1,9 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type {
   PluginHostListEntry,
   PluginMarketplaceHostListing,
   PluginMarketplaceHostSourceState
-} from '../../../../../preload/api-types'
+} from '../../../../../preload/api/plugin-host-api'
 import { satisfiesOrcaEngineRange } from '../../../../../shared/plugins/manifest/plugin-manifest'
 import {
   pluginCatalogReleaseTypes,

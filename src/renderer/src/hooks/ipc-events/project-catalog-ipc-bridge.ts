@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { applyLocalWorktreeMetadataSet } from './worktree-metadata-set-events'
 import { applyWorktreeHeadIdentities } from '../worktree-head-identity-apply'
 import type { WorktreeChangeRefreshQueue } from '../worktree-change-refresh-queue'
@@ -99,12 +100,4 @@ export function registerProjectCatalogIpcBridge(
       })
     }) ?? (() => {})
   )
-
-  if (window.api.gh?.onPRRefreshEvent) {
-    unsubs.push(
-      window.api.gh.onPRRefreshEvent((event) => {
-        useAppStore.getState().applyGitHubPRRefreshEvent(event)
-      })
-    )
-  }
 }

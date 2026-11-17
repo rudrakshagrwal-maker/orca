@@ -1,3 +1,4 @@
+// RA: removed palette bindings are pruned without seeding new legacy shortcuts.
 import type { PreloadApi } from '../../../../preload/api-types'
 import {
   findKeybindingConflicts,
@@ -5,7 +6,6 @@ import {
   getKeybindingPlatform,
   getKeybindingResetBindings,
   isKeybindingActionId,
-  getLegacySearchBindings,
   normalizeKeybindingArrayForAction,
   resolveKeybindingOverrides
 } from '../../../../shared/keybindings'
@@ -23,51 +23,11 @@ import {
   removeConflictingWebOverrides
 } from './web-keybinding-normalization'
 import type { WebKeybindingDocument } from './web-keybinding-normalization'
-import {
-  GITHUB_CACHE_STORAGE_KEY,
-  KEYBINDINGS_STORAGE_KEY,
-  ONBOARDING_STORAGE_KEY,
-  SESSION_STORAGE_KEY,
-  SETTINGS_STORAGE_KEY,
-  UI_STORAGE_KEY,
-  getBrowserPlatform,
-  readJson,
-  writeJson
-} from './web-storage'
+import { KEYBINDINGS_STORAGE_KEY, getBrowserPlatform, readJson, writeJson } from './web-storage'
 
 export type WebKeybindingsApi = NonNullable<PreloadApi['keybindings']>
 
 export const webKeybindingListeners = new Set<(snapshot: KeybindingFileSnapshot) => void>()
-
-const SEARCH_DEFAULTS_STORAGE_KEY = 'orca.web.searchKeybindingSeed.v1'
-const NON_MAC_SEARCH_DEFAULTS_STORAGE_KEY = 'orca.web.nonMacSearchKeybindingSeed.v1'
-let legacySearchDefaults = false
-
-function migrateWebSearchKeybindings(): void {
-  const storageKey =
-    getWebKeybindingPlatform() === 'darwin'
-      ? SEARCH_DEFAULTS_STORAGE_KEY
-      : NON_MAC_SEARCH_DEFAULTS_STORAGE_KEY
-  const cohort = window.localStorage.getItem(storageKey)
-  if (cohort === 'done' || cohort === 'legacy') {
-    legacySearchDefaults = cohort === 'legacy'
-    return
-  }
-  legacySearchDefaults = [
-    SEARCH_DEFAULTS_STORAGE_KEY,
-    SETTINGS_STORAGE_KEY,
-    KEYBINDINGS_STORAGE_KEY,
-    UI_STORAGE_KEY,
-    SESSION_STORAGE_KEY,
-    ONBOARDING_STORAGE_KEY,
-    GITHUB_CACHE_STORAGE_KEY
-  ].some((key) => window.localStorage.getItem(key) !== null)
-  window.localStorage.setItem(storageKey, legacySearchDefaults ? 'legacy' : 'done')
-}
-
-function getWebDefaultOverrides(): KeybindingOverrides {
-  return legacySearchDefaults ? getLegacySearchBindings(getWebKeybindingPlatform()) : {}
-}
 
 export function createEmptyWebKeybindingDocument(): WebKeybindingDocument {
   return {
@@ -113,7 +73,7 @@ export function getWebKeybindingSnapshot(): KeybindingFileSnapshot {
     resolveKeybindingOverrides(
       platform,
       { ...commonOverrides, ...platformOverrides[platform] },
-      getWebDefaultOverrides()
+      {}
     ),
     diagnostics
   )
@@ -123,7 +83,7 @@ export function getWebKeybindingSnapshot(): KeybindingFileSnapshot {
     platform,
     exists: window.localStorage.getItem(KEYBINDINGS_STORAGE_KEY) !== null,
     overrides,
-    defaultOverrides: getWebDefaultOverrides(),
+    defaultOverrides: {},
     commonOverrides,
     platformOverrides,
     diagnostics
@@ -163,7 +123,7 @@ export function writeWebKeybindingAction(
   }
   const blockingConflict = findKeybindingConflicts(
     platform,
-    resolveKeybindingOverrides(platform, candidateOverrides, getWebDefaultOverrides()),
+    resolveKeybindingOverrides(platform, candidateOverrides, {}),
     { includeMainProcessInterception: true }
   ).find((conflict) => conflict.actionIds.includes(actionId))
   if (blockingConflict) {
@@ -203,11 +163,6 @@ export function notifyWebKeybindingListeners(snapshot: KeybindingFileSnapshot): 
 }
 
 export function createWebKeybindingsApi(): WebKeybindingsApi {
-  try {
-    migrateWebSearchKeybindings()
-  } catch (error) {
-    console.error('Failed to seed legacy search keybindings:', error)
-  }
   return {
     get: () => Promise.resolve(getWebKeybindingSnapshot()),
     ensureFile: () => Promise.resolve(getWebKeybindingSnapshot()),

@@ -1,3 +1,4 @@
+// RA: installed fonts do not need plugin font loading.
 import type { ITheme } from '@xterm/xterm'
 import type { PaneManager } from '@/lib/pane-manager/pane-manager'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
@@ -8,7 +9,7 @@ import {
   resolveEffectiveTerminalAppearance
 } from '@/lib/terminal/appearance/terminal-theme'
 import { buildFontFamily } from '../../../../../shared/monospace-font-family'
-import { pluginFontFamilyWhenLoaded } from '@/store/plugins/appearance/plugin-fonts'
+
 import '@/lib/pane-manager/pane-layout/pane-tree-ops'
 import { safeFit, safeFitAndThen } from '@/lib/pane-manager/terminal-fit/pane-fit'
 
@@ -206,7 +207,7 @@ export function applyTerminalAppearance(
     const paneSize = getTerminalFontSizeOverride(pane.leafId)
     const metricOptions = {
       fontSize: paneSize ?? settings.terminalFontSize,
-      fontFamily: buildFontFamily(pluginFontFamilyWhenLoaded(settings.terminalFontFamily)),
+      fontFamily: buildFontFamily(settings.terminalFontFamily),
       fontWeight: terminalFontWeights.fontWeight,
       fontWeightBold: terminalFontWeights.fontWeightBold,
       lineHeight: normalizeTerminalLineHeight(settings.terminalLineHeight)

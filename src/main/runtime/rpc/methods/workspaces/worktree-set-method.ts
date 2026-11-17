@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { WorktreeSet } from '../../../../../shared/rpc-contract/worktree-params'
 import { displayNameUpdatePinsLabel } from '../../../../../shared/worktree/display-name-provenance'
 import { getWorkspaceStatusWarning } from '../../../../../shared/workspace-status-warning'
@@ -8,15 +9,6 @@ export const WORKTREE_SET_METHOD = defineMethod({
   permission: 'workspace',
   params: WorktreeSet,
   handler: async (params, { runtime }) => {
-    const acknowledgement =
-      params.acknowledgeAttention === true && params.isUnread === false
-        ? await runtime
-            .prepareWorkspaceAttentionAcknowledgement(params.worktree)
-            .catch((error: unknown) => {
-              console.warn('[notifications] Could not capture workspace read boundary', error)
-              return undefined
-            })
-        : undefined
     const worktree = await runtime.updateManagedWorktreeMeta(params.worktree, {
       displayName: params.displayName,
       ...(params.firstAgentMessageRenameError === null
@@ -72,9 +64,7 @@ export const WORKTREE_SET_METHOD = defineMethod({
             }
           : undefined
     })
-    if (acknowledgement) {
-      runtime.acknowledgeNotificationAttention(acknowledgement)
-    }
+
     const warning = getWorkspaceStatusWarning(
       params.workspaceStatus,
       () => runtime.getUIState().workspaceStatuses

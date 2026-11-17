@@ -5,7 +5,6 @@ import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent
 import type { AgentLaunchPreferences } from '../../../../shared/agent-session/agent-session-host-authority'
 import {
   agentLaunchQuotingShell,
-  remoteExecutionPlatform,
   type AgentLaunchRuntime
 } from '../../../../shared/agent-launch/startup/agent-launch-runtime'
 import type { RuntimeStore } from '../../construction/runtime-store-contract'
@@ -13,9 +12,10 @@ import type { TerminalWorkspaceLaunchScope } from '../../orchestration/terminal-
 import type { TerminalCreateOptions } from './terminal-create-options'
 import { resolveBareAgentLaunchCommand } from './runtime-agent-launch-resolution'
 import {
-  buildExecutionHostAgentStartupPlan,
-  planExecutionHostStartupWithPromptCandidate
-} from '../../../opencode/opencode-model-startup-plan'
+  buildAgentDraftLaunchPlan,
+  buildAgentStartupPlan
+} from '../../../../shared/agent-launch/startup/tui-agent-startup'
+import { planStartupWithPromptCandidate } from '../../../../shared/startup-line-prompt-carry'
 import { agentPromptRidesLaunchCommand } from '../../../../shared/agent-launch/startup/tui-agent-startup'
 import {
   launchHostProvesAgentInFront,
@@ -25,18 +25,13 @@ import { resolveTerminalStartupCwd } from '../../../../shared/shell/launch/termi
 import { resolveAgentStartupPlanInputs } from '../../../../shared/agent-launch/startup/agent-startup-plan-inputs'
 import { agentStartedTelemetry } from '../../../agent-launch/agent-started-telemetry'
 import { terminalShellOverrideRefusal } from './terminal-shell-override-host-support'
-import {
-  resolvePlainTerminalProjectRuntime,
-  resolvePlainTerminalPtyOptions
-} from '../../../workspaces/execution-host/local-project-runtime-resolution'
+import { resolvePlainTerminalProjectRuntime } from '../../../workspaces/execution-host/local-project-runtime-resolution'
 import {
   agentLaunchPlatformForScope,
   agentLaunchProjectRuntime,
   resolveAgentLaunchRuntime
 } from './agent-launch-scope-runtime'
-import { resolveQoderTerminalCommand } from './qoder-terminal-command-resolution'
-import { resolveStartupShell } from '../../../../shared/agent-launch/startup/tui-agent-startup-shell'
-import { resolveWslSessionContext } from '../../../daemon/pty-subprocess/wsl-session-context'
+
 import { isTuiAgentEnabled } from '../../../../shared/agent-launch/catalog/tui-agent-selection'
 import { resolveWslHostAgentLaunchInputs } from './wsl-host-agent-terminal-launch'
 
@@ -137,8 +132,8 @@ export async function resolveAgentTerminalCreateOptions(
   if (!launch.launchAgent) {
     return launch
   }
-  const qoderLaunch = await resolveQoderLaunchCommand(launch, workspace, store, runtime)
-  return runtime ? { ...qoderLaunch, launchRuntime: runtime } : qoderLaunch
+  // RA: supported agents use the shared launch command directly.
+  return runtime ? { ...launch, launchRuntime: runtime } : launch
 }
 
 /** Desktop-selected account env overrides the launch plan; explicit caller env/accountEnv still wins. */
@@ -207,24 +202,25 @@ async function buildRuntimeAgentTerminalStartupOptions(
   const { plan: startupPlan, promptCarried } =
     opts.startupPromptDelivery === 'draft' || forceLine
       ? {
-          plan: await buildExecutionHostAgentStartupPlan({
-            ...scope,
-            promptDelivery: opts.startupPromptDelivery
-          }),
+          plan:
+            opts.startupPromptDelivery === 'draft'
+              ? buildAgentDraftLaunchPlan({ ...scope.inputs, draft: scope.prompt })
+              : buildAgentStartupPlan({
+                  ...scope.inputs,
+                  prompt: scope.prompt,
+                  allowEmptyPromptLaunch: true
+                }),
           promptCarried: agentPromptRidesLaunchCommand(agent)
         }
-      : await planExecutionHostStartupWithPromptCandidate({
-          ...scope,
-          host: {
-            shellName: nameLocalTypedLineShell({
-              isRemote,
-              ...(runtime.pty.shellOverride ? { shellOverride: runtime.pty.shellOverride } : {})
-            }),
-            provesAgentInFront: launchHostProvesAgentInFront({
-              isRemote,
-              launchPlatform: runtime.platform
-            })
-          }
+      : planStartupWithPromptCandidate(scope.inputs, scope.prompt, {
+          shellName: nameLocalTypedLineShell({
+            isRemote,
+            ...(runtime.pty.shellOverride ? { shellOverride: runtime.pty.shellOverride } : {})
+          }),
+          provesAgentInFront: launchHostProvesAgentInFront({
+            isRemote,
+            launchPlatform: runtime.platform
+          })
         })
   if (!startupPlan) {
     // Explicit agents without plans must not become bare shells that never reach readiness.
@@ -236,9 +232,11 @@ async function buildRuntimeAgentTerminalStartupOptions(
     return opts
   }
   if (opts.startupPrompt) {
-    // RA: force-line must report the actual plan, including OpenCode run's positional prompt.
-    const carried = forceLine && 'followupPrompt' in startupPlan
-      ? startupPlan.followupPrompt === null : promptCarried
+    // RA: report the shared terminal plan's prompt carry after bypassing removed adapters.
+    const carried =
+      forceLine && 'followupPrompt' in startupPlan
+        ? startupPlan.followupPrompt === null
+        : promptCarried
     opts.onStartupPromptCarry?.(carried)
   }
 
@@ -257,44 +255,6 @@ async function buildRuntimeAgentTerminalStartupOptions(
 }
 
 /** Qoder ships under two command names; the launch runs whichever the machine that runs it has. */
-function resolveQoderLaunchCommand(
-  launch: TerminalCreateOptions,
-  workspace: TerminalWorkspaceLaunchScope,
-  store: RuntimeStore,
-  runtime: AgentLaunchRuntime | undefined
-): Promise<TerminalCreateOptions> {
-  if (launch.launchAgent !== 'qoder') {
-    return Promise.resolve(launch)
-  }
-  if (workspace.connectionId) {
-    return resolveQoderTerminalCommand(launch, {
-      connectionId: workspace.connectionId,
-      shell: resolveStartupShell(remoteExecutionPlatform(workspace.path))
-    })
-  }
-  // A command its caller quoted runs under the spawn's own rule; its tokens are what is searched.
-  const fact = runtime ?? {
-    platform: agentLaunchPlatformForScope(store, workspace),
-    pty: resolvePlainTerminalPtyOptions(
-      store,
-      store.getSettings(),
-      workspace.id,
-      launch.shellOverride,
-      workspace,
-      launch.tabId
-    )
-  }
-  // Where the process runs: a `\\wsl$` cwd first, then a WSL shell, as the spawn decides it.
-  const wsl = resolveWslSessionContext({
-    cwd: resolveTerminalStartupCwd(workspace.path, launch.cwd) ?? workspace.path,
-    shellOverride: fact.pty.shellOverride,
-    terminalWindowsWslDistro: fact.pty.terminalWindowsWslDistro
-  })
-  return resolveQoderTerminalCommand(launch, {
-    context: wsl ? { wslDistro: wsl.distro } : {},
-    shell: agentLaunchQuotingShell(fact)
-  })
-}
 
 export async function prepareHostAgentTerminalLaunch(
   workspace: TerminalWorkspaceLaunchScope,

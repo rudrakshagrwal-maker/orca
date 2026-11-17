@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { AgentBrowserBridge } from '../browser/agent-browser/agent-browser-bridge'
-import { EmulatorBridge } from '../emulator/emulator-bridge'
 import { RpcDispatcher } from '../runtime/rpc/dispatcher'
 import { DESKTOP_RPC_CALLER, LOCAL_CLI_RPC_CALLER } from '../runtime/rpc/rpc-caller-identity'
 import { browserManager } from '../browser/guest-lifecycle/manager/browser-manager'
@@ -11,7 +10,7 @@ import { ALL_RPC_METHODS } from '../runtime/rpc/methods/rpc-method-registry'
 import { mainProcessState as state } from './main-process-state'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 
-// RA: load this runtime only when embedded browser/emulator features are enabled.
+// RA: browser startup is independent of removed services.
 export function initializeMainProcessBrowserRuntime(runtime: OrcaRuntimeService): void {
   state.agentBrowserBridge = new AgentBrowserBridge(browserManager, {
     onTabsChanged: (worktreeId) => runtime.notifyMobileSessionTabsChanged(worktreeId)
@@ -38,7 +37,5 @@ export function initializeMainProcessBrowserRuntime(runtime: OrcaRuntimeService)
       return response.result
     }
   })
-  // Only Orca-managed emulator helpers belong to workspaces; external serve-sim stays independent. macOS capability gates live in CLI/runtime.
-  state.emulatorBridge = new EmulatorBridge()
-  runtime.setEmulatorBridge(state.emulatorBridge)
+  // RA: emulator bridges are deleted; browser automation remains independent.
 }

@@ -5,28 +5,21 @@ import type { ProjectHostSetup } from '../../../../../shared/project-types'
 import { DEFAULT_APP_FONT_FAMILY } from '../../../../../shared/constants'
 import { useAppStore } from '../../../store/index'
 import { useProjectHostSetupProjection } from '@/store/projects/use-project-host-setup-projection'
-import { usePluginFontFamilies } from '@/store/plugins/appearance/plugin-fonts'
+
 import { useSystemPrefersDark } from '@/hooks/theme/use-system-prefers-dark'
 import { isMacUserAgent, isWindowsUserAgent } from '@/app-shell/platform/user-agent-platform'
 import { useConfirmationDialog } from '@/components/confirmation-dialog-context'
 import { isWebClientLocation } from '@/app-shell/platform/web-client-location'
-import {
-  COMPUTER_USE_SKILL_NAME,
-  LINEAR_AGENT_SKILL_NAMES,
-  ORCHESTRATION_SKILL_NAME
-} from '@/lib/skills/installation/agent-feature-skill-names'
+import { ORCHESTRATION_SKILL_NAME } from '@/lib/skills/installation/agent-feature-skill-names'
 import {
   GLOBAL_AGENT_SKILL_SOURCE_KINDS,
-  useInstalledAgentSkill,
-  useInstalledAgentSkillNames
+  useInstalledAgentSkill
 } from '@/hooks/skills/discovery/useInstalledAgentSkills'
 import { useActiveProjectSkillRuntime } from '@/hooks/skills/runtime/useActiveProjectSkillRuntime'
-import { useLinearProviderConnected } from '@/hooks/useLinearProviderConnected'
 import { useSkillFreshness } from '@/hooks/skills/freshness/useSkillFreshness'
 import {
   getFallbackTerminalFonts,
-  mergeFontSuggestions,
-  withPluginFontSuggestions
+  mergeFontSuggestions
 } from '../appearance/fonts/font-suggestions'
 import { useTerminalConfigImport } from '../terminal/configuration/useTerminalConfigImport'
 import { useWarpThemeImport } from '../terminal/themes/useWarpThemeImport'
@@ -118,22 +111,14 @@ export function useSettingsStoreModel() {
   const isWebClient = isWebClientLocation()
   const showDesktopOnlySettings = !isWebClient
   // Match navigation’s gate so the Linear entry and pane appear together.
-  const linearConnected = useLinearProviderConnected()
+  // RA: removed task/computer-use sections do not probe their integrations.
+
   const activeSkillRuntime = useActiveProjectSkillRuntime()
   const orchestrationSkill = useInstalledAgentSkill(ORCHESTRATION_SKILL_NAME, {
     discoveryTarget: activeSkillRuntime.discoveryTarget,
     sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
   })
-  const linearSkill = useInstalledAgentSkillNames(LINEAR_AGENT_SKILL_NAMES, {
-    enabled: linearConnected,
-    discoveryTarget: activeSkillRuntime.discoveryTarget,
-    sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
-  })
-  const computerUseSkill = useInstalledAgentSkill(COMPUTER_USE_SKILL_NAME, {
-    enabled: showDesktopOnlySettings,
-    discoveryTarget: activeSkillRuntime.discoveryTarget,
-    sourceKinds: GLOBAL_AGENT_SKILL_SOURCE_KINDS
-  })
+
   const skillFreshnessApplies = activeSkillRuntime.bundledSkillTarget !== null
   const { plan: skillPlan } = useSkillFreshness(activeSkillRuntime.bundledSkillTarget)
   const [voiceModelStatesLoading, setVoiceModelStatesLoading] = useState(showDesktopOnlySettings)
@@ -145,12 +130,8 @@ export function useSettingsStoreModel() {
   const [installedFontSuggestions, setInstalledFontSuggestions] = useState<string[]>(
     mergeFontSuggestions([], getFallbackTerminalFonts())
   )
-  const pluginFontFamilies = usePluginFontFamilies()
-  // Why after the default: plugin fonts are few and would otherwise sink into the installed list.
-  const fontSuggestions = useMemo(
-    () => withPluginFontSuggestions(installedFontSuggestions, pluginFontFamilies),
-    [installedFontSuggestions, pluginFontFamilies]
-  )
+  // RA: font suggestions come from installed system fonts.
+  const fontSuggestions = installedFontSuggestions
   const terminalFontSuggestions = useMemo(
     () => fontSuggestions.filter((font) => font !== DEFAULT_APP_FONT_FAMILY),
     [fontSuggestions]
@@ -240,10 +221,7 @@ export function useSettingsStoreModel() {
     isMac,
     isWebClient,
     showDesktopOnlySettings,
-    linearConnected,
     orchestrationSkill,
-    linearSkill,
-    computerUseSkill,
     skillFreshnessApplies,
     skillPlan,
     voiceModelStatesLoading,

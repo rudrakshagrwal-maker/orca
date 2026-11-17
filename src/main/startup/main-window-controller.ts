@@ -40,7 +40,6 @@ import { requireMainWindowServices } from './main-window-service-readiness'
 import { recordRendererLaunchFailureProbe } from '../window/renderer-launch-failure-probe'
 import { trackBrowserExtensionMainWindow } from '../browser/extensions/tabs-and-windows/browser-extension-window-model'
 
-import { isResourceWindowVisible } from '../window/resource-view-admission'
 import {
   applyBackgroundActivationPolicy,
   applyServeDesktopWindowActivationPolicy
@@ -55,11 +54,6 @@ export function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}
     store: state.store,
     runtime: state.runtime,
     stats: state.stats,
-    claudeUsage: state.claudeUsage,
-    codexUsage: state.codexUsage,
-    openCodeUsage: state.openCodeUsage,
-    museUsage: state.museUsage,
-    rateLimits: state.rateLimits,
     codexAccounts: state.codexAccounts,
     codexRuntimeHome: state.codexRuntimeHome,
     claudeAccounts: state.claudeAccounts,
@@ -198,15 +192,7 @@ export function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}
   })
   state.mainWindow = window
   state.hasOpenedMainWindow = true
-  const publishResourceVisibility = (): void => {
-    if (!window.isDestroyed()) {
-      window.webContents.send('memory:resourceWindowVisibility', isResourceWindowVisible(window))
-    }
-  }
-  window.on('show', publishResourceVisibility)
-  window.on('restore', publishResourceVisibility)
-  window.on('hide', publishResourceVisibility)
-  window.on('minimize', publishResourceVisibility)
+  // RA: the RAM pill uses app memory readings; no resource-manager broadcasts.
   trackBrowserExtensionMainWindow(window)
   window.on('show', resumeSyntheticTitleSpinnerTimer)
   window.on('restore', resumeSyntheticTitleSpinnerTimer)

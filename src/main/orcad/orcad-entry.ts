@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 // Compose the Node-host runtime; paired desktop pages work even without a local browser engine.
 import process from 'node:process'
 import { getAppEnvironment } from '../../shared/app-environment'
@@ -16,7 +17,6 @@ import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
 import { bindOrcadStopTerminalAdmission } from './orcad-stop-terminal-admission'
 import type { OrcadHandle, OrcadOptions } from './orcad-start-contract'
 import { beginOrcadIdleExit } from './orcad-managed-idle-exit-host'
-import { orcadAutomationsKeepHostBusy, startOrcadAutomations } from './orcad-automations'
 import {
   changedAiVaultSearchSettings,
   type AiVaultSearchSettings
@@ -127,8 +127,6 @@ async function startOrcadRuntime(
   })
   registerCleanup(stopOrcadStructuredAgentSessions)
   registerCleanup(() => disposeWatcherProcessAndWait())
-  const { DesktopPushService } = await import('../runtime/push/desktop-push-service')
-  const { resolvePushGatewayOrigin } = await import('../runtime/push/push-gateway-origin')
 
   const runtimeUserDataPath = getAppEnvironment().getPath('userData')
   const { startEventLoopDelayProbe } = await import('../diagnostics/event-loop-delay-probe')
@@ -226,10 +224,6 @@ async function startOrcadRuntime(
   paneGridsForShutdown = runtime
 
   accountLaunch?.attachToRuntime(runtime)
-  const { wireGitHubIssueLinkTitleFill } = await import('../github/github-issue-link-title-wiring')
-  registerCleanup(wireGitHubIssueLinkTitleFill(profileStore, runtime))
-  const { installOrcadEmulatorBridge } = await import('./orcad-emulator-bridge')
-  installOrcadEmulatorBridge(runtime, registerCleanup)
 
   // Restore prior desktop-pushed account selection before automations or CLI launches.
   const { restoreOrcadHostAccountLaunchEnv } = await import('./orcad-host-account-launch-env-store')
@@ -287,7 +281,6 @@ async function startOrcadRuntime(
   void runtime.sidebarFacts?.reconcileSortStampTiers(getLocalPtyProvider())
 
   // Run after RPC stops; later dismissal records save synchronously until exit.
-  registerCleanup(() => runtime.closeNotificationDismissals())
   // Stop recovery retries before final profile flush.
   registerCleanup(() => runtime.stopLegacyWorkerTerminalRecovery())
 
@@ -327,14 +320,7 @@ async function startOrcadRuntime(
   await timed('rpc', () => rpc.start())
   // The daemon has no window to wait for; its CI-line watches start with the runtime.
   runtime.startPullRequestWatches()
-  startOrcadAutomations(runtime, profileStore, registerCleanup)
-  const pushService = DesktopPushService.create({
-    runtime,
-    runtimeRpc: rpc,
-    gatewayUrl: resolvePushGatewayOrigin(process.env, getAppEnvironment().isPackaged())
-  })
-  pushService?.start()
-  getAppEnvironment().onWillQuit(() => pushService?.stop())
+
   console.error(`[orcad] ${describeOrcadBindExposure(bindHost)}`)
 
   const readiness = await buildOrcadServeReadiness({
@@ -357,9 +343,6 @@ async function startOrcadRuntime(
     rpc,
     agentStates: () => agentHookServer.getStatusSnapshot(),
     hasStagedMigration: () => profileStore.hasStagedOrcadMigrationCatalog(),
-    automationsBusy: () => orcadAutomationsKeepHostBusy(profileStore),
-    emulatorsBusy: async () =>
-      (await runtime.getEmulatorBridge()?.hasLiveManagedSessions()) ?? false,
     registerCleanup
   })
   return { readiness }

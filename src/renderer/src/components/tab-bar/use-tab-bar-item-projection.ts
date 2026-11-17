@@ -130,9 +130,15 @@ export function useTabBarItemProjection({
         unifiedToVisible.get(parent) ?? parent
       ])
     )
+    // RA: restored browser/emulator/file rows cannot expose removed surfaces.
     const byId = new Map(baseItems.map((item) => [item.id, item]))
     return orderAgentLineage(
-      baseItems.filter((item) => !hidden.has(item.id) && !hidden.has(item.unifiedTabId)).map((item) => item.id),
+      baseItems
+        .filter(
+          (item) =>
+            item.type === 'terminal' && !hidden.has(item.id) && !hidden.has(item.unifiedTabId)
+        )
+        .map((item) => item.id),
       visibleParents
     ).map((id) => byId.get(id)!)
   }, [baseItems, parentSignature, hiddenWorkerSignature])

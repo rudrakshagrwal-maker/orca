@@ -1,17 +1,17 @@
+// RA: startup recognizes only retained CLI entry points.
 // Kept import-free for main/CLI project isolation; a parity test prevents drift.
 export const CLI_COMMAND_NAMES = [
   'account',
   'agent',
   'agent-context',
   'agent-teams-tmux',
-  'artifacts',
-  'automations',
+
   'back',
   'browser',
   'capture',
   'chat',
   'check',
-  'claude-teams',
+
   'clear',
   'click',
   'clipboard',
@@ -24,7 +24,7 @@ export const CLI_COMMAND_NAMES = [
   'dialog',
   'download',
   'drag',
-  'emulator',
+
   'environment',
   'eval',
   'exec',
@@ -45,17 +45,15 @@ export const CLI_COMMAND_NAMES = [
   'intercept',
   'is',
   'keypress',
-  'jira',
-  'linear',
+
   'mouse',
   'network',
   'open',
   'open-url',
   'orchestration',
-  'pair',
+
   'pdf',
-  'plugin',
-  'ports',
+
   'profile',
   'project',
   'reference',

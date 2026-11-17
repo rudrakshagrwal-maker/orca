@@ -40,6 +40,7 @@ export function resolveClientCreationActionPolicy(args: {
   /** The runtime places its pages on this desktop (see runtimeHostsPagesOnThisDesktop). */
   runtimeHostsPagesOnThisDesktop?: boolean
 }): ClientCreationActionPolicy {
+  // RA: browser creation remains available independently of emulator removal.
   const browserStreamingAvailable = args.runtimeStatus?.capabilities?.includes(
     BROWSER_SCREENCAST_RUNTIME_CAPABILITY
   )
@@ -53,7 +54,7 @@ export function resolveClientCreationActionPolicy(args: {
             ? 'paired-runtime'
             : 'local-client'
       },
-      'mobile-emulator': { state: 'enabled', provider: 'local-client' }
+      'mobile-emulator': { state: 'hidden', reason: MOBILE_EMULATOR_UNAVAILABLE_MESSAGE }
     }
   }
 

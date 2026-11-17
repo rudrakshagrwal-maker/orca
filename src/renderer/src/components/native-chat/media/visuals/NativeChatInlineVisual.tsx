@@ -1,10 +1,11 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useAppStore } from '@/store/index'
 import { captureLinkOpenIntent } from '@/lib/links/placement/link-open-intent'
 import { beginLinkOpenRequest } from '@/lib/links/link-open-request'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { SquareArrowOutUpRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { ArtifactPublishButton } from '@/components/artifacts/ArtifactPublishButton'
+
 import { ArtifactPublishPreparationError } from '@/components/artifacts/artifact-publish-flow'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -140,14 +141,7 @@ export function NativeChatInlineVisual({
                 {openLabel}
               </TooltipContent>
             </Tooltip>
-            <ArtifactPublishButton
-              variant="outline"
-              size="icon-xs"
-              sourceKey={nativeChatVisualShareKey(owner, state.document.path)}
-              createRequest={() => readNativeChatVisualShareRequest(owner, file)}
-              open={shareOpen}
-              onOpenChange={setShareOpen}
-            />
+            
           </div>
           <NativeChatVisualFrame
             document={state.document}

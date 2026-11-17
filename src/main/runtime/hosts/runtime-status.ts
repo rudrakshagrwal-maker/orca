@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   BROWSER_GOOGLE_COOKIE_CLEAR_CAPABILITY,
   BROWSER_CERTIFICATE_TRUST_RUNTIME_CAPABILITY,
@@ -16,7 +17,7 @@ import { isBrowserIdentityModeStoreInitialized } from '../../browser/identity/mo
 import { servesLocalWslMigrationSource } from '../../orcad/orcad-migration-wsl-destination'
 import { ORCAD_MIGRATION_LOCAL_WSL_SOURCE_RUNTIME_CAPABILITY } from '../../../shared/orcad-runtime-capabilities'
 import { advertisedOrcadMigrationDestinationCapabilities } from '../../orcad/orcad-migration-destination-capabilities'
-import { USAGE_CREDENTIALS_RUNTIME_CAPABILITY } from '../../../shared/account-runtime-capabilities'
+
 import {
   MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION,
   RUNTIME_CAPABILITIES,
@@ -44,8 +45,7 @@ import {
   TERMINAL_PERSISTENCE_UNAVAILABLE_CODE,
   TERMINAL_PERSISTENCE_UNAVAILABLE_MESSAGE
 } from '../../../shared/runtime-capability-degradation'
-import { MOBILE_WEB_BUNDLE_CAPABILITY } from '../../../shared/mobile-web-bundle/mobile-web-bundle-capability'
-import { getBundledMobileWebBundleRoot } from '../rpc/methods/mobile-delivery/bundled-mobile-web-bundle'
+
 import { runtimeTerminalDegradation } from '../terminal/launch/native-terminal-availability'
 import { isWindowsProcessStartTimeAvailable } from '../../windows/windows-process-table'
 import { WORKTREE_CREATE_RESULT_TTL_MS } from '../workspaces/creation/worktree-create-idempotency'
@@ -89,9 +89,7 @@ export abstract class OrcaRuntimeWithGetStatus extends RuntimeWorkspaceChangeEve
         (process.env.ORCA_E2E_DISABLE_AUTHORITATIVE_SESSION_TABS_INVENTORY !== '1' ||
           capability !== SESSION_TABS_AUTHORITATIVE_INVENTORY_RUNTIME_CAPABILITY) &&
         (capability !== TERMINAL_PROMPT_DELIVERY_RUNTIME_CAPABILITY ||
-          supportsDurableTerminalPromptDelivery()) &&
-        // Only hosts running their own usage poller can consume saved keys.
-        (capability !== USAGE_CREDENTIALS_RUNTIME_CAPABILITY || this.getUsageRateLimits() !== null)
+          supportsDurableTerminalPromptDelivery())
     )
     if (hasOffscreen || hasHeadlessCommands) {
       capabilities.push(BROWSER_HEADLESS_RUNTIME_CAPABILITY)
@@ -121,9 +119,7 @@ export abstract class OrcaRuntimeWithGetStatus extends RuntimeWorkspaceChangeEve
     }
     capabilities.push(...darkSwitchRuntimeCapabilities())
     // Dev/serve installs may lack out/mobile-web; advertise downloads only where the install ships it.
-    if (getBundledMobileWebBundleRoot()) {
-      capabilities.push(MOBILE_WEB_BUNDLE_CAPABILITY)
-    }
+
     // Report the actual failure so operators are not told to fix already-correct configuration.
     const cause = canBrowse || hasHeadlessCommands ? null : runtimeBrowserUnavailableCause()
     const degradations: RuntimeDegradation[] = cause

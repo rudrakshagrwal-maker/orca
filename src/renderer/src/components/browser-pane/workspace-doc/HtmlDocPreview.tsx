@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import type {
@@ -29,7 +30,7 @@ import {
 import { buildDocPreviewDocumentIdentity } from './doc-preview-document-identity'
 import { docPreviewFailureDetail, docPreviewNotices } from './doc-preview-failure-messages'
 import { DocPreviewToolbar } from './doc-preview-toolbar'
-import { buildDocPreviewShareControl } from './doc-preview-artifact-share'
+
 import { useDocPreviewWebviewHistory } from './doc-preview-webview-history'
 import { useDocPreviewGuestFocus } from './use-doc-preview-guest-focus'
 import { useDocPreviewGuestTools } from './use-doc-preview-guest-tools'
@@ -341,7 +342,6 @@ export function HtmlDocPreview({
         onToggleMarkup={() => (markup.isActive ? markup.cancel() : void markup.start())}
         // Nothing has painted yet on a loading or failed preview, so there is nothing to draw on.
         markupDisabled={isUnavailable || state !== 'ready' || grab.state !== 'idle'}
-        shareControl={buildDocPreviewShareControl(filePath, grant?.location ?? null)}
       />
       {notices.map((notice) => (
         <div

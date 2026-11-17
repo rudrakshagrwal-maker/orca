@@ -17,6 +17,9 @@ export async function getRuntimeGitStatus(
   context: RuntimeGitContext,
   options?: {
     admissionTier?: 'interactive' | 'status' | 'background'
+    // RA: sidebar summaries skip untracked scans and expensive diff/upstream probes.
+    summaryOnly?: boolean
+    refreshMetadata?: boolean
     includeIgnored?: boolean
     includeLineStats?: boolean
     bypassEffectiveUpstreamNegativeCache?: boolean
@@ -28,6 +31,11 @@ export async function getRuntimeGitStatus(
   }
 ): Promise<GitStatusResult> {
   const target = context.target
+  // RA: the same summary flags reach local and remote hosts.
+  const summaryArgs = {
+    ...(options?.summaryOnly ? { summaryOnly: true } : {}),
+    ...(options?.refreshMetadata ? { refreshMetadata: true } : {})
+  }
   const includeIgnoredArgs = options?.includeIgnored ? { includeIgnored: true } : {}
   const admissionTierArgs = options?.admissionTier ? { admissionTier: options.admissionTier } : {}
   const includeLineStatsArgs =
@@ -44,6 +52,7 @@ export async function getRuntimeGitStatus(
       {
         worktreePath: resolveLocalWorktreePath(context),
         connectionId: context.connectionId,
+        ...summaryArgs,
         ...admissionTierArgs,
         ...includeIgnoredArgs,
         ...includeLineStatsArgs,
@@ -60,6 +69,7 @@ export async function getRuntimeGitStatus(
     'git.status',
     {
       worktree: toRuntimeWorktreeSelector(context.worktreeId),
+      ...summaryArgs,
       ...admissionTierArgs,
       ...includeIgnoredArgs,
       ...includeLineStatsArgs,

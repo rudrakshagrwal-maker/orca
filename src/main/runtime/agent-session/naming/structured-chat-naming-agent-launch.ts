@@ -2,7 +2,6 @@ import type { AgentSessionRecord } from '../../../../shared/agent-session/lifecy
 import { requireLegacyAgentSessionAccountHome } from '../../../../shared/agent-session/lifecycle/agent-session-account-home'
 import { resolveTuiAgentLaunchEnv } from '../../../../shared/agent-launch/choices/tui-agent-launch-defaults'
 import { overlayEnvironmentVariables } from '../../../../shared/environment-overlay'
-import { acpLaunchSpecFor } from '../../../acp/launch/acp-launch-registry'
 import { getClaudeProfileRouter } from '../../../claude-accounts/claude-profile-installed-router'
 import {
   claudeConfigDirEnvPatch,
@@ -19,16 +18,7 @@ export async function chatNamingAgentTarget(
   settings: Parameters<typeof resolveTuiAgentLaunchEnv>[1]
 ): Promise<CommitMessageGenerationTarget> {
   let env = await resolveEnvironment(record.provider)
-  const spec = acpLaunchSpecFor(record.provider)
-  if (spec) {
-    env = spec.account.environment(record.accountHome, env)
-    const deleted = spec.scrubEnvironment?.(env, process.env) ?? []
-    const targetEnv: NodeJS.ProcessEnv = { ...env }
-    for (const key of deleted) {
-      targetEnv[key] = undefined
-    }
-    return { kind: 'local', cwd, env: targetEnv }
-  }
+  // RA: naming never resolves a removed provider.
   const home = requireLegacyAgentSessionAccountHome(record.accountHome)
   if (record.provider === 'claude') {
     env = overlayEnvironmentVariables(

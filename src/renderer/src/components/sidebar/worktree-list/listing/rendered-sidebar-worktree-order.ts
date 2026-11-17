@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import {
   selectWorktreesByRepo,
   selectFolderWorkspaces
@@ -30,7 +31,7 @@ import { orderHostSectionOptions } from '../../../../../../shared/sidebar-list/h
 import { buildSidebarHostOptions } from '../controls/sidebar-host-options'
 import { getLogicalRepoOrderRankById } from '../../../../../../shared/project-section-order'
 import { getRenderedWorktreesInSidebarOrder } from '../navigation/worktree-sidebar-row-preference'
-import { selectWorktreeListReviewCacheInputs } from './review-cache-inputs'
+
 import {
   filterFolderWorkspacesForVisibleHosts,
   filterProjectGroupsForVisibleHosts,
@@ -66,11 +67,6 @@ export function computeRenderedSidebarRows(
     state.workspaceHostScope
   )
   const projectGroups = state.projectGroups ?? []
-  const { prCache } = selectWorktreeListReviewCacheInputs(
-    state,
-    state.groupBy,
-    state.worktreeCardProperties
-  )
 
   const repoMap = getIndexedRepoMap(state.repos)
   const rows = planSidebarRows({
@@ -78,7 +74,7 @@ export function computeRenderedSidebarRows(
     sortBy: state.sortBy,
     worktrees: [...visibleWorktrees],
     repoMap,
-    prGroupOf: createSidebarPRGroupReader(repoMap, prCache),
+    prGroupOf: createSidebarPRGroupReader(repoMap, null),
     repoOrder: getLogicalRepoOrderRankById(state.repos.map((repo) => repo.id)),
     workspaceStatuses: selectWorkspaceBoardStatuses(state),
     projectOrderBy: state.projectOrderBy,

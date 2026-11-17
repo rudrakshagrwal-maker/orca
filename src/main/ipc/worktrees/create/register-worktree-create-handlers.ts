@@ -30,7 +30,7 @@ import { workspaceLifecycleKey } from '../../../runtime/workspaces/lifecycle/wor
 import type { WorktreeIpcContext } from '../worktree-ipc-context'
 import { beginWorkspaceCreateTelemetry } from '../../../workspaces/creation/workspace-create-telemetry'
 import { assertWslMoveRepoWritable } from '../../../persistence/moving-wsl-projects/quiescence/wsl-move-scope-guard'
-import { applyWorkspaceCreatePluginHook } from '../../../plugins/hooks/workspace-create-plugin-hook'
+
 import { withProjectWorktreeCreate } from '../../../workspaces/creation/worktree-create-in-flight'
 
 export function registerWorktreeCreateHandlers(context: WorktreeIpcContext): void {
@@ -48,7 +48,8 @@ export function registerWorktreeCreateHandlers(context: WorktreeIpcContext): voi
         }
         assertWslMoveRepoWritable(store, repo)
         return withProjectWorktreeCreate(repo, async () => {
-          const createArgs = await applyWorkspaceCreatePluginHook(args, repo)
+          // RA: worktree creation has no plugin interception.
+          const createArgs = args
 
           let result: CreateWorktreeResult
           // Keep failure telemetry in the handler so rejected creates retain their stage.

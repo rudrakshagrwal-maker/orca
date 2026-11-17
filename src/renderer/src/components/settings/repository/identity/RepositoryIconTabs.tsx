@@ -1,6 +1,7 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
-import { Github, Image, Link2 } from 'lucide-react'
+import { Image, Link2 } from 'lucide-react';
 import type { RepoIcon } from '../../../../../../shared/repo-icon'
 import { faviconUrlFromWebsite } from '../../../../../../shared/repo-icon'
 import { Button } from '../../../ui/button'
@@ -25,18 +26,18 @@ type RepositoryIconTabsProps = {
   initialTab: 'avatar' | 'icon' | 'emoji'
   selectedLucideName: string | null
   selectedEmoji: string
-  loadingGitHub: boolean
+  
   onSetIcon: (repoIcon: RepoIcon | null) => void
-  onUseGitHubAvatar: () => void
+  
 }
 
 export function RepositoryIconTabs({
   initialTab,
   selectedLucideName,
   selectedEmoji,
-  loadingGitHub,
+  
   onSetIcon,
-  onUseGitHubAvatar
+  
 }: RepositoryIconTabsProps): React.JSX.Element {
   const t = useTranslate()
   const [website, setWebsite] = useState('')
@@ -101,22 +102,8 @@ export function RepositoryIconTabs({
       </TabsList>
 
       <TabsContent value="avatar" className="space-y-3">
-        <Button
-          type="button"
-          variant="default"
-          className="w-full gap-2"
-          disabled={loadingGitHub}
-          onClick={() => void onUseGitHubAvatar()}
-        >
-          <Github className="size-3.5" />
-          {t('auto.components.settings.RepositoryIconPicker.cc76342291', 'Use GitHub avatar')}
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          {t(
-            'auto.components.settings.RepositoryIconPicker.7da623abcc',
-            "Used by default — GitHub always provides one, even when the owner hasn't set a custom image."
-          )}
-        </p>
+        
+        
         <Button
           type="button"
           variant="outline"

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { BranchSwitchCollisionError } from '../../git/branch-switch-target'
 import { SparsePresetValidationError } from '../../../shared/worktree/sparse-preset-failure'
 import {
@@ -39,7 +40,7 @@ import {
   SKILL_INSTALL_RPC_ERROR_CODE,
   classifySkillInstallFailureCode
 } from '../../../shared/skill-install-failure'
-import { PLUGIN_CLI_ERROR_CODES } from '../../../shared/plugins/approval/plugin-cli-approval'
+
 import { GIT_DIFF_TOO_LARGE_CODE } from '../../../shared/git/diff/git-diff-transport-budget'
 import { AUTOMATION_OWNER_CONFLICT_CODES } from '../../../shared/automations/ownership/automation-owner-conflict'
 import { ARCHIVE_HOOK_FAILED_REMOVAL_CODE } from '../../../shared/worktree/archive-hook-removal-gate'
@@ -192,7 +193,7 @@ const STRUCTURED_RUNTIME_PASSTHROUGH_CODES: ReadonlySet<string> = new Set([
   AGENT_SKILL_BUNDLE_NAME_TAKEN_CODE,
   AGENT_SKILL_SHARING_UNSUPPORTED_ENVIRONMENT_CODE,
   SKILL_INSTALL_RPC_ERROR_CODE,
-  ...PLUGIN_CLI_ERROR_CODES,
+
   // Keep owner conflicts distinct so clients can choose reload, re-adopt or stop offering the action.
   ...Object.values(AUTOMATION_OWNER_CONFLICT_CODES),
   ...Object.values(ORCHESTRATION_SESSION_CALLER_ERROR_CODES)
@@ -303,13 +304,3 @@ function agentSessionRefusalErrorResponse(
 }
 
 // EmulatorError.code likewise uses its own namespace rather than generic runtime_error.
-export function mapEmulatorError(id: string, meta: RpcEnvelopeMeta, error: unknown): RpcFailure {
-  if (
-    error instanceof Error &&
-    'code' in error &&
-    typeof (error as { code: unknown }).code === 'string'
-  ) {
-    return errorResponse(id, meta, (error as { code: string }).code, error.message)
-  }
-  return mapRuntimeError(id, meta, error)
-}

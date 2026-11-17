@@ -1,6 +1,7 @@
+// RA: new-workspace composer entry points are removed; CLI worktree creation remains.
 import type { WorktreeOccurrencePlan } from '../../../../../../shared/worktree-occurrence-plan'
 import type React from 'react'
-import type { AppState } from '@/store/types'
+
 import type { VirtualizedScrollAnchor } from '@/hooks/useVirtualizedScrollAnchor'
 import type {
   PendingSidebarRowReveal,
@@ -51,7 +52,6 @@ export type VirtualizedWorktreeViewportProps = {
   toggleGroup: (key: string) => void
   onToggleAllProjects?: () => void
   collapsedGroups: Set<string>
-  handleCreateForRepo: (repo: Repo, options: { pinHost: boolean }) => void
   handleOpenRepoSettings: (projectId: string, sectionId?: string) => void
   handleOpenWorktreeVisibility: (repo: Repo) => void
   handleShowImportedWorktrees: (projectId: string) => void
@@ -66,7 +66,6 @@ export type VirtualizedWorktreeViewportProps = {
   handleRenameProjectGroup: (groupId: string, currentName: string, hostId?: ExecutionHostId) => void
   handleDeleteProjectGroup: (groupId: string, groupName: string, hostId?: ExecutionHostId) => void
   handleRefreshProjectGroup?: (projectGroup: ProjectGroup) => void
-  handleCreateFolderWorkspace: (projectGroup: ProjectGroup) => void
   activeModal: string
   pendingRevealWorktree: PendingSidebarWorktreeReveal | null
   pendingRevealSidebarRow: PendingSidebarRowReveal | null
@@ -93,8 +92,7 @@ export type VirtualizedWorktreeViewportProps = {
   allRepoIds: string[]
   onReorderHostSections: (orderedHostIds: ExecutionHostId[]) => void
   onHostDragActiveChange: (active: boolean) => void
-  prCache: AppState['prCache'] | null
-  hostedReviewCache: AppState['hostedReviewCache'] | null
+
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   projectGrouping?: ProjectGroupingModel
   projectGroups?: readonly ProjectGroup[]
