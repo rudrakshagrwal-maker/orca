@@ -13,6 +13,26 @@ export const AGENT_PROMPT_SUBMIT = '\r'
 /** Claude may leave a draft unsent when paste-end and Enter share a write; send Enter separately after this delay. */
 export const AGENT_PROMPT_POST_PASTE_SUBMIT_DELAY_MS = 50
 
+// RA: Codex's Windows input reader buffers a paste as a "burst" and turns a following Enter into a
+// newline until the burst flushes. A non-character key flushes it synchronously, so Right (a no-op at
+// the end of the paste) after the paste is a deterministic boundary; no size-based timer needed.
+// Source: herdr src/app/api/agents.rs append_codex_paste_boundary. Codex's own source is not in this
+// repo, so the flush-on-non-character-key behavior is taken from herdr and covered by the retained
+// submission verification and held-prompt resubmit, not proven here.
+export const AGENT_PROMPT_PASTE_BOUNDARY = '[C'
+
+/** Whether `agent` on `platform` reads a paste as key events and needs the paste boundary key. */
+export function agentPromptNeedsPasteBoundary(
+  platform: NodeJS.Platform,
+  agent: TerminalAgent | null | undefined
+): boolean {
+  return (
+    platform === 'win32' &&
+    isTuiAgent(agent) &&
+    TUI_AGENT_CONFIG[agent].windowsInputRecordPasteNewline !== undefined
+  )
+}
+
 /** Unknown agents retain Claude's lead; known non-Claude TUIs need it separately because Codex drops typed text sharing the paste write (STA-8200). */
 export function agentPromptTakesLeadLine(agent: TerminalAgent | null | undefined): boolean {
   return !isTuiAgent(agent) || TUI_AGENT_CONFIG[agent].pasteNeedsTypedRequest === true

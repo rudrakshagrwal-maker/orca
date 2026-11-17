@@ -9,6 +9,7 @@ import {
   isAgentPromptStalledError,
   verifyAgentPromptSubmission
 } from './agent-prompt-submission-verification'
+import { acquirePtyInputTransaction } from './pty-input-transaction'
 import { TUI_AGENT_CONFIG } from '../../../../shared/agent-launch/catalog/tui-agent-config'
 
 type HeldAgentPrompt = {
@@ -62,16 +63,22 @@ export abstract class OrcaRuntimeWithResubmitHeldAgentPrompt extends OrcaRuntime
           }
           continue
         }
-        await options.beforeWrite?.(ptyId)
-        // Recheck after yielding: read the screen before the synchronous deadline/turn checks to avoid stale writes.
-        if (!blind && (!(await holdsPrompt()) || Date.now() >= deadline)) {
-          return resubmits
-        }
-        if (await agentPromptSettledWithin(held, 0, options.signal)) {
-          return resubmits
-        }
-        if (!this.ptyController?.write(ptyId, AGENT_PROMPT_SUBMIT, options.inputKind)) {
-          return resubmits
+        // RA: the retry Enter is its own input transaction, so typing cannot land between its checks and the write.
+        const release = await acquirePtyInputTransaction(ptyId, options.signal)
+        try {
+          await options.beforeWrite?.(ptyId)
+          // Recheck after yielding: read the screen before the synchronous deadline/turn checks to avoid stale writes.
+          if (!blind && (!(await holdsPrompt()) || Date.now() >= deadline)) {
+            return resubmits
+          }
+          if (await agentPromptSettledWithin(held, 0, options.signal)) {
+            return resubmits
+          }
+          if (!this.ptyController?.write(ptyId, AGENT_PROMPT_SUBMIT, options.inputKind)) {
+            return resubmits
+          }
+        } finally {
+          release()
         }
         resubmits += 1
         if (blind) {

@@ -12,6 +12,10 @@ import { ptyOwnership } from '../provider/ownership-state'
 import { tryGetProviderForPty } from '../provider/registry'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { TerminalInputKind } from '../../../../shared/terminal/input/terminal-input-kind'
+import {
+  isInputTransactionBypass,
+  writeAfterPtyInputTransaction
+} from '../../../runtime/terminal/input/pty-input-transaction'
 import { interactiveOutputCharsByPty, lastInputAtByPty } from '../delivery/visibility-state'
 import {
   isSettledWrite,
@@ -232,7 +236,11 @@ export function createPtyWriteInput(deps: {
       }
       return accepted
     }
-    const result = writePtyProviderInput(provider, args, verify)
+    // RA: typing waits behind an in-flight prompt transaction (paste through first Enter); Ctrl+C,
+    // Escape and query replies go straight through.
+    const result = isInputTransactionBypass(args.data, args.inputKind)
+      ? writePtyProviderInput(provider, args, verify)
+      : writeAfterPtyInputTransaction(args.id, () => writePtyProviderInput(provider, args, verify))
     return typeof result === 'boolean' ? observe(result) : result.then(observe)
   }
 

@@ -14,9 +14,12 @@ import type {
   RuntimeTerminalSend
 } from '../../../../shared/runtime-terminal-send-contract'
 
+import { acquirePtyInputTransaction } from './pty-input-transaction'
 import {
+  AGENT_PROMPT_PASTE_BOUNDARY,
   AGENT_PROMPT_POST_PASTE_SUBMIT_DELAY_MS,
   AGENT_PROMPT_SUBMIT,
+  agentPromptNeedsPasteBoundary,
   agentPromptSubmitJoinsPasteFrame,
   getAgentPromptHeldSubmitBudgetMs,
   getAgentPromptSubmitDelayMs,
@@ -129,7 +132,10 @@ export abstract class OrcaRuntimeWithWriteTerminalAgentPrompt extends OrcaRuntim
       assertWritable(signal)
     }
     let baseline: AgentPromptActivity
+    // RA: the PTY is this prompt's from paste start through its first Enter; typing and other sends queue behind it.
+    let releaseInputTransaction: (() => void) | undefined
     try {
+      releaseInputTransaction = await acquirePtyInputTransaction(ptyId, admissionSignal)
       await beforeWrite(admissionSignal)
       assertWritable(admissionSignal)
       if (options.onPermission === 'wait') {
@@ -151,6 +157,18 @@ export abstract class OrcaRuntimeWithWriteTerminalAgentPrompt extends OrcaRuntim
       }
       if (submitWithPaste) {
         options.onSubmitWritten?.()
+      }
+      if (
+        !submitWithPaste &&
+        agentPromptNeedsPasteBoundary(writeHostPlatform, this.getPtyAgent(ptyId))
+      ) {
+        // RA: Windows Codex flushes its paste burst on a non-character key, so Enter lands after the paste.
+        // A refused boundary write changes nothing: the render gate, settle wait and held-prompt resubmit still run.
+        try {
+          this.ptyController?.write(ptyId, AGENT_PROMPT_PASTE_BOUNDARY, options.inputKind)
+        } catch {
+          // Unconfirmed boundary: the timing path below is the fallback.
+        }
       }
       if (!submitWithPaste) {
         // Once paste is accepted, only host cancellation can suppress its first Enter.
@@ -198,6 +216,7 @@ export abstract class OrcaRuntimeWithWriteTerminalAgentPrompt extends OrcaRuntim
       throw error
     } finally {
       renderGate?.dispose()
+      releaseInputTransaction?.()
     }
     const submits = submitWithPaste
       ? 1

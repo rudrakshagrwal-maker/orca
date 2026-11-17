@@ -1,4 +1,7 @@
+import { acquirePtyInputTransaction, isInputTransactionBypass } from './pty-input-transaction'
 import {
+  AGENT_PROMPT_PASTE_BOUNDARY,
+  agentPromptNeedsPasteBoundary,
   getWindowsInputRecordPasteBurstMs,
   resolveAgentPromptSubmitDelayForAgent
 } from '../../../../shared/agent-launch/startup/agent-prompt-injection'
@@ -56,6 +59,12 @@ export class RuntimeTerminalWriter {
           }
         }
       : options
+    // RA: a send is one transaction on the PTY, from its first byte through its Enter; interrupts and
+    // query replies bypass so Ctrl+C stays instant.
+    const release =
+      !action.text && isInputTransactionBypass(payload, options.inputKind)
+        ? null
+        : await acquirePtyInputTransaction(ptyId, options.signal)
     try {
       const settlement = await this.writeActionWithinLimit(ptyId, action, payload, guardedOptions)
       return acknowledgedPrefix && settlement?.outcome === 'refused'
@@ -66,6 +75,22 @@ export class RuntimeTerminalWriter {
         return writeUnverifiable('partial_write', true)
       }
       throw error
+    } finally {
+      release?.()
+    }
+  }
+
+  /** RA: Right after a Windows Codex paste flushes its key-event burst; false means unconfirmed, so the timer stays. */
+  private async writePasteBoundary(
+    ptyId: string,
+    options: RuntimeTerminalWriteOptions
+  ): Promise<boolean> {
+    options.reserveWrite?.(ptyId)
+    try {
+      const settlement = await this.writeInput(ptyId, AGENT_PROMPT_PASTE_BOUNDARY, options)
+      return !settlement || settlement.outcome === 'accepted'
+    } catch {
+      return false
     }
   }
 
@@ -79,7 +104,7 @@ export class RuntimeTerminalWriter {
     const text = typeof action.text === 'string' ? action.text : ''
     const hasSuffix = action.enter || action.interrupt
     if (text) {
-      const settlement = await this.writeChunks(ptyId, text, options)
+      const settlement = await this.writeChunksHeld(ptyId, text, options)
       if (settlement && settlement.outcome !== 'accepted') {
         return settlement
       }
@@ -95,13 +120,19 @@ export class RuntimeTerminalWriter {
         // Enter must wait for host ingestion; a flat 500ms cannot cover 16MB.
         // Windows Codex also reads typed text one key event at a time and keeps a mid-burst Enter
         // as a newline, so add that burst, capped so the send still answers inside a phone's RPC timeout.
-        const delayMs = Math.max(
-          ingestDelayMs,
-          Math.min(
-            ingestDelayMs + getWindowsInputRecordPasteBurstMs(platform, agent, text),
-            MAX_KEY_EVENT_BURST_SUBMIT_DELAY_MS
-          )
-        )
+        // RA: a confirmed paste boundary replaces the burst estimate; an unconfirmed one keeps it.
+        const boundaryConfirmed =
+          agentPromptNeedsPasteBoundary(platform, agent) &&
+          (await this.writePasteBoundary(ptyId, options))
+        const delayMs = boundaryConfirmed
+          ? ingestDelayMs
+          : Math.max(
+              ingestDelayMs,
+              Math.min(
+                ingestDelayMs + getWindowsInputRecordPasteBurstMs(platform, agent, text),
+                MAX_KEY_EVENT_BURST_SUBMIT_DELAY_MS
+              )
+            )
         // A failed idle proof already spent part of that wait, so a send is never slower than before.
         await waitForTerminalWriteDelay(
           Math.max(0, delayMs - (performance.now() - claimStartedAt)),
@@ -140,7 +171,21 @@ export class RuntimeTerminalWriter {
     return settlement
   }
 
+  /** RA: a bare text write (a permission answer) is its own input transaction. */
   async writeChunks(
+    ptyId: string,
+    text: string,
+    options: RuntimeTerminalWriteOptions
+  ): Promise<WriteSettlement | undefined> {
+    const release = await acquirePtyInputTransaction(ptyId, options.signal)
+    try {
+      return await this.writeChunksHeld(ptyId, text, options)
+    } finally {
+      release()
+    }
+  }
+
+  private async writeChunksHeld(
     ptyId: string,
     text: string,
     options: RuntimeTerminalWriteOptions

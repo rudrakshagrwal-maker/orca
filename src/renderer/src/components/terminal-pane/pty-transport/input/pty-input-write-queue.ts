@@ -20,6 +20,10 @@ import {
   shiftHeadQueue
 } from './pty-input-write-head-queue'
 
+// RA: bracketed paste framing, matched literally so the renderer queue pulls in no agent catalog.
+const BRACKETED_PASTE_START = '[200~'
+const BRACKETED_PASTE_END = '[201~'
+
 export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps): PtyInputWriteQueue {
   const yieldBetweenWrites = deps.yieldBetweenWrites ?? yieldToEventLoop
   const pendingOrdinary = createHeadQueue()
@@ -31,6 +35,10 @@ export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps): PtyInput
   let failedGeneration: number | null = null
   let drainPromise: Promise<void> | null = null
   const pendingAcceptedCancels = new Set<() => void>()
+  // RA: a multi-chunk bracketed paste whose delivery stopped part-way (refused or unacknowledged) owes the PTY one ESC[201~ before
+  // any other text. Bound to the queue generation (one PTY incarnation), so clear() drops it and a
+  // replacement process never gets a stray close.
+  let openPaste: { id: string; generation: number; inputKind: TerminalInputKind } | null = null
 
   function resetSequenceIfEmpty(): void {
     if (pendingOrdinary.items.length === 0 && pendingReplies.items.length === 0) {
@@ -104,7 +112,10 @@ export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps): PtyInput
   }
 
   // Use per-write cancellation; queue-lifetime promise reactions retain every acknowledged write until teardown.
-  async function writeAcceptedChunk(item: PendingPtyInputWrite, data: string): Promise<boolean> {
+  async function writeAcceptedChunk(
+    item: Pick<PendingPtyInputWrite, 'id' | 'inputKind'>,
+    data: string
+  ): Promise<boolean> {
     let cancel = (): void => undefined
     const cancelled = new Promise<boolean>((resolve) => {
       cancel = () => resolve(false)
@@ -132,6 +143,25 @@ export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps): PtyInput
       while ((next = firstPending())) {
         failureGeneration = generation
         failingId = next.id
+        if (openPaste && (openPaste.generation !== generation || openPaste.id !== next.id)) {
+          openPaste = null
+        }
+        if (openPaste && deps.isWritable(next.id)) {
+          // RA: close the interrupted paste first; queued input behind it is kept, the lost payload is not replayed.
+          const closing = openPaste
+          const closed = deps.writeAccepted
+            ? await writeAcceptedChunk(closing, BRACKETED_PASTE_END)
+            : (deps.write(closing.id, BRACKETED_PASTE_END, closing.inputKind), true)
+          if (generation !== closing.generation) {
+            continue
+          }
+          if (!closed) {
+            clearPending()
+            return
+          }
+          openPaste = null
+          continue
+        }
         if (!deps.isWritable(next.id)) {
           removePending(next, false)
           continue
@@ -184,13 +214,36 @@ export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps): PtyInput
           continue
         }
         const writeGeneration = generation
-        const accepted = next.resolveAccepted
-          ? await writeAcceptedChunk(next, chunk.value)
-          : (deps.write(next.id, chunk.value, next.inputKind), true)
+        const bracketedMultiChunk =
+          chunk.value.length < next.text.length &&
+          next.text.startsWith(BRACKETED_PASTE_START) &&
+          next.text.endsWith(BRACKETED_PASTE_END)
+        let accepted: boolean
+        if (next.resolveAccepted) {
+          accepted = await writeAcceptedChunk(next, chunk.value)
+        } else {
+          try {
+            deps.write(next.id, chunk.value, next.inputKind)
+            accepted = true
+          } catch (error) {
+            // RA: a throw mid-paste leaves the same close obligation as a refusal; other throws still fail the drain.
+            if (!bracketedMultiChunk) {
+              throw error
+            }
+            console.warn('[pty-input-write-queue] paste chunk write failed:', error)
+            accepted = false
+          }
+        }
         if (generation !== writeGeneration || firstPending() !== next) {
           continue
         }
         if (!accepted) {
+          if (bracketedMultiChunk) {
+            // RA: a refusal cannot prove the frame never opened; owe a close, drop only this payload.
+            openPaste = { id: next.id, generation, inputKind: next.inputKind }
+            removePending(next, false)
+            continue
+          }
           clearPending()
           return
         }
@@ -306,6 +359,7 @@ export function createPtyInputWriteQueue(deps: PtyInputWriteQueueDeps): PtyInput
     clear(): void {
       generation += 1
       failedGeneration = null
+      openPaste = null
       clearPending()
       for (const cancel of pendingAcceptedCancels) {
         cancel()
