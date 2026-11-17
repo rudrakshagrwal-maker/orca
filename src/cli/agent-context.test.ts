@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 
 import type { CommandSpec } from './args'
 import { buildAgentContext } from './agent-context'
-import { COMMAND_SPECS } from './specs'
 
 describe('buildAgentContext', () => {
   const specs: CommandSpec[] = [
@@ -46,14 +45,5 @@ describe('buildAgentContext', () => {
     ])
     expect(schema.commandCount).toBe(2)
     expect(schema.commands.map((command) => command.command)).not.toContain('terminal stop')
-  })
-})
-
-describe('agent-context over the live registry', () => {
-  it('marks raw passthrough commands without synthesizing Orca flags', () => {
-    const schema = buildAgentContext(COMMAND_SPECS)
-    const claudeTeams = schema.commands.find((command) => command.command === 'claude-teams')
-    expect(claudeTeams?.argumentMode).toBe('passthrough')
-    expect(claudeTeams?.flags).toEqual([])
   })
 })

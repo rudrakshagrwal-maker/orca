@@ -2,64 +2,19 @@
 const FILE_OPEN_FOCUS_HELP =
   "--focus                Bring the user to the file (switches Orca's window to its worktree)"
 
-const CHAT_SESSION_HELP =
-  '--session <id>        Chat session id or handle from chat list or agent launch'
-
 const COMMAND_SCOPED_FLAG_HELP: Record<string, Record<string, string>> = {
-  'chat rename': {
-    session: '--session <id>        Chat session id from chat list or agent launch'
-  },
-  'chat list': {
-    state: '--state <state>       Only chats in this state: working, blocked, waiting or done'
-  },
-  'chat read': { session: CHAT_SESSION_HELP },
-  'chat send': {
-    session: CHAT_SESSION_HELP,
-    wait: '--wait                 Wait until the chat finishes or needs your answer'
-  },
-  'chat wait': { session: CHAT_SESSION_HELP },
   'extension reload': {
     'extension-id':
       '--extension-id <id>   Installed unpacked extension ID; also accepted positionally',
     path: '--path <folder>        Source folder of exactly one installed unpacked extension'
   },
-  'reference add': {
-    url: '--url <url-or-jira-key> Full review/issue URL or Jira key; use positionals or repeated --url',
-    'reference-site': '--reference-site <id> Jira site for bare keys; see orca jira connection'
-  },
-  'reference remove': {
-    url: '--url <url>            Full review or issue URL; pass all URLs positionally or all as repeated --url',
-    key: '--key <key>            Opaque key from reference list; repeat for several'
-  },
-  'computer get-app-state': {
-    query:
-      '--query <text>        Show only elements whose line contains this text, with their ancestors'
-  },
-  'reference find': {
-    query: '--query <url-or-key>   Full URL or native issue key such as STA-1234',
-    repo: '--repo <selector>      Filter by workspace repository membership',
-    'include-archived': '--include-archived     Include archived workspaces',
-    limit: '--limit <n>            Maximum matching workspaces (default 50)'
-  },
   'worktree create': {
-    branch: '--branch <name>        Git branch name to use instead of the prefixed default',
-    reference:
-      '--reference <url-or-jira-key> Attach an issue/review URL or Jira key; repeat for several',
-    'reference-site': '--reference-site <id> Jira site for bare keys; see orca jira connection',
-    pr: '--pr <number>          Linked GitHub pull request number',
-    'gitlab-issue': '--gitlab-issue <number|url> Linked GitLab issue in the source project',
-    'gitlab-mr': '--gitlab-mr <number|url> Linked GitLab merge request in the source project'
+    branch: '--branch <name>        Git branch name to use instead of the prefixed default'
   },
   'skills get': {
     full: '--full                 Print the full guide with bundled references',
     reference: '--reference <name>     Print one bundled reference by name',
     references: '--references           List the bundled reference names for a topic'
-  },
-  'plugin create': {
-    template: '--template <name>      Template to scaffold from (see Usage)',
-    publisher: '--publisher <name>     Repository owner; only for Orca older than 1.4.246',
-    id: '--id <id>              Plugin id (default: the folder name)',
-    name: '--name <display name>  Plugin name shown in Orca'
   },
   'environment update': {
     force: '--force                Restart over running terminals instead of deferring the update'
@@ -93,22 +48,6 @@ const COMMAND_SCOPED_FLAG_HELP: Record<string, Record<string, string>> = {
   'worktree set': {
     unread: '--unread               Mark the workspace unread in the sidebar',
     read: '--read                 Mark the workspace read, clearing the unread dot'
-  },
-  search: {
-    query: '--query <text>         Search text; also accepted as the positional argument',
-    scope: '--scope <corpus>       conversation (user and assistant turns) or all (default)',
-    fresh: '--fresh                Wait up to 5s for the host to reconcile its index first',
-    limit: '--limit <n>            Hits per page (default 20, maximum 100)',
-    cursor: '--cursor <cursor>      Opaque cursor printed by the previous page of this search',
-    agent: '--agent <id>           Restrict to one agent; repeat for several',
-    path: '--path <path>          Restrict to an execution-host path; repeat for several',
-    since: '--since <iso>          Only sessions updated at or after this ISO 8601 timestamp',
-    sort: '--sort <order>         relevance (default) or newest',
-    debug: '--debug                Include the planner route the host used',
-    'index-status': '--index-status         Report the index instead of searching'
-  },
-  ports: {
-    all: '--all                  List every listener on the workspace host, not just this workspace'
   },
   snapshot: {
     interactive:

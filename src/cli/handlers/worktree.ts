@@ -49,18 +49,11 @@ import {
   getEnvParentWorkspace,
   resolveCreateParentSelector
 } from './worktree-create-parent-selector'
-import { getOptionalLinearIssueLinkFlag } from './worktree-linear-issue-link'
 import { getWorktreeReadFlags } from './worktree-unread-flag'
-import { getReviewTargetLinkFlags } from './worktree-review-link-flags'
 import {
   getOptionalSetupDecision,
   withSetupDecisionRecovery
 } from './worktree-setup-decision-recovery'
-import {
-  assertReferenceWritesSupported,
-  getCreateReferenceInputs,
-  resolveReferenceInputs
-} from '../reference-input'
 
 function getOptionalStartupAgent(flags: Map<string, string | boolean>): TuiAgent | undefined {
   const agent = getPresentStringFlag(flags, 'agent')
@@ -118,11 +111,9 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
   },
   'worktree create': async (context) => {
     const { flags, client, cwd, json, rawArgs } = context
-    const referenceInputs = getCreateReferenceInputs(flags)
     assertWorktreeParentFlagsCompatible(flags)
     assertWorkspaceTargetFlagsCompatible(flags)
     const branchNameOverride = getPresentStringFlag(flags, 'branch')
-    const reviewLinks = getReviewTargetLinkFlags(flags)
     const callerTerminalHandle = process.env.ORCA_TERMINAL_HANDLE || undefined
     const explicitParent = await resolveCreateParentSelector(flags, cwd, client)
     const explicitParentWorktree = explicitParent.parentWorktree
@@ -158,18 +149,11 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
         cwdContext = {}
       }
     }
-    const linearIssueLink = getOptionalLinearIssueLinkFlag(flags, 'linear-issue')
     const activate = flags.get('activate') === true || flags.get('run-hooks') === true
     const name = getRequiredStringFlag(flags, 'name')
     const repoTarget: CliRepoTarget = cwdContext.repoId
       ? { repo: `id:${cwdContext.repoId}` }
       : await getCreateRepoTarget(flags, undefined, client, explicitParentWorkspace)
-    const linkedItems = referenceInputs
-      ? await resolveReferenceInputs(context, referenceInputs)
-      : undefined
-    if (linkedItems) {
-      await assertReferenceWritesSupported(client)
-    }
     const create = {
       // Older hosts drop `repoHostId` and keep refusing an id on several hosts, as before.
       ...repoTarget,
@@ -178,9 +162,6 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
       displayNameKind: 'user',
       baseBranch: getOptionalStringFlag(flags, 'base-branch'),
       branchNameOverride,
-      ...reviewLinks,
-      ...linearIssueLink,
-      ...(linkedItems ? { linkedItems } : {}),
       comment: getOptionalStringFlag(flags, 'comment'),
       runHooks: flags.get('run-hooks') === true,
       activate,
@@ -223,10 +204,6 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
     )
     const parentSelector = getOptionalStringFlag(flags, 'parent-worktree')
     const readFlags = getWorktreeReadFlags(flags)
-    const reviewLinks = getReviewTargetLinkFlags(flags, { nullable: true })
-    const linearIssueLink = getOptionalLinearIssueLinkFlag(flags, 'linear-issue', {
-      allowNull: true
-    })
     const worktree = await getRequiredWorktreeSelector(flags, 'worktree', cwd, client)
     if (await setIfFolderWorkspace(client, flags, worktree, json)) {
       return
@@ -235,8 +212,6 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
     const pending = callNamingParentEnvironment<RuntimeWorktreeSetResult>(client, 'worktree.set', {
       worktree,
       displayName: getOptionalStringFlag(flags, 'display-name'),
-      ...reviewLinks,
-      ...linearIssueLink,
       // An explicit empty value clears the stored comment.
       comment: getOptionalStringFlagAllowingEmpty(flags, 'comment'),
       workspaceStatus: getOptionalStringFlag(flags, 'workspace-status'),

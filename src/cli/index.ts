@@ -38,10 +38,6 @@ export async function main(
     await runAgentTeamsTmuxShim(argv.slice(1))
     return
   }
-  if (argv[0] === 'claude-teams') {
-    await runClaudeTeams(argv.slice(1), cwd)
-    return
-  }
   const {
     findCommandSpec,
     isCommandGroup,
@@ -94,7 +90,6 @@ export async function main(
     await import('./host-selector-alternatives.js')
   const { reportCliError } = await import('./cli-error.js')
   const { RuntimeClientError } = await import('./runtime/types.js')
-  const { cliErrorExitCode } = await import('./cli-exit-code.js')
   const { resolveOrchestrationCliExecutable } =
     await import('./runtime/orchestration-recovery-command.js')
   const { refuseConflictingSessionCallerFlags } = await import('./session-caller-flags.js')
@@ -206,7 +201,7 @@ export async function main(
           Boolean(process.env.ORCA_ENVIRONMENT?.trim() || process.env.ORCA_PAIRING_CODE?.trim())),
       conciseOrchestration: parsed.commandPath[0] === 'orchestration' && !parsed.flags.has('full')
     })
-    process.exitCode = cliErrorExitCode(error, parsed.commandPath)
+    process.exitCode = 1
   }
 }
 
@@ -221,26 +216,6 @@ function runsOnCallersOrca(
     ON_CALLERS_ORCA_COMMANDS.has(commandPath[1] ?? '') &&
     flags.has('on')
   )
-}
-
-async function runClaudeTeams(argv: string[], cwd: string): Promise<void> {
-  const { dispatch } = await import('./dispatch.js')
-  const { reportCliError } = await import('./cli-error.js')
-
-  try {
-    // Forward Claude Code arguments verbatim so new flags work without Orca changes.
-    const client = new (await loadRuntimeClientClass())(undefined, undefined, null, null)
-    await dispatch(['claude-teams'], {
-      flags: new Map(),
-      client,
-      cwd,
-      json: false,
-      rawArgs: argv
-    })
-  } catch (error) {
-    reportCliError(error, false, { commandPath: ['claude-teams'] })
-    process.exitCode = 1
-  }
 }
 
 async function runAgentTeamsTmuxShim(argv: string[]): Promise<void> {

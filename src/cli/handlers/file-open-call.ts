@@ -27,7 +27,7 @@ export async function callFileOpen(
     }
     throw new RuntimeClientError('renderer_unavailable', NO_APP_WINDOW_MESSAGE, {
       nextSteps: [
-        'Open the file from the file explorer of an Orca app or mobile app connected to this server.',
+        'Open the file from the file explorer of an Orca app connected to this server.',
         'To point a user at the file, give its path in your reply instead of opening a tab.'
       ]
     })

@@ -214,7 +214,11 @@ function verifySkillsCliRuntime(outDir, artifactRoot = dirname(outDir), options 
   }
   const list = parseJson('skills list', runCli(absoluteOutDir, ['skills', 'list', '--json']))
   const topicNames = new Set(list.topics?.map((topic) => topic.name))
-  for (const topic of ['orca-cli', 'orca-computer-use']) {
+  const expectedTopics = ['orca-cli', 'orca-per-workspace-env', 'orchestration']
+  if (topicNames.size !== expectedTopics.length) {
+    throw new Error('[verify-skills-cli-runtime] skills list contains unexpected topics')
+  }
+  for (const topic of expectedTopics) {
     if (!topicNames.has(topic)) {
       throw new Error(`[verify-skills-cli-runtime] skills list omitted ${topic}`)
     }
@@ -245,7 +249,7 @@ function verifySkillsCliRuntime(outDir, artifactRoot = dirname(outDir), options 
     throw new Error('[verify-skills-cli-runtime] a dry-run reported execution')
   }
 
-  return { closureFiles: closure.length, commands: 5 }
+  return { closureFiles: closure.length, commands: 6 }
 }
 
 if (require.main === module) {

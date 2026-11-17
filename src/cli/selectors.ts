@@ -1,5 +1,4 @@
 import { resolve as resolvePath } from 'node:path'
-import type { ComputerAppQuery } from '../shared/runtime-types'
 import { resolveFolderWorkspaceSelector } from './folder-workspace-selector'
 import { resolveCallerDistroPathSelector } from './wsl-caller-path-selector'
 import type { RuntimeClient } from './runtime-client'
@@ -11,7 +10,6 @@ import { readEnclosingWorkspaceCatalog } from './enclosing-workspace-catalog'
 import {
   getCallerExecutionHostId,
   getCallerWorkspaceIds,
-  resolveCallerPaneWorktreeSelector,
   selectWorktreeCreateCwdContext,
   selectEnclosingWorktreeSelectionOnHost,
   selectCallerTerminalWorkspace,
@@ -19,12 +17,6 @@ import {
   type WorkspaceSelectionPurpose,
   type HostScopedWorktreeSelection
 } from './caller-host-worktree-selection'
-
-export type ComputerCliTarget = {
-  session?: string
-  worktree?: string
-  app: ComputerAppQuery
-}
 
 export function buildCurrentWorktreeSelector(cwd: string): string {
   return `path:${resolvePath(cwd)}`
@@ -126,21 +118,6 @@ export async function getRequiredWorktreeSelector(
   return await normalizeWorktreeSelectorForCaller(value, cwd, client, selectorPurpose(name))
 }
 
-async function optionalCurrentWorktreeSelector(
-  cwd: string,
-  client: RuntimeClient,
-  purpose: WorkspaceSelectionPurpose = 'worktree'
-) {
-  try {
-    return await resolveCurrentWorktreeSelector(cwd, client, purpose)
-  } catch (error) {
-    if (error instanceof RuntimeClientError && error.code === 'selector_ambiguous') {
-      throw error
-    }
-    return undefined
-  }
-}
-
 // Remote commands leave worktree unset to use server-side focus.
 export async function getBrowserWorktreeSelector(
   flags: Map<string, string | boolean>,
@@ -195,84 +172,4 @@ export async function getTerminalHandle(
     ...(options.requireUnambiguous ? { requireUnambiguous: true } : {})
   })
   return response.result.handle
-}
-
-export async function getComputerCommandTarget(
-  flags: Map<string, string | boolean>,
-  cwd: string,
-  client: RuntimeClient
-): Promise<ComputerCliTarget> {
-  const app = getRequiredStringFlag(flags, 'app')
-  const session = getOptionalStringFlag(flags, 'session')
-  const worktree = getOptionalStringFlag(flags, 'worktree')
-  if (session && worktree) {
-    throw new RuntimeClientError(
-      'invalid_argument',
-      'Computer-use targeting accepts either --session or --worktree, not both'
-    )
-  }
-  if (session) {
-    return { session, app }
-  }
-  return {
-    app,
-    worktree: await getBrowserWorktreeSelector(flags, cwd, client)
-  }
-}
-
-export type EmulatorCliTarget = {
-  worktree?: string
-  device?: string
-  emulator?: string // Orca id from list
-}
-
-export async function getEmulatorWorktreeSelector(
-  flags: Map<string, string | boolean>,
-  cwd: string,
-  client: RuntimeClient
-): Promise<string | undefined> {
-  const explicit = getOptionalStringFlag(flags, 'worktree')
-  if (explicit === 'all') {
-    return undefined
-  }
-  if (explicit) {
-    if (explicit === 'active' || explicit === 'current') {
-      assertLocalCwdWorktreeSelector(explicit, client)
-      return resolveCurrentWorktreeSelector(cwd, client)
-    }
-    return explicit
-  }
-  if (client.isRemote) {
-    return undefined
-  }
-  const terminalWorktreeId = process.env.ORCA_WORKTREE_ID
-  if (terminalWorktreeId?.trim()) {
-    const scoped = await resolveCallerPaneWorktreeSelector(terminalWorktreeId, client)
-    if (scoped) {
-      return scoped
-    }
-  }
-  const folderWorkspaceId = process.env.ORCA_WORKSPACE_ID?.trim()
-  if (folderWorkspaceId?.startsWith('folder:')) {
-    return folderWorkspaceId
-  }
-  return optionalCurrentWorktreeSelector(cwd, client)
-}
-
-export async function getEmulatorCommandTarget(
-  flags: Map<string, string | boolean>,
-  cwd: string,
-  client: RuntimeClient
-): Promise<EmulatorCliTarget> {
-  const device = getOptionalStringFlag(flags, 'device')
-  const emulator = getOptionalStringFlag(flags, 'emulator')
-  const worktree = await getEmulatorWorktreeSelector(flags, cwd, client)
-  if (device || emulator) {
-    return {
-      device: device || undefined,
-      emulator: emulator || undefined,
-      worktree
-    }
-  }
-  return { worktree }
 }

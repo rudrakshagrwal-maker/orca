@@ -71,4 +71,4 @@ to you, so an agent never mails with it. Your mailbox stays on your own Orca:
 `check` takes no `--environment`. Read-only commands such as `inbox` or
 `worker-list` with `--environment` show that server's records. A server whose Orca
 is too old answers `server_mail_unsupported` and nothing is sent. Pair servers
-with `orca pair` or in Settings.
+in Settings.

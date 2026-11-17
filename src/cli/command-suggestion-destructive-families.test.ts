@@ -8,35 +8,26 @@ const blocked = [
   ['orchestration resume', 'orchestration reset'],
   ['orchestration rerun', 'orchestration reset'],
   ['orchestration repl', 'orchestration reset'],
-  ['artifacts deset', 'artifacts delete'],
-  ['emulator ball', 'emulator kill'],
-  ['emulator showdown', 'emulator shutdown'],
   ['orchestration worker-showw', 'orchestration worker-stop'],
   ['orchestration worker-state', 'orchestration worker-stop'],
   ['orchestration worker-relay', 'orchestration worker-release'],
   ['orchestration worker-reuse', 'orchestration worker-release'],
   ['tab clues', 'tab close'],
-  ['linear relation move', 'linear relation remove'],
   ['environment rollbook', 'environment rollback']
 ]
 
 const recovery = [
   ['orchestration rese', 'orchestration reset'],
   ['orchestration rest', 'orchestration reset'],
-  ['emulator kil', 'emulator kill'],
-  ['emulator shutdow', 'emulator shutdown'],
   ['orchestration worker-stp', 'orchestration worker-stop'],
   ['orchestration worker-releasee', 'orchestration worker-release'],
   ['tab clos', 'tab close'],
   ['tab clone', 'tab close'],
   ['environment rollbac', 'environment rollback'],
   ['environment remov', 'environment rm'],
-  ['artifacts delet', 'artifacts delete'],
   ['worktree remov', 'worktree remove'],
   ['worktree delet', 'worktree delete'],
   ['orchestration chek', 'orchestration check'],
-  ['linear relation remov', 'linear relation remove'],
-  ['linear label remov', 'linear label remove'],
   ['capture stp', 'capture stop'],
   ['clea', 'clear']
 ]

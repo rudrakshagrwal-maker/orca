@@ -1,9 +1,3 @@
-import { computerUseErrorRecoveryData } from '../shared/computer-use-error-recovery'
-import {
-  matchAutomationOwnerConflict,
-  stripAutomationOwnerConflictCode
-} from '../shared/automations/ownership/automation-owner-conflict'
-import { automationOwnerConflictRecovery } from './automation-owner-conflict-recovery'
 import { worktreeSelectorRecovery } from './worktree-selector-recovery'
 import { ambiguousWorkspaceChoices, selectorAmbiguityRecovery } from './selector-ambiguity-recovery'
 import type { RuntimeRpcFailure } from './runtime-client'
@@ -98,25 +92,10 @@ export function formatCliError(error: unknown, context: CliErrorContext = {}): s
     }
     return formatRuntimeUnavailableError(message, error.data)
   }
-  // Match before generic recovery; flattened errors may retain only the conflict token.
-  const conflict = automationOwnerConflictRecovery(matchAutomationOwnerConflict(error))
-  if (conflict) {
-    return formatMessageWithNextSteps(stripAutomationOwnerConflictCode(message), conflict.nextSteps)
-  }
-  const sidecarExit = computerSidecarExitRecovery(error, context)
-  if (sidecarExit) {
-    return formatMessageWithNextSteps(message, sidecarExit.nextSteps)
-  }
   if (error instanceof RuntimeClientError) {
     const nextSteps = nextStepsFromData(error.data)
     if (nextSteps.length > 0) {
       return formatMessageWithNextSteps(message, nextSteps)
-    }
-    if (error.code === 'invalid_argument' && context.commandPath?.[0] === 'computer') {
-      return formatMessageWithNextSteps(
-        message,
-        computerUseErrorRecoveryData('invalid_argument')?.nextSteps ?? []
-      )
     }
   }
   if (
@@ -147,9 +126,6 @@ function formatRuntimeUnavailableError(message: string, data: unknown): string {
   return `${message}\nOrca is not running. Run 'orca open' first.`
 }
 
-// Streaming commands print one JSON object per line with --json, so their failure is one line too.
-const JSON_LINES_COMMANDS = new Set(['plugin dev watch'])
-
 export function reportCliError(error: unknown, json: boolean, context: CliErrorContext = {}): void {
   const selector = contextRecovery(error, context)
   const concise = context.conciseOrchestration
@@ -158,9 +134,7 @@ export function reportCliError(error: unknown, json: boolean, context: CliErrorC
     console.log(
       concise
         ? JSON.stringify({ ok: false, error: response.error })
-        : JSON_LINES_COMMANDS.has(context.commandPath?.join(' ') ?? '')
-          ? JSON.stringify(response)
-          : JSON.stringify(response, null, 2)
+        : JSON.stringify(response, null, 2)
     )
     if (concise) {
       console.error(formatOrchestrationErrorLine(response.error.code, response.error.message))
@@ -192,10 +166,7 @@ function cliErrorJsonResponse(
   selector: ContextRecovery | undefined
 ): RuntimeRpcFailure {
   if (error instanceof RuntimeRpcFailureError) {
-    const sidecarExit = computerSidecarExitRecovery(error, context)
-    const response = sidecarExit
-      ? { ...error.response, error: { ...error.response.error, data: sidecarExit } }
-      : withAutomationOwnerConflictRecovery(error.response)
+    const response = error.response
     return selector
       ? {
           ...response,
@@ -210,34 +181,12 @@ function cliErrorJsonResponse(
     id: 'local',
     ok: false,
     error: {
-      code:
-        matchAutomationOwnerConflict(error) ??
-        (error instanceof RuntimeClientError ? error.code : 'runtime_error'),
-      message: stripAutomationOwnerConflictCode(
-        error instanceof Error ? error.message : String(error)
-      ),
+      code: error instanceof RuntimeClientError ? error.code : 'runtime_error',
+      message: error instanceof Error ? error.message : String(error),
       data: localCliErrorData(error, context)
     },
     _meta: {
       runtimeId: null
-    }
-  }
-}
-
-function withAutomationOwnerConflictRecovery(response: RuntimeRpcFailure): RuntimeRpcFailure {
-  const code = matchAutomationOwnerConflict(response)
-  const conflict = automationOwnerConflictRecovery(code)
-  if (!conflict || !code) {
-    return response
-  }
-  return {
-    ...response,
-    error: {
-      ...response.error,
-      // Restore conflict classification lost during transport flattening.
-      code,
-      message: stripAutomationOwnerConflictCode(response.error.message),
-      data: response.error.data ?? conflict
     }
   }
 }
@@ -292,24 +241,7 @@ function nextStepsFromData(data: unknown): string[] {
   return []
 }
 
-// Older servers do not include this recovery hint in error data.
-function computerSidecarExitRecovery(error: unknown, context: CliErrorContext) {
-  if (
-    context.commandPath?.[0] !== 'computer' ||
-    cliErrorCode(error) !== 'accessibility_error' ||
-    !(error instanceof Error) ||
-    !error.message.startsWith('computer sidecar exited with code')
-  ) {
-    return undefined
-  }
-  return computerUseErrorRecoveryData('accessibility_error', error.message)
-}
-
 function localCliErrorData(error: unknown, context: CliErrorContext): unknown {
-  const sidecarExit = computerSidecarExitRecovery(error, context)
-  if (sidecarExit) {
-    return sidecarExit
-  }
   const selector = contextRecovery(error, context)
   // Error-specific recovery takes precedence over the generic fallback.
   if (error instanceof RuntimeClientError && error.data !== undefined) {
@@ -317,17 +249,6 @@ function localCliErrorData(error: unknown, context: CliErrorContext): unknown {
   }
   if (selector) {
     return selector
-  }
-  const conflict = automationOwnerConflictRecovery(matchAutomationOwnerConflict(error))
-  if (conflict) {
-    return conflict
-  }
-  if (
-    error instanceof RuntimeClientError &&
-    error.code === 'invalid_argument' &&
-    context.commandPath?.[0] === 'computer'
-  ) {
-    return computerUseErrorRecoveryData('invalid_argument')
   }
   return undefined
 }

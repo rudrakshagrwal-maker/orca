@@ -3,12 +3,6 @@ import { LOCAL_COMMAND_FLAGS } from '../args'
 
 export const AGENT_HOOK_COMMAND_SPECS: CommandSpec[] = [
   {
-    path: ['agent', 'hooks', 'prepare-codex'],
-    summary: "Prepare a WSL pane's Orca-managed Codex home before a shell launch",
-    usage: 'orca agent hooks prepare-codex',
-    allowedFlags: [...LOCAL_COMMAND_FLAGS]
-  },
-  {
     path: ['agent', 'hooks', 'status'],
     summary: 'Show whether Orca-managed agent status hooks are enabled',
     usage: 'orca agent hooks status [--json]',

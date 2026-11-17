@@ -1,8 +1,6 @@
 import type { CommandHandler } from './dispatch'
 import { BROWSER_HANDLER_GROUPS } from './browser/browser-handler-groups'
 
-import { REFERENCE_HANDLER_GROUP } from './reference-handler-group'
-
 import { HOST_HANDLER_GROUPS } from './host-handler-groups'
 import { WORKTREE_HANDLER_GROUPS } from './worktree-handler-groups'
 
@@ -15,7 +13,6 @@ export type HandlerGroup = {
 
 // handler-group-manifest.test.ts checks keys against the real exports to prevent drift.
 export const HANDLER_GROUPS: readonly HandlerGroup[] = [
-  REFERENCE_HANDLER_GROUP,
   {
     name: 'core',
     keys: ['open', 'serve', 'status'],
@@ -128,30 +125,9 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     ],
     load: async () => (await import('./handlers/orchestration.js')).ORCHESTRATION_HANDLERS
   },
-
-  {
-    name: 'computer',
-    keys: [
-      'computer capabilities',
-      'computer list-apps',
-      'computer permissions',
-      'computer list-windows',
-      'computer get-app-state',
-      'computer click',
-      'computer perform-secondary-action',
-      'computer scroll',
-      'computer drag',
-      'computer type-text',
-      'computer press-key',
-      'computer hotkey',
-      'computer paste-text',
-      'computer set-value'
-    ],
-    load: async () => (await import('./handlers/computer.js')).COMPUTER_HANDLERS
-  },
   {
     name: 'agent-hooks',
-    keys: ['agent hooks prepare-codex', 'agent hooks status', 'agent hooks off', 'agent hooks on'],
+    keys: ['agent hooks status', 'agent hooks off', 'agent hooks on'],
     load: async () => (await import('./handlers/agent-hooks.js')).AGENT_HOOK_HANDLERS
   },
   {
@@ -160,37 +136,14 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('./handlers/agent-launch.js')).AGENT_LAUNCH_HANDLERS
   },
   {
-    name: 'chat',
-    keys: ['chat rename', 'chat list', 'chat read', 'chat send', 'chat wait'],
-    load: async () => (await import('./handlers/chat.js')).CHAT_HANDLERS
-  },
-  {
-    name: 'connector',
-    keys: [
-      'connector start',
-      'connector send',
-      'connector prompt',
-      'connector answer',
-      'connector cancel',
-      'connector watch',
-      'connector reply'
-    ],
-    load: async () => (await import('./handlers/connector.js')).CONNECTOR_HANDLERS
-  },
-  {
     name: 'profile-state',
     keys: ['profile state exports', 'profile state rollback'],
     load: async () => (await import('./handlers/profile-state.js')).PROFILE_STATE_HANDLERS
   },
   {
-    name: 'diagnostics',
-    keys: [ 'terminal-daemon status', 'terminal-daemon restart'],
-    load: async () => (await import('./handlers/diagnostics.js')).DIAGNOSTICS_HANDLERS
-  },
-  {
-    name: 'speech',
-    keys: ['speech openai-key status', 'speech openai-key set', 'speech openai-key clear'],
-    load: async () => (await import('./handlers/speech.js')).SPEECH_HANDLERS
+    name: 'terminal-daemon',
+    keys: ['terminal-daemon status', 'terminal-daemon restart'],
+    load: async () => (await import('./handlers/terminal-daemon.js')).TERMINAL_DAEMON_HANDLERS
   },
   {
     name: 'introspection',
@@ -203,10 +156,5 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     name: 'skills',
     keys: ['skills list', 'skills get', 'skills install', 'skills update'],
     load: async () => (await import('./handlers/skills.js')).SKILL_HANDLERS
-  },
-  {
-    name: 'search',
-    keys: ['search'],
-    load: async () => (await import('./handlers/search.js')).SEARCH_HANDLERS
   }
 ]

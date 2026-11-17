@@ -16,7 +16,6 @@ import {
 } from './execution-host-flag'
 import { fetchSshTargetSummaries, listSshTargets } from './host-selector-alternatives'
 import { reportCliError } from './cli-error'
-import { cliErrorExitCode } from './cli-exit-code'
 import { printHelp } from './help'
 import type { RuntimeClient } from './runtime-client'
 import { COMMAND_SPECS } from './specs'
@@ -55,10 +54,6 @@ export async function main(
   }
   if (argv[0] === 'agent-teams-tmux') {
     await runAgentTeamsTmuxShim(argv.slice(1))
-    return
-  }
-  if (argv[0] === 'claude-teams') {
-    await runClaudeTeams(argv.slice(1), cwd)
     return
   }
   // RA: the complete catalogue remains available without runtime discovery.
@@ -176,23 +171,6 @@ export async function main(
         Boolean(process.env.ORCA_ENVIRONMENT?.trim() || process.env.ORCA_PAIRING_CODE?.trim()),
       conciseOrchestration: parsed.commandPath[0] === 'orchestration' && !parsed.flags.has('full')
     })
-    process.exitCode = cliErrorExitCode(error, parsed.commandPath)
-  }
-}
-
-async function runClaudeTeams(argv: string[], cwd: string): Promise<void> {
-  try {
-    // Forward Claude Code arguments verbatim so new flags work without Orca changes.
-    const client = new (await loadRuntimeClientClass())(undefined, undefined, null, null)
-    await dispatch(['claude-teams'], {
-      flags: new Map(),
-      client,
-      cwd,
-      json: false,
-      rawArgs: argv
-    })
-  } catch (error) {
-    reportCliError(error, false, { commandPath: ['claude-teams'] })
     process.exitCode = 1
   }
 }

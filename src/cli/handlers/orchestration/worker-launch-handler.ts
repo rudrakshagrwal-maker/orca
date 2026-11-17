@@ -1,4 +1,5 @@
 import type { CommandHandler } from '../../dispatch'
+import { parseCliAgent } from '../../agent-launch-request'
 import { printResult } from '../../format'
 import { withReceiptNext } from './receipt-next-text'
 import { getOptionalStringFlag, getPresentStringFlag } from '../../flags'
@@ -24,6 +25,8 @@ import { refuseAgentServerRoute } from './agent-server-route'
 export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler> = {
   'orchestration worker-start': async (ctx) => {
     const { flags, client, cwd, json } = ctx
+    const requestedAgent = getOptionalStringFlag(flags, 'agent')
+    const agent = requestedAgent === undefined ? undefined : parseCliAgent(requestedAgent)
     await refuseAgentServerRoute('worker-start', ctx)
     const terminal = getPresentStringFlag(flags, 'terminal')
     const model = getOptionalStringFlag(flags, 'model')
@@ -77,7 +80,7 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
       displayName: getOptionalStringFlag(flags, 'display-name'),
       comment: getOptionalStringFlag(flags, 'comment'),
       setup: getOptionalStringFlag(flags, 'setup'),
-      agent: getOptionalStringFlag(flags, 'agent'),
+      agent,
       model,
       effort,
       terminal,
@@ -89,12 +92,15 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
     }).catch(async (error: unknown) => {
       throw await explainOlderRuntimeRunRequired(client, error)
     })
-    if (result.result.state !== 'ready' && result.result.state !== 'queued') { // RA: admission is accepted, not failed.
+    if (result.result.state !== 'ready' && result.result.state !== 'queued') {
+      // RA: admission is accepted, not failed.
       process.exitCode = 1
     }
     const keepOpenState =
       (flags.has('keep-open') || startsInNewWorkspace(flags)) &&
-      (result.result.state === 'ready' || result.result.state === 'queued' || isUnobservedTurnStart(result.result)) // RA: queued work keeps its requested custody.
+      (result.result.state === 'ready' ||
+        result.result.state === 'queued' ||
+        isUnobservedTurnStart(result.result)) // RA: queued work keeps its requested custody.
         ? await keepWorkerOpen(client, result.result.dispatchId)
         : undefined
     const renderedResult = {

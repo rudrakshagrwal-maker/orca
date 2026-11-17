@@ -14,8 +14,6 @@ import { getWorktreeReadFlags } from './worktree-unread-flag'
 
 type Flags = Map<string, string | boolean>
 
-const LINK_FLAGS = ['issue', 'pr', 'linear-issue', 'gitlab-issue', 'gitlab-mr'] as const
-
 /** Refuses, before any request, a flag that has no folder workspace meaning. */
 function refuseFolderFlags(flags: Flags, refusals: readonly [string, string][]): void {
   const refused = refusals.find(([flag]) => flags.has(flag))
@@ -80,11 +78,7 @@ async function setFolderWorkspace(
       'parent-worktree',
       `does not apply: a folder workspace cannot have a parent. To nest a worktree under it, run orca worktree set --worktree <child> --parent-worktree ${key}.`
     ],
-    ['no-parent', 'does not apply: a folder workspace never has a parent.'],
-    ...LINK_FLAGS.map((flag): [string, string] => [
-      flag,
-      `does not apply to a folder workspace. Link it with orca reference add <url> --worktree ${key}.`
-    ])
+    ['no-parent', 'does not apply: a folder workspace never has a parent.']
   ])
   const displayName = getOptionalStringFlag(flags, 'display-name')
   const comment = getOptionalStringFlagAllowingEmpty(flags, 'comment')

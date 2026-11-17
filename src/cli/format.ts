@@ -2,18 +2,10 @@
 import type { CliStatusCaller } from '../shared/orchestration/orchestration-caller-status'
 import type { CliStatusResult } from '../shared/runtime-types'
 import { formatBrowserActionEffects } from './browser/browser-format'
-import { prepareComputerCliJsonResult } from './computer-format'
 import type { RuntimeRpcSuccess } from './runtime-client'
 
 export { formatCliError, reportCliError, type CliErrorContext } from './cli-error'
 
-export {
-  formatComputerAction,
-  formatGetAppState,
-  formatListApps,
-  formatListWindows
-} from './computer-format'
-export type { ComputerActionFollowUpTarget } from './computer-format'
 export {
   formatProjectHostSetupCreateResult,
   formatProjectHostSetupDeleteResult,
@@ -40,7 +32,6 @@ export {
 export {
   formatEnvironment,
   formatEnvironmentList,
-  formatMemorySnapshot,
   formatRepoList,
   formatRepoRefs,
   formatRepoShow,
@@ -55,7 +46,7 @@ export function printResult<TResult>(
   formatter: (value: TResult) => string
 ): void {
   if (json) {
-    console.log(JSON.stringify(prepareComputerCliJsonResult(response), null, 2))
+    console.log(JSON.stringify(response, null, 2))
     return
   }
   console.log(formatter(response.result) + formatBrowserActionEffects(response.result))

@@ -2,7 +2,6 @@
 export function ignoresRemoteSelection(commandPath: readonly string[]): boolean {
   return (
     commandPath[0] === 'account' ||
-    commandPath[0] === 'artifacts' ||
     commandPath[0] === 'environment' ||
     // Paired servers come from the local store; routing SSH lookup would mix two machines in one list.
     commandPath.join(' ') === 'host list' ||
@@ -12,9 +11,6 @@ export function ignoresRemoteSelection(commandPath: readonly string[]): boolean 
     (commandPath[0] === 'agent' && commandPath[1] !== 'launch') ||
     commandPath[0] === 'vm' ||
     commandPath[0] === 'agent-context' ||
-    commandPath[0] === 'profile' ||
-    // Authoring works on local files; the handler refuses explicit remote flags.
-    (commandPath[0] === 'plugin' &&
-      ['create', 'validate', 'inspect'].includes(commandPath[1] ?? ''))
+    commandPath[0] === 'profile'
   )
 }

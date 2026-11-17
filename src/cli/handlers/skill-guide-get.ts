@@ -1,4 +1,4 @@
-import type { CommandHandler, HandlerContext } from '../dispatch'
+import type { CommandHandler } from '../dispatch'
 import { RuntimeClientError } from '../runtime-client'
 import { writeStdoutLine } from '../stdout-line'
 import {
@@ -7,27 +7,8 @@ import {
   type BundledSkillGuide,
   type BundledSkillGuideReference
 } from './bundled-skill-guide-table'
-import {
-  filterHostCapabilityBlocks,
-  hasHostCapabilityBlocks,
-  readEnabledHostCapabilities
-} from './skill-guide-host-gate'
 
 type GuideSelection = { full: boolean; reference: string | null; listReferences: boolean }
-type HostGate = (markdown: string) => Promise<string>
-
-// Query the host at most once, and only when the served text has host-gated blocks.
-function createHostGate(ctx: HandlerContext): HostGate {
-  let enabled: ReturnType<typeof readEnabledHostCapabilities> | undefined
-  return async (markdown) => {
-    if (!hasHostCapabilityBlocks(markdown)) {
-      return markdown
-    }
-    enabled ??= readEnabledHostCapabilities(ctx)
-    return filterHostCapabilityBlocks(markdown, await enabled)
-  }
-}
-
 // Accept references/<file>.md exactly as published in the kernel's gate table.
 function normalizeReferenceSelector(value: string): string {
   return value
@@ -73,29 +54,11 @@ function requireReferences(guide: BundledSkillGuide): readonly BundledSkillGuide
   return guide.references
 }
 
-// A reference whose blocks are all withheld is not served at all.
-async function servedReferences(
-  guide: BundledSkillGuide,
-  gate: HostGate
-): Promise<BundledSkillGuideReference[]> {
-  const references = await Promise.all(
-    requireReferences(guide).map(async ({ name, markdown }) => ({
-      name,
-      markdown: await gate(markdown)
-    }))
-  )
-  return references.filter((reference) => reference.markdown.trim().length > 0)
-}
-
-async function requireReference(
-  guide: BundledSkillGuide,
-  requested: string,
-  gate: HostGate
-): Promise<BundledSkillGuideReference> {
+function requireReference(guide: BundledSkillGuide, requested: string): BundledSkillGuideReference {
   const selector = normalizeReferenceSelector(requested)
   const match = requireReferences(guide).find((reference) => reference.name === selector)
   if (!match) {
-    const available = (await servedReferences(guide, gate))
+    const available = requireReferences(guide)
       .map((reference) => reference.name)
       .join(', ')
     throw new RuntimeClientError(
@@ -103,17 +66,9 @@ async function requireReference(
       `Unknown reference "${requested}" for ${guide.name}. Available: ${available}`
     )
   }
-  const markdown = await gate(match.markdown)
-  if (markdown.trim().length === 0) {
-    throw new RuntimeClientError(
-      'invalid_argument',
-      `Reference "${requested}" for ${guide.name} is unavailable: the Orca feature it covers is turned off on this host.`
-    )
-  }
-  return { name: match.name, markdown }
+  return match
 }
 
-// Composed at serve time so withheld references leave no trace in --full.
 function composeFullGuide(
   markdown: string,
   references: readonly BundledSkillGuideReference[]
@@ -140,10 +95,9 @@ export const SKILL_GUIDE_GET_HANDLER: Record<string, CommandHandler> = {
     const selection = resolveSelection(flags)
     const guides = await loadCanonicalGuides()
     const guide = requireTopic(flags, guides)
-    const gate = createHostGate(ctx)
 
     if (selection.listReferences) {
-      const names = (await servedReferences(guide, gate)).map((reference) => reference.name)
+      const names = requireReferences(guide).map((reference) => reference.name)
       writeStdoutLine(
         json ? JSON.stringify({ name: guide.name, references: names }, null, 2) : names.join('\n')
       )
@@ -151,7 +105,7 @@ export const SKILL_GUIDE_GET_HANDLER: Record<string, CommandHandler> = {
     }
 
     if (selection.reference !== null) {
-      const reference = await requireReference(guide, selection.reference, gate)
+      const reference = requireReference(guide, selection.reference)
       writeStdoutLine(
         json
           ? JSON.stringify(
@@ -164,11 +118,10 @@ export const SKILL_GUIDE_GET_HANDLER: Record<string, CommandHandler> = {
       return
     }
 
-    const kernel = await gate(guide.markdown)
     const markdown =
       selection.full && guide.references.length > 0
-        ? composeFullGuide(kernel, await servedReferences(guide, gate))
-        : kernel
+        ? composeFullGuide(guide.markdown, guide.references)
+        : guide.markdown
     writeStdoutLine(
       json
         ? JSON.stringify({ name: guide.name, full: selection.full, markdown }, null, 2)

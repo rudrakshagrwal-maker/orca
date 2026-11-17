@@ -4,8 +4,7 @@ import {
 } from '../shared/skill-install-providers'
 
 const CANONICAL_PROVIDER_BY_SKILLS_CLI_KEY = new Map<string, SkillInstallProviderId>([
-  ['claude-code', 'claude'],
-  ['opencode', 'opencode']
+  ['claude-code', 'claude']
 ])
 
 export function skillsCliAgentAliases(

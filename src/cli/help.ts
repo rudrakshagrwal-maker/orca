@@ -3,11 +3,7 @@ import { findCommandSpec, isCommandGroup, matches, supportsBrowserPageFlag } fro
 import { unknownCommandData } from './command-suggestion'
 import { formatCommandScopedFlagHelp } from './command-scoped-flag-help'
 import { FLAG_HELP_TEXT } from './flag-help-text'
-import { ROOT_HELP_TEXT_PRIMARY } from './root-help-text-primary'
-import { ROOT_HELP_TEXT_SECONDARY } from './root-help-text-secondary'
 import { ROOT_SHORT_HELP } from './root-short-help'
-
-const ROOT_HELP_TEXT = [ROOT_HELP_TEXT_PRIMARY, ROOT_HELP_TEXT_SECONDARY].join('\n')
 
 export function printHelp(specs: CommandSpec[], commandPath: string[] = [], all = false): void {
   // RA: root help is intentionally small; group and command help stay complete.
@@ -32,7 +28,7 @@ export function printHelp(specs: CommandSpec[], commandPath: string[] = [], all 
     console.log(`Unknown command: ${commandPath.join(' ')}${recovery ? `\n${recovery}` : ''}\n`)
   }
 
-  console.log(all ? formatGroupHelp(specs, []) : ROOT_HELP_TEXT)
+  console.log(all ? formatGroupHelp(specs, []) : ROOT_SHORT_HELP)
 }
 
 export function formatCommandHelp(spec: CommandSpec): string {
@@ -81,7 +77,12 @@ export function formatGroupHelp(specs: CommandSpec[], groupPath: string[]): stri
     ) {
       continue
     }
-    lines.push(`  ${spec.path.slice(groupPath.length).join(' ').padEnd(group ? 18 : 30)} ${spec.summary}`)
+    lines.push(
+      `  ${spec.path
+        .slice(groupPath.length)
+        .join(' ')
+        .padEnd(group ? 18 : 30)} ${spec.summary}`
+    )
   }
   lines.push('', `Run \`${prefix} <command> --help\` for command-specific usage.`)
   return lines.join('\n')
@@ -98,33 +99,6 @@ function formatCommandFlagHelp(flag: string, commandPath: string[]): string {
   }
   if (command === 'terminal set-pane-title' && flag === 'title') {
     return '--title <text>         Custom title for one pane (pass "" to reset)'
-  }
-  if (command === 'linear issue' && flag === 'id') {
-    return '--id <id>             Linear issue key, id, or URL'
-  }
-  if ((command === 'linear comment edit' || command === 'linear comment delete') && flag === 'id') {
-    return '--id <commentId>      Linear comment id (a UUID)'
-  }
-  if (command === 'linear issue' && flag === 'workspace') {
-    return '--workspace <id>      Connected Linear workspace id'
-  }
-  if (command === 'linear search' && flag === 'query') {
-    return '--query <text>        Text to search across Linear issues'
-  }
-  if (command === 'linear search' && flag === 'workspace') {
-    return '--workspace <id|all>  Connected Linear workspace id, or all'
-  }
-  if (command === 'linear list-issues' && flag === 'cursor') {
-    return '--cursor <cursor>      Opaque cursor from a previous list-issues page; issued cursors bind the workspace, raw Linear cursors need --workspace'
-  }
-  if (command === 'linear list-issues' && flag === 'priority') {
-    return '--priority <0-4>       0=none, 1=urgent, 2=high, 3=medium, 4=low'
-  }
-  if (command === 'linear list-issues' && flag === 'limit') {
-    return '--limit <n>            Max issues to return; omit to return every match'
-  }
-  if (command === 'artifacts list' && flag === 'cursor') {
-    return '--cursor <cursor>      Opaque cursor returned by a previous artifacts page'
   }
   if (command === 'orchestration worker-read' && flag === 'cursor') {
     return '--cursor <cursor>      Opaque cursor returned by a previous worker-read page'
@@ -144,45 +118,6 @@ function formatCommandFlagHelp(flag: string, commandPath: string[]): string {
   if (command === 'orchestration worker-list' && flag === 'include-remote') {
     return '--include-remote      Include connected-server worker observations'
   }
-  if (command === 'linear list-issues' && flag === 'workspace') {
-    return '--workspace <id|all>  Connected Linear workspace id, or all'
-  }
-  if (command.startsWith('linear ') && flag === 'workspace') {
-    return '--workspace <id>      Connected Linear workspace id'
-  }
-  if (command.startsWith('linear ') && flag === 'body') {
-    return '--body <text>         Linear comment or issue body'
-  }
-  if (command.startsWith('linear ') && flag === 'body-file') {
-    return '--body-file <path|->  Read Linear body from a file or stdin'
-  }
-  if (command.startsWith('linear ') && flag === 'write-id') {
-    return '--write-id <uuid>     Retry id from linear_write_unconfirmed'
-  }
-  if (command.startsWith('linear ') && flag === 'to') {
-    return '--to <state>          Exact Linear workflow state name'
-  }
-  if (command === 'linear comment add' && flag === 'reply-to') {
-    return '--reply-to <id>       Comment id to reply to'
-  }
-  if (command === 'linear attach' && flag === 'url') {
-    return '--url <url>           Absolute http(s) link to attach'
-  }
-  if (command === 'linear attach' && flag === 'title') {
-    return '--title <text>        Attachment title'
-  }
-  if (command === 'linear create' && flag === 'title') {
-    return '--title <text>        New Linear issue title'
-  }
-  if (command === 'linear create' && flag === 'team') {
-    return '--team <key>          Linear team key'
-  }
-  if (command === 'linear create' && flag === 'parent') {
-    return '--parent <id>         Parent Linear issue key, id, or URL'
-  }
-  if (command === 'linear create' && flag === 'parent-current') {
-    return '--parent-current      Use the current linked issue as parent'
-  }
   if (command === 'worktree create' && flag === 'parent-worktree') {
     return '--parent-worktree <selector> Parent selector such as identity:<identity>, active/current, id:<repo-id>::<path>, branch:<branch>, issue:<number>, path:<path>, folder:<id>, or worktree:<worktreeId>'
   }
@@ -193,22 +128,10 @@ function formatCommandFlagHelp(flag: string, commandPath: string[]): string {
     return '--display-name <text> UI label shown for dispatched worker rows'
   }
   if (command === 'account add' && flag === 'agent') {
-    return '--agent <id>           Account provider: claude, codex, opencode, or devin (default claude)'
+    return '--agent <id>           Account provider: claude or codex (default claude)'
   }
   if (command.startsWith('account ') && flag === 'agent') {
-    return '--agent <id>           Account provider: claude, codex, opencode, devin, or antigravity'
-  }
-  if (command === 'chat rename' && flag === 'session') {
-    return '--session <id>        Chat session id (defaults to the chat this runs in)'
-  }
-  if (command === 'chat rename' && flag === 'name') {
-    return '--name <text>         New name for the chat'
-  }
-  if (flag === 'key' && command === 'computer hotkey') {
-    return '--key <key-combo>      Modifier chord with one key, e.g. CmdOrCtrl+A'
-  }
-  if (flag === 'key' && command === 'computer press-key') {
-    return '--key <key>            Single key, e.g. Return, Escape, Tab, Left, or PageUp'
+    return '--agent <id>           Account provider: claude or codex'
   }
   return formatFlagHelp(flag)
 }

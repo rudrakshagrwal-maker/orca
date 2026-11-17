@@ -42,8 +42,6 @@ export const CORE_HANDLERS: Record<string, CommandHandler> = {
     const projectRootValue = flags.get('project-root')
     const projectRoot = typeof projectRootValue === 'string' ? projectRootValue : null
     const noPairing = flags.get('no-pairing') === true
-    const mobilePairing = flags.get('mobile-pairing') === true
-    const grantDesktopControl = flags.get('grant-desktop-control') === true
     const allowPublic = flags.get('allow-public') === true
     const refusePublic = flags.get('refuse-public') === true
     const recipeJson = flags.get('recipe-json') === true
@@ -57,8 +55,7 @@ export const CORE_HANDLERS: Record<string, CommandHandler> = {
     const validationError = getServeOptionValidationError({
       bind,
       noPairing,
-      mobilePairing,
-      grantDesktopControl,
+      mobilePairing: false,
       allowPublic,
       refusePublic,
       recipeJson,
@@ -75,8 +72,6 @@ export const CORE_HANDLERS: Record<string, CommandHandler> = {
       bind,
       pairingAddress: typeof pairingAddressValue === 'string' ? pairingAddressValue : null,
       noPairing,
-      mobilePairing,
-      grantDesktopControl,
       recipeJson,
       projectRoot,
       ...(allowPublic ? { allowPublic: true } : {}),

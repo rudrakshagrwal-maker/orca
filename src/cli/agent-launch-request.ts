@@ -1,14 +1,11 @@
-// agent.launch shares desktop/mobile policy; absent --surface uses the host's Chat | CLI choice for the agent.
+// agent.launch shares host launch policy; absent --surface uses the host's Chat | CLI choice for the agent.
 
 import { randomUUID } from 'node:crypto'
 import type {
   AgentLaunchPrompt,
   AgentLaunchResult
 } from '../shared/agent-launch/contracts/agent-launch-intent'
-import {
-  AGENT_LAUNCH_SURFACES,
-  type AgentLaunchSurface
-} from '../shared/agent-launch/contracts/agent-launch-surface'
+import type { AgentLaunchSurface } from '../shared/agent-launch/contracts/agent-launch-surface'
 import { checkAgentLaunchModelPreferences } from '../shared/agent-launch/choices/agent-launch-model-preferences'
 import {
   AGENT_LAUNCH_RUNTIME_CAPABILITY,
@@ -20,8 +17,7 @@ import {
 import { createStructuredAgentSessionOperationId } from '../shared/agent-session/lifecycle/structured-agent-session-mutation'
 import { parseAgentSessionOperationTimestamp } from '../shared/agent-session/agent-session-host-authority'
 import type { RuntimeStatus } from '../shared/runtime-types'
-import type { TuiAgent } from '../shared/agent-launch/catalog/tui-agent'
-import { isTuiAgent } from '../shared/agent-launch/catalog/tui-agent-config'
+import { isForkTuiAgent, type TuiAgent } from '../shared/agent-launch/catalog/tui-agent'
 import {
   getOptionalStringFlag,
   getRequiredStringFlag,
@@ -51,15 +47,15 @@ function readSurfaceFlag(flags: Flags): AgentLaunchSurface | undefined {
     return undefined
   }
   const surface = getRequiredStringFlag(flags, 'surface')
-  const known = AGENT_LAUNCH_SURFACES.find((candidate) => candidate === surface)
+  const known = surface === 'terminal' ? surface : undefined
   if (!known) {
-    throw new RuntimeClientError('invalid_argument', '--surface must be one of: chat, terminal')
+    throw new RuntimeClientError('invalid_argument', '--surface must be terminal')
   }
   return known
 }
 
 export function parseCliAgent(value: string): TuiAgent {
-  if (!isTuiAgent(value)) {
+  if (!isForkTuiAgent(value)) {
     throw new RuntimeClientError('invalid_argument', `Unknown TUI agent "${value}"`)
   }
   return value
@@ -74,9 +70,7 @@ export function readCliAgentLaunch(
     agent,
     model: getOptionalStringFlag(flags, 'model'),
     effort: getOptionalStringFlag(flags, 'effort'),
-    createsWorktree: target.createsWorktree,
-    // The execution host verifies an OpenCode model itself before it starts one.
-    openCodeModelLaunchSupported: true
+    createsWorktree: target.createsWorktree
   })
   if ('refusal' in checked) {
     throw new RuntimeClientError(checked.refusal.code, checked.refusal.message)
@@ -107,7 +101,7 @@ export function hasLaunchModelFlags(flags: Flags): boolean {
 
 // An older host strips `surface` and follows its own setting, so an explicit pick never reaches it.
 export const SURFACE_UNSUPPORTED_MESSAGE =
-  'This Orca host cannot start an agent as a chat or a terminal on request. Update Orca on the execution host, or omit --surface.'
+  'This Orca host cannot start an agent in a terminal on request. Update Orca on the execution host, or omit --surface.'
 
 export async function getAgentLaunchCapabilities(
   client: RuntimeClient
