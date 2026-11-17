@@ -92,11 +92,12 @@ function findBlockedSignalInLiveWindow(normalized: string): BlockedTextSignal | 
     interactivePromptContext.includes('sandbox') ||
     interactivePromptContext.includes('trust') ||
     interactivePromptContext.includes('hook')
-  // RA: live only while the footer ends the tail with no composer row under it; an answered dialog leaves both.
+  // RA: live while no composer row sits under it and it is within the last 8 rows (options may follow the line);
+  // an answered dialog leaves the composer below.
   if (
     interactivePromptIndex !== -1 &&
     hasInteractiveDialogContext &&
-    isFooterLive(normalized, interactivePromptIndex)
+    isLiveBelow(normalized, interactivePromptIndex, INTERACTIVE_PROMPT_TRAILING_LINES)
   ) {
     const contextStart = Math.max(0, interactivePromptIndex - 600)
     const hasSpecificPromptInContext = candidates.some(
@@ -186,15 +187,16 @@ const CODEX_LIVE_PROMPT_FOOTERS = [
 ]
 const CODEX_QUESTION_TRAILING_LINES = 8
 const CODEX_FOOTER_TRAILING_LINES = 2
-
-function trailingRows(text: string, from: number): number {
-  return text.slice(from).split(NEWLINE).filter((line) => line.trim() !== '').length - 1
-}
+const INTERACTIVE_PROMPT_TRAILING_LINES = 8
 
 function findLiveCodexPromptIndex(normalized: string): number {
   // Why: an answered dialog scrolls up and leaves the composer and status rows below it.
   const question = normalized.lastIndexOf(CODEX_LIVE_PROMPT_QUESTION)
-  let latest = question !== -1 && trailingRows(normalized, question) <= CODEX_QUESTION_TRAILING_LINES ? question : -1
+  // RA: the question also needs no composer row below it.
+  let latest =
+    question !== -1 && isLiveBelow(normalized, question, CODEX_QUESTION_TRAILING_LINES)
+      ? question
+      : -1
   for (const footer of CODEX_LIVE_PROMPT_FOOTERS) {
     const index = normalized.lastIndexOf(footer)
     if (index !== -1 && isFooterLive(normalized, index)) {
@@ -208,9 +210,14 @@ const COMPOSER_ROW_RE = new RegExp(String.raw`^\s*\u203A`)
 
 /** The footer is within the last 2 non-empty rows and no Codex composer row follows it. */
 function isFooterLive(normalized: string, footerIndex: number): boolean {
+  return isLiveBelow(normalized, footerIndex, CODEX_FOOTER_TRAILING_LINES)
+}
+
+/** RA: at most `maxRows` non-empty rows follow the index and none is a composer row. */
+function isLiveBelow(normalized: string, index: number, maxRows: number): boolean {
   const rows = normalized
-    .slice(footerIndex)
+    .slice(index)
     .split(NEWLINE)
     .filter((line) => line.trim() !== '')
-  return rows.length - 1 <= CODEX_FOOTER_TRAILING_LINES && !rows.slice(1).some((row) => COMPOSER_ROW_RE.test(row))
+  return rows.length - 1 <= maxRows && !rows.slice(1).some((row) => COMPOSER_ROW_RE.test(row))
 }

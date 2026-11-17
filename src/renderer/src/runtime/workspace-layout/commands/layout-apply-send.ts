@@ -162,7 +162,7 @@ export type WindowLayoutCommand =
       recordOnly?: true
     }
   /** Main starts the pane if its terminal is not live; the window then attaches. */
-  | { type: 'startPane'; tabId: string; paneKey: string }
+  | { type: 'startPane'; tabId: string; paneKey: string; inWorkspaceRoot?: true } // RA
   | { type: 'wake'; tabId: string; paneKeys: [string] }
   /** Drops the panes' resume records without starting them. */
   | { type: 'wake'; tabId: string; paneKeys: string[]; recordOnly: true }

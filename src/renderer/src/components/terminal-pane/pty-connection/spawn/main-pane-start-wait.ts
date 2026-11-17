@@ -136,17 +136,23 @@ export function showPaneStartFailure(
     return
   }
   if (!session.disposed && reason?.includes('startup_cwd_missing') && !session.runtimeEnvironmentId) {
-    // RA: the saved folder is gone. The pane keeps its cwd and session; Retry asks main to start it again.
+    // RA: the saved folder is gone. The pane keeps its cwd and session; Retry asks main to start it again,
+    // and "Start in workspace root" starts the same agent/session there. Both exist only with a parsable key.
     const tabId = parsePaneKey(session.cacheKey)?.tabId
     if (tabId) {
-      session.transport.retryRecovery = () => {
+      const startPane = (inWorkspaceRoot: boolean): boolean => {
         if (session.disposed) {
           return false
         }
         return sendLayoutApply(
           useAppStore.getState(),
           session.deps.worktreeId,
-          { type: 'startPane', tabId, paneKey: session.cacheKey },
+          {
+            type: 'startPane',
+            tabId,
+            paneKey: session.cacheKey,
+            ...(inWorkspaceRoot ? { inWorkspaceRoot: true as const } : {})
+          },
           {
             apply: () => {},
             asToday: () => {},
@@ -154,6 +160,8 @@ export function showPaneStartFailure(
           }
         )
       }
+      session.transport.retryRecovery = () => startPane(false)
+      session.transport.startInWorkspaceRoot = () => startPane(true)
     }
   }
   if (!session.disposed) {

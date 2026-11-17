@@ -121,6 +121,26 @@ export function isStartupCwdMissingError(error: string): boolean {
   return error.includes('startup_cwd_missing')
 }
 
+/**
+ * RA: the toast's Retry and "Start in workspace root" actions. A missing-folder error offers each only when
+ * the pane's transport armed it (a remote-runtime pane or an unparsable pane key arms neither), so no button is dead.
+ */
+export function startupCwdErrorActions(
+  error: string,
+  transport: { retryRecovery?: () => boolean; startInWorkspaceRoot?: () => boolean } | undefined
+): { onRetry?: () => Promise<boolean>; onStartInWorkspaceRoot?: () => Promise<boolean> } {
+  if (!isStartupCwdMissingError(error)) {
+    return {}
+  }
+  const { retryRecovery, startInWorkspaceRoot } = transport ?? {}
+  return {
+    ...(retryRecovery ? { onRetry: () => Promise.resolve(retryRecovery()) } : {}),
+    ...(startInWorkspaceRoot
+      ? { onStartInWorkspaceRoot: () => Promise.resolve(startInWorkspaceRoot()) }
+      : {})
+  }
+}
+
 /** Owner errors a reattach can recover from: the saved session is kept, and Retry asks again. */
 export function isPaneOwnerRecoveryError(error: string): boolean {
   const lines = error.split('\n').filter((line) => line.length > 0)

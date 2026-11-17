@@ -222,7 +222,8 @@ export type LayoutCommand =
       initial?: InitialSurfaceReason
       split?: NewGroupSplit
     })
-  | (On & { type: 'startPane'; paneKey: string })
+  // RA: `inWorkspaceRoot` starts a restored agent in the workspace root when its saved folder is gone.
+  | (On & { type: 'startPane'; paneKey: string; inWorkspaceRoot?: true })
   | (On & { type: 'restartPane'; paneKey: string })
   | (On & {
       type: 'sleep'

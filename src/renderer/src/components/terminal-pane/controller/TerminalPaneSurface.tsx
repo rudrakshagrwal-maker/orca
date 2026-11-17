@@ -12,7 +12,11 @@ import {
 import CloseTerminalDialog from '../layout/close/CloseTerminalDialog'
 import TerminalContextMenu from '../context-menu/TerminalContextMenu'
 import TerminalPaneHeaderOverlay from '../titles/TerminalPaneHeaderOverlay'
-import { isPaneOwnerRecoveryError, isStartupCwdMissingError } from '../errors/terminal-error-display'
+import {
+  isPaneOwnerRecoveryError,
+  isStartupCwdMissingError,
+  startupCwdErrorActions
+} from '../errors/terminal-error-display'
 import { TerminalErrorToast } from '../errors/TerminalErrorToast'
 import { openTerminalBesideTab } from '../context-menu/open-terminal-beside-tab'
 import { AgentLaunchPaneNoticePortal } from '../launch-outcome/AgentLaunchPaneNotice'
@@ -228,13 +232,24 @@ export function TerminalPaneSurface({
               onDismiss={dismissTerminalError}
               onRestartDaemon={() => daemonActions.setPending('restart')}
               onRetry={
-                isPaneOwnerRecoveryError(visibleTerminalError.error) ||
                 isStartupCwdMissingError(visibleTerminalError.error)
-                  ? () =>
-                      Promise.resolve(
-                        paneTransportsRef.current.get(activePane.id)?.retryRecovery?.() ?? false
-                      )
-                  : undefined
+                  ? // RA: only when the pane armed a retry; otherwise the button would do nothing.
+                    startupCwdErrorActions(
+                      visibleTerminalError.error,
+                      paneTransportsRef.current.get(activePane.id)
+                    ).onRetry
+                  : isPaneOwnerRecoveryError(visibleTerminalError.error)
+                    ? () =>
+                        Promise.resolve(
+                          paneTransportsRef.current.get(activePane.id)?.retryRecovery?.() ?? false
+                        )
+                    : undefined
+              }
+              onStartInWorkspaceRoot={
+                startupCwdErrorActions(
+                  visibleTerminalError.error,
+                  paneTransportsRef.current.get(activePane.id)
+                ).onStartInWorkspaceRoot
               }
               onOpenNewTerminal={() => void openTerminalBesideTab(tabId)}
               onClosePane={() => handleRequestClosePane(activePane.id)}

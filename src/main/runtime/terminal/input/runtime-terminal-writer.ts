@@ -40,7 +40,10 @@ export class RuntimeTerminalWriter {
       data: string,
       inputKind: TerminalInputKind
     ) => WriteSettlement | Promise<WriteSettlement>,
-    private readonly claimIdleShellPrompt: (ptyId: string) => Promise<boolean> = async () => false
+    private readonly claimIdleShellPrompt: (ptyId: string) => Promise<boolean> = async () => false,
+    // RA: the Windows Codex boundary key is sent only while Codex's composer is on screen; after Codex
+    // exits, PSReadLine would take Right as "accept the inline suggestion" and Enter would run it.
+    private readonly isCodexComposerLive: (ptyId: string) => Promise<boolean> = async () => true
   ) {}
 
   async writeAction(
@@ -123,6 +126,7 @@ export class RuntimeTerminalWriter {
         // RA: a confirmed paste boundary replaces the burst estimate; an unconfirmed one keeps it.
         const boundaryConfirmed =
           agentPromptNeedsPasteBoundary(platform, agent) &&
+          (await this.isCodexComposerLive(ptyId).catch(() => false)) &&
           (await this.writePasteBoundary(ptyId, options))
         const delayMs = boundaryConfirmed
           ? ingestDelayMs
@@ -177,11 +181,14 @@ export class RuntimeTerminalWriter {
     text: string,
     options: RuntimeTerminalWriteOptions
   ): Promise<WriteSettlement | undefined> {
-    const release = await acquirePtyInputTransaction(ptyId, options.signal)
+    // RA: Ctrl+C from a pop-out preview must not wait behind a held paste.
+    const release = isInputTransactionBypass(text, options.inputKind)
+      ? null
+      : await acquirePtyInputTransaction(ptyId, options.signal)
     try {
       return await this.writeChunksHeld(ptyId, text, options)
     } finally {
-      release()
+      release?.()
     }
   }
 

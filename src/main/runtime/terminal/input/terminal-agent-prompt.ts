@@ -160,7 +160,9 @@ export abstract class OrcaRuntimeWithWriteTerminalAgentPrompt extends OrcaRuntim
       }
       if (
         !submitWithPaste &&
-        agentPromptNeedsPasteBoundary(writeHostPlatform, this.getPtyAgent(ptyId))
+        agentPromptNeedsPasteBoundary(writeHostPlatform, this.getPtyAgent(ptyId)) &&
+        // RA: only while Codex's composer is on screen; a shell would take Right as an inline-suggestion accept.
+        (await this.isCodexComposerLive(ptyId).catch(() => false))
       ) {
         // RA: Windows Codex flushes its paste burst on a non-character key, so Enter lands after the paste.
         // A refused boundary write changes nothing: the render gate, settle wait and held-prompt resubmit still run.

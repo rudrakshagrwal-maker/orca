@@ -101,6 +101,8 @@ export abstract class RuntimeConstructionServices {
   protected abstract repointPendingMessagesForHandle(handle: string): void
   protected abstract getPtyWriteHostPlatform(ptyId: string): NodeJS.Platform
   protected abstract getPtyAgent(ptyId: string): TerminalAgent | null
+  // RA: a fresh screen read shows Codex's composer, so the paste boundary key cannot reach a shell.
+  protected abstract isCodexComposerLive(ptyId: string): Promise<boolean>
   protected abstract getAdoptedPtyExplicitIdleStatus(
     pty: RuntimePtyWorktreeRecord
   ): AgentStatus | null

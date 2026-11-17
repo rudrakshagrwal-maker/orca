@@ -14,6 +14,7 @@ import { projectTerminalVisibleLines } from '../view/orca-runtime-terminal-proje
 import { visibleNonBlankTerminalLines } from './tail/terminal-tail-read'
 import type { RuledScreen } from '../wait/screen-input-veto'
 import { HeadlessEmulator } from '../../../daemon/emulation/headless-emulator'
+import { screenShowsCodexComposer } from '../../agent-state-rules/codex-screen-predicates'
 import { withTimeout } from '../../../../shared/promise-timeout-fallback'
 
 export abstract class OrcaRuntimeWithVisibleSnapshotPreview extends OrcaRuntimeWithCaptureProviderTerminalBuffer {
@@ -177,6 +178,12 @@ export abstract class OrcaRuntimeWithVisibleSnapshotPreview extends OrcaRuntimeW
       screen.sequence >= this.getPtyOutputSequence(ptyId)
       ? screen
       : null
+  }
+
+  /** RA: true only when a fresh screen read shows Codex's composer; a shell prompt after Codex exits reads false. */
+  protected async isCodexComposerLive(ptyId: string): Promise<boolean> {
+    const screen = await this.readCurrentTerminalWaitScreen(ptyId)
+    return screen != null && screenShowsCodexComposer(screen.lines)
   }
 
   /** Synchronous visible grid of the live emulator, for tui-idle body evidence. Null when the

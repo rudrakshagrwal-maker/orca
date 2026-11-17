@@ -3,7 +3,6 @@
 // and terminal query replies never wait (isInputTransactionBypass).
 const heldTails = new Map<string, Promise<void>>()
 const heldCounts = new Map<string, number>()
-const deferredTails = new Map<string, Promise<void>>()
 
 export function isPtyInputTransactionHeld(ptyId: string): boolean {
   return (heldCounts.get(ptyId) ?? 0) > 0
@@ -20,7 +19,8 @@ const TERMINAL_REPLY_ONLY =
 export function isInputTransactionBypass(data: string, inputKind?: string): boolean {
   return (
     inputKind === 'query-reply' ||
-    data.includes('\x03') ||
+    // RA: exactly Ctrl+C; a paste or line that merely contains it is ordinary input and waits its turn.
+    data === '\x03' ||
     data === '\x1b' ||
     TERMINAL_REPLY_ONLY.test(data)
   )
@@ -74,29 +74,19 @@ export function writeAfterPtyInputTransaction<T>(
   ptyId: string,
   write: () => T | Promise<T>
 ): T | Promise<T> {
-  if (!isPtyInputTransactionHeld(ptyId) && !deferredTails.has(ptyId)) {
+  if (!isPtyInputTransactionHeld(ptyId)) {
     return write()
   }
-  const previous = deferredTails.get(ptyId) ?? Promise.resolve()
-  const run = (async (): Promise<T> => {
-    await previous.catch(() => undefined)
-    // A new transaction may have started while we waited; re-check so a write never lands inside it.
-    while (isPtyInputTransactionHeld(ptyId)) {
-      await (heldTails.get(ptyId) ?? Promise.resolve())
+  // RA: a deferred write takes its place in the transaction queue like an acquirer, so a transaction that
+  // asks for the PTY after it waits behind it (FIFO) and a later transaction never runs it inside itself.
+  return (async (): Promise<T> => {
+    const release = await acquirePtyInputTransaction(ptyId)
+    try {
+      return await write()
+    } finally {
+      release()
     }
-    return await write()
   })()
-  const tail = run.then(
-    () => undefined,
-    () => undefined
-  )
-  deferredTails.set(ptyId, tail)
-  void tail.then(() => {
-    if (deferredTails.get(ptyId) === tail) {
-      deferredTails.delete(ptyId)
-    }
-  })
-  return run
 }
 
 function waitFor(promise: Promise<void>, signal?: AbortSignal): Promise<void> {

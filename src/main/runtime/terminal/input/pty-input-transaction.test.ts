@@ -75,15 +75,19 @@ describe('PTY input transactions', () => {
     const b = writeAfterPtyInputTransaction('pty-e', () => seen.push('b'))
     await tick()
     expect(seen).toEqual([])
-    // A second transaction queued meanwhile also goes before the deferred writes.
+    // RA: a transaction that asks after the deferred writes queues behind them (FIFO).
     const next = acquirePtyInputTransaction('pty-e')
+    let nextHas = false
+    void next.then(() => {
+      nextHas = true
+    })
     release()
-    const releaseNext = await next
-    await tick()
-    expect(seen).toEqual([])
-    releaseNext()
     await Promise.all([a, b])
     expect(seen).toEqual(['a', 'b'])
+    const releaseNext = await next
+    expect(nextHas).toBe(true)
+    releaseNext()
+    expect(isPtyInputTransactionHeld('pty-e')).toBe(false)
   })
 
   it('names the input that must bypass a transaction', () => {
@@ -92,6 +96,9 @@ describe('PTY input transactions', () => {
     expect(isInputTransactionBypass('\x1b[1;1R', 'query-reply')).toBe(true)
     expect(isInputTransactionBypass('\x1b[A')).toBe(false)
     expect(isInputTransactionBypass('hello\r')).toBe(false)
+    // RA: only a lone Ctrl+C bypasses; a paste that contains one waits.
+    expect(isInputTransactionBypass('abc\x03')).toBe(false)
+    expect(isInputTransactionBypass('\x03\x03')).toBe(false)
   })
 
   it('bypasses terminal replies by shape, even labelled driving, and nothing wider', () => {

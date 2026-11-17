@@ -136,6 +136,26 @@ describe('blocked text signals', () => {
   })
 })
 
+describe('RA: live dialog liveness', () => {
+  const text = (lines: string[]) => lines.join('\n').toLowerCase()
+  it('blocks a live allow-command question with no composer row, not one with the composer below', () => {
+    const q = ['Allow command?', '  1. Yes', '  2. No']
+    expect(findTerminalWaitBlockedSignal(text(q))?.reason).toBe('agent-interactive-prompt')
+    expect(findTerminalWaitBlockedSignal(text([...q, '› Ask Codex to do anything']))).toBeNull()
+  })
+  it('blocks a press-enter dialog that has option rows below it', () => {
+    const live = [
+      'Codex needs permission to run a command',
+      'Press enter to continue',
+      '  1. Yes',
+      '  2. No',
+      '  3. Always',
+      '  4. Never'
+    ]
+    expect(findTerminalWaitBlockedSignal(text(live))?.reason).toBe('agent-interactive-prompt')
+  })
+})
+
 describe('press-enter footer liveness', () => {
   const text = (lines: string[]) => lines.join('\n').toLowerCase()
   const dialog = [
@@ -170,5 +190,11 @@ describe('isCodexBusyScreen', () => {
       ])
     ).toBe(false)
     expect(isCodexBusyScreen(['• Working (12s)', 'a', 'b', 'c', 'd', composer])).toBe(false)
+  })
+  // RA: a final message ending in a duration is chat, not a running turn.
+  it('ignores a final message that ends in a timer', () => {
+    expect(isCodexBusyScreen(['Build finished (12s)', '', composer])).toBe(false)
+    expect(isCodexBusyScreen(['• Working (12s)', 'Build finished (12s)', composer])).toBe(false)
+    expect(isCodexBusyScreen(['Working (12s)', '  └ tip: use /help', composer])).toBe(true)
   })
 })

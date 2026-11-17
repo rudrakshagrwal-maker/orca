@@ -40,5 +40,10 @@ export const WakeCommand = z
 
 /** The window's start of one pane it shows that has no live terminal; main starts it, never the window. */
 export const StartPaneCommand = z
-  .object({ type: z.literal('startPane'), ...OnTab, paneKey: z.string().min(1) })
+  .object({
+    type: z.literal('startPane'),
+    ...OnTab,
+    paneKey: z.string().min(1),
+    inWorkspaceRoot: z.literal(true).optional() // RA
+  })
   .refine((command) => parsePaneKey(command.paneKey)?.tabId === command.tabId)

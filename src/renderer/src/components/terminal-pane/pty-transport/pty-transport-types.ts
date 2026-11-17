@@ -243,6 +243,8 @@ export type PtyTransport = {
   getRecoveryState?: () => PtyTransportRecoveryState
   /** Starts a fresh connection epoch while preserving the authoritative remote PTY identity. */
   retryRecovery?: () => boolean
+  /** RA: relaunches a restored agent's pane in the workspace root when its saved folder is gone. */
+  startInWorkspaceRoot?: () => boolean
   /**
    * The host the pane met stopped is running again: reopen a pane whose connect or attach was
    * refused and left it idle (no retry armed), the way it opened. False when there is none to reopen.

@@ -1,6 +1,11 @@
 import type { WebContents } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
-import { acquireCaptureSlot, runExclusiveCapture, tryAcquireCaptureSlot } from './cdp-capture-slot'
+import {
+  acquireCaptureSlot,
+  CAPTURE_SLOT_HARD_CEILING_MS,
+  runExclusiveCapture,
+  tryAcquireCaptureSlot
+} from './cdp-capture-slot'
 import { captureScreenshot } from './cdp-screenshot'
 
 function mockWc() {
@@ -110,5 +115,43 @@ describe('capture slot', () => {
       })
     await expect(Promise.all([run(), run(), run()])).resolves.toEqual(['ok', 'ok', 'ok'])
     expect(peak).toBe(1)
+  })
+
+  // RA: the stream path creates the slot too, so a destroyed guest must still clear its queue.
+  it('a slot created by the stream path also listens for the guest being destroyed', async () => {
+    const { guest, listeners } = mockWc()
+    const release = tryAcquireCaptureSlot(guest)
+    expect(release).not.toBeNull()
+    expect(listeners.destroyed).toBeTypeOf('function')
+    const queued = acquireCaptureSlot(guest, 1000, 't')
+    listeners.destroyed()
+    await expect(queued).rejects.toThrow('destroyed')
+  })
+
+  // RA: a native capture that never settles must not starve later screenshots.
+  it('force-releases a stuck capture after the hard ceiling and ignores its late release', async () => {
+    vi.useFakeTimers()
+    try {
+      const { guest } = mockWc()
+      const stuck = await acquireCaptureSlot(guest, 60_000, 't')
+      const next = acquireCaptureSlot(guest, 60_000, 't')
+      let granted = false
+      void next.then(() => {
+        granted = true
+      })
+      await vi.advanceTimersByTimeAsync(CAPTURE_SLOT_HARD_CEILING_MS - 1)
+      expect(granted).toBe(false)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(granted).toBe(true)
+      // The stuck capture finally settles: it must not free the slot the next capture now holds.
+      stuck()
+      expect(tryAcquireCaptureSlot(guest)).toBeNull()
+      ;(await next)()
+      const free = tryAcquireCaptureSlot(guest)
+      expect(free).not.toBeNull()
+      free?.()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

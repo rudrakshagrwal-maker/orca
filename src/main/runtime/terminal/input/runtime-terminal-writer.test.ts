@@ -99,7 +99,7 @@ describe('Enter after text for a Windows input-record agent', () => {
           enterAt = Date.now() - startedAt
         }
         // RA: the paste boundary is refused here, so the timed fallback is what runs.
-        return data !== '[C'
+        return data !== '\x1b[C'
       },
       () => 'win32',
       () => 'codex'
@@ -145,6 +145,32 @@ describe('Windows Codex paste boundary', () => {
     await pending
     expect(writes.map((write) => write.data)).toEqual([text, BOUNDARY, '\r'])
     expect(writes[2].at).toBeLessThan(2_000)
+  })
+
+  // RA: after Codex exits, PSReadLine takes Right as "accept the inline suggestion"; no composer, no boundary.
+  it('sends no boundary key when Codex composer is not on screen, and keeps the timed wait', async () => {
+    vi.useFakeTimers()
+    const startedAt = Date.now()
+    const writes: { data: string; at: number }[] = []
+    const writer = new RuntimeTerminalWriter(
+      (_id, data) => {
+        writes.push({ data, at: Date.now() - startedAt })
+        return true
+      },
+      () => 'win32',
+      () => 'codex',
+      undefined,
+      async () => false,
+      async () => false
+    )
+    const text = 'm'.repeat(10_000)
+    const pending = writer.writeAction('pty', { text, enter: true }, `${text}\r`, {
+      inputKind: 'driving'
+    })
+    await vi.runAllTimersAsync()
+    await pending
+    expect(writes.map((write) => write.data)).toEqual([text, '\r'])
+    expect(writes[1].at).toBeGreaterThanOrEqual(19_000)
   })
 
   it('does not send the boundary to Codex on macOS or to other agents on Windows', async () => {
@@ -218,6 +244,25 @@ describe('one send is one input transaction', () => {
     await vi.advanceTimersByTimeAsync(2_000)
     await Promise.all([send, answer])
     expect(writes).toEqual(['prompt', '\r', 'y'])
+  })
+
+  // RA: Ctrl+C through the bare-text path (pop-out preview) must not wait behind a held paste.
+  it('lets a lone Ctrl+C through writeChunks pass a held send, but queues a paste containing one', async () => {
+    vi.useFakeTimers()
+    const writes: string[] = []
+    const writer = plainWriter(writes)
+    const send = writer.writeAction('pty', { text: 'first', enter: true }, 'first\r', {
+      inputKind: 'driving'
+    })
+    await vi.advanceTimersByTimeAsync(10)
+    await writer.writeChunks('pty', '\x03', { inputKind: 'driving' })
+    expect(writes).toEqual(['first', '\x03'])
+    const pasted = writer.writeChunks('pty', 'a\x03b', { inputKind: 'driving' })
+    await vi.advanceTimersByTimeAsync(10)
+    expect(writes).toEqual(['first', '\x03'])
+    await vi.runAllTimersAsync()
+    await Promise.all([send, pasted])
+    expect(writes).toEqual(['first', '\x03', '\r', 'a\x03b'])
   })
 
   function plainWriter(writes: string[]): RuntimeTerminalWriter {

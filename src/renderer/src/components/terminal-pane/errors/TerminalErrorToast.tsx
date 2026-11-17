@@ -28,6 +28,7 @@ export function TerminalErrorToast({
   onDismiss,
   onRestartDaemon,
   onRetry,
+  onStartInWorkspaceRoot,
   onOpenNewTerminal,
   onClosePane
 }: {
@@ -40,6 +41,8 @@ export function TerminalErrorToast({
   onDismiss: () => void
   onRestartDaemon?: () => void
   onRetry?: () => Promise<boolean>
+  /** RA: a restored agent's saved folder is gone; start the same agent/session in the workspace root. */
+  onStartInWorkspaceRoot?: () => Promise<boolean>
   /** Leaves this pane and its saved session untouched. */
   onOpenNewTerminal?: () => void
   /** Dismissing only hides the toast; the dead pane needs a way out from where the user is looking (#21342). */
@@ -206,6 +209,19 @@ export function TerminalErrorToast({
             {retrying
               ? t('auto.components.terminal.pane.TerminalErrorToast.retrying', 'Retrying…')
               : t('auto.components.terminal.pane.TerminalErrorToast.retry', 'Retry')}
+          </Button>
+        ) : null}
+        {isStartupCwdMissingError(error) && onStartInWorkspaceRoot ? (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => void onStartInWorkspaceRoot()}
+            className="ml-2"
+          >
+            {t(
+              'auto.components.terminal.pane.TerminalErrorToast.startInWorkspaceRoot',
+              'Start in workspace root'
+            )}
           </Button>
         ) : null}
         {/* Why: an owner can stay unverifiable, so Retry alone can loop forever. */}

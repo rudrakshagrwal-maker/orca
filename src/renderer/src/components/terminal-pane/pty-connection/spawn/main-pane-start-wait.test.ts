@@ -31,6 +31,10 @@ vi.mock('@/runtime/rpc/calls/runtime-rpc-call', () => ({
   callRuntimeRpc
 }))
 
+// RA: the missing-folder Retry and "Start in workspace root" send a startPane through this.
+const sendLayoutApply = vi.hoisted(() => vi.fn(() => true))
+vi.mock('@/runtime/workspace-layout/commands/layout-apply-send', () => ({ sendLayoutApply }))
+
 const PANE_KEY = 'tab-1:leaf-1'
 
 function session(): ConnectPanePtySession {
@@ -40,6 +44,7 @@ function session(): ConnectPanePtySession {
     disposed: false,
     waitTeardowns: [],
     pane: { id: 1, leafId: 'leaf-1' },
+    transport: {},
     deps: { tabId: 'tab-1', worktreeId: 'wt-1', onPtyErrorRef: { current: vi.fn() } }
   } as unknown as ConnectPanePtySession
 }
@@ -127,5 +132,50 @@ describe('waitsForMainPaneStart', () => {
       state: 'stopped'
     })
     expect(pane.deps.onPtyErrorRef?.current).not.toHaveBeenCalled()
+  })
+
+  // RA: a restored agent whose saved folder is gone gets Retry and a start in the workspace root.
+  it('arms Retry and Start in workspace root for a missing saved folder, each sending startPane', async () => {
+    const { showPaneStartFailure } = await import('./main-pane-start-wait')
+    sendLayoutApply.mockClear()
+    const pane = session()
+    const key = 'tab-1:11111111-1111-4111-8111-111111111111'
+    ;(pane as unknown as { cacheKey: string }).cacheKey = key
+
+    showPaneStartFailure(pane, 'startup_cwd_missing: saved folder C:/gone is unavailable')
+
+    expect(pane.transport.retryRecovery?.()).toBe(true)
+    expect(sendLayoutApply).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'wt-1',
+      { type: 'startPane', tabId: 'tab-1', paneKey: key },
+      expect.anything()
+    )
+    expect(pane.transport.startInWorkspaceRoot?.()).toBe(true)
+    expect(sendLayoutApply).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'wt-1',
+      { type: 'startPane', tabId: 'tab-1', paneKey: key, inWorkspaceRoot: true },
+      expect.anything()
+    )
+  })
+
+  it('arms neither action for a remote-runtime pane or an unparsable pane key', async () => {
+    const { showPaneStartFailure } = await import('./main-pane-start-wait')
+    const remote = session()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the test sets one member.
+    ;(remote as unknown as { runtimeEnvironmentId: string }).runtimeEnvironmentId = 'env-1'
+    ;(remote as unknown as { cacheKey: string }).cacheKey =
+      'tab-1:11111111-1111-4111-8111-111111111111'
+    showPaneStartFailure(remote, 'startup_cwd_missing: saved folder C:/gone is unavailable')
+    expect(remote.transport.retryRecovery).toBeUndefined()
+    expect(remote.transport.startInWorkspaceRoot).toBeUndefined()
+
+    const unparsable = session()
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the test sets one member.
+    ;(unparsable as unknown as { cacheKey: string }).cacheKey = 'not-a-pane-key'
+    showPaneStartFailure(unparsable, 'startup_cwd_missing: saved folder C:/gone is unavailable')
+    expect(unparsable.transport.retryRecovery).toBeUndefined()
+    expect(unparsable.transport.startInWorkspaceRoot).toBeUndefined()
   })
 })

@@ -117,13 +117,22 @@ describe('a Windows Codex prompt held in its paste burst', () => {
 describe('an owned prompt on Windows Codex', () => {
   afterEach(() => vi.useRealTimers())
 
-  async function sendPrompt(platform: NodeJS.Platform, type?: (writes: string[]) => void) {
+  // RA: the boundary key needs Codex's composer on screen; a PowerShell prompt must not get it.
+  const CODEX_SCREEN = '\x1b[2J\x1b[H› Ask Codex to do anything\r\n\r\n  gpt-5.1 default · ~/repo'
+  const SHELL_SCREEN = '\x1b[2J\x1b[HPS C:\\repo> '
+
+  async function sendPrompt(
+    platform: NodeJS.Platform,
+    type?: (writes: string[]) => void,
+    screen = CODEX_SCREEN
+  ) {
     vi.useFakeTimers()
     const { runtime, handle, writes } = await createAgentPromptSubmissionRuntime(
       () => undefined,
       'codex'
     )
     Object.defineProperty(runtime, 'getPtyWriteHostPlatform', { value: () => platform })
+    runtime.onPtyData('pty-prompt', screen, Date.now())
     const submission = runtime.sendTerminalAgentPrompt(handle, 'x'.repeat(9_250), {
       inputKind: 'driving',
       acceptQueued: true,
@@ -147,6 +156,10 @@ describe('an owned prompt on Windows Codex', () => {
     expect(paste).toBe(0)
     expect(right).toBeGreaterThan(paste)
     expect(enter).toBeGreaterThan(right)
+  })
+
+  it('sends no boundary key when the pane is back at a shell prompt', async () => {
+    expect(await sendPrompt('win32', undefined, SHELL_SCREEN)).not.toContain('\x1b[C')
   })
 
   it('sends no boundary key off Windows', async () => {
