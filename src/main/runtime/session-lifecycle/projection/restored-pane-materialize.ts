@@ -16,7 +16,7 @@ import type { AgentLaunchRuntime } from '../../../../shared/agent-launch/startup
 import type { RuntimeMobileSessionCreateTerminalResult } from '../../../../shared/runtime-session-contracts'
 import type { RuntimeMobileSessionTerminalTab } from '../../../../shared/runtime-mobile-session-tab-contracts'
 import type { RuntimeTerminalCreate } from '../../../../shared/runtime-terminal-create-contract'
-import { buildHeadlessMobileSessionTerminalTabs } from '../../terminal/surface/mobile-session-terminal-projection'
+import { findPersistedTerminalPane } from '../../terminal/surface/mobile-session-terminal-projection'
 import {
   RestoredPaneStarter,
   type RestoredPane,
@@ -67,6 +67,18 @@ export abstract class OrcaRuntimeWithRestoredPaneStart extends OrcaRuntimeWithBu
     this.restoredPanes ??= new RestoredPaneStarter({
       boundPtyId: (target) => this.storedPaneBinding(target),
       isLive: (ptyId) => this.ptysById.get(ptyId)?.connected === true,
+      // RA: register priority before asynchronous resume planning can reorder agent starts.
+      agent: (target) => {
+        const tab = findPersistedTerminalPane(
+          this.getWorkspaceSessionForWorktree(target.worktreeId),
+          target
+        )
+        return tab
+          ? (this.getPaneSleepingAgentRecord(target.worktreeId, tab)?.agent ?? tab.launchAgent)
+          : undefined
+      },
+      active: (target) =>
+        this.getWorkspaceSessionForWorktree(target.worktreeId)?.activeTabId === target.tabId,
       starting: (target) =>
         this.showRestoredPaneStart(`${target.tabId}:${target.leafId}`, 'starting'),
       failed: (target, error) =>
@@ -74,17 +86,10 @@ export abstract class OrcaRuntimeWithRestoredPaneStart extends OrcaRuntimeWithBu
       start: async (target, plan, startTrigger) => {
         this.hydrateHeadlessMobileSessionTabsFromWorkspaceSession(target.worktreeId)
         // Read main's layout: relaunch clients may ask before graph sync, and projections are absent while a window is attached.
-        const session = this.getWorkspaceSessionForWorktree(target.worktreeId)
-        const tab = session
-          ? buildHeadlessMobileSessionTerminalTabs(
-              target.worktreeId,
-              session.tabsByWorktree?.[target.worktreeId] ?? [],
-              session
-            ).find(
-              (candidate) =>
-                candidate.parentTabId === target.tabId && candidate.leafId === target.leafId
-            )
-          : undefined
+        const tab = findPersistedTerminalPane(
+          this.getWorkspaceSessionForWorktree(target.worktreeId),
+          target
+        )
         if (!tab) {
           throw new Error('tab_not_found')
         }

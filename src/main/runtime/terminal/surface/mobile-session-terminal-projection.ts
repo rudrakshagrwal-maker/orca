@@ -1,6 +1,7 @@
 import type { RuntimeMobileSessionTerminalTab } from '../../../../shared/runtime-mobile-session-tab-contracts'
 import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import type { WorkspaceSessionState } from '../../../../shared/workspace-session/workspace-session-state-types'
+
 import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
 import {
   readCanonicalPtyOwners,
@@ -12,6 +13,20 @@ import {
   deriveHeadlessLegacyTerminalLeafId,
   isPersistedTerminalLeafActive
 } from './mobile-session-layout-projection'
+
+// RA: restore classification and spawn use the same per-pane projection, including split shells and legacy records.
+export function findPersistedTerminalPane(
+  session: WorkspaceSessionState | null | undefined,
+  pane: { worktreeId: string; tabId: string; leafId: string }
+): RuntimeMobileSessionTerminalTab | undefined {
+  return session
+    ? buildHeadlessMobileSessionTerminalTabs(
+        pane.worktreeId,
+        session.tabsByWorktree?.[pane.worktreeId] ?? [],
+        session
+      ).find((tab) => tab.parentTabId === pane.tabId && tab.leafId === pane.leafId)
+    : undefined
+}
 
 /** Match the window Loader: remove legacy rows wholly absorbed by tab-bar tabs and move their selection. */
 function withoutAbsorbedLegacyRows(

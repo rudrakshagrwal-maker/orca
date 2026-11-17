@@ -36,9 +36,6 @@ import { startAppImageCopyPreExtraction } from '../cli/appimage/appimage-copy-pr
 import { scheduleAllPendingHistoryTreeRemovals } from '../pty/history/terminal-history-deletion'
 import { mainProcessState as state } from './main-process-state'
 import { logStartupMilestone } from './startup-diagnostics'
-import { setupHeadlessServeAutoUpdater } from '../window/main-window-updater'
-import { preserveStateBeforeUpdateRestart } from '../updater/update-restart-preservation'
-import { resolveUpdateInstallMode } from '../updater/updater-service'
 import { scheduleAgentLaunchRecordWarmup } from './agent-launch-record-warmup'
 
 type RuntimeService = NonNullable<typeof state.runtime>
@@ -65,7 +62,9 @@ function installRuntimeRpc(
 ): OrcaRuntimeRpcServer {
   // Migrate pairing credentials from late-resolved userData before switching to the canonical path.
   // RA: terminal RPC does not migrate or initialize phone pairing state.
-  if (!backgroundJobsDisabled()) migrateMobilePairingDataToCanonicalUserDataPath(app.getPath('userData'))
+  if (!backgroundJobsDisabled()) {
+    migrateMobilePairingDataToCanonicalUserDataPath(app.getPath('userData'))
+  }
   // Use OS-assigned ports for concurrent E2E Electron instances to avoid EADDRINUSE.
   const isE2E = Boolean(process.env.ORCA_E2E_USER_DATA_DIR)
   const requestedE2EWsPort = process.env.ORCA_E2E_RUNTIME_WS_PORT
@@ -163,17 +162,13 @@ async function launchServeMode(
   await registerCliForHeadlessServe()
   // Headless automation cannot wait for a renderer that never opens.
   // RA: headless workers do not start the disabled automation scheduler either.
-  if (!backgroundJobsDisabled()) state.automations?.start()
+  if (!backgroundJobsDisabled()) {
+    state.automations?.start()
+  }
   // Arm history-removal GC without a window so interrupted serve deletions do not leak until desktop launch.
   void scheduleAllPendingHistoryTreeRemovals()
   await printServeReady(serveOptions)
-  const store = state.store!
-  setupHeadlessServeAutoUpdater(store, {
-    onBeforeUpdateQuit: () =>
-      preserveStateBeforeUpdateRestart({ codexRuntimeHome: state.codexRuntimeHome, store }),
-    onBeforeUpdateQuitFailure: 'abort',
-    updateInstallMode: resolveUpdateInstallMode(true)
-  })
+  // RA: headless serve never initializes an updater.
 }
 
 async function launchDesktopMode(

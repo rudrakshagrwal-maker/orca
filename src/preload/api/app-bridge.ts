@@ -1,5 +1,4 @@
 import { ipcRenderer } from 'electron'
-import type { WorkerRamQueueRow } from '../../shared/worker-ram-queue' // RA: queue display only.
 import type { AppIdentity } from '../../shared/app-identity'
 import type { MacosUpgradeSupport } from '../../shared/macos-upgrade-support'
 import type { FloatingTerminalCwdRequest } from '../../shared/ui-chrome-types'
@@ -17,13 +16,7 @@ import type { PreloadApi } from '../api-types'
 export const appApi = {
   // RA: no expensive resource snapshot or arbitrary startup arguments.
   windowsLoginItem: (enabled?: boolean) => ipcRenderer.invoke('app:windowsLoginItem', enabled),
-  systemRamPercent: (): Promise<number> => ipcRenderer.invoke('app:systemRamPercent'),
-  workerRamQueue: (): Promise<WorkerRamQueueRow[]> => ipcRenderer.invoke('app:workerRamQueue'),
-  onWorkerRamQueueChanged: (callback: (rows: WorkerRamQueueRow[]) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, rows: WorkerRamQueueRow[]) => callback(rows)
-    ipcRenderer.on('app:workerRamQueueChanged', listener)
-    return () => { ipcRenderer.removeListener('app:workerRamQueueChanged', listener) }
-  },
+  // RA: no renderer RAM polling or worker-memory queue.
   getSystemLanguageDetection: (browserPreferences?: readonly string[]) =>
     ipcRenderer.invoke('app:getSystemLanguageDetection', browserPreferences),
   isProfileStateSaveDelayed: (): Promise<boolean> =>

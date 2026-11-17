@@ -16,7 +16,7 @@ import { registerFeedbackHandlers } from '../feedback'
 import { registerCrashReportingHandlers } from '../crash-reporting/crash-reporting'
 import { registerExportHandlers } from '../export'
 import { registerStatsHandlers } from '../stats'
-import { registerMemoryHandlers } from '../memory'
+// RA: memory collection is available only through the on-demand CLI diagnostics RPC.
 import { registerRateLimitHandlers } from '../rate-limits'
 import { registerRuntimeHandlers } from '../runtime'
 import {
@@ -158,7 +158,6 @@ export function registerCoreHandlers(
   }
   registerExportHandlers()
   registerStatsHandlers(stats)
-  registerMemoryHandlers(store)
   registerTerminalPreviewHandlers(runtime)
   registerDeveloperPermissionHandlers()
   // Diagnostics and telemetry register independent channels and keep separate data paths.
@@ -214,9 +213,8 @@ export function registerCoreHandlers(
   registerClipboardHandlers(store, {
     localChatAttachmentStore: async () => {
       // RA: clipboard support must not eagerly load chat attachment storage.
-      const { getAgentSessionAttachmentStore } = await import(
-        '../../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
-      )
+      const { getAgentSessionAttachmentStore } =
+        await import('../../native-chat/agent-session-attachments/agent-session-attachment-store-registry')
       await ensureStructuredAgentSessionHostUnlessRefused(() =>
         runtime.ensureStructuredAgentSessionHost()
       )

@@ -1,4 +1,6 @@
 import type { Session } from 'electron'
+// RA: agent CLIs own their networking; Orca's service client is loopback-only.
+import { isLocalOrcaRequest } from '../../shared/local-orca-request'
 
 /** Desktop uses Chromium session/proxy state and user agent; headless hosts use Node/environment defaults.
  * Callers must consume or cancel response bodies: unread undici bodies can crash the process. */
@@ -21,7 +23,19 @@ export function setMainHttpClient(client: MainHttpClient | null): void {
 }
 
 export function getMainHttpClient(): MainHttpClient {
-  return current
+  return localHttpClient
+}
+
+// RA: reject before transport dispatch and refuse redirects that could escape loopback.
+const localHttpClient: MainHttpClient = {
+  fetch: async (url, init) => {
+    if (!isLocalOrcaRequest(url)) {
+      throw new Error('Orca services are local-only')
+    }
+    return current.fetch(url, { ...init, redirect: 'error' })
+  },
+  // RA: service-owned cookie sessions are retired; browser guests create their own partitions.
+  proxySession: () => current.proxySession()
 }
 
 export function requirePartitionSession(partition: string, providerLabel: string): Session {

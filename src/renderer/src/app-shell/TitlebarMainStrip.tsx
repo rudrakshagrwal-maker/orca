@@ -1,6 +1,6 @@
 import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import { Minimize2, PanelRight } from 'lucide-react'
-import { SystemRamChip } from './SystemRamChip' // RA: global memory budget.
+// RA: titlebar has no memory monitor.
 import { useTranslate } from '@/i18n/use-translate'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { TOGGLE_TERMINAL_PANE_EXPAND_EVENT } from '@/constants/terminal'
@@ -16,7 +16,9 @@ export function RightSidebarToggle(): React.JSX.Element | null {
   const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar)
   const rightSidebarShortcutLabel = useShortcutLabel('sidebar.right.toggle')
   // RA: source control, search and plugin panels are absent in the terminal-only fork.
-  if (backgroundJobsDisabled()) return null
+  if (backgroundJobsDisabled()) {
+    return null
+  }
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -81,7 +83,6 @@ export function TitlebarMainStrip({ layout }: { layout: AppChromeLayout }): Reac
       {/* The open sidebar already renders its close button. */}
       {layout.showRightSidebarControls && !layout.rightSidebarOpen ? <RightSidebarToggle /> : null}
       {/* Reserve the custom window-controls overlay’s width. */}
-      <SystemRamChip /> {/* RA: amber 75%, red 80%. */}
       {hasCustomTitleBar && <div className="window-controls-titlebar-spacer" />}
     </>
   )

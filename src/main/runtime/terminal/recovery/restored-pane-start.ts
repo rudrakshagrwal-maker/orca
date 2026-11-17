@@ -3,6 +3,8 @@
 import { isPtyIdMintedForAnotherWorkspace } from './foreign-pane-bindings'
 import type { RuntimeMobileSessionCreateTerminalResult as CreatedTerminal } from '../../../../shared/runtime-session-contracts'
 import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+// RA: the existing shared starter owns launch staggering across CLI and desktop requests.
+import { restoredAgentStarts } from '../../../../shared/terminal/restore-agent-start-queue'
 
 export type StartedPty = Pick<CreatedTerminal, 'startupCwdFallback'> & { id: string }
 export type RestoredPane = { worktreeId: string; tabId: string; leafId: string }
@@ -22,6 +24,9 @@ export type RestoredPaneTrigger = {
 }
 
 export type RestoredPaneStartPorts = {
+  // RA: shells retain immediate admission; saved Claude/Codex panes share active-tab priority.
+  agent?: (pane: RestoredPane) => string | undefined
+  active?: (pane: RestoredPane) => boolean
   /** The pane's stored terminal, or null for a pane main no longer holds. */
   boundPtyId: (pane: RestoredPane) => string | null | undefined
   isLive: (ptyId: string) => boolean
@@ -77,10 +82,26 @@ export class RestoredPaneStarter {
     }
     this.started.delete(key)
     this.ports.starting?.(pane)
-    const start = this.ports
-      .start(pane, restoredPaneStartPlan(pane, bound), trigger)
+    const start = restoredAgentStarts
+      .run(
+        this.ports.agent?.(pane),
+        () => this.ports.active?.(pane) === true,
+        async () => {
+          // RA: a pane may close or gain a live binding while awaiting its restore slot.
+          const current = this.ports.boundPtyId(pane)
+          if (current === null) {
+            return null
+          }
+          if (this.isOwnLive(pane, current)) {
+            return { id: current }
+          }
+          return this.ports.start(pane, restoredPaneStartPlan(pane, current), trigger)
+        }
+      )
       .then((pty) => {
-        this.started.set(key, pty)
+        if (pty) {
+          this.started.set(key, pty)
+        }
         return pty
       })
       .catch((error: unknown) => {

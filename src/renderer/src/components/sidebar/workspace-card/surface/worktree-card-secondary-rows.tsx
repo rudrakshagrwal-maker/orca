@@ -47,7 +47,7 @@ export function WorktreeCardSecondaryRows({
       ) : null}
 
       {/* RA: no automatic Linear skill-setup dialog or reminder toast. */}
-      <QueuedWorkerRows worktreeId={worktree.id} /> {/* RA: queues remain visible even without agent rows. */}
+      {/* RA: worker rows never show a memory-admission queue. */}
 
       {/* Why: counterbalance the card stack gap (-mt-1) so agents right after the title read as one header group. */}
       {showInlineAgentList && (
@@ -71,4 +71,3 @@ export function WorktreeCardSecondaryRows({
     </>
   )
 }
-import { QueuedWorkerRows } from '../activity/QueuedWorkerRows' // RA: no terminal surface for queued work.

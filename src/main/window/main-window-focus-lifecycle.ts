@@ -10,7 +10,6 @@ import {
   DEFAULT_RENDERER_RECOVERY_WINDOW_MS,
   RendererRecoveryCircuitBreaker
 } from '../crash-reporting/recovery/renderer-recovery-circuit-breaker'
-import { createLowCommitOomRecoveryGate } from '../crash-reporting/recovery/low-commit-oom-recovery-gate'
 import {
   buildEditableContextMenuTemplate,
   matchingRichMarkdownContextMenuTableTarget,
@@ -179,7 +178,6 @@ export function installMainWindowFocusLifecycle(args: {
     maxRecoveries: DEFAULT_RENDERER_RECOVERY_MAX_RECOVERIES
   })
   const launchFailureBackoff = createRendererLaunchFailureBackoff()
-  const lowCommitOomGate = createLowCommitOomRecoveryGate()
   const clearRendererRecoveryTimer = (): void => {
     if (rendererRecoveryTimer) {
       clearTimeout(rendererRecoveryTimer)
@@ -209,9 +207,7 @@ export function installMainWindowFocusLifecycle(args: {
     }
     const launchFailed = details.reason === 'launch-failed'
     const launchRetryDelayMs = launchFailed ? launchFailureBackoff.nextDelayMs() : null
-    const goneAt = Date.now()
-    // Read commit at death; the next sampler tick would see memory the dead renderer released.
-    const lowCommit = lowCommitOomGate.assess(details, goneAt)
+    // RA: renderer recovery is independent of system-memory readings.
     rendererRecoveryTimer = setTimeout(() => {
       rendererRecoveryTimer = null
       if (
@@ -220,19 +216,6 @@ export function installMainWindowFocusLifecycle(args: {
         opts?.shouldRecoverRenderer?.(details, rendererWebContentsId) === false ||
         mainWindow.isDestroyed()
       ) {
-        return
-      }
-      lowCommitOomGate.recordRecoveredDeath(details, goneAt)
-      if (lowCommit) {
-        // Reload would OOM again on the starved host; the user must free commit.
-        recoveryReloadWatchdog.escalate(
-          {
-            details,
-            recentRecoveryCount: rendererRecoveryCircuitBreaker.recentRecoveryCount(Date.now())
-          },
-          'low-commit',
-          lowCommit
-        )
         return
       }
       // Spawn refusal needs its own bounded backoff, independent of crash-loop accounting.

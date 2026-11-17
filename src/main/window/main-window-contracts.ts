@@ -1,5 +1,5 @@
 import type { KeybindingOverrides } from '../../shared/keybindings'
-import type { LowCommitOomVerdict } from '../crash-reporting/recovery/low-commit-oom-recovery-gate'
+// RA: recovery contracts carry no RAM-admission verdict.
 import type {
   RecoveryExhaustionCause,
   RecoveryReloadMilestone,
@@ -34,8 +34,6 @@ export type CreateMainWindowOptions = {
     webContentsId: number
     recentRecoveryCount: number
     cause?: RecoveryExhaustionCause
-    /** Set with cause 'low-commit': the Windows commit reading that stopped the auto-reload. */
-    lowCommit?: LowCommitOomVerdict
     /** Watch manual retries too so a second stall can raise the prompt again. */
     retry?: () => void
   }) => void

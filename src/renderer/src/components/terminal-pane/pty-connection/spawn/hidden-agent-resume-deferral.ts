@@ -16,6 +16,13 @@ export function deferHiddenAgentResume(
   wake?: () => Promise<string | null>
 ): boolean {
   const recordEntry = startup?.sleepingRecordEntry
+  // RA: launch restores run through staggered admission even when hidden; deliberate sleep stays held.
+  if (
+    (startup?.agent === 'claude' || startup?.agent === 'codex') &&
+    (recordEntry?.record.origin === 'quit' || recordEntry?.record.origin === 'live')
+  ) {
+    return false
+  }
   if (
     !recordEntry ||
     session.disposed ||

@@ -43,7 +43,7 @@ import {
   setWorktreeBaseDirectoryWatcherSyncContext
 } from '../ipc/worktrees/creation/worktree-base-directory-watcher'
 import { startFolderRepoGitUpgradeWatch } from '../ipc/folder-repo-git-upgrade'
-import { scheduleMainWindowAutoUpdaterSetup } from './main-window-updater'
+// RA: windows never initialize the remote updater.
 import { registerRuntimeWindowLifecycle } from './runtime-window-lifecycle'
 import { ensureStructuredAgentSessionHostUnlessRefused } from '../runtime/agent-session/structured-agent-session-host-refusal'
 import { getAgentSessionAttachmentStore } from '../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
@@ -141,7 +141,6 @@ export function attachMainWindowServices(
     return getAgentSessionAttachmentStore()
   })
   registerTccPromptNoticeHandlers(mainWindow)
-  scheduleMainWindowAutoUpdaterSetup(mainWindow, store, options)
   registerRuntimeWindowLifecycle(mainWindow, runtime)
 
   installPluginDesktopFrameServices(mainWindow, store)

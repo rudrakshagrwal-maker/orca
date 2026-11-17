@@ -1,21 +1,13 @@
 import type React from 'react'
 import { GeneralWorkerSettings } from './GeneralWorkerSettings' // RA: searchable local controls.
-import { useEffect, useRef } from 'react'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
 import { useAppStore } from '../../../store/index'
 import { CliSection } from '../cli/install/CliSection'
 import { GeneralEditorSettingsSection } from '../editor/GeneralEditorSettingsSection'
 import { GeneralAutoSaveSetting } from '../editor/GeneralAutoSaveSetting'
-import { GeneralSupportSection } from './GeneralSupportSection'
-import { GeneralUpdateSettingsSection } from '../updates/GeneralUpdateSettingsSection'
 import { GeneralWorkspaceSettingsSection } from './GeneralWorkspaceSettingsSection'
-import {
-  getGeneralCliSearchEntries,
-  getGeneralNavigationSearchEntries,
-  getGeneralUpdateSearchEntries
-} from './general-search'
+import { getGeneralCliSearchEntries, getGeneralNavigationSearchEntries } from './general-search'
 import { getGeneralEditorSearchDescriptors } from '../editor/general-editor-search'
-import { getGeneralSupportSearchEntries } from './general-support-search'
 import { getGeneralProjectRuntimeSearchEntries } from './project-runtime/general-project-runtime-search'
 import { RecentTabOrderControl } from '../appearance/RecentTabOrderControl'
 import { matchesSettingsSearch, type SettingsSearchEntry } from '../search/settings-search'
@@ -74,20 +66,7 @@ type GeneralPaneProps = {
 
 export function GeneralPane(props: GeneralPaneProps): React.JSX.Element {
   const query = useAppStore((state) => state.settingsSearchQuery)
-  const refreshRemoteUpdates = useAppStore((state) => state.refreshRemoteServerUpdates)
-  const remoteUpdatesRequested = useRef(false)
-  const showAbout =
-    !props.subPage &&
-    matchesSettingsSearch(query, [
-      ...getGeneralUpdateSearchEntries(),
-      ...getGeneralSupportSearchEntries()
-    ])
-  useEffect(() => {
-    if (showAbout && !remoteUpdatesRequested.current) {
-      remoteUpdatesRequested.current = true
-      void refreshRemoteUpdates()
-    }
-  }, [showAbout, refreshRemoteUpdates])
+  // RA: opening General never checks releases or remote-server updates.
   return <GeneralPaneView key={props.subPage ?? 'root'} {...props} query={query} />
 }
 
@@ -153,10 +132,6 @@ function GeneralRootSettings({
   const autoSaveEntries = getGeneralEditorSearchDescriptors()
     .filter((descriptor) => descriptor.page === null)
     .map(({ entry }) => entry)
-  const aboutMatches = matchesSettingsSearch(query, [
-    ...getGeneralUpdateSearchEntries(),
-    ...getGeneralSupportSearchEntries()
-  ])
   const worktreeDefaults = settings.worktreeVisibilityDefaults
   const visibilitySummary =
     Object.keys(worktreeDefaults?.sourcePreferences?.builtIn ?? {}).length ||
@@ -168,7 +143,8 @@ function GeneralRootSettings({
         : t('settings.general.worktrees.hidden', 'All hidden')
   return (
     <>
-      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} /> {/* RA: no heavy feature subscriptions. */}
+      <GeneralWorkerSettings settings={settings} updateSettings={updateSettings} query={query} />{' '}
+      {/* RA: no heavy feature subscriptions. */}
       {matchesSettingsSearch(query, tabsEntries) ? (
         <SettingsGroup title={t('settings.general.tabs.title', 'Tabs')}>
           <RecentTabOrderControl
@@ -293,11 +269,7 @@ function GeneralRootSettings({
           wslCapabilitiesLoading={wslCapabilitiesLoading}
         />
       ) : null}
-      {aboutMatches ? (
-        <GeneralUpdateSettingsSection>
-          <GeneralSupportSection hasPrecedingSections={false} inline />
-        </GeneralUpdateSettingsSection>
-      ) : null}
+      {/* RA: updater, GitHub-star and account support controls are retired. */}
     </>
   )
 }

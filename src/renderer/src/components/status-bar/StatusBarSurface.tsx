@@ -36,11 +36,7 @@ import { isPairedWebClientWindow } from '@/app-shell/chrome/desktop-window-chrom
 const PetStatusSegment = lazyWithRetry(() =>
   import('./PetStatusSegment').then((module) => ({ default: module.PetStatusSegment }))
 )
-const ResourceUsageStatusSegment = lazyWithRetry(() =>
-  import('./ResourceUsageStatusSegment').then((module) => ({
-    default: module.ResourceUsageStatusSegment
-  }))
-)
+// RA: no resource or memory panel is loaded.
 const PortsStatusSegment = lazyWithRetry(() =>
   import('./PortsStatusSegment').then((module) => ({ default: module.PortsStatusSegment }))
 )
@@ -92,7 +88,6 @@ export function StatusBarSurface({
     showFloatingTerminalToggle,
     showFloatingWorkspaceAttentionDot,
     showPorts,
-    showResourceUsage,
     showSsh,
     statusBarUsageMode,
     usageMenuFocusHandoff,
@@ -295,15 +290,10 @@ export function StatusBarSurface({
       >
         <div ref={segmentsRef} className="flex w-max items-center gap-3">
           {!isPairedWebClientWindow() ? (
-            <>
-              <CaffeinateStatusSegment iconOnly={segmentsIconOnly} />
-            </>
+            <CaffeinateStatusSegment iconOnly={segmentsIconOnly} />
           ) : null}
           <React.Suspense fallback={null}>
             {petEnabled ? <PetStatusSegment /> : null}
-            {showResourceUsage ? (
-              <ResourceUsageStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
-            ) : null}
             {showPorts ? (
               <PortsStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
             ) : null}

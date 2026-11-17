@@ -69,7 +69,7 @@ import { fsApi } from './api/fs-bridge'
 import { gitApi } from './api/git-bridge'
 import { uiApi } from './api/ui-bridge'
 import { statsApi } from './api/stats-bridge'
-import { memoryApi } from './api/memory-bridge'
+// RA: no renderer memory-monitor bridge.
 import { claudeUsageApi } from './api/claude-usage-bridge'
 import { codexUsageApi } from './api/codex-usage-bridge'
 import { openCodeUsageApi } from './api/open-code-usage-bridge'
@@ -175,7 +175,6 @@ const api = {
   git: gitApi,
   ui: uiApi,
   stats: statsApi,
-  memory: memoryApi,
   claudeUsage: claudeUsageApi,
   codexUsage: codexUsageApi,
   openCodeUsage: openCodeUsageApi,

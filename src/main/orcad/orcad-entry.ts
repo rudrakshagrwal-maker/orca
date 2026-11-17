@@ -16,7 +16,7 @@ import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
 import { bindOrcadStopTerminalAdmission } from './orcad-stop-terminal-admission'
 import type { OrcadHandle, OrcadOptions } from './orcad-start-contract'
 import { beginOrcadIdleExit } from './orcad-managed-idle-exit-host'
-import { orcadAutomationsKeepHostBusy, startOrcadAutomations } from './orcad-automations'
+import { orcadAutomationsKeepHostBusy } from './orcad-automations'
 import {
   changedAiVaultSearchSettings,
   type AiVaultSearchSettings
@@ -127,8 +127,6 @@ async function startOrcadRuntime(
   })
   registerCleanup(stopOrcadStructuredAgentSessions)
   registerCleanup(() => disposeWatcherProcessAndWait())
-  const { DesktopPushService } = await import('../runtime/push/desktop-push-service')
-  const { resolvePushGatewayOrigin } = await import('../runtime/push/push-gateway-origin')
 
   const runtimeUserDataPath = getAppEnvironment().getPath('userData')
   const { startEventLoopDelayProbe } = await import('../diagnostics/event-loop-delay-probe')
@@ -244,14 +242,7 @@ async function startOrcadRuntime(
   getAppEnvironment().onWillQuit(() => sessionSearch?.dispose())
   featureReadiness.open('sessionSearch')
 
-  const { startAgentStateRulesLiveUpdates } =
-    await import('../runtime/agent-state-rules/agent-state-rules-live-update')
-  startAgentStateRulesLiveUpdates(profileStore, (rules) =>
-    console.info(`[orcad] agent state rules ${rules.version} (${rules.source})`)
-  )
-  // Paired phones dictate through this host; keep its model loaded the same way the desktop does.
-  const { startSpeechModelWarmup } = await import('../speech/speech-model-warmup')
-  startSpeechModelWarmup(profileStore)
+  // RA: the local daemon never downloads status rules or warms downloadable speech models.
   if (ORCA_LAYOUT_OWNER_IS_MAIN) {
     const { repairDuplicatePtyPanesOnStart } =
       await import('../runtime/terminal/identity/moved-pane-owner-rekey')
@@ -326,15 +317,8 @@ async function startOrcadRuntime(
   registerCleanup(() => rpc.stop())
   await timed('rpc', () => rpc.start())
   // The daemon has no window to wait for; its CI-line watches start with the runtime.
-  runtime.startPullRequestWatches()
-  startOrcadAutomations(runtime, profileStore, registerCleanup)
-  const pushService = DesktopPushService.create({
-    runtime,
-    runtimeRpc: rpc,
-    gatewayUrl: resolvePushGatewayOrigin(process.env, getAppEnvironment().isPackaged())
-  })
-  pushService?.start()
-  getAppEnvironment().onWillQuit(() => pushService?.stop())
+  // RA: no GitHub watch or saved remote-automation startup.
+  // RA: local daemon has no push gateway or cloud notification lifecycle.
   console.error(`[orcad] ${describeOrcadBindExposure(bindHost)}`)
 
   const readiness = await buildOrcadServeReadiness({

@@ -64,7 +64,7 @@ import type { SpeechApi } from './api/speech-api'
 import type { SshApi } from './api/ssh-api'
 import type { PlainSshTerminalApi } from './api/plain-ssh-terminal-bridge'
 import type { LegacyRelayBridgeApi } from './api/legacy-relay-bridge-api'
-import type { DiagnosticsApi, MemoryApi, StatsApi, TelemetryApi } from './api/telemetry-api'
+import type { DiagnosticsApi, StatsApi, TelemetryApi } from './api/telemetry-api'
 import type { UiCommandEventApi } from './api/ui-command-event-api'
 import type { UiWindowApi } from './api/ui-window-api'
 import type { UpdaterApi } from './api/updater-api'
@@ -139,7 +139,7 @@ export type PreloadApi = {
   notebook: FilesystemApi['notebook']
   docPreview: DocPreviewApi['docPreview']
   stats: StatsApi
-  memory: MemoryApi
+  // RA: memory diagnostics remain CLI-only.
   claudeUsage: ClaudeUsageApi
   codexUsage: CodexUsageApi
   openCodeUsage: OpenCodeUsageApi
@@ -237,7 +237,6 @@ export type {
   DiagnosticsBundlePayload,
   DiagnosticsStatusPayload,
   DiagnosticsUploadPayload,
-  MemoryApi,
   StatsApi
 } from './api/telemetry-api'
 

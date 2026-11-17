@@ -31,6 +31,8 @@ export type WriteTerminalOutputOptions = {
   /** Every backlog replacement: queued bytes vanished behind the warning, leaving a gap in the pane's stream. */
   onBacklogReplaced?: () => void
   latencySensitive?: boolean
+  // RA: protocol negotiation must progress even when Chromium suspends painting.
+  protocolQuery?: boolean
   forceForegroundRefresh?: boolean
   followupForegroundRefresh?: boolean
   shouldRefreshForegroundSynchronously?: ForegroundRefreshSyncResolver
@@ -66,6 +68,8 @@ export type QueuedWrite = {
 }
 
 export type QueueEntry = {
+  // RA: preserve FIFO while giving protocol-bearing queues a timer-owned drain.
+  protocolQuery?: boolean
   // RA: credited streams are bounded upstream and must never be replaced by a synthetic notice.
   hasDeliveryCredit?: boolean
   terminal: ForegroundTerminalOutputTarget
@@ -135,6 +139,32 @@ let runDrain: (() => void) | null = null
 
 export function setTerminalOutputDrainRunner(runner: () => void): void {
   runDrain = runner
+  // RA: replace a suspended frame when minimizing, restoring, or refocusing the window.
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', rearmDrain)
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', rearmDrain)
+  }
+}
+
+function cancelDrainFrame(): void {
+  if (drainFrame !== null) {
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(drainFrame)
+    }
+    drainFrame = null
+  }
+}
+
+function rearmDrain(): void {
+  cancelDrainFrame()
+  if (drainTimer !== null) {
+    clearTimeout(drainTimer)
+  }
+  drainTimer = null
+  drainTimerDelayMs = null
+  scheduleDrain(0)
 }
 
 function runDrainTick(): void {
@@ -148,12 +178,19 @@ export function markTerminalOutputDrainStarted(): void {
 }
 
 export function scheduleDrain(delayMs: number): void {
-  if (drainFrame !== null) {
+  // RA: protocol replies and minimized windows cannot depend on an animation frame.
+  const timerRequired =
+    (typeof document !== 'undefined' && document.visibilityState === 'hidden') ||
+    Array.from(queuedByTerminal.values()).some((entry) => entry.protocolQuery)
+  if (drainFrame !== null && !timerRequired) {
     return
+  }
+  if (timerRequired) {
+    cancelDrainFrame()
   }
   // RA: promoting a timer-owned background queue must still wait for a visible frame.
   const hasVisibleOutput = Array.from(queuedByTerminal.values()).some((entry) => entry.highPriority)
-  const useFrame = hasVisibleOutput && typeof requestAnimationFrame === 'function'
+  const useFrame = !timerRequired && hasVisibleOutput && typeof requestAnimationFrame === 'function'
   if (drainTimer !== null) {
     if (!useFrame && drainTimerDelayMs !== null && drainTimerDelayMs <= delayMs) {
       return
@@ -170,11 +207,20 @@ export function scheduleDrain(delayMs: number): void {
   }
   // RA: visible splits share one frame; timers remain for background-only output.
   if (useFrame) {
-    drainFrame = requestAnimationFrame(runDrainTick)
+    const frame = requestAnimationFrame(() => {
+      // RA: ignore an obsolete callback if cancellation raced a visibility transition.
+      if (drainFrame === frame) {
+        runDrainTick()
+      }
+    })
+    drainFrame = frame
     return
   }
   // RA: non-browser consumers retain the same bounded visible cadence.
-  drainTimer = setTimeout(runDrainTick, hasVisibleOutput ? Math.max(16, delayMs) : delayMs)
+  drainTimer = setTimeout(
+    runDrainTick,
+    hasVisibleOutput && !timerRequired ? Math.max(16, delayMs) : delayMs
+  )
   drainTimerDelayMs = delayMs
 }
 

@@ -123,7 +123,7 @@ export type RuntimeStore = {
     codexManagedAccounts?: GlobalSettings['codexManagedAccounts']
     codexShareHistoryAcrossAccounts?: GlobalSettings['codexShareHistoryAcrossAccounts']
     nestedWorkerMaxDepth?: GlobalSettings['nestedWorkerMaxDepth']
-    workerRamLimitPercent?: GlobalSettings['workerRamLimitPercent']
+    // RA: runtime settings expose no RAM-admission control.
     orchestrationWorkerAutoReleaseEnabled?: GlobalSettings['orchestrationWorkerAutoReleaseEnabled']
     workspaceDir: string
     nestWorkspaces: boolean

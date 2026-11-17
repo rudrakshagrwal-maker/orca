@@ -1,18 +1,9 @@
 import { compactBreadcrumbData, describeUnknownValue } from './crash-breadcrumb-data'
 import { recordRendererCrashBreadcrumb } from './crash-breadcrumb-recorder'
-import {
-  readHeapMetrics,
-  recordRendererMemorySample,
-  resetRendererMemorySampling,
-  setRendererMemorySamplingSurface,
-  startRendererLongTaskSampling,
-  type RendererSurface
-} from '../memory/renderer-memory-sampling'
-
-const RENDERER_MEMORY_SAMPLE_INTERVAL_MS = 60_000
+// RA: crash listeners retain local evidence without periodic memory sampling.
+export type RendererSurface = 'main' | 'dashboard-popout'
 
 let rendererCrashDiagnosticsInstalled = false
-let rendererMemoryInterval: number | null = null
 
 export function installRendererCrashDiagnostics(surface: RendererSurface = 'main'): void {
   if (rendererCrashDiagnosticsInstalled || typeof window === 'undefined') {
@@ -20,18 +11,9 @@ export function installRendererCrashDiagnostics(surface: RendererSurface = 'main
   }
 
   rendererCrashDiagnosticsInstalled = true
-  setRendererMemorySamplingSurface(surface)
+  void surface
   window.addEventListener('error', recordRendererError)
   window.addEventListener('unhandledrejection', recordRendererUnhandledRejection)
-
-  if (readHeapMetrics()) {
-    startRendererLongTaskSampling()
-    recordRendererMemorySample('startup')
-    rendererMemoryInterval = window.setInterval(
-      () => recordRendererMemorySample('interval'),
-      RENDERER_MEMORY_SAMPLE_INTERVAL_MS
-    )
-  }
 }
 
 function disposeRendererCrashDiagnostics(): void {
@@ -41,11 +23,6 @@ function disposeRendererCrashDiagnostics(): void {
   rendererCrashDiagnosticsInstalled = false
   window.removeEventListener('error', recordRendererError)
   window.removeEventListener('unhandledrejection', recordRendererUnhandledRejection)
-  if (rendererMemoryInterval !== null) {
-    window.clearInterval(rendererMemoryInterval)
-    rendererMemoryInterval = null
-  }
-  resetRendererMemorySampling()
 }
 
 if (import.meta !== undefined && import.meta.hot) {

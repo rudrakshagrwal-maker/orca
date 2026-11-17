@@ -46,7 +46,7 @@ import {
   signOutCurrentOrcaProfile
 } from '../../orca-profiles/cloud-auth/profile-cloud-service'
 import { refreshCurrentOrcaProfileAuth } from '../../orca-profiles/cloud-auth/profile-cloud-capability-refresh'
-import { registerOrcaProfileOrgMemberHandlers } from './orca-profile-org-members-handlers'
+// RA: no cloud organization/member-management IPC is registered.
 import { onOrcaCloudSessionInvalidated } from '../../orca-profiles/cloud-session/profile-cloud-session-invalidation'
 import {
   broadcastOrcaProfileAuthStatusChanged,
@@ -317,6 +317,4 @@ export function registerOrcaProfileHandlers(
       return result
     }
   )
-
-  registerOrcaProfileOrgMemberHandlers()
 }

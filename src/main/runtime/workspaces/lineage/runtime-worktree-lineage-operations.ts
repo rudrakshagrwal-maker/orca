@@ -14,7 +14,6 @@ import type {
 } from '../../../../shared/worktree/lineage-types'
 import type { WorkspaceKey } from '../../../../shared/workspace-scope'
 import type { Repo } from '../../../../shared/repo-types'
-import { workerRamLimit } from '../../../../shared/worker-ram-queue' // RA: local host admission.
 export abstract class RuntimeWorktreeLineageOperations extends OrcaRuntimeWithResolveBrowserNetworkExecutionHostForWorktree {
   /** `childRepo` scopes the parent to the new worktree's execution host (#12757). */
   resolveLineageForWorktreeCreate(
@@ -37,11 +36,7 @@ export abstract class RuntimeWorktreeLineageOperations extends OrcaRuntimeWithRe
     })
   }
 
-  // RA: read live settings again while queued, so changing the limit takes effect immediately.
-  getWorkerRamLimitPercent(): number {
-    return workerRamLimit(this.store?.getSettings?.()?.workerRamLimitPercent)
-  }
-
+  // RA: worker starts do not depend on host-memory measurements.
   listWorktreeLineage(): Promise<Record<string, WorktreeLineage>> {
     return this.worktreeLineage.listWorktreeLineage()
   }

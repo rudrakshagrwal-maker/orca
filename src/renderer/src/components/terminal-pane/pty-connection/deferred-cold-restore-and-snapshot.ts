@@ -27,6 +27,9 @@ import { holdInPlaceResumeUntilSettled } from './startup/in-place-resume-hold'
 import { attachToMainResumedSleepPane, mainResumedSleepPane } from './spawn/main-resumed-sleep-pane'
 import { startPaneThroughMainThenAttach } from './spawn/main-pane-start-request'
 
+// RA: fallback cold starts use the same active-first agent queue as reconnects.
+import { admitRestoredAgentStart } from './startup/restored-agent-start-admission'
+
 export function bindDeferredColdRestoreAndSnapshot(session: ConnectPanePtySession): void {
   session.applyColdRestoreAgentResumeStartup = (
     startup: ColdRestoreAgentResumeStartup | null
@@ -118,23 +121,26 @@ export function bindDeferredColdRestoreAndSnapshot(session: ConnectPanePtySessio
     options: FreshSpawnOptions = {},
     automatic?: boolean
   ): Promise<string | null> => {
-    if (startup?.resumeSource?.cancelled) {
-      return Promise.resolve(null)
-    }
-    const mainPane = mainResumedSleepPane(session, startup)
+    const mainPane = !startup?.resumeSource?.cancelled && mainResumedSleepPane(session, startup)
     if (mainPane && startup?.sleepingRecordEntry) {
       return attachToMainResumedSleepPane(session, mainPane, startup, options, automatic)
     }
-    return startPaneThroughMainThenAttach(session, () => {
-      session.applyColdRestoreAgentResumeStartup(startup)
-      const spawned = session.startFreshSpawn(startup, options)
-      // Switch point: main's layout shows this pane unbound while the start runs.
-      if (ORCA_LAYOUT_OWNER_IS_MAIN) {
-        holdInPlaceResumeUntilSettled(() => !session.disposed, startup, spawned)
-      }
-      return spawned
-    })
+    return admitRestoredAgentStart(
+      session,
+      startup?.agent,
+      () =>
+        startPaneThroughMainThenAttach(session, () => {
+          session.applyColdRestoreAgentResumeStartup(startup)
+          const spawned = session.startFreshSpawn(startup, options)
+          if (ORCA_LAYOUT_OWNER_IS_MAIN) {
+            holdInPlaceResumeUntilSettled(() => !session.disposed, startup, spawned)
+          }
+          return spawned
+        }),
+      () => !startup?.resumeSource?.cancelled
+    )
   }
+
   session.startFreshColdRestoreAgentResume = (
     startup: ColdRestoreAgentResumeStartup | null = session.buildColdRestoreAgentResumeStartup(),
     options: FreshSpawnOptions = {}
