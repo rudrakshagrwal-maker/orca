@@ -24,8 +24,6 @@ const PLAIN_NODE_ENTRY_NAMES = [
   'computer-sidecar',
   'wsl-transcript-fs-process-entry',
   'orcad/orcad-local-serve-selection-entry',
-  // ELECTRON_RUN_AS_NODE plugin worker host; it now bundles sucrase for TypeScript workers.
-  'plugin-host-entry',
   ...CLI_MAIN_ENTRY_NAMES
 ] as const
 
