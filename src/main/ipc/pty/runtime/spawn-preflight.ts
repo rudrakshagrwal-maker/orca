@@ -16,7 +16,7 @@ import {
 import { resolvePathEnvKey } from '../../../pty/environment/windows-path-segment-merge'
 import { isRuntimeWslBackgroundStart, type RuntimePtySpawnState } from './spawn-state'
 import { localPtySpawnCwd } from '../host-env/spawn-cwd'
-import { resolvePtySpawnStartupTarget } from '../spawn-startup-target'
+import { keepsRestoredAgentCwd, resolvePtySpawnStartupTarget } from '../spawn-startup-target'
 import { resolvePtySpawnHostEnv } from '../spawn-host-env'
 import { ptySpawnPaneFromIds, stampPtySpawnPaneEnv } from '../spawn-pane-env'
 import { getConnectionExecutionHostId } from '../../../../shared/execution-host'
@@ -74,6 +74,8 @@ export async function prepareRuntimePtySpawn(
     sessionId: ctx.sessionId,
     shellOverride: args.shellOverride,
     plannedPty: args.launchRuntime?.pty,
+    keepMissingCwd: keepsRestoredAgentCwd(args), // RA
+    remoteHost: !!args.connectionId, // RA
     projectRuntimeSource: {
       kind: 'store',
       store: ctx.deps.store,

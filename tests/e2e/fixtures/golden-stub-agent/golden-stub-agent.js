@@ -112,6 +112,13 @@ if (process.stdin.isTTY) {
 }
 process.stdin.setEncoding('utf8')
 process.stdin.on('data', (chunk) => {
+  // RA: record what the child process itself received (herdr windows_input idea), one JSON string per read.
+  if (process.env.GOLDEN_STUB_INPUT_LOG) {
+    require('node:fs').appendFileSync(
+      process.env.GOLDEN_STUB_INPUT_LOG,
+      `${JSON.stringify(typeof chunk === 'string' ? chunk : chunk.toString())}\n`
+    )
+  }
   pendingInput += typeof chunk === 'string' ? chunk : chunk.toString()
   consumeInput()
 })

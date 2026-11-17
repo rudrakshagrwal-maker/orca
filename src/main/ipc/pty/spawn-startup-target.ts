@@ -26,6 +26,7 @@ import {
 import { normalizeWindowsTerminalCwd } from '../../providers/windows-shell-args'
 import { wslUncDirectoryExistsAsync } from '../../wsl/filesystem/unc-path-access'
 import { getCodexSelectionTargetForPty } from './host-env/codex-home'
+import { isRestoreSpawnIntent } from '../../../shared/terminal/pty/admission/spawn-admission-contract'
 import { probeLocalStartupCwdDirectory } from './host-env/startup-cwd-directory-exists'
 
 // Window runtime comes from the renderer; host runtime comes from persistence.
@@ -54,7 +55,27 @@ export type PtySpawnStartupTarget = {
   wslHoldReadAnchor?: number
 }
 
+export const STARTUP_CWD_MISSING_CODE = 'startup_cwd_missing'
+
+// RA: a restored agent pane keeps its saved cwd. Falling back to the workspace root would rewrite
+// where the agent restores; the real spawn error shows the pane as unavailable with Retry instead.
+export function keepsRestoredAgentCwd(args: {
+  spawnIntent?: unknown
+  launchAgent?: unknown
+  resumeProviderSession?: unknown
+  keepMissingCwd?: boolean
+}): boolean {
+  return (
+    args.keepMissingCwd === true ||
+    (isRestoreSpawnIntent(args.spawnIntent) && !!(args.launchAgent || args.resumeProviderSession))
+  )
+}
+
 type PtySpawnStartupArgs = {
+  /** RA: restored agent pane; never substitute the workspace root for a missing cwd. */
+  keepMissingCwd?: boolean
+  /** RA: a remote host's folders cannot be probed from here. */
+  remoteHost?: boolean
   worktreeId: string | undefined
   cwd: string | undefined
   /** Its worktree can imply the WSL distro. */
@@ -231,7 +252,8 @@ async function resolveStartupCwdWithFallback(
     }
   }
   const allowMissingCwdFallback =
-    !wslRuntimeOwnsStartupCwd || (wslStartupCwdExists !== true && wslWorkspaceCwdExists === true)
+    !args.keepMissingCwd &&
+    (!wslRuntimeOwnsStartupCwd || (wslStartupCwdExists !== true && wslWorkspaceCwdExists === true))
   let didFallbackToWorkspaceRootCwd = false
   let missingCwdProvenAbsent = false
   const probedDirectories = new Map<string, boolean | null>()
@@ -282,6 +304,12 @@ async function resolveStartupCwdWithFallback(
   )
   if (didFallbackToWorkspaceRootCwd && wslWorkspaceCwdExists === true && cwd) {
     prevalidatedCwd = cwd
+  }
+  if (args.keepMissingCwd && !args.remoteHost && !wslRuntimeOwnsStartupCwd && cwd) {
+    // RA: proven absent: fail with a stable code so the pane shows "unavailable" with Retry, and keeps its saved cwd.
+    if ((await probeLocalStartupCwdDirectory(cwd)) === false) {
+      throw new Error(`${STARTUP_CWD_MISSING_CODE}: saved folder ${cwd} is unavailable`)
+    }
   }
   return {
     cwd,

@@ -4,6 +4,7 @@ import {
   type CapturePaintHold
 } from '../debugger/guest-paint-hold'
 import type { WebContents } from 'electron'
+import { acquireCaptureSlot } from './cdp-capture-slot'
 import { sendGuestCdpCommand } from '../debugger/guest-cdp-command'
 import {
   assertRemoteCliPageAccess,
@@ -11,10 +12,8 @@ import {
 } from '../../routing/input-ownership/remote-cli-page-admission'
 
 export const SCREENSHOT_TIMEOUT_MS = 8000
-// Probe offsets leave time for the original capture to finish before the deadline.
-const FRAME_PROBE_OFFSETS_MS = [250, 750, 1750, 3750]
-// No clip: the probe's frame answers the pending capture too, and a clip shifts it by scrollY.
-const FRAME_PROBE_PARAMS = { format: 'jpeg', quality: 1 }
+// RA: repaint offsets nudge an undrawn guest; they send no extra native capture.
+const REPAINT_OFFSETS_MS = [250, 750, 1750, 3750]
 const FALLBACK_CAPTURE_TIMEOUT_MS = 1000
 const SCREENSHOT_TIMEOUT_MESSAGE = 'Screenshot timed out — the browser page did not draw a frame.'
 
@@ -138,11 +137,13 @@ export function withTimeout<T>(
   })
 }
 
-// Undrawn pages can leave captures pending; cheap probes trigger a frame for the original request.
+// Undrawn pages can leave captures pending; repaint signals ask the guest to draw a frame.
+// RA: `onNative` receives the native capture promise so the caller keeps the slot until it settles.
 function captureUntilDrawn(
   webContents: WebContents,
   params: Record<string, unknown>,
-  holdPaint: CapturePaintHold
+  holdPaint: CapturePaintHold,
+  onNative: (native: Promise<unknown>) => void
 ): Promise<{ data: string } | null> {
   return new Promise((resolve, reject) => {
     let settled = false
@@ -152,70 +153,78 @@ function captureUntilDrawn(
       }
       settled = true
       clearTimeout(deadline)
-      probes.forEach(clearTimeout)
+      repaints.forEach(clearTimeout)
       settle()
     }
-    const send = (
-      requestParams: Record<string, unknown>
-    ): Promise<{ data?: string } | undefined> | null => {
+    const repaint = (): void => {
       if (webContents.isDestroyed()) {
         finish(() => reject(new Error('WebContents destroyed')))
-        return null
+        return
       }
       if (!webContents.debugger.isAttached()) {
         finish(() => reject(new Error('Debugger detached')))
-        return null
+        return
       }
       try {
-        // Recheck access because navigation can leave the SSH host’s admitted pages between probes.
+        // Recheck access because navigation can leave the SSH host’s admitted pages between ticks.
         assertRemoteCliPageAccess(webContents.id)
       } catch (error) {
         finish(() => reject(error))
-        return null
+        return
       }
       try {
         webContents.invalidate()
       } catch {
-        // Guest teardown can reject repaint requests; still try CDP.
+        // Guest teardown can reject repaint requests.
       }
-      return holdPaintUntilCdpCaptureSettles(webContents, holdPaint, () =>
-        sendGuestCdpCommand(webContents, 'Page.captureScreenshot', requestParams)
-      ).then((result) => {
-        const data = isRecord(result) ? result.data : undefined
-        return typeof data === 'string' ? { data } : undefined
-      })
     }
     const deadline = setTimeout(() => finish(() => resolve(null)), SCREENSHOT_TIMEOUT_MS)
-    let probes: NodeJS.Timeout[] = []
-    if (params.clip || params.captureBeyondViewport) {
-      // A probe sent during a clipped or beyond-viewport capture leaves its emulation applied
-      // afterwards; one sent just before is safe, and the emulation change then draws the frame.
-      send(FRAME_PROBE_PARAMS)?.catch(() => {})
-    } else {
-      probes = FRAME_PROBE_OFFSETS_MS.map((offsetMs) =>
-        setTimeout(() => send(FRAME_PROBE_PARAMS)?.catch(() => {}), offsetMs)
-      )
+    const repaints = REPAINT_OFFSETS_MS.map((offsetMs) => setTimeout(repaint, offsetMs))
+    repaint()
+    if (settled) {
+      return
     }
-    send(params)?.then(
-      (result) => finish(() => resolve(result?.data ? { data: result.data } : null)),
+    const native = holdPaintUntilCdpCaptureSettles(webContents, holdPaint, () =>
+      sendGuestCdpCommand(webContents, 'Page.captureScreenshot', params)
+    )
+    onNative(native)
+    native.then(
+      (result) => {
+        const data = isRecord(result) ? result.data : undefined
+        finish(() => resolve(typeof data === 'string' ? { data } : null))
+      },
       (error: unknown) =>
         finish(() => reject(error instanceof Error ? error : new Error(String(error))))
     )
   })
 }
 
-export async function captureFullPageScreenshot(
+// RA: serialize per guest; the slot frees when every native capture this call started has settled.
+async function withCaptureSlot<T>(
+  webContents: WebContents,
+  isActive: (() => boolean) | undefined,
+  run: (onNative: (native: Promise<unknown>) => void) => Promise<T>
+): Promise<T> {
+  const release = await acquireCaptureSlot(
+    webContents,
+    SCREENSHOT_TIMEOUT_MS,
+    SCREENSHOT_TIMEOUT_MESSAGE,
+    isActive
+  )
+  const natives: Promise<unknown>[] = []
+  try {
+    return await run((native) => natives.push(native))
+  } finally {
+    void Promise.allSettled(natives).then(release)
+  }
+}
+
+async function captureFullPageInSlot(
   webContents: WebContents,
   format: 'png' | 'jpeg',
-  holdPaint: CapturePaintHold
+  holdPaint: CapturePaintHold,
+  onNative: (native: Promise<unknown>) => void
 ): Promise<{ data: string; format: 'png' | 'jpeg' }> {
-  if (webContents.isDestroyed()) {
-    throw new Error('WebContents destroyed')
-  }
-  if (!webContents.debugger.isAttached()) {
-    throw new Error('Debugger not attached')
-  }
-
   const release = holdPaint()
   try {
     // Layout works before drawing; only pixel capture needs a frame.
@@ -235,7 +244,8 @@ export async function captureFullPageScreenshot(
         captureBeyondViewport: true,
         clip
       },
-      holdPaint
+      holdPaint,
+      onNative
     )
     if (!frame) {
       throw new Error(SCREENSHOT_TIMEOUT_MESSAGE)
@@ -246,19 +256,29 @@ export async function captureFullPageScreenshot(
   }
 }
 
-// Prefer CDP for beyond-viewport capture; bound stalls below agent-browser’s 30-second timeout.
-export async function captureScreenshot(
+export async function captureFullPageScreenshot(
   webContents: WebContents,
-  params: Record<string, unknown> | undefined,
-  holdPaint: CapturePaintHold
-): Promise<{ data: string }> {
+  format: 'png' | 'jpeg',
+  holdPaint: CapturePaintHold,
+  isActive?: () => boolean
+): Promise<{ data: string; format: 'png' | 'jpeg' }> {
   if (webContents.isDestroyed()) {
     throw new Error('WebContents destroyed')
   }
   if (!webContents.debugger.isAttached()) {
     throw new Error('Debugger not attached')
   }
+  return withCaptureSlot(webContents, isActive, (onNative) =>
+    captureFullPageInSlot(webContents, format, holdPaint, onNative)
+  )
+}
 
+async function captureInSlot(
+  webContents: WebContents,
+  params: Record<string, unknown> | undefined,
+  holdPaint: CapturePaintHold,
+  onNative: (native: Promise<unknown>) => void
+): Promise<{ data: string }> {
   const screenshotParams: Record<string, unknown> = {}
   if (params?.format) {
     screenshotParams.format = params.format
@@ -278,19 +298,17 @@ export async function captureScreenshot(
 
   const release = holdPaint()
   try {
-    const frame = await captureUntilDrawn(webContents, screenshotParams, holdPaint)
+    const frame = await captureUntilDrawn(webContents, screenshotParams, holdPaint, onNative)
     if (frame) {
       return frame
     }
-    const fallback = await readRemoteCliAdmittedPage(webContents.id, () =>
-      withTimeout(
-        holdPaintUntilSettled(holdPaint, () => webContents.capturePage()),
-        FALLBACK_CAPTURE_TIMEOUT_MS,
-        SCREENSHOT_TIMEOUT_MESSAGE
-      )
+    const fallback = await readRemoteCliAdmittedPage(webContents.id, () => {
+      const native = holdPaintUntilSettled(holdPaint, () => webContents.capturePage())
+      onNative(native)
+      return withTimeout(native, FALLBACK_CAPTURE_TIMEOUT_MS, SCREENSHOT_TIMEOUT_MESSAGE)
         .then((image) => encodeNativeImageScreenshot(image, params))
         .catch(() => null)
-    )
+    })
     if (fallback) {
       return fallback
     }
@@ -298,4 +316,22 @@ export async function captureScreenshot(
   } finally {
     release()
   }
+}
+
+// Prefer CDP for beyond-viewport capture; bound stalls below agent-browser’s 30-second timeout.
+export async function captureScreenshot(
+  webContents: WebContents,
+  params: Record<string, unknown> | undefined,
+  holdPaint: CapturePaintHold,
+  isActive?: () => boolean
+): Promise<{ data: string }> {
+  if (webContents.isDestroyed()) {
+    throw new Error('WebContents destroyed')
+  }
+  if (!webContents.debugger.isAttached()) {
+    throw new Error('Debugger not attached')
+  }
+  return withCaptureSlot(webContents, isActive, (onNative) =>
+    captureInSlot(webContents, params, holdPaint, onNative)
+  )
 }

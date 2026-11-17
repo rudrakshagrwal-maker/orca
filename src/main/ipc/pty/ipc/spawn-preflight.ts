@@ -7,7 +7,7 @@ import {
   routesFreshSpawnsToLocalProvider
 } from '../host-env/fresh-spawn-routing'
 import { getProvider } from '../provider/registry'
-import { resolvePtySpawnStartupTarget } from '../spawn-startup-target'
+import { keepsRestoredAgentCwd, resolvePtySpawnStartupTarget } from '../spawn-startup-target'
 import type { PtyIpcSpawnState } from './spawn-state'
 import { localPtySpawnCwd } from '../host-env/spawn-cwd'
 import { getConnectionExecutionHostId } from '../../../../shared/execution-host'
@@ -90,6 +90,8 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
     sessionId: ctx.effectiveSessionId,
     shellOverride: args.shellOverride,
     plannedPty: ctx.paneAgentLaunch?.launchRuntime?.pty,
+    keepMissingCwd: keepsRestoredAgentCwd(args), // RA
+    remoteHost: !!args.connectionId, // RA
     projectRuntimeSource: { kind: 'sent', projectRuntime: args.projectRuntime },
     preAdopted: ctx.preAdoptedStablePane !== null,
     getSettings: ctx.deps.getSettings,

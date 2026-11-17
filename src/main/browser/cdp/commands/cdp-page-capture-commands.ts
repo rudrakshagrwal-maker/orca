@@ -76,7 +76,10 @@ export class CdpPageCaptureCommands {
     params?: Record<string, unknown>
   ): Promise<void> {
     try {
-      const result = await captureScreenshot(this.webContents, params, this.holdPaint)
+      const result = await captureScreenshot(this.webContents, params, this.holdPaint, () =>
+        // RA: a queued capture for a disconnected client is dropped before it starts.
+        this.responder.isActiveClient(client)
+      )
       this.responder.sendResult(clientId, result, client)
     } catch (err) {
       this.responder.sendError(clientId, err instanceof Error ? err.message : String(err), client)

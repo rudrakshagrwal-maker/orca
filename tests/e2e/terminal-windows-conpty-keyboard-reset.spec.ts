@@ -1,10 +1,11 @@
-import type { Page } from '@stablyai/playwright-test'
 import { expect, test } from './helpers/orca-app'
 import {
   configureGoldenStubAgent,
   getGoldenStubAgentLaunchEnv,
   GOLDEN_STUB_EXIT_MARKER,
-  launchGoldenStubAgentFromNewTab
+  launchGoldenStubAgentFromNewTab,
+  newGoldenStubInputLogPath,
+  readGoldenStubReceivedInput
 } from './helpers/golden-stub-agent'
 import { ensureTerminalVisible, waitForActiveWorktree, waitForSessionReady } from './helpers/store'
 import {
@@ -18,35 +19,12 @@ import {
   readTerminalPtyWriteEntries
 } from './helpers/terminal-pty-write-spy'
 
-test.use({ launchEnv: getGoldenStubAgentLaunchEnv() })
+// RA: Grok is not selectable in this fork, so the stub runs as Codex.
+const inputLog = newGoldenStubInputLogPath()
+test.use({ launchEnv: getGoldenStubAgentLaunchEnv({ inputLog }) })
 test.skip(process.platform !== 'win32', 'A real Windows ConPTY is required')
 
-async function getKittyKeyboardFlags(page: Page): Promise<number | null> {
-  return page.evaluate(() => {
-    const state = window.__store?.getState()
-    const worktreeId = state?.activeWorktreeId
-    const tabId =
-      state?.activeTabType === 'terminal'
-        ? state.activeTabId
-        : worktreeId
-          ? (state?.activeTabIdByWorktree?.[worktreeId] ?? null)
-          : null
-    const pane = tabId ? window.__paneManagers?.get(tabId)?.getActivePane?.() : null
-    const terminal = pane?.terminal as
-      | {
-          core?: { coreService?: { kittyKeyboard?: { flags?: number } } }
-          _core?: { coreService?: { kittyKeyboard?: { flags?: number } } }
-        }
-      | undefined
-    return (
-      terminal?.core?.coreService?.kittyKeyboard?.flags ??
-      terminal?._core?.coreService?.kittyKeyboard?.flags ??
-      null
-    )
-  })
-}
-
-test('resets standard keyboard bytes after a protocol-mode agent exits on ConPTY', async ({
+test('keeps standard keyboard bytes when a protocol-mode agent runs on ConPTY and after it exits', async ({
   electronApp,
   orcaPage
 }) => {
@@ -54,18 +32,17 @@ test('resets standard keyboard bytes after a protocol-mode agent exits on ConPTY
   await waitForSessionReady(orcaPage)
   await waitForActiveWorktree(orcaPage)
   await ensureTerminalVisible(orcaPage)
-  // Grok is the supported native ConPTY exception to Kitty protocol withholding.
+  // RA: Codex asks for the Kitty protocol (the stub sends CSI > 1 u). Orca withholds it on native
+  // ConPTY, so the child must keep receiving standard bytes, never CSI-u.
   await configureGoldenStubAgent(orcaPage, {
-    agent: 'grok',
-    agentArgs: '--keyboard-protocol --grok'
+    agent: 'codex',
+    agentArgs: '--keyboard-protocol'
   })
-  await launchGoldenStubAgentFromNewTab(orcaPage, /^Grok(?:\s|$)/i)
+  await launchGoldenStubAgentFromNewTab(orcaPage, /^Codex(?:\s|$)/i)
 
   const ptyId = await waitForActivePanePtyId(orcaPage)
-  await expect.poll(() => getKittyKeyboardFlags(orcaPage), { timeout: 10_000 }).toBe(1)
 
   await clearTerminalPtyWriteLog(electronApp)
-  // Kitty flag 1 preserves plain Enter; modified Enter proves CSI-u input.
   await orcaPage.keyboard.press('Shift+Enter')
   await orcaPage.keyboard.type('exit')
   await orcaPage.keyboard.press('Enter')
@@ -74,9 +51,11 @@ test('resets standard keyboard bytes after a protocol-mode agent exits on ConPTY
     .filter((entry) => entry.id === ptyId)
     .map((entry) => entry.data)
     .join('')
-  expect(protocolWrites).toContain('\x1b[13;2u')
   expect(protocolWrites).toContain('\r')
-  await expect.poll(() => getKittyKeyboardFlags(orcaPage), { timeout: 10_000 }).toBe(0)
+  const csiU = new RegExp(`${String.fromCharCode(27)}\\[\\d+(?:;\\d+)*u`)
+  expect(protocolWrites).not.toMatch(csiU)
+  // What the agent process itself received, not only what Orca wrote.
+  expect(readGoldenStubReceivedInput(inputLog).join('')).not.toMatch(csiU)
 
   await clearTerminalPtyWriteLog(electronApp)
   await focusActiveTerminalInput(orcaPage)

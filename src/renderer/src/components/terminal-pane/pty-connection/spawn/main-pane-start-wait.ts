@@ -11,6 +11,8 @@ import {
   wslDistroHoldUserMessage
 } from '../../../../../../shared/wsl-distro-stopped-hold'
 import { holdPaneForStoppedWslDistro } from '../../session-restore/wsl-distro/wsl-distro-stopped-hold-state'
+import { sendLayoutApply } from '@/runtime/workspace-layout/commands/layout-apply-send'
+import { parsePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
 import { callRuntimeRpc } from '@/runtime/rpc/calls/runtime-rpc-call'
 
 type PaneStartWait = { connects: Set<() => void>; failed: Set<() => void> }
@@ -132,6 +134,27 @@ export function showPaneStartFailure(
     heldCards.set(session, forget)
     session.waitTeardowns.push(forget)
     return
+  }
+  if (!session.disposed && reason?.includes('startup_cwd_missing') && !session.runtimeEnvironmentId) {
+    // RA: the saved folder is gone. The pane keeps its cwd and session; Retry asks main to start it again.
+    const tabId = parsePaneKey(session.cacheKey)?.tabId
+    if (tabId) {
+      session.transport.retryRecovery = () => {
+        if (session.disposed) {
+          return false
+        }
+        return sendLayoutApply(
+          useAppStore.getState(),
+          session.deps.worktreeId,
+          { type: 'startPane', tabId, paneKey: session.cacheKey },
+          {
+            apply: () => {},
+            asToday: () => {},
+            refused: (code) => showPaneStartFailure(session, code)
+          }
+        )
+      }
+    }
   }
   if (!session.disposed) {
     session.deps.onPtyErrorRef?.current?.(
