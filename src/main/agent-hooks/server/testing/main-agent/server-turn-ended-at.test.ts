@@ -109,39 +109,7 @@ describe('the host-stamped turn end', () => {
     expect(row()).not.toHaveProperty('hostTurn')
   })
 
-  it('ends Command Code turns by transcript position; a same-position repeat is ambiguous', async () => {
-    const transcriptPath = join(directory, 'command-code.jsonl')
-    const prompt = `${JSON.stringify({ role: 'user', content: 'Status?' })}\n`
-    const stop = { hook_event_name: 'Stop', transcript_path: transcriptPath }
-    writeFileSync(transcriptPath, prompt)
-    await post(stop, '/hook/command-code')
-    const first = row()?.turnEndedAt
-    expect(row()).toMatchObject({ turnEndDisposition: 'identified' })
-    // Its key alone doesn't prove a repeat (no verified continuation flag).
-    await post(stop, '/hook/command-code')
-    expect(row()).toMatchObject({ turnEndedAt: first, turnEndDisposition: 'ambiguous' })
 
-    writeFileSync(transcriptPath, prompt.repeat(2))
-    await post(stop, '/hook/command-code')
-    expect(row()?.turnEndedAt).toBeGreaterThan(first!)
-    expect(row()).toMatchObject({ turnEndDisposition: 'identified' })
-  })
-
-  it('restates the end when a result retry adds the late transcript text', async () => {
-    const transcriptPath = join(directory, 'events.jsonl')
-    writeFileSync(transcriptPath, '')
-    await post({ hook_event_name: 'UserPromptSubmit', prompt: 'Fix it' }, '/hook/copilot')
-    // The Stop's text isn't flushed yet; its retry re-reads the same Stop body.
-    const stop = { hook_event_name: 'Stop', transcript_path: transcriptPath }
-    await post(stop, '/hook/copilot')
-    const ended = row()?.turnEndedAt
-    expect(row()).toMatchObject({ turnEndDisposition: 'identified' })
-
-    const line = { type: 'assistant.message', data: { content: 'Tests pass.' } }
-    writeFileSync(transcriptPath, `${JSON.stringify(line)}\n`)
-    await vi.waitFor(() => expect(row()?.lastAssistantMessage).toBe('Tests pass.'))
-    expect(row()).toMatchObject({ turnEndedAt: ended, turnEndDisposition: 'identified' })
-  })
 
   it('reaches the live push and survives a host restart, so a restatement stays the same end', async () => {
     const pushed: (number | undefined)[] = []

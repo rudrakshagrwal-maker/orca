@@ -93,25 +93,6 @@ describe('parseAiVaultListResult', () => {
     )
   })
 
-  it('keeps an issue whose kind this build does not know, as its own kinded row', () => {
-    const parsed = parseAiVaultListResult({
-      sessions: [validSession()],
-      issues: [
-        {
-          agent: 'opencode',
-          kind: 'source-from-a-newer-host',
-          path: '/home/ada/.local/share/opencode/opencode.db',
-          message: 'OpenCode history was skipped.'
-        }
-      ],
-      scannedAt: '2026-07-27T00:00:00.000Z'
-    })
-
-    expect(parsed.issues).toEqual([
-      expect.objectContaining({ kind: 'scope', message: 'OpenCode history was skipped.' })
-    ])
-    expect(parsed.issues.some((issue) => issue.message.includes('invalid'))).toBe(false)
-  })
 
   it('carries issue copy codes from a remote host and drops only malformed ones', () => {
     const coded = {

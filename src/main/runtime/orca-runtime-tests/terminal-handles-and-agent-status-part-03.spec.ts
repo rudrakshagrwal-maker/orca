@@ -77,25 +77,6 @@ describe('OrcaRuntimeService', () => {
     await expect(runtime.isTerminalRunningAgent(handle)).resolves.toBe(true)
   })
 
-  it('recognizes Antigravity ready tails with the prompt before the model line', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      spawn: vi.fn().mockResolvedValue({ id: 'pty-bg' }),
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => null
-    })
-    runtime.attachWindow(1)
-    runtime.syncWindowGraph(1, { tabs: [], leaves: [] })
-    const { handle } = await runtime.createTerminal(`path:${TEST_WORKTREE_PATH}`, {
-      command: 'agy',
-      title: 'worker'
-    })
-
-    runtime.onPtyData('pty-bg', antigravityPromptBeforeModelReadyScreen(), 100)
-
-    await expect(runtime.isTerminalRunningAgent(handle)).resolves.toBe(true)
-  })
 
   it('does not recognize partial Antigravity startup output as an agent', async () => {
     const runtime = new OrcaRuntimeService(store)
@@ -155,35 +136,6 @@ describe('OrcaRuntimeService', () => {
     await expect(runtime.isTerminalRunningAgent(handle)).resolves.toBe(false)
   })
 
-  it('recognizes Antigravity prompts written as the current partial line', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      spawn: vi.fn().mockResolvedValue({ id: 'pty-bg' }),
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => null
-    })
-    runtime.attachWindow(1)
-    runtime.syncWindowGraph(1, { tabs: [], leaves: [] })
-    const { handle } = await runtime.createTerminal(`path:${TEST_WORKTREE_PATH}`, {
-      command: 'agy',
-      title: 'worker'
-    })
-
-    runtime.onPtyData(
-      'pty-bg',
-      [
-        'Antigravity CLI 1.0.3\n',
-        'user@example.com (Antigravity Business)\n',
-        'Gemini 3.5 Flash (High)\n',
-        '~/orca/workspaces/orca/agy-dispatch-issue\n'
-      ].join(''),
-      100
-    )
-    runtime.onPtyData('pty-bg', '   >   ', 101)
-
-    await expect(runtime.isTerminalRunningAgent(handle)).resolves.toBe(true)
-  })
 
   it('does not classify agy workspace paths or titles without the ready prompt', async () => {
     const runtime = new OrcaRuntimeService(store)

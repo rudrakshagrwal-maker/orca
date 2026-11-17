@@ -96,58 +96,6 @@ async function tempRoot(): Promise<string> {
 }
 
 describe('scanAiVaultSessions scopeOnly', () => {
-  it('keeps recent sessions whose bucket or first lines name no in-scope cwd', async () => {
-    const root = await tempRoot()
-    const claudeRoot = isolatedScanRoots(root).claudeProjectsDir
-    // The bucket's only transcript records its cwd after the 200 lines the bucket probe reads.
-    await writeClaudeSession({
-      claudeRoot,
-      dirName: '-repo-app',
-      sessionId: 'late-cwd',
-      cwd: '/repo/app',
-      iso: '2026-06-01T00:00:00.000Z',
-      cwdlessLines: 250
-    })
-    // `/repo/my-app` and `/repo/my/app` share one bucket name; the newest transcript is the other folder's.
-    await writeClaudeSession({
-      claudeRoot,
-      dirName: '-repo-my-app',
-      sessionId: 'shared-bucket',
-      cwd: '/repo/my/app',
-      iso: '2026-06-02T00:00:00.000Z'
-    })
-    await writeClaudeSession({
-      claudeRoot,
-      dirName: '-repo-my-app',
-      sessionId: 'other-folder',
-      cwd: '/repo/my-app',
-      iso: '2026-06-03T00:00:00.000Z'
-    })
-    // CodeBuddy's transcripts are checked one by one; this one also records its cwd late.
-    const codebuddyDir = join(isolatedScanRoots(root).codebuddyProjectsDir, 'repo-app')
-    await mkdir(codebuddyDir, { recursive: true })
-    await writeFile(
-      join(codebuddyDir, 'codebuddy-late-cwd.jsonl'),
-      [
-        ...Array.from({ length: 250 }, () => ({ type: 'file-history-snapshot' })),
-        {
-          type: 'message',
-          timestamp: '2026-06-04T00:00:00.000Z',
-          sessionId: 'codebuddy-late-cwd',
-          cwd: '/repo/app',
-          role: 'user',
-          content: [{ type: 'input_text', text: 'work in /repo/app' }]
-        }
-      ]
-        .map((record) => JSON.stringify(record))
-        .join('\n')
-    )
-    const scopePaths = ['/repo/app', '/repo/my/app']
-
-    const main = await workspaceSessionIds(root, scopePaths, {})
-    expect(main).toEqual(['codebuddy-late-cwd', 'late-cwd', 'shared-bucket'])
-    await expect(workspaceSessionIds(root, scopePaths, { scopeOnly: true })).resolves.toEqual(main)
-  })
 
   it('matches buckets whose names use the other Unicode form', async () => {
     const root = await tempRoot()

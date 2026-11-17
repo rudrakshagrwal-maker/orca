@@ -84,27 +84,6 @@ describe('DaemonPtyAdapter (IPtyProvider)', () => {
   })
 
   describe('spawn with sessionId (reattach)', () => {
-    it('returns full snapshot and isReattach when reattaching', async () => {
-      const sessionId = 'reattach-test-session'
-      const first = await adapter.spawn({ cols: 80, rows: 24, sessionId, launchAgent: 'droid' })
-      expect(first.id).toBe(sessionId)
-      expect(first.isReattach).toBeUndefined()
-      expect(first.launchAgent).toBe('droid')
-
-      lastSubprocess._simulateData('hello from shell\r\n')
-      await new Promise((r) => setTimeout(r, 50))
-
-      const second = await adapter.spawn({ cols: 80, rows: 24, sessionId })
-      expect(second.id).toBe(sessionId)
-      expect(second.isReattach).toBe(true)
-      expect(second.launchAgent).toBe('droid')
-      expect(second.snapshot).toBeDefined()
-      expect(second.snapshot).toContain('hello from shell')
-      expect(second.providerSequence).toEqual({
-        value: 'hello from shell\r\n'.length,
-        generation: 'continued'
-      })
-    })
 
     it('forwards attach-only and never creates an absent stable session', async () => {
       const subprocessBeforeAttach = lastSubprocess

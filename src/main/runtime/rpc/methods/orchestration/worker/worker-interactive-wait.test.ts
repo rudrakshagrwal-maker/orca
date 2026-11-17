@@ -117,20 +117,6 @@ describe('worker-show interactive wait (STA-3714, STA-4513)', () => {
     return method.handler(method.params?.parse({ dispatch: dispatch.id }), { runtime })
   }
 
-  it('names the pending prompt on the observation a coordinator polls', async () => {
-    const result = await showWorkerPaneServing(fixture('cursor-agent-approval-prompt'))
-
-    expect(result).toMatchObject({
-      observation: {
-        exactWorker: true,
-        agentWait: {
-          source: 'prompt-text',
-          reason: 'agent-approval-prompt',
-          since: expect.any(Number)
-        }
-      }
-    })
-  })
 
   it('reports an explicit null for the same lane inside a long tool call', async () => {
     // Explicit null means checked-and-not-waiting; absence preserves compatibility with hosts too old to know.

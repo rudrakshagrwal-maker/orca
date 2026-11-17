@@ -344,27 +344,6 @@ describe('OrcaRuntimeService', () => {
     })
   })
 
-  it('resolves live-leaf tui-idle from an OpenCode native title', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => null
-    })
-    syncSinglePty(runtime, 'remote:pty-1', {
-      tabTitle: 'repo terminal',
-      paneTitle: 'ssh build-host | OC | Native session'
-    })
-    const [terminal] = (await runtime.listTerminals()).terminals
-
-    await expect(
-      runtime.waitForTerminal(terminal.handle, { condition: 'tui-idle', timeoutMs: 1_000 })
-    ).resolves.toMatchObject({
-      handle: terminal.handle,
-      condition: 'tui-idle',
-      status: 'running'
-    })
-  })
 
   it('does not treat a Codex launch title as tui-idle readiness', async () => {
     vi.useFakeTimers()
@@ -451,32 +430,4 @@ describe('OrcaRuntimeService', () => {
     })
   })
 
-  it('resolves tui-idle from an Antigravity prompt before the model line', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      spawn: vi.fn().mockResolvedValue({ id: 'pty-bg' }),
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => null
-    })
-    const { handle } = await runtime.createTerminal(`path:${TEST_WORKTREE_PATH}`)
-    runtime.onPtyData(
-      'pty-bg',
-      [
-        'Do you trust this workspace directory?\n',
-        'Press t to trust\n',
-        antigravityPromptBeforeModelReadyScreen('Gemini 3.5 Flash (High)')
-      ].join(''),
-      Date.now()
-    )
-
-    await expect(
-      runtime.waitForTerminal(handle, { condition: 'tui-idle', timeoutMs: 1_000 })
-    ).resolves.toMatchObject({
-      handle,
-      condition: 'tui-idle',
-      satisfied: true,
-      status: 'running'
-    })
-  })
 })

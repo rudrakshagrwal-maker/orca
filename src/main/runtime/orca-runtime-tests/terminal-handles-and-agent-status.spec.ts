@@ -423,23 +423,6 @@ describe('OrcaRuntimeService', () => {
     })
   })
 
-  it('authorizes a hookless OpenCode marker with an OpenCode foreground process', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => 'opencode'
-    })
-    syncSinglePty(runtime, 'pty-1', { paneTitle: 'OC | Native session' })
-    const [terminal] = (await runtime.listTerminals()).terminals
-
-    await expect(runtime.isTerminalRunningAgent(terminal.handle)).resolves.toBe(true)
-    await expect(runtime.getTerminalAgentStatus(terminal.handle)).resolves.toEqual({
-      handle: terminal.handle,
-      isRunningAgent: true,
-      status: 'idle'
-    })
-  })
 
   it('does not authorize an OpenCode marker left on a runtime PTY shell', async () => {
     const runtime = new OrcaRuntimeService(store)

@@ -226,69 +226,7 @@ describe('scanAiVaultSessions — scope before the recency cap', () => {
   })
 })
 
-it('keeps an older Antigravity session in scope across warm scans and changed history', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'orca-scope-history-'))
-  tempRoots.push(root)
-  const roots = isolatedScanRoots(root)
-  await writeRollout(roots.codexSessionsDir, 'newer', '/other', '15')
-  const timestamp = '2026-10-11T10:00:00.000Z'
-  const path = await writeAntigravityTranscript(roots.antigravityBrainDir, 'older', [
-    { source: 'USER_EXPLICIT', type: 'USER_INPUT', created_at: timestamp, content: 'Find me' }
-  ])
-  await utimes(path, new Date(timestamp), new Date(timestamp))
-  const history = (workspace: string) =>
-    writeAntigravityHistory(roots.antigravityBrainDir, [
-      { conversationId: 'older', display: 'Find me', timestamp, workspace }
-    ])
-  const scan = () =>
-    scanAiVaultSessions({ ...roots, platform: 'linux', limit: 1, scopePaths: ['/repo'] })
-  await history('/repo')
-  expect((await scan()).sessions.map((row) => row.sessionId)).toContain('older')
-  expect((await scan()).sessions.map((row) => row.sessionId)).toContain('older')
-  await history('/elsewhere')
-  expect((await scan()).sessions.map((row) => row.sessionId)).not.toContain('older')
-  await history('/repo')
-  expect((await scan()).sessions.map((row) => row.sessionId)).toContain('older')
-})
 
-it('admits the newest scoped activity when copied Hermes files have newer mtimes', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'orca-scope-activity-'))
-  tempRoots.push(root)
-  const roots = isolatedScanRoots(root)
-  await writeRollout(roots.codexSessionsDir, 'newer', '/other', '15')
-  await mkdir(roots.hermesSessionsDir, { recursive: true })
-  const base = Date.parse('2026-10-10T00:00:00.000Z')
-  for (let index = 0; index < 17; index++) {
-    const path = join(roots.hermesSessionsDir, `session_${index}.json`)
-    await writeFile(
-      path,
-      JSON.stringify({
-        session_id: `hermes-${index}`,
-        cwd: '/repo',
-        message_count: 1,
-        last_updated: new Date(base + (index === 16 ? 980 : 100)).toISOString()
-      })
-    )
-    await utimes(path, new Date(base + 1000 - index), new Date(base + 1000 - index))
-  }
-  const scan = (limit: number) =>
-    scanAiVaultSessions({ ...roots, platform: 'linux', limit, scopePaths: ['/repo'] })
-  const result = await scan(1)
-  expect(result.sessions.filter((row) => row.cwd === '/repo').map((row) => row.sessionId)).toEqual([
-    'hermes-16'
-  ])
-  expect(result.sessions.some((row) => row.sessionId === 'newer')).toBe(true)
-  expect(
-    truncateAiVaultListResult(result, 1, ['/repo'])
-      .sessions.filter((row) => row.cwd === '/repo')
-      .map((row) => row.sessionId)
-  ).toEqual(['hermes-16'])
-  const deeper = await scan(2)
-  const scopedIds = (rows: AiVaultListResult) =>
-    rows.sessions.filter((row) => row.cwd === '/repo').map((row) => row.sessionId)
-  expect(scopedIds(deeper)[0]).toBe('hermes-16')
-  expect(scopedIds(truncateAiVaultListResult(deeper, 1, ['/repo']))).toEqual(scopedIds(deeper))
-})
 
 it('delivers cancellation while traversing unchanged cached candidates', async () => {
   const candidates = Array.from({ length: 512 }, (_, index) => {

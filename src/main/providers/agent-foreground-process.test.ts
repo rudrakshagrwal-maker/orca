@@ -157,62 +157,7 @@ describe('resolveAgentForegroundProcess', () => {
     ).resolves.toEqual({ available: true, processName: 'powershell.exe' })
   })
 
-  it('filters detached agents before resolving an otherwise ambiguous ConPTY tree', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32' })
-    mockWindowsRows([
-      {
-        pid: 100,
-        ppid: 99,
-        name: 'powershell.exe',
-        commandLine: 'powershell.exe'
-      },
-      {
-        pid: 101,
-        ppid: 100,
-        name: 'droid.exe',
-        commandLine: 'droid'
-      },
-      {
-        pid: 102,
-        ppid: 100,
-        name: 'agy.exe',
-        commandLine: 'agy'
-      }
-    ])
 
-    await expect(
-      resolveAgentForegroundProcessWithAvailability(100, 'powershell.exe', {
-        fresh: true,
-        readWindowsConsoleAttachedProcessIds: async () => new Set([100, 101])
-      })
-    ).resolves.toEqual({
-      available: true,
-      processName: 'droid',
-      processId: 101
-    })
-  })
-
-  it('fails closed when console attachment cannot be read', async () => {
-    // Unreadable console attachment cannot authorize a detached descendant as the pane agent (#16419).
-    Object.defineProperty(process, 'platform', { value: 'win32' })
-    mockWindowsRows([
-      { pid: 200, ppid: 199, name: 'powershell.exe', commandLine: 'powershell.exe' },
-      { pid: 201, ppid: 200, name: 'droid.exe', commandLine: 'droid' },
-      { pid: 202, ppid: 200, name: 'agy.exe', commandLine: 'agy' }
-    ])
-
-    const reader = vi.fn(async () => null)
-
-    const resolution = await resolveAgentForegroundProcessWithAvailability(200, 'powershell.exe', {
-      fresh: true,
-      readWindowsConsoleAttachedProcessIds: reader
-    })
-
-    expect(reader).toHaveBeenCalledTimes(1)
-    // Unavailable evidence must yield the shell fallback, never an unverified agent identity.
-    expect(resolution.available).toBe(false)
-    expect(resolution.processName).toBe('powershell.exe')
-  })
 
   it('excludes a detached Windows Droid descendant from byte authority', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' })

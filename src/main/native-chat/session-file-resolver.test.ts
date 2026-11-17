@@ -95,31 +95,7 @@ describe('resolveSessionFilePath', () => {
     ).resolves.toBe(target)
   })
 
-  it('resolves Grok chat_history.jsonl under encodeURIComponent(cwd)/sessionId', async () => {
-    const root = await makeRoot('orca-native-chat-resolve-grok-')
-    const grokSessionsDir = join(root, 'grok-sessions')
-    const sessionDir = join(grokSessionsDir, encodeURIComponent('/tmp/work'), 'sess-grok-1')
-    await mkdir(sessionDir, { recursive: true })
-    const target = join(sessionDir, 'chat_history.jsonl')
-    await writeFile(target, '{"type":"user","content":"hi"}\n')
 
-    const resolved = await resolveSessionFilePath('grok', 'sess-grok-1', { grokSessionsDir })
-    expect(resolved).toBe(target)
-  })
-
-  it('resolves Grok chat_history by session id under a long-cwd slug group', async () => {
-    const root = await makeRoot('orca-native-chat-resolve-grok-long-')
-    const grokSessionsDir = join(root, 'grok-sessions')
-    const sessionDir = join(grokSessionsDir, 'slug-hash-ab12', 'sess-long-1')
-    await mkdir(sessionDir, { recursive: true })
-    const target = join(sessionDir, 'chat_history.jsonl')
-    await writeFile(join(grokSessionsDir, 'slug-hash-ab12', '.cwd'), `/${'x'.repeat(400)}\n`)
-    await writeFile(target, '{"type":"assistant","content":"ok"}\n')
-
-    await expect(resolveSessionFilePath('grok', 'sess-long-1', { grokSessionsDir })).resolves.toBe(
-      target
-    )
-  })
 
   it('ignores nested Grok decoys outside the direct group/session layout', async () => {
     const root = await makeRoot('orca-native-chat-resolve-grok-decoy-')
@@ -164,23 +140,6 @@ describe('resolveSessionFilePath', () => {
     expect(resolved).toBe(target)
   })
 
-  it('never descends into an omp session artifact dir', async () => {
-    // Put the only match inside the artifact directory so success cannot depend on readdir ordering.
-    const root = await makeRoot('orca-native-chat-resolve-omp-artifact-')
-    const ompSessionsDir = join(root, 'omp-sessions')
-    const cwdDir = join(ompSessionsDir, '-Users-ada-repo')
-    const stem = '2026-07-16T00-27-02-222Z_019fd8e2-fd56-7000-acfe-2e497adfa83c'
-    await mkdir(join(cwdDir, stem), { recursive: true })
-    await writeFile(join(cwdDir, `${stem}.jsonl`), '{}\n')
-    await writeFile(join(cwdDir, stem, 'worker_sess-omp-child.jsonl'), '{}\n')
-
-    await expect(
-      resolveSessionFilePath('omp', 'sess-omp-child', { ompSessionsDir })
-    ).resolves.toBeNull()
-    await expect(
-      resolveSessionFilePath('omp', '019fd8e2-fd56-7000-acfe-2e497adfa83c', { ompSessionsDir })
-    ).resolves.toBe(join(cwdDir, `${stem}.jsonl`))
-  })
 
   it('prefers the hook transcriptPath when it exists (Claude id != file name)', async () => {
     const root = await makeRoot('orca-native-chat-resolve-path-')

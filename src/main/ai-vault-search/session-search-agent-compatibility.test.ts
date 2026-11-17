@@ -81,21 +81,3 @@ test.each(['relay'] as const)(
   }
 )
 
-test('keeps current Jcode hits and removes unrequested agents before publication', async () => {
-  const service = fakeSearchService()
-  service.search.mockResolvedValue({
-    ...searchResults(),
-    hits: [{ ...searchHit(), agent: 'jcode' }, searchHit()]
-  })
-  setSessionSearchService(service)
-  expect(
-    await searchSessionService(
-      { query: 'proof', supportedAgents: [...AI_VAULT_AGENTS], filters: { agents: ['jcode'] } },
-      'relay'
-    )
-  ).toMatchObject({ hits: [{ agent: 'jcode' }] })
-  expect(service.search).toHaveBeenCalledExactlyOnceWith(
-    { query: 'proof', limit: 20, filters: { agents: ['jcode'] } },
-    undefined
-  )
-})

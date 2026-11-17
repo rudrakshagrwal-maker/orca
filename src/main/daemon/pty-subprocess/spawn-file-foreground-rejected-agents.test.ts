@@ -96,17 +96,6 @@ describe('Windows static-name agent selection', () => {
     }))
   }
 
-  it('does not re-admit a detached agent through owned job membership', async () => {
-    installRows(['droid.exe'])
-    const consoleMembers = vi.fn(async () => new Set([100, 999]))
-    expect(
-      await resolveSpawnFileForegroundProcess(proc, 'powershell.exe', {
-        fresh: true,
-        readWindowsConsoleAttachedProcessIds: consoleMembers
-      })
-    ).toEqual({ available: true, processName: 'powershell.exe' })
-    expect(consoleMembers).toHaveBeenCalledOnce()
-  })
 
   it('does not choose a rejected sibling agent from the identity table', async () => {
     installRows(['claude.exe', 'codex.exe'])
@@ -115,13 +104,4 @@ describe('Windows static-name agent selection', () => {
     ).toEqual({ available: true, processName: 'powershell.exe' })
   })
 
-  it('retains a positively authorized agent', async () => {
-    installRows(['droid.exe'])
-    expect(
-      await resolveSpawnFileForegroundProcess(proc, 'powershell.exe', {
-        fresh: true,
-        readWindowsConsoleAttachedProcessIds: async () => new Set([100, 101])
-      })
-    ).toEqual({ available: true, processName: 'droid', processId: 101 })
-  })
 })

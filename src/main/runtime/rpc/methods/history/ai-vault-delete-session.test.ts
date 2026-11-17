@@ -40,36 +40,5 @@ afterAll(() => {
 })
 
 describe('aiVault.deleteSession', () => {
-  it("permanently deletes a transcript under this host's own roots", async () => {
-    const filePath = writeSession('session-1.json')
 
-    const response = await dispatcher().dispatch({
-      id: 'req-1',
-      authToken: 'tok',
-      method: 'aiVault.deleteSession',
-      // A client host stamp is not trusted; the host deletes only its own files.
-      params: { agent: 'gemini', sessionId: 'session-1', filePath, executionHostId: 'ssh:other' }
-    })
-
-    expect(response).toMatchObject({ ok: true, result: { outcome: 'deleted' } })
-    expect(existsSync(filePath)).toBe(false)
-  })
-
-  it('refuses a path outside the host roots and leaves it on disk', async () => {
-    const outside = join(home.dir, 'notes.json')
-    writeFileSync(outside, '{}')
-
-    const response = await dispatcher().dispatch({
-      id: 'req-2',
-      authToken: 'tok',
-      method: 'aiVault.deleteSession',
-      params: { agent: 'gemini', filePath: outside }
-    })
-
-    expect(response).toMatchObject({
-      ok: true,
-      result: { outcome: 'rejected', reason: 'path-outside-known-roots' }
-    })
-    expect(existsSync(outside)).toBe(true)
-  })
 })

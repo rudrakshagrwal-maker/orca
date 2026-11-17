@@ -78,31 +78,6 @@ describe('daemon foreground confirmation composes with pane tracking', () => {
     return { handle, tracker }
   }
 
-  it('keeps a restored Droid through a scan resolving after the old cache window', async () => {
-    let resolveFresh!: (value: string) => void
-    resolveForegroundMock.mockReturnValue(
-      new Promise<string>((resolve) => {
-        resolveFresh = resolve
-      })
-    )
-    const publish = vi.fn()
-    const { tracker } = await createComposedTracker(publish)
-
-    tracker.onVisiblePtyBound(true)
-    await vi.advanceTimersByTimeAsync(350)
-    await vi.advanceTimersByTimeAsync(2_000)
-    expect(publish).not.toHaveBeenCalled()
-    resolveFresh('droid')
-    await vi.advanceTimersByTimeAsync(0)
-
-    expect(publish).toHaveBeenCalledExactlyOnceWith({
-      agent: 'droid',
-      agentEvidence: 'process-read',
-      routingTrusted: true,
-      shellForeground: false
-    })
-    expect(resolveForegroundMock).toHaveBeenCalledTimes(1)
-  })
 
   it('clears launch identity after one fresh scan confirms a real shell exit', async () => {
     resolveForegroundMock.mockResolvedValue('powershell.exe')

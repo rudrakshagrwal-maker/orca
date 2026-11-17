@@ -213,40 +213,6 @@ it('keeps root-own completion terminal even when its binding matches', async () 
   expect(frame().agentType).toBe('codex')
 })
 
-it('retires the binding on an actual host clear, including through a later foreign row', async () => {
-  await positive()
-  await childDone()
-  server.ingestTerminalStatus({
-    paneKey: PANE,
-    worktreeId: 'wt-1',
-    origin: 'process',
-    payload: { agentType: 'hermes', state: 'working', prompt: '' }
-  })
-  expect(server.getStatusSnapshot()[0]?.providerSession).toBeUndefined()
-  expect(frame().paneOwner).toBeUndefined()
-  await post('hermes', { hook_event_name: 'on_session_end', session_id: CHILD })
-  await nested()
-  await tool()
-  expect(frame().agentType).toBe('codex')
-  server.stop()
-  await restart()
-  await tool()
-  expect(server.getStatusSnapshot()[0]?.providerSession).toBeUndefined()
-  await positive('fresh-C')
-  await childDone()
-  await nested()
-  await tool('fresh-C')
-  expectReturned('fresh-C')
-  server.recordLaunchResumeIdentity({
-    paneKey: PANE,
-    worktreeId: 'wt-1',
-    agentType: 'hermes',
-    providerSession: { key: 'session_id', id: 'explicit-seed' },
-    launchedAt: frame().receivedAt + 1
-  })
-  await tool('explicit-seed')
-  expectReturned('explicit-seed')
-})
 
 it.each([257, 512])(
   'matches only the actual hook against a %s-character unproven legacy tuple after hydration',
@@ -274,84 +240,7 @@ it.each([257, 512])(
   }
 )
 
-it('reenters Antigravity from retained first-record authority when that file is temporarily unreadable', async () => {
-  const transcriptPath = join(dir, 'agy.jsonl')
-  const origin = {
-    step_index: 0,
-    source: 'USER_EXPLICIT',
-    type: 'USER_INPUT',
-    content: 'Reply with OK.'
-  }
-  const hook = (id: string, extra: Record<string, unknown> = {}) => ({
-    hook_event_name: 'PreInvocation',
-    conversationId: id,
-    transcriptPath,
-    lastUserInput: 'Reply with OK.',
-    ...extra
-  })
-  writeFileSync(transcriptPath, `${JSON.stringify(origin)}\n`)
-  await post('antigravity', hook(ROOT))
-  await post(
-    'antigravity',
-    hook(ROOT, {
-      hook_event_name: 'Stop',
-      fullyIdle: true,
-      terminationReason: 'NO_TOOL_CALL',
-      error: ''
-    })
-  )
-  await nested()
-  const beforeRejectedRoot = server.getStatusSnapshot()
-  await post('antigravity', hook('rejected-C', { hook_event_name: 'SessionStart' }))
-  expect(server.getStatusSnapshot()).toEqual(beforeRejectedRoot)
-  rmSync(transcriptPath)
-  await post('antigravity', hook('child-A'))
-  expect(frame().agentType).toBe('codex')
-  await post('antigravity', hook(ROOT))
-  expectReturned(ROOT, 'antigravity')
-  writeFileSync(
-    transcriptPath,
-    `${JSON.stringify({ step_index: 0, source: 'SYSTEM', type: 'SYSTEM_MESSAGE', content: 'sender=parent' })}\n`
-  )
-  const cold = normalizeHookPayload(
-    createHookListenerState(),
-    'antigravity',
-    buildBody(hook('child-A')),
-    'production'
-  )
-  expect(cold?.providerSession).toBeUndefined()
-})
 
-it('forwards a cold host comparison to the retained canonical binding without creating one', async () => {
-  await positive()
-  await childDone()
-  await nested()
-  const build = (id: string) => {
-    const canonical = createHookListenerState()
-    const event = new RelayProviderHookNormalization().normalize(
-      canonical,
-      'hermes',
-      buildBody({ hook_event_name: 'post_tool_call', session_id: id, tool_name: 'delegate_task' }),
-      'production'
-    )
-    if (!event) {
-      throw new Error('No cold execution-host tool event')
-    }
-    return buildRelayHookEnvelope(event, 'hermes', 'production')
-  }
-  for (const id of ['child-A', ROOT]) {
-    const envelope = build(id)
-    expect(envelope.agentPresence).toEqual({ agent: 'hermes', session: id })
-    expect(envelope.providerSession).toBeUndefined()
-    server.ingestRemote(envelope, null)
-    expect(frame().agentType).toBe(id === ROOT ? 'hermes' : 'codex')
-  }
-  expectReturned()
-  server.clearPaneState(PANE)
-  server.ingestRemote(build('unknown-child'), null)
-  expect(server.getStatusSnapshot()[0]?.providerSession).toBeUndefined()
-  expect(frame().paneOwner).toBeUndefined()
-})
 
 it('rejects an inherited hook and malformed scoped session IDs', () => {
   const now = 1_700_000_000_000

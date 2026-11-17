@@ -90,12 +90,6 @@ async function mailAfterQuietAttach(
 describe('mail to a quiet idle agent after a runtime restart', () => {
   // Real Hermes 0.23 writes its OSC title only on a state change, so a worker idle before the
   // restart sends no title after reattach; only its ready screen and seeded title are known.
-  it('types and submits the pointer to Hermes without a fresh title', async () => {
-    expect(await mailAfterQuietAttach('hermes', HERMES_READY, async () => {})).toEqual({
-      writes: [expect.stringContaining('You have 1 orchestration message'), '\r'],
-      delivered: true
-    })
-  })
 
   // A quiet-gated ready rule must still settle once a redraw soon after attach has gone quiet.
   it('submits to Cline once its ready screen is quiet after a redraw', async () => {

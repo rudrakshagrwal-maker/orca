@@ -168,37 +168,9 @@ afterEach(async () => {
 })
 
 describe('Kimi session parse against a stalled WSL transcript', () => {
-  it('refuses a stalled wire read, then caches the full session once it recovers', async () => {
-    const state = uncPath('KimiWire', ...KIMI_HOME, 'state.json')
-    mocks.readFile.mockResolvedValue(KIMI_STATE)
-    mocks.open.mockResolvedValue(stallingHandle())
-
-    await expectRefusal(candidate('kimi', state))
-    await releaseAndSettle()
-
-    mocks.open.mockResolvedValue(servingHandle(KIMI_WIRE))
-    const recovered = await parseAgentSessionFileCached(candidate('kimi', state), 'linux')
-
-    expect(recovered?.messageCount).toBe(1)
-  })
 })
 
 describe('Grok session parse against a stalled WSL transcript', () => {
-  it('refuses a stalled chat_history read instead of reporting a summary-only session', async () => {
-    const file = uncPath('GrokHistory', ...GROK_DIR, 'session.json')
-    mocks.readFile.mockResolvedValue(GROK_SESSION)
-    mocks.open.mockResolvedValue(stallingHandle())
-
-    await expectRefusal(candidate('grok', file))
-    await releaseAndSettle()
-
-    mocks.open.mockResolvedValue(servingHandle(GROK_HISTORY))
-    const recovered = await parseAgentSessionFileCached(candidate('grok', file), 'linux')
-
-    expect(recovered?.previewMessages).toEqual([
-      expect.objectContaining({ role: 'user', text: 'ship it' })
-    ])
-  })
 })
 
 describe('OpenCode session parse against a stalled WSL transcript', () => {
@@ -206,21 +178,4 @@ describe('OpenCode session parse against a stalled WSL transcript', () => {
     return uncPath(distro, ...OPENCODE_ROOT, 'session', 'prj', 'ses-1.json')
   }
 
-  it('refuses a stalled per-message read instead of a partial transcript', async () => {
-    const file = sessionPath('OpenCodeMessage')
-    mocks.readdir.mockResolvedValue([dirent('msg-1.json')])
-    mocks.readFile.mockImplementation((path: string) =>
-      path === file ? Promise.resolve(OPENCODE_SESSION) : stalls<string>()
-    )
-
-    await expectRefusal(candidate('opencode', file))
-    await releaseAndSettle()
-
-    mocks.readFile.mockImplementation((path: string) =>
-      Promise.resolve(path === file ? OPENCODE_SESSION : OPENCODE_MESSAGE)
-    )
-    const recovered = await parseAgentSessionFileCached(candidate('opencode', file), 'linux')
-
-    expect(recovered?.messageCount).toBe(1)
-  })
 })

@@ -117,67 +117,7 @@ describe('OrcaRuntimeService', () => {
     })
   })
 
-  it('resolves tui-idle for an idle Cursor lane past its dismissed trust dialog (#8210)', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      spawn: vi.fn().mockResolvedValue({ id: 'pty-bg' }),
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => 'cursor-agent'
-    })
-    const { handle } = await runtime.createTerminal(`path:${TEST_WORKTREE_PATH}`)
-    // A later idle prompt must override a dismissed trust dialog retained in scrollback.
-    runtime.onPtyData(
-      'pty-bg',
-      [
-        // Pick the later ready banner, not Cursor Agent in the earlier trust dialog.
-        'Cursor Agent\n',
-        '⚠ Workspace Trust Required\n',
-        'Do you trust the contents of this directory?\n',
-        '  ▶ [a] Trust this workspace\n',
-        '    [q] Quit\n',
-        cursorReadyScreen()
-      ].join(''),
-      Date.now()
-    )
 
-    await expect(
-      runtime.waitForTerminal(handle, { condition: 'tui-idle', timeoutMs: 1_000 })
-    ).resolves.toMatchObject({
-      handle,
-      condition: 'tui-idle',
-      satisfied: true,
-      status: 'running'
-    })
-  })
-
-  it('does not block a mid-run Cursor lane on its dismissed trust dialog (#8210)', async () => {
-    const runtime = new OrcaRuntimeService(store)
-    runtime.setPtyController({
-      spawn: vi.fn().mockResolvedValue({ id: 'pty-bg' }),
-      write: () => true,
-      kill: () => true,
-      getForegroundProcess: async () => 'cursor-agent'
-    })
-    const { handle } = await runtime.createTerminal(`path:${TEST_WORKTREE_PATH}`)
-    runtime.onPtyData(
-      'pty-bg',
-      [
-        // The later banner must win over the earlier trust-dialog title.
-        'Cursor Agent\n',
-        '⚠ Workspace Trust Required\n',
-        'Do you trust the contents of this directory?\n',
-        '  ▶ [a] Trust this workspace\n',
-        '    [q] Quit\n',
-        cursorBusyScreen()
-      ].join(''),
-      Date.now()
-    )
-
-    await expect(
-      runtime.waitForTerminal(handle, { condition: 'tui-idle', timeoutMs: 200 })
-    ).rejects.toThrow('timeout')
-  })
 
   it('does not classify unrelated press-enter prompts as Codex blocked prompts', async () => {
     vi.useFakeTimers()

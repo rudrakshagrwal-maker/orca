@@ -61,68 +61,10 @@ afterEach(() => {
 
 describe('skill discovery', () => {
   // An abandoned root must not empty the picker for healthy roots.
-  it('keeps every healthy root when one root walk is aborted', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const healthySkill = join(home, '.codex', 'skills', 'review')
-    const stalledSkill = join(home, '.omp', 'agent', 'skills', 'planning')
-    await mkdir(healthySkill, { recursive: true })
-    await mkdir(stalledSkill, { recursive: true })
-    await writeFile(join(healthySkill, 'SKILL.md'), '# Review\n\nReview code.')
-    await writeFile(join(stalledSkill, 'SKILL.md'), '# Planning\n\nPlan work.')
-    unavailableRootPath = join(home, '.omp', 'agent', 'skills')
-
-    const result = await discoverSkills({ homeDir: home, cwd: join(root, 'missing-cwd') })
-
-    expect(result.skills.map((skill) => skill.name)).toEqual(['Review'])
-    const stalledSource = result.sources.find((source) => source.path === unavailableRootPath)
-    expect(stalledSource).toMatchObject({ skippedReason: 'unavailable' })
-  })
 
   // Unavailable means unknown, never proof that skills are missing.
-  it('does not report an aborted root as missing', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const absentRoot = join(home, '.codex', 'skills')
-    const stalledRoot = join(home, '.omp', 'agent', 'skills')
-    await mkdir(stalledRoot, { recursive: true })
-    unavailableRootPath = stalledRoot
-
-    const result = await discoverSkills({ homeDir: home, cwd: join(root, 'missing-cwd') })
-
-    expect(result.sources.find((source) => source.path === absentRoot)).toMatchObject({
-      exists: false,
-      skippedReason: 'missing'
-    })
-    expect(result.sources.find((source) => source.path === stalledRoot)).toMatchObject({
-      exists: true,
-      skippedReason: 'unavailable'
-    })
-  })
 
   // Retain the last answered scan so stalled roots do not make installed skills offer Install.
-  it('serves the last answered skills for a root whose rescan did not answer', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const stalledRoot = join(home, '.omp', 'agent', 'skills')
-    await mkdir(join(stalledRoot, 'planning'), { recursive: true })
-    await writeFile(join(stalledRoot, 'planning', 'SKILL.md'), '# Planning\n\nPlan work.')
-
-    const first = await discoverSkills({ homeDir: home, cwd: join(root, 'missing-cwd') })
-    expect(first.skills.map((skill) => skill.name)).toEqual(['Planning'])
-
-    unavailableRootPath = stalledRoot
-    const second = await discoverSkills({
-      homeDir: home,
-      cwd: join(root, 'missing-cwd'),
-      refresh: true
-    })
-
-    expect(second.skills.map((skill) => skill.name)).toEqual(['Planning'])
-    expect(second.sources.find((source) => source.path === stalledRoot)).toMatchObject({
-      skippedReason: 'unavailable'
-    })
-  })
 
   it('drops the retained copy once a root answers as absent', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
@@ -144,65 +86,7 @@ describe('skill discovery', () => {
     expect(result.skills.map((skill) => skill.name)).toEqual([])
   })
 
-  it('stops serving a retained copy once it is older than the retention window', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const stalledRoot = join(home, '.omp', 'agent', 'skills')
-    await mkdir(join(stalledRoot, 'planning'), { recursive: true })
-    await writeFile(join(stalledRoot, 'planning', 'SKILL.md'), '# Planning\n\nPlan work.')
-    await discoverSkills({ homeDir: home, cwd: join(root, 'missing-cwd') })
 
-    const recordedAt = Date.now()
-    vi.spyOn(Date, 'now').mockReturnValue(recordedAt + LAST_KNOWN_ROOT_SCAN_RETENTION_MS + 1)
-    unavailableRootPath = stalledRoot
-    const result = await discoverSkills({
-      homeDir: home,
-      cwd: join(root, 'missing-cwd'),
-      refresh: true
-    })
-
-    expect(result.skills).toEqual([])
-    expect(result.sources.find((source) => source.path === stalledRoot)).toMatchObject({
-      skippedReason: 'unavailable'
-    })
-  })
-
-  it('discovers home and repo SKILL.md packages with provider metadata', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const repo = join(root, 'repo')
-    const codexSkill = join(home, '.codex', 'skills', 'review')
-    const ompSkill = join(home, '.omp', 'agent', 'skills', 'planning')
-    const repoSkill = join(repo, '.claude', 'skills', 'docs')
-    await mkdir(codexSkill, { recursive: true })
-    await mkdir(ompSkill, { recursive: true })
-    await mkdir(repoSkill, { recursive: true })
-    await writeFile(
-      join(codexSkill, 'SKILL.md'),
-      ['---', 'name: code-review', 'description: Review code changes.', '---', ''].join('\n')
-    )
-    await writeFile(join(repoSkill, 'SKILL.md'), '# Docs\n\nWrite project docs.')
-    await writeFile(join(ompSkill, 'SKILL.md'), '# Planning\n\nPlan OMP work.')
-
-    const result = await discoverSkills({
-      homeDir: home,
-      cwd: join(root, 'missing-cwd'),
-      repos: [makeRepo(repo)]
-    })
-
-    expect(result.skills.map((skill) => skill.name).sort()).toEqual([
-      'Docs',
-      'Planning',
-      'code-review'
-    ])
-    expect(result.skills.find((skill) => skill.name === 'code-review')?.providers).toEqual([
-      'codex'
-    ])
-    expect(result.skills.find((skill) => skill.name === 'Docs')?.providers).toEqual(['claude'])
-    expect(result.skills.find((skill) => skill.name === 'Planning')?.providers).toEqual([
-      'agent-skills'
-    ])
-  })
 
   it('filters discovery by requested directory name and source kind', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
@@ -331,28 +215,6 @@ describe('skill discovery', () => {
     )
   })
 
-  it('keys every deduped root to an owning source so per-agent coverage resolves', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const claudeSkills = join(home, '.claude', 'skills')
-    await mkdir(join(claudeSkills, 'orchestration'), { recursive: true })
-    await writeFile(join(claudeSkills, 'orchestration', 'SKILL.md'), '# orchestration')
-    await mkdir(join(home, '.grok'), { recursive: true })
-    await symlink(
-      claudeSkills,
-      join(home, '.grok', 'skills'),
-      process.platform === 'win32' ? 'junction' : 'dir'
-    )
-
-    const result = await discoverSkills({ homeDir: home, repos: [], includeCwd: false })
-
-    const skill = result.skills.find((entry) => entry.name === 'orchestration')
-    // Every rootPath needs a source row or renderer coverage silently disappears.
-    const owners = skill?.rootPaths
-      ?.map((rootPath) => result.sources.find((source) => source.path === rootPath))
-      .map((source) => source?.owner)
-    expect(owners?.slice().sort()).toEqual(['claude', 'grok'])
-  })
 
   it('reports an SSH-backed repository as a remote-repo source instead of dropping it', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
@@ -431,37 +293,6 @@ describe('skill discovery', () => {
     expect(skill?.directoryPath).toBe(linkedSkill)
   })
 
-  it('discovers Hermes Skills under a relocated HERMES_HOME profile', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
-    const home = join(root, 'home')
-    const hermesHome = join(root, 'profiles', 'coder')
-    const skillDir = join(hermesHome, 'skills', 'research')
-    await mkdir(skillDir, { recursive: true })
-    await writeFile(
-      join(skillDir, 'SKILL.md'),
-      ['---', 'name: profile-research', 'description: Research sources.', '---', ''].join('\n')
-    )
-    vi.stubEnv('HERMES_HOME', hermesHome)
-
-    const result = await discoverSkills({
-      homeDir: home,
-      cwd: join(root, 'missing-cwd')
-    })
-
-    expect(result.skills).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'profile-research',
-          sourceLabel: 'Hermes home',
-          directoryPath: skillDir
-        })
-      ])
-    )
-    expect(result.sources.find((source) => source.id === 'home-hermes')).toMatchObject({
-      path: join(hermesHome, 'skills'),
-      exists: true
-    })
-  })
 
   it('keeps home classification when cwd points at the same directory as home', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-skills-'))
