@@ -8,7 +8,6 @@ import {
   WRAPPER_RESOLVE_RETRY_MS,
   SECOND_WRAPPER_RETRY_MS
 } from '../test-fixtures/pty-connection-test-constants'
-import { temporarilySetNavigatorUserAgent } from '../test-fixtures/pty-connection-test-dom'
 import {
   LEAF_1,
   createMockTransport,
@@ -29,7 +28,6 @@ import {
 import { createInitialStoreState } from '../test-fixtures/pty-connection-test-store-fixtures'
 import {
   installTerminalTestGlobals,
-  loadFreshTerminalModules,
   restoreTerminalTestGlobals
 } from '../test-fixtures/pty-connection-test-environment'
 

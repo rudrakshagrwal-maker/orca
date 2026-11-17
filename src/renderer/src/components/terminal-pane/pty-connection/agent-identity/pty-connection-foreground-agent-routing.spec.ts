@@ -2,11 +2,6 @@ import { bindPtyConnectionTestMocks } from '../test-fixtures/pty-connection-mock
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
 import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
-import {
-  VISIBLE_PTY_SETTLE_MS,
-  WRAPPER_RESOLVE_RETRY_MS,
-  SECOND_WRAPPER_RETRY_MS
-} from '../test-fixtures/pty-connection-test-constants'
 import { sendTerminalInputThroughPane } from '../test-fixtures/pty-connection-test-dom'
 import {
   LEAF_1,

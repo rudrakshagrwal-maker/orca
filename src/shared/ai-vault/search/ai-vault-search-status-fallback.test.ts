@@ -1,15 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createSessionSearchClient } from './ai-vault-search-client'
-import { AiVaultSearchRequestSchema as LegacyRequestSchema } from '../../__fixtures__/pre-qoder-search-request'
-import { searchResults } from './ai-vault-search-test-fixture'
-
-const query = {
-  query: 'needle',
-  scope: 'conversation' as const,
-  limit: 7,
-  cursor: 'next-page',
-  filters: { agents: ['claude'] as const, scopePaths: ['/execution-host/folder'] }
-}
 
 describe.each(['runtime', 'relay'] as const)('missing search status over %s', (transport) => {
 

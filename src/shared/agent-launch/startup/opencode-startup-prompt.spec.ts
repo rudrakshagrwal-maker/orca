@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildAgentStartupPlan, buildAgentDraftLaunchPlan } from './tui-agent-startup'
-import { OPENCODE_STARTUP_PROMPT_SHA256_ENV } from './opencode-startup-prompt'
+import { buildAgentStartupPlan } from './tui-agent-startup'
 import { tokenizeStartupCommand } from './tui-agent-startup-shell'
 
 describe('native OpenCode startup submission intent', () => {

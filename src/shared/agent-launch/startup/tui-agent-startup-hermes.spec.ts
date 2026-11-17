@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildAgentResumeStartupPlan } from './tui-agent-resume-startup'
 import { buildAgentStartupPlan } from './tui-agent-startup'
 import {
-  unwrapPosixShellScript,
   unwrapPowerShellScript
 } from './tui-agent-startup-script.test-fixture'
 

@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAgentCompletionCoordinator } from './agent-completion-coordinator'
 import {
-  flushAsyncTicks,
   HOOK_DONE_QUIET_MS,
-  processResult,
   useAgentCompletionCoordinatorLifecycle
 } from './agent-completion-coordinator-test-harness'
 

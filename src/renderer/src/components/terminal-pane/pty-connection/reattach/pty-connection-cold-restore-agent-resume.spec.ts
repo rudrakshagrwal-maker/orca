@@ -1,17 +1,11 @@
-import { mockPanePtyArgs } from '../test-fixtures/pty-connection-test-connect-mock-pane'
 import { bindPtyConnectionTestMocks } from '../test-fixtures/pty-connection-mocks.spec'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
-import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../../shared/layout-owner-switch'
 import {
-  expectWindowPaintsColdRestoreOnly,
   mainLayoutApplyTransport
 } from '../test-fixtures/pty-connection-test-main-pane-start-fixtures'
 import { RESET_GRAPHIC_RENDITION } from '../../../../../../shared/terminal/protocol/input-modes/terminal-mode-reset-profiles'
 import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
-import { UUID_RE } from '../test-fixtures/pty-connection-test-constants'
 import {
-  terminalWriteText,
   LEAF_1,
   createMockTransport,
   createPane,

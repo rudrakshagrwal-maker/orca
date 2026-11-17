@@ -1,14 +1,12 @@
 import { bindPtyConnectionTestMocks } from '../test-fixtures/pty-connection-mocks.spec'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
-import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../../shared/layout-owner-switch'
 import {
   bindsPaneInStore,
-  expectNoWindowStart,
   mainLayoutApplyTransport,
   mainStartsPaneAs
 } from '../test-fixtures/pty-connection-test-main-pane-start-fixtures'
-import { createDeferred, flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
+import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
 import {
   LEAF_2,
   createMockTransport,
@@ -37,7 +35,6 @@ type HiddenPaneBinding = {
 }
 
 const PANE_KEY = makePaneKey('tab-1', LEAF_2)
-const DEAD_SESSION_ID = 'wt-1@@dead-session'
 const MAIN_PTY_ID = 'pty-main'
 
 /** After a relaunch: one sleeping agent pane with no live PTY. */
@@ -123,10 +120,6 @@ export function registerPtyConnectionHiddenSleepingResumeTests(): void {
     bindPaneAgentTitleMocks(args[2], agentTitleMocks)
 
     return connectPanePtyRef!(...args)
-  }
-
-  function setHostLiveness(isLive: boolean | null): void {
-    vi.mocked(window.api.pty.hasPty).mockResolvedValue(isLive)
   }
 
   describe('connectPanePty', () => {

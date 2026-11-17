@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   applyAgentPermissionMode,
   resolveAgentPermissionModeSummary,
-  resolveNonAutoAgentPermissionMode,
   AUTO_TUI_AGENT_ARGS,
   YOLO_TUI_AGENT_ENV
 } from './tui-agent-permissions'

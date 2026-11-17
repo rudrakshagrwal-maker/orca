@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { createAgentCompletionCoordinator } from './agent-completion-coordinator'
+import { describe } from 'vitest'
 import {
-  HOOK_DONE_QUIET_MS,
   useAgentCompletionCoordinatorLifecycle
 } from './agent-completion-coordinator-test-harness'
 

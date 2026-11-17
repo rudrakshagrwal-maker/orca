@@ -4,11 +4,6 @@ import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pa
 import type { TuiAgent } from '../../../../../../shared/agent-launch/catalog/tui-agent'
 import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
 import {
-  VISIBLE_PTY_SETTLE_MS,
-  WRAPPER_RESOLVE_RETRY_MS,
-  SECOND_WRAPPER_RETRY_MS
-} from '../test-fixtures/pty-connection-test-constants'
-import {
   LEAF_1,
   createMockTransport,
   createPane,
@@ -123,11 +118,6 @@ export function registerPtyConnectionForegroundRoutingConfirmationTests(): void 
         await vi.advanceTimersByTimeAsync(20)
         await flushAsyncTicks(20)
         return { binding, deps, transport, cacheKey: makePaneKey(tabId, LEAF_1) }
-      }
-
-      async function advanceVisibleForegroundRead(): Promise<void> {
-        await vi.advanceTimersByTimeAsync(VISIBLE_PTY_SETTLE_MS)
-        await flushAsyncTicks()
       }
 
 

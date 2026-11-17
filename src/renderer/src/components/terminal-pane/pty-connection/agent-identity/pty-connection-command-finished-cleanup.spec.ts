@@ -1,9 +1,8 @@
 import { bindPtyConnectionTestMocks } from '../test-fixtures/pty-connection-mocks.spec'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { POST_REPLAY_REATTACH_RESET } from '../../../../../../shared/terminal/protocol/input-modes/terminal-mode-reset-profiles'
-import { TerminalKittyKeyboardModeTracker } from '../../../../../../shared/terminal/protocol/input-modes/terminal-kitty-keyboard-mode-tracker'
 import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
-import { flushAsyncTicks, createDeferred } from '../test-fixtures/pty-connection-test-async'
+import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
 import {
   LEAF_1,
   createMockTransport,
@@ -14,7 +13,6 @@ import {
   type MockTransport
 } from '../test-fixtures/pty-connection-test-pane-fixtures'
 import {
-  resolveMockPaneWindowsShiftEnterEncoding,
   type StoreState
 } from '../test-fixtures/pty-connection-test-store-state'
 import {

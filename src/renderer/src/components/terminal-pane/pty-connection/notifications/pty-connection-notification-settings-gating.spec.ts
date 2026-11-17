@@ -1,7 +1,7 @@
 import { bindPtyConnectionTestMocks } from '../test-fixtures/pty-connection-mocks.spec'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
-import { flushAsyncTicks, createDeferred } from '../test-fixtures/pty-connection-test-async'
+import { flushAsyncTicks } from '../test-fixtures/pty-connection-test-async'
 import { AGENT_TASK_COMPLETE_NOTIFICATION_MAX_WAIT_MS } from '../test-fixtures/pty-connection-test-constants'
 import {
   LEAF_1,

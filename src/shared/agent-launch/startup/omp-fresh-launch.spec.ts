@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { withFreshOmpLaunch } from './omp-fresh-launch'
-import { buildAgentStartupPlan } from './tui-agent-startup'
-
 describe('OMP fresh launch intent', () => {
   it.each([
     'omp --resume id',

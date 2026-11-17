@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  resolveOuterWrapperForegroundIdentity,
   resolveOuterWrapperForegroundProcess
 } from './foreground-wrapper-agent'
 
