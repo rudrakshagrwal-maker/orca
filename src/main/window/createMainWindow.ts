@@ -150,8 +150,8 @@ export function createMainWindow(
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
-      // RA: one terminal renderer; embedded feature guests stay disabled.
-      webviewTag: false,
+      // RA: the embedded agent browser renders every page as a <webview> guest; without the tag no page attaches or registers.
+      webviewTag: true,
       backgroundThrottling: true,
       // Pass host identity at birth so the renderer has it before first snapshot, without waiting for IPC registration.
       additionalArguments: [
