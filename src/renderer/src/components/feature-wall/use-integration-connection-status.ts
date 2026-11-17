@@ -1,7 +1,3 @@
-import { useAppStore } from '@/store/index'
-import { getLocalPreflightContext } from '@/runtime/hosts/preflight/local-preflight-context'
-import { getProviderRuntimeContextKey } from '@/runtime/hosts/observations/provider-runtime-context'
-import { localPreflightContextKey } from '../../runtime/hosts/preflight/local-preflight-context-key'
 
 export type IntegrationStepState = 'active' | 'done' | 'upcoming'
 
@@ -197,40 +193,4 @@ export function deriveIntegrationConnectionStatus(
     trackerChecking,
     checking: !hasUsableTaskSource && (reviewChecking || trackerChecking)
   }
-}
-
-export function useIntegrationConnectionStatus(): IntegrationConnectionStatus {
-  const preflightStatus = useAppStore((s) => s.preflightStatus)
-  const preflightStatusChecked = useAppStore((s) => s.preflightStatusChecked)
-  const preflightStatusContextKey = useAppStore((s) => s.preflightStatusContextKey)
-  const preflightStatusError = useAppStore((s) => s.preflightStatusError)
-  const preflightStatusLoading = useAppStore((s) => s.preflightStatusLoading)
-  const linearStatus = useAppStore((s) => s.linearStatus)
-  const linearStatusChecked = useAppStore((s) => s.linearStatusChecked)
-  const linearStatusContextKey = useAppStore((s) => s.linearStatusContextKey)
-  const jiraStatus = useAppStore((s) => s.jiraStatus)
-  const jiraStatusChecked = useAppStore((s) => s.jiraStatusChecked)
-  const jiraStatusContextKey = useAppStore((s) => s.jiraStatusContextKey)
-  const settings = useAppStore((s) => s.settings)
-  const expectedPreflightContextKey = useAppStore((s) =>
-    localPreflightContextKey(getLocalPreflightContext(s))
-  )
-
-  const providerRuntimeContextKey = getProviderRuntimeContextKey(settings)
-
-  return deriveIntegrationConnectionStatus({
-    preflightStatus,
-    preflightStatusChecked,
-    preflightStatusContextKey,
-    preflightStatusError,
-    preflightStatusLoading,
-    expectedPreflightContextKey,
-    linearStatus,
-    linearStatusChecked,
-    linearStatusContextKey,
-    jiraStatus,
-    jiraStatusChecked,
-    jiraStatusContextKey,
-    providerRuntimeContextKey
-  })
 }

@@ -71,7 +71,7 @@ export function validateAiVaultSessionDeleteTarget(
     return rejected(agent, 'path-outside-known-roots')
   }
   // Deletion must accept only paths the scanner could discover.
-  if (!isDiscoverableSessionFile(source, matchedRoot, resolvedPath)) {
+  if (!source || !isDiscoverableSessionFile(source, matchedRoot, resolvedPath)) {
     return rejected(agent, 'undiscoverable-path')
   }
 

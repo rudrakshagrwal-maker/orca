@@ -9,7 +9,7 @@ import App from './App'
 import { RecoverableRenderErrorBoundary } from './components/error-boundaries/RecoverableRenderErrorBoundary'
 import { installRendererCrashDiagnostics } from './diagnostics/crash-reporting/crash-diagnostics'
 import { recordRendererCrashBreadcrumb } from './diagnostics/crash-reporting/crash-breadcrumb-recorder'
-import { installAutomationHostDiagnostic } from './components/automations/hosts/automation-host-diagnostics'
+
 import {
   applyCachedPluginAppTheme,
   applyDocumentTheme,
@@ -22,7 +22,7 @@ import { I18nProvider } from './i18n/I18nProvider'
 import { useTranslate } from './i18n/use-translate'
 import { getOrCreateRendererRoot } from './app-shell/startup/react-renderer-root'
 import './lib/pane-manager/terminal-rendering/pane-webgl-renderer'
-import { SkillWarningPreviewLauncher } from './components/skills/installation/preview/SkillWarningPreviewLauncher'
+
 import { installBrowserClientPageRenderer } from './components/browser-pane/browser-client-page-renderer-installation'
 import { registerBrowserClientPageGuestMessageHandler } from './components/browser-pane/browser-client-page-retained-elements'
 import { handleGuestWindowCloseMessage } from './components/browser-pane/host-guest/browser-page-window-close'
@@ -38,7 +38,6 @@ recordRendererCrashBreadcrumb('renderer_bootstrap_started', { dev: import.meta.e
 installRendererCrashDiagnostics()
 installTypingLatencyDiagnostic()
 installAppKeyboardRouter()
-installAutomationHostDiagnostic()
 
 if (
   import.meta.env.DEV &&
@@ -82,7 +81,6 @@ function RendererRoot(): React.JSX.Element {
       )}
     >
       <App />
-      <SkillWarningPreviewLauncher />
     </RecoverableRenderErrorBoundary>
   )
 }

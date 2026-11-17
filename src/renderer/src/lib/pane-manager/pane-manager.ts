@@ -9,6 +9,7 @@ import type {
 } from './pane-manager-types'
 import type { SplitPaneAroundLeafIdsOptions } from './pane-layout/pane-subtree-split'
 import type { PaneManagerHost } from './pane-manager-host'
+import { isManagedPaneDisplayNone } from './terminal-fit/pane-display-visibility'
 import { disposeDividersIn } from './pane-layout/pane-divider'
 import {
   cancelActivePaneDrag,
@@ -298,7 +299,22 @@ export class PaneManager {
 
   resumeRendering(): void {
     this.renderingSuspended = false
-    resumePaneRendering(this.panes.values(), this)
+    this.syncLayoutRendering()
+  }
+
+  // RA: expansion/isolation can hide individual splits inside an otherwise visible tab.
+  syncLayoutRendering(): void {
+    if (this.destroyed || this.renderingSuspended) {
+      return
+    }
+    releaseHiddenWebglRetention(this)
+    for (const pane of this.panes.values()) {
+      if (isManagedPaneDisplayNone(pane)) {
+        suspendPaneRendering([pane])
+      } else {
+        resumePaneRendering([pane])
+      }
+    }
   }
 
   movePane(sourcePaneId: number, targetPaneId: number, zone: DropZone): void {

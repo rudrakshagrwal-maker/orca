@@ -1,3 +1,4 @@
+// RA: legacy templates receive empty removed-feature facts without service requests.
 import { getWorkspaceAttachments } from '../../../../../../shared/workspace-attachments/workspace-attachments'
 import type { WorktreeCardProperty } from '../../../../../../shared/ui-chrome-types'
 import type {
@@ -37,7 +38,7 @@ function showOptions(cardProps: readonly WorktreeCardProperty[]): WorkspaceCardS
 
 /** Projects the card controller into the documented fact model a template reads. */
 export function buildWorkspaceCardFacts(card: WorktreeCardController): WorkspaceCardFacts {
-  const { worktree, repo, hoverReview } = card
+  const { worktree, repo } = card
   const runtimeHost = !repo?.connectionId && card.parsedRepoHost?.kind === 'runtime'
   return {
     ws: {
@@ -77,33 +78,25 @@ export function buildWorkspaceCardFacts(card: WorktreeCardController): Workspace
         : null,
       cacheTimerActive: card.cacheStartedAt != null
     },
-    review: hoverReview
-      ? {
-          provider: hoverReview.provider,
-          number: hoverReview.number,
-          title: hoverReview.title,
-          state: hoverReview.state ?? null,
-          status: hoverReview.status ?? null,
-          url: hoverReview.url ?? null
-        }
-      : null,
+    // RA: hosted-review data is removed from the workspace card.
+    review: null,
     checks: {
-      total: card.reviewChecks.total,
-      passing: card.reviewChecks.passed,
-      failing: card.reviewChecks.failed,
-      pending: card.reviewChecks.pending
+      total: 0,
+      passing: 0,
+      failing: 0,
+      pending: 0
     },
     links: {
       count: getWorkspaceAttachments(worktree).length,
-      issue: Boolean(card.hoverIssue),
-      linearIssue: Boolean(card.hoverLinearIssue),
-      jiraIssue: Boolean(card.hoverJiraIssue)
+      issue: false,
+      linearIssue: false,
+      jiraIssue: false
     },
     provenance: {
       automation: Boolean(worktree.automationProvenance),
       cli: Boolean(worktree.cliProvenance)
     },
-    ports: { count: card.workspacePorts.length },
+    ports: { count: 0 },
     lineage: {
       childCount: card.lineageChildCount,
       collapsed: card.lineageCollapsed,

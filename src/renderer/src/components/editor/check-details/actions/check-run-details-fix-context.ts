@@ -3,18 +3,13 @@ import {
   getBrokenChecks,
   getCheckDetailsPromptKey
 } from '../../../../../../shared/source-control/checks/pr-checks-fix-prompt'
-import { hostedReviewInfoFromGitHubPRInfo as gitHubPRToChecksPanelReview } from '../../../../../../shared/source-control/hosted-review/hosted-review-github'
-import { getWorktreeGitIdentityDisplay } from '../../../../../../shared/worktree/git-identity-display'
 import { useAppStore } from '@/store/index'
-import { getGitHubPRCacheKey } from '../../../../../../shared/github/github-cache-key'
-import { getHostedReviewCacheKey } from '@/store/slices/hosted-review/hosted-review-cache-identity'
 import { findFirstIndexedWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner-index'
 import type { HostedReviewInfo } from '../../../../../../shared/source-control/hosted-review/hosted-review-contracts'
 import type { PRCheckDetail, PRCheckRunDetails } from '../../../../../../shared/github/check-types'
 import type { Repo } from '../../../../../../shared/repo-types'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
-import { isGitHubPRSuppressed } from '../../../../../../shared/worktree/github-pr-suppression'
 import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-record-fields'
 
 export function resolveCheckRunDetailsFixCheck(
@@ -38,55 +33,11 @@ export function isCheckRunDetailsFixCandidate(
   return getBrokenChecks([resolveCheckRunDetailsFixCheck(check, details)]).length > 0
 }
 
+// RA: the hosted-review and GitHub PR caches are removed, so there is no review to fix against.
 export function resolveHostedReviewForCheckRunDetailsFix(
-  worktreeId: string
+  _worktreeId: string
 ): HostedReviewInfo | null {
-  const store = useAppStore.getState()
-  const worktree = findFirstIndexedWorktree(selectWorktreesByRepo(store), worktreeId)
-  if (!worktree) {
-    return null
-  }
-  const repo = store.repos.find((candidate) => candidate.id === worktree.repoId) ?? null
-  if (!repo) {
-    return null
-  }
-  const identity = getWorktreeGitIdentityDisplay(worktree)
-  const branch = identity?.kind === 'branch' ? identity.branchName : null
-  if (!branch) {
-    return null
-  }
-  const settings = store.settings
-  const prCacheKey = getGitHubPRCacheKey(
-    repo.path,
-    repo.id,
-    branch,
-    settings,
-    repo.connectionId,
-    repo.executionHostId,
-    true
-  )
-  const hostedReviewCacheKey = getHostedReviewCacheKey(
-    repo.path,
-    branch,
-    settings,
-    repo.id,
-    repo.connectionId,
-    repo.executionHostId,
-    true
-  )
-  const pr = prCacheKey ? (store.prCache[prCacheKey]?.data ?? null) : null
-  const hostedReview = hostedReviewCacheKey
-    ? (store.hostedReviewCache[hostedReviewCacheKey]?.data ?? null)
-    : null
-  const gitLabHostedReview = hostedReview?.provider === 'gitlab' ? hostedReview : null
-  const linkedGitLabMR = worktree.linkedGitLabMR ?? null
-  if (gitLabHostedReview) {
-    return gitLabHostedReview
-  }
-  if (linkedGitLabMR !== null) {
-    return null
-  }
-  return pr && !isGitHubPRSuppressed(worktree, pr.number) ? gitHubPRToChecksPanelReview(pr) : null
+  return null
 }
 
 export function buildCheckRunDetailsFixBasePrompt(args: {

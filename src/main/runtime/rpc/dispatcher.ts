@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   buildRegistry,
   isStreamingMethod,
@@ -12,7 +13,7 @@ import {
 
 import { successResponse } from './errors'
 import { withoutMethodsThisHostDoesNotServe } from './methods/terminal/session-terminal-scrollback'
-import { emulatorProbe, emulatorProbeError } from '../../emulator/emulator-probe'
+
 import type { OrcaRuntimeService } from '../orca-runtime'
 import { isDurableMutation } from '../../../shared/orchestration/orchestration-rpc-contract'
 import type { OrchestrationEntryCaller } from '../orchestration/addressing/orchestration-caller-identity'
@@ -79,10 +80,7 @@ export class RpcDispatcher {
     }
 
     // Only request/response dispatch probes emulator calls; streaming-unary retains its existing behavior.
-    const probeEmulator = request.method.startsWith('emulator.')
-    if (probeEmulator) {
-      emulatorProbe(`rpc ${request.method}`, request.params)
-    }
+
     try {
       const featureWait = rpcMethodFeatureWait(
         resolveOrcadFeatureRequirement(admission.method.requires, admission.params),
@@ -94,11 +92,6 @@ export class RpcDispatcher {
       options?.beforeInvoke?.()
       return successResponse(request.id, meta, await this.invokeUnary(admission, options))
     } catch (error) {
-      if (probeEmulator) {
-        emulatorProbeError(`rpc ${request.method}`, error, {
-          params: request.params
-        })
-      }
       return mapDispatcherError(request, meta, error)
     }
   }

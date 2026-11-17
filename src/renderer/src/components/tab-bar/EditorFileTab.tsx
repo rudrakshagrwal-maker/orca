@@ -36,8 +36,6 @@ import { EditorFileTabCloseButton } from './EditorFileTabCloseButton'
 import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
 import { useTabContextMenuOpening } from './tab-context-menu-opening'
 import { editorTabDocumentFolderAccess } from '@/lib/files/access/local-file-access'
-import { useTabCustomEditor } from '@/store/plugins/file-editors/plugin-custom-editors'
-import { PluginContributionIcon } from '../plugins/PluginContributionIcon'
 import type { EditorFileTabProps } from './editor-file-tab-props'
 
 export default function EditorFileTab({
@@ -80,16 +78,14 @@ export default function EditorFileTab({
 
   const isConflictReview = file.mode === 'conflict-review'
   const isMarkdownPreviewTab = file.mode === 'markdown-preview'
-  const customEditor = useTabCustomEditor(file)
   // Why: simulator tabs reuse this chrome with a synthetic path an icon theme would map to its file icon.
   const ModeIcon = getEditorFileTabModeIcon(file)
-  const tabIcon = (className: string): React.ReactNode => (
-    <PluginContributionIcon
-      url={customEditor?.iconUrl}
-      fallback={ModeIcon ?? <FileTypeIcon filePath={file.filePath} className={className} />}
-      className={className}
-    />
-  )
+  const tabIcon = (className: string): React.ReactNode =>
+    ModeIcon ? (
+      <ModeIcon className={className} aria-hidden />
+    ) : (
+      <FileTypeIcon filePath={file.filePath} className={className} />
+    )
   // Strike through missing paths only; changed content is explained by the editor’s on-disk banner.
   const isMissingFileMutation =
     file.externalMutation === 'deleted' || file.externalMutation === 'renamed'
@@ -372,7 +368,7 @@ export default function EditorFileTab({
           ) : (
             <TabHoverCard
               title={`${getEditorDisplayLabel(file, undefined, t)}${placedElsewhere && repo ? ` · ${repo.displayName}` : ''}`}
-              programName={customEditor?.title ?? t('tabHoverCard.editor', 'Editor')}
+              programName={t('tabHoverCard.editor', 'Editor')}
               icon={tabIcon('size-4')}
               description={file.relativePath}
             >

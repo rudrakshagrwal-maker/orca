@@ -267,6 +267,8 @@ export const AvailabilityParams = z.strictObject({})
 /** Session pins the account; otherwise use the account/config a launch in worktree would select.
  * Send waitForListing only after the host reports one in progress; old hosts refuse the key. */
 export const ModelCatalogParams = z.strictObject({
+  // RA: probing again requires an explicit user refresh.
+  refresh: z.boolean().optional(),
   agent: StructuredAgent,
   sessionId: SessionId.optional(),
   worktree: Identifier('Invalid worktree selector').optional(),

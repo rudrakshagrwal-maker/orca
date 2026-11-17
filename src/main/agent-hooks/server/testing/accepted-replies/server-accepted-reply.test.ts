@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { readSavedStatus } from '../persistence/last-status.test-fixtures'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -6,8 +7,6 @@ import { join } from 'node:path'
 import { AgentHookServer, _internals } from '../../agent-hook-server'
 import { buildBody, PANE } from '../server.test-fixtures'
 import { mainAgentDoneAt } from '../../../../../shared/agent-status/lifecycle/main-agent-status'
-import type { AutomationRun } from '../../../../../shared/automations/history/automation-run'
-import { createRuntimeAutomationRunTerminalObserver } from '../../../../automations/runtime-terminal-run-observer'
 
 vi.mock('../../../../telemetry/client', () => ({ track: vi.fn() }))
 vi.mock('../../../../telemetry/cohort-classifier', () => ({
@@ -70,44 +69,5 @@ describe('accepted lead reply', () => {
     await post({ hook_event_name: 'UserPromptSubmit', prompt: 'next task' })
     await post({ hook_event_name: 'Stop' })
     expect(replyForCurrentRow()).toBeUndefined()
-  })
-
-  it("saves the reply of an agent that exits right after it, though exit cleanup clears the pane's status", async () => {
-    await post({ hook_event_name: 'UserPromptSubmit', prompt: 'write the report' })
-    const paneKey: string = PANE
-    const observer = createRuntimeAutomationRunTerminalObserver(
-      {
-        getTerminalHandleForPaneKey: () => 'terminal-1',
-        readTerminal: async () => ({ tail: [] }),
-        canOpenRunTerminals: () => true,
-        waitForTerminal: async () => {
-          await post({ hook_event_name: 'Stop', last_assistant_message: REPLY })
-          server.reconcileEndedProcessForPaneKeys([PANE])
-          throw Object.assign(new Error('terminal_exited'), {
-            terminalExitCause: { kind: 'exited', exitCode: 0 }
-          })
-        }
-      },
-      {
-        getAgentStatusRowsForPane: (paneKey) => server.getStatusSnapshotForPane(paneKey),
-        getAcceptedReply: (paneKey, leadTurnKey) => server.getAcceptedReply(paneKey, leadTurnKey),
-        subscribeStatusChanges: (listener) =>
-          server.subscribeStatusRowMutations(({ after }) => after && listener(after.paneKey)),
-        agentCommandsForRun: () => ['claude']
-      }
-    )
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the observer reads only these run fields.
-    const run = { terminalPaneKey: paneKey, startedAt: 0, dispatchedAt: 0 } as AutomationRun
-
-    const observation = await observer.observeCompletion('terminal-1', {
-      signal: new AbortController().signal,
-      run
-    })
-
-    expect(replyForCurrentRow()).toBeUndefined()
-    expect(observation).toMatchObject({
-      status: 'completed',
-      outputSnapshot: { content: REPLY, truncated: false }
-    })
   })
 })

@@ -11,10 +11,11 @@ import type { OrcaRuntimeWithPreservedBranchCleanup as HostServices } from './ru
 import type { RuntimeEdgeCommandSurface } from './runtime-edge-command-controller'
 import type { OrcaRuntimeWithListManagedWorktrees as ListManagedWorktrees } from '../workspaces/managed-workspace-operations'
 import type { ProjectExecutionRuntimeResolution } from '../../../shared/execution-host/project-execution-runtime'
-import { OrcaRuntimeWithLinearCommands } from '../integrations/linear/linear-commands'
+// RA: runtime construction has no task-provider layer.
+import { OrcaRuntimeWithRepositoryCommands } from './runtime-repository-command-state'
 
 import type { RuntimeStore } from './runtime-store-contract'
-import { installGitHubProjectAccounts } from '../../github/github-project-account'
+
 import type { WorkspaceSleepPlatform } from '../workspaces/sleep/workspace-sleep-platform'
 import type { StatsCollector } from '../../stats/collector'
 
@@ -32,10 +33,7 @@ import {
   type RuntimeRepositoryCommandSurface,
   installRuntimeRepositoryCommandSurface
 } from '../repositories/runtime-repository-command-surface'
-import {
-  type RuntimeReviewCommandSurface,
-  installRuntimeReviewCommandSurface
-} from './runtime-review-command-surface'
+
 import {
   type RuntimeServiceCommandSurface,
   installRuntimeServiceCommandSurface
@@ -48,7 +46,7 @@ import {
 import { getAppEnvironment } from '../../../shared/app-environment'
 import { RuntimeClientSettingsController } from '../client/settings/runtime-client-settings'
 import { RuntimeSessionSearchSettingsController } from '../integrations/ai-vault/runtime-session-search-settings'
-import { RuntimeAutomationController } from '../integrations/automations/runtime-automation-controller'
+
 import { RuntimeOrchestrationFederation } from '../orchestration/federation/runtime-orchestration-federation'
 import { configureAiVaultSessionSources } from '../../ai-vault/cached-session-list'
 import { configureHostReadableTranscriptPathSources } from '../../native-chat/host-readable-transcript-path'
@@ -60,7 +58,7 @@ import { setPRConflictSummaryRemoteFetches } from '../../github/conflict-summary
 import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from '../../../shared/terminal/replay/terminal-scrollback-policy'
 
 // oxlint-disable-next-line typescript/no-unsafe-declaration-merging -- SAFETY: The constructor installs every checked canonical surface.
-export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCommands {
+export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithRepositoryCommands {
   declare protected readonly getLocalProviderFn: HostServices['getLocalProviderFn']
   declare readonly onPtyStopped: HostServices['onPtyStopped']
   declare protected readonly onTerminalAgentStatus: HostServices['onTerminalAgentStatus']
@@ -96,7 +94,7 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
   declare protected readonly agentSessionClaimSigner: HostServices['agentSessionClaimSigner']
   declare protected readonly store: IdentityState['store']
   declare protected readonly clientSettings: IdentityState['clientSettings']
-  declare protected readonly automation: IdentityState['automation']
+
   declare protected readonly orchestrationEnvironmentTransport: IdentityState['orchestrationEnvironmentTransport']
   declare protected readonly orchestrationFederation: IdentityState['orchestrationFederation']
   declare protected readonly skillCommands: ServiceState['skillCommands']
@@ -135,7 +133,7 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
   ) {
     super()
     this.store = store
-    installGitHubProjectAccounts(store, () => this.resolvedWorktrees.peek()?.worktrees ?? [])
+
     this.legacyStructuredSessionTabIds = Object.freeze(
       collectSavedStructuredAgentSessionIds(
         store?.getWorkspaceSession?.(LOCAL_EXECUTION_HOST_ID) ?? null
@@ -168,19 +166,10 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
       repositoryClones: this.repositoryClones,
       repositorySettings: this.repositorySettings,
       repositoryRefQueries: this.repositoryRefQueries,
-      hostedReviews: this.hostedReviews,
-      gitHubRepositoryQueries: this.gitHubRepositoryQueries,
-      repositoryHooks: this.repositoryHooks,
-      repositoryIssueCommand: this.repositoryIssueCommand
+
+      repositoryHooks: this.repositoryHooks
     })
-    installRuntimeReviewCommandSurface(this, {
-      gitLabQueries: this.gitLabQueryCommands,
-      gitLabMutations: this.gitLabMutationCommands,
-      gitHubReviewQueries: this.gitHubReviewQueries,
-      gitHubReviewMutations: this.gitHubReviewMutations,
-      gitHubIssueComments: this.gitHubIssueComments,
-      gitHubProjects: this.gitHubProjectCommands
-    })
+
     installRuntimeServiceCommandSurface(this, {
       aiVault: this.aiVault,
       sessionSearchSettings: new RuntimeSessionSearchSettingsController(
@@ -190,7 +179,7 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
       clientEvents: this.clientEvents,
       nativeChatDraftResolutions: this.nativeChatDraftResolutions,
       subscriptions: this.subscriptions,
-      mobileNotifications: this.mobileNotifications,
+
       accounts: this.accounts,
       mobileSpeech: this.mobileSpeech,
       mobileDictation: this.mobileDictation,
@@ -227,14 +216,10 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
       store,
       () => this.notifyReposChanged(),
       {
-        artifacts: () => this.artifacts.hasService(),
         skills: () => this.skillCommands.hasSkillCloudService()
       }
     )
-    this.automation = new RuntimeAutomationController(store, {
-      showRepo: (selector) => this.showRepo(selector),
-      showManagedWorktree: (selector, hostId) => this.showManagedWorktree(selector, hostId)
-    })
+
     const persistedClientTabSelections = store?.getMobileClientTabSelections?.()
     if (persistedClientTabSelections) {
       this.clientSessionTabSelections.hydrate(persistedClientTabSelections)
@@ -319,7 +304,6 @@ export interface OrcaRuntimeWithStateFields
     RuntimeFileCommandSurface,
     RuntimeGitCommandSurface,
     RuntimeRepositoryCommandSurface,
-    RuntimeReviewCommandSurface,
     RuntimeServiceCommandSurface,
     RuntimeSkillCommandSurface,
     RuntimeEdgeCommandSurface {}

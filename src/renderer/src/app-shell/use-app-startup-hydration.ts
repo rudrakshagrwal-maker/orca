@@ -1,6 +1,6 @@
 import { openWorkspaceForAppLaunch } from './open-fresh-start-at-startup'
 import { restoreStructuredLaunchSurfaces } from '@/lib/agent-session/launch/structured-agent-session-launch-surface'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { restoreLocalStructuredChatsAtStartup } from '@/runtime/native-chat/local-sessions/local-structured-chats'
 import { syncZoomCSSVar } from '@/app-shell/chrome/ui-zoom'
 import { installCodexDetachedPaneRestartExecutor } from '@/components/terminal-pane/account-restart/detached/codex-detached-pane-restart-scheduler'
@@ -46,16 +46,12 @@ import {
   finishStartupWorktreeHydration,
   refreshStartupWorktrees
 } from '../startup/startup-worktree-refresh'
-import type { OnboardingState } from '../../../shared/onboarding-state-types'
 
 /** Hydrate settings/UI/catalog/session, reconnect and restore terminals before unlocking saves. Failure boots in degraded no-save mode to protect disk state. */
-export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingState) => void): void {
+export function useAppStartupHydration(): void {
   const actions = useStartupActions()
   // Keep callback identity from restarting boot. Sync in the preceding effect so discarded renders cannot publish a callback.
-  const onOnboardingLoadedRef = useRef(onOnboardingLoaded)
-  useEffect(() => {
-    onOnboardingLoadedRef.current = onOnboardingLoaded
-  }, [onOnboardingLoaded])
+  // RA: onboarding is absent from startup hydration.
 
   useEffect(() => installCodexDetachedPaneRestartExecutor(), [])
 
@@ -88,10 +84,6 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           actions.fetchKeybindings()
         )
         keybindingsPromise.catch(() => {})
-        const onboardingPromise = timeRendererStartupStep('onboarding-get', () =>
-          window.api.onboarding.get()
-        )
-        onboardingPromise.catch(() => {})
         // Hydrate saved view settings before catalog/session work so first paint reflects them.
         const persistedUI = await timeRendererStartupStep('ui-get', () => window.api.ui.get())
         uiHydrated = timeRendererStartupSyncStep('hydrate-persisted-ui', () =>
@@ -231,10 +223,6 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           ).catch(() => {})
           // Why: local and SSH tabs use this desktop's profiles even when Settings shows a paired server.
           void actions.fetchBrowserSessionProfiles(LOCAL_EXECUTION_HOST_ID)
-          const onboardingState = await onboardingPromise
-          if (!cancelled) {
-            onOnboardingLoadedRef.current(onboardingState)
-          }
 
           // Reconnect SSH before PTY attach; defer passphrase targets to focus. Never dial runtime-owned targets here: ssh.connect would dispose the runtime’s relay.
           const connectionIds = (sessionRead.session.activeConnectionIdsAtShutdown ?? []).filter(
@@ -327,7 +315,6 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
           abortSignal: abortController.signal
         })
       }
-      void actions.initGitHubCache()
     })()
 
     return () => {

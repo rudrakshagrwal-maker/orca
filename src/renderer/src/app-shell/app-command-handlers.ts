@@ -1,12 +1,9 @@
-import { canShowRightSidebarForView } from '@/components/right-sidebar/visibility/right-sidebar-visibility'
-import { runBuiltInOrReplacement } from '@/lib/plugins/commands/plugin-command-replacements'
-import { isFloatingWorkspacePanelFocused } from '@/components/floating-terminal/floating-workspace-terminal-actions'
 import { hasVisibleOverlay } from '@/lib/overlay-interaction/visible-overlay'
 import { requestScrollToCurrentWorkspaceRevealAndRename } from '@/lib/workspace/navigation/scroll-to-current-workspace-status'
 import { requestVirtualizedScrollAnchorRecord } from '@/hooks/requestVirtualizedScrollAnchorRecord'
 import { showTerminalShortcutCaptureNotification } from '@/lib/notifications/terminal-shortcut-capture-notification'
 import { shouldShowWorktreeHistoryControls } from './chrome/titlebar-worktree-history-controls'
-import { TOGGLE_WORKSPACE_BOARD_EVENT } from '../components/sidebar/workspace-board/surface/useWorkspaceBoardPanel'
+
 import {
   getRenderedLineageChipKeys,
   resolveChildWorkspacesToggleGroupKey
@@ -17,11 +14,9 @@ import {
   resolveActiveWorkspaceDeleteTarget
 } from '../components/sidebar/workspace-actions/deletion/active-workspace-delete'
 import { useAppStore } from '../store/index'
-import type { usePluginCommands } from '@/store/plugins/catalog/plugin-contribution-catalog'
-import { isGitRepoKind } from '../../../shared/repo-kind'
-import { openPluginsSettings } from '@/components/settings/navigation/open-plugins-settings'
+
 import { resolveActiveTabRenameTarget } from './active-tab-rename-target'
-import { createPluginsSettingsShortcutHandler } from './plugin-settings-shortcut-handler'
+
 import type {
   KeybindingActionId,
   KeybindingContext,
@@ -56,13 +51,7 @@ export type AppShortcutState = {
   activeWorktreeId: AppStoreState['activeWorktreeId']
   actions: AppShortcutActions
   creationLayoutActive: boolean
-  floatingTerminalEnabled: boolean
-  floatingTerminalOpen: boolean
-  floatingVisibleTabCount: number
   keybindings: AppStoreState['keybindings']
-  openFloatingWorkspaceMaximized: () => void
-  pluginCommands: ReturnType<typeof usePluginCommands>
-  setFloatingTerminalOpen: (open: boolean) => void
   terminalShortcutPolicy: NonNullable<AppStoreState['settings']>['terminalShortcutPolicy']
   workspaceChromeActive: boolean
 }
@@ -78,22 +67,17 @@ export function createAppCommandHandlers(
   input?: ShortcutDispatchInput,
   keybindingContext: KeybindingContext = 'app',
   /** A plugin's `commands.run`: Orca's own action, never a plugin replacement (no loops). */
-  builtInOnly = false
+  _builtInOnly = false
 ): Map<KeybindingActionId, () => boolean> {
   const {
     activeView,
     activeWorktreeId,
     actions,
     creationLayoutActive,
-    floatingTerminalEnabled,
-    floatingTerminalOpen,
     keybindings,
-    openFloatingWorkspaceMaximized,
     terminalShortcutPolicy,
     workspaceChromeActive
   } = state
-  const floatingWorkspaceFocused = isFloatingWorkspacePanelFocused()
-  const canRevealRightSidebar = !creationLayoutActive && canShowRightSidebarForView(activeView)
   const claim = (actionId: KeybindingActionId, run: () => void): boolean => {
     input?.preventDefault()
     if (
@@ -107,25 +91,10 @@ export function createAppCommandHandlers(
         keybindings
       })
     }
-    // A plugin command may replace the action; it falls back to `run`.
-    if (builtInOnly) {
-      run()
-    } else {
-      runBuiltInOrReplacement(actionId, run)
-    }
+    // RA: terminal commands dispatch directly without plugin replacements.
+    run()
     return true
   }
-  const revealRightSidebarTab = (
-    actionId: KeybindingActionId,
-    tab: Parameters<AppShortcutActions['setRightSidebarTab']>[0]
-  ): boolean =>
-    canRevealRightSidebar
-      ? claim(actionId, () => {
-          actions.setRightSidebarTab(tab)
-          actions.setRightSidebarOpen(true)
-        })
-      : false
-
   return new Map<KeybindingActionId, () => boolean>([
     [
       'worktree.history.back',
@@ -165,7 +134,6 @@ export function createAppCommandHandlers(
         // Locally controlled dialogs do not set activeModal.
         if (
           store.activeModal !== 'none' ||
-          floatingWorkspaceFocused ||
           hasVisibleOverlay({ ignoreMatches: '[role="listbox"], [role="menu"]' })
         ) {
           return false
@@ -188,19 +156,11 @@ export function createAppCommandHandlers(
         })
       }
     ],
-    [
-      'floatingWorkspace.maximize',
-      () => {
-        if (floatingTerminalOpen || !floatingTerminalEnabled) {
-          return false
-        }
-        return claim('floatingWorkspace.maximize', openFloatingWorkspaceMaximized)
-      }
-    ],
+
     [
       'tab.rename',
       () => {
-        if (!workspaceChromeActive || floatingWorkspaceFocused) {
+        if (!workspaceChromeActive) {
           return false
         }
         // Resolve both terminal and structured-chat rename targets; a terminal-only gate silently ignores chat.
@@ -214,7 +174,7 @@ export function createAppCommandHandlers(
     [
       'workspace.rename',
       () => {
-        if (!workspaceChromeActive || floatingWorkspaceFocused || !activeWorktreeId) {
+        if (!workspaceChromeActive || !activeWorktreeId) {
           return false
         }
         return claim('workspace.rename', () => {
@@ -226,9 +186,6 @@ export function createAppCommandHandlers(
     [
       'workspace.delete',
       () => {
-        if (floatingWorkspaceFocused) {
-          return false
-        }
         const store = useAppStore.getState()
         const target = resolveActiveWorkspaceDeleteTarget(store)
         if (!target) {
@@ -238,65 +195,6 @@ export function createAppCommandHandlers(
           deleteActiveWorkspaceFromShortcut(store, target)
         })
       }
-    ],
-    [
-      'workspace.openBoard',
-      () => {
-        if (activeView === 'settings') {
-          return false
-        }
-        return claim('workspace.openBoard', () => {
-          useAppStore.getState().setSidebarOpen(true)
-          window.dispatchEvent(new CustomEvent(TOGGLE_WORKSPACE_BOARD_EVENT))
-        })
-      }
-    ],
-    [
-      'view.tasks',
-      () => {
-        const store = useAppStore.getState()
-        if (activeView === 'settings' || !store.repos.some((repo) => isGitRepoKind(repo))) {
-          return false
-        }
-        return claim('view.tasks', () => store.openTaskPage())
-      }
-    ],
-    [
-      'view.plugins',
-      createPluginsSettingsShortcutHandler(input?.target, () =>
-        claim('view.plugins', openPluginsSettings)
-      )
-    ],
-    [
-      'sidebar.right.toggle',
-      () =>
-        canShowRightSidebarForView(activeView)
-          ? claim('sidebar.right.toggle', () => actions.toggleRightSidebar())
-          : false
-    ],
-    [
-      'sidebar.explorer.toggle',
-      () =>
-        canRevealRightSidebar
-          ? claim('sidebar.explorer.toggle', () => actions.showRightSidebarFiles())
-          : false
-    ],
-    [
-      'sidebar.search.toggle',
-      () =>
-        canRevealRightSidebar
-          ? claim('sidebar.search.toggle', () => actions.showRightSidebarSearch())
-          : false
-    ],
-    [
-      'sidebar.sourceControl.toggle',
-      () =>
-        // Why: the terminal's own find bar owns this chord while it is open.
-        document.querySelector('[data-terminal-search-root]')
-          ? false
-          : revealRightSidebarTab('sidebar.sourceControl.toggle', 'source-control')
-    ],
-    ['sidebar.checks.toggle', () => revealRightSidebarTab('sidebar.checks.toggle', 'checks')],
-    ['sidebar.ports.toggle', () => revealRightSidebarTab('sidebar.ports.toggle', 'ports')]
+    ]
   ])
 }

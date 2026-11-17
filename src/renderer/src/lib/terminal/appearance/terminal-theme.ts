@@ -11,14 +11,8 @@ import {
   resolveTerminalPalette
 } from '../../../../../shared/terminal-themes/terminal-theme-selection'
 import type { TerminalPaletteSettings } from '../../../../../shared/terminal-themes/terminal-theme-selection'
-import {
-  disambiguatedContentPluginNames,
-  disambiguatedPluginContentLabels
-} from '../../../components/plugins/presentation/plugin-name-disambiguation'
 import type { ITheme } from '@xterm/xterm'
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
-import type { PluginTerminalThemeRegistration } from '../../../../../shared/plugins/artifacts/plugin-terminal-theme-artifact'
-import type { Translate } from '../../../i18n/use-translate'
 
 export const BUILTIN_TERMINAL_THEME_NAMES = getThemeNames()
 
@@ -53,9 +47,7 @@ export function getSystemPrefersDark(): boolean {
 }
 
 export function getAvailableTerminalThemeOptions(
-  settings: Pick<GlobalSettings, 'terminalCustomThemes' | 'terminalPluginPalettes'>,
-  pluginThemes: readonly PluginTerminalThemeRegistration[] = [],
-  t?: Translate
+  settings: Pick<GlobalSettings, 'terminalCustomThemes' | 'terminalPluginPalettes'>
 ): TerminalThemeOption[] {
   const builtinOptions = BUILTIN_TERMINAL_THEME_NAMES.map((name) => ({
     value: name,
@@ -74,21 +66,7 @@ export function getAvailableTerminalThemeOptions(
       previewTheme: terminalCustomThemeToXtermTheme(theme)
     })
   )
-  const labels = disambiguatedPluginContentLabels(
-    pluginThemes,
-    [...builtinOptions, ...customOptions].map((option) => option.label),
-    t
-  )
-  const pluginNames = disambiguatedContentPluginNames(pluginThemes, t)
-  const pluginOptions = pluginThemes.map((theme) => ({
-    value: theme.id,
-    label: labels.get(theme.id) ?? theme.label,
-    group: 'plugin' as const,
-    sourceLabel: pluginNames.get(theme.pluginKey) ?? theme.pluginName,
-    mode: theme.mode,
-    previewTheme: theme.terminal
-  }))
-  return [...builtinOptions, ...customOptions, ...pluginOptions]
+  return [...builtinOptions, ...customOptions]
 }
 
 export function resolveEffectiveTerminalAppearance(

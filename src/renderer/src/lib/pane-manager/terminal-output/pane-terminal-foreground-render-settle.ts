@@ -1,3 +1,4 @@
+import { isTerminalOutputSuspended } from './pane-terminal-output-queue-registry'
 import { forceRepaintThroughRenderPause } from '../terminal-rendering/terminal-render-pause-release'
 import {
   disposeParsedDirtyRows,
@@ -51,7 +52,12 @@ function refreshVisibleRows(
   shouldReleaseRenderPause?: () => boolean,
   span?: ParsedDirtyRowSpan | null
 ): void {
-  if (typeof terminal.rows !== 'number' || terminal.rows < 1) {
+  // RA: a parse callback queued before hide cannot repaint a suspended pane.
+  if (
+    isTerminalOutputSuspended(terminal) ||
+    typeof terminal.rows !== 'number' ||
+    terminal.rows < 1
+  ) {
     return
   }
 

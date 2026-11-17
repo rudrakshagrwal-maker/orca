@@ -54,7 +54,7 @@ type ScopeScanArgs = {
   executionHostId: ExecutionHostId
   issues: AiVaultScanIssue[]
   parseStats: SessionParseStats
-  antigravityWorkspaceResolver: AntigravityWorkspaceResolver
+  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
 }
 
 /** Recover scoped sessions omitted by recency discovery using each agent’s cwd source. */

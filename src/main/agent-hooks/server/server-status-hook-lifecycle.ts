@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import {
   drainAgentHookSpoolAsync,
   type SpoolRecord
@@ -8,7 +9,7 @@ import { ClaudeAgentViewBridge } from '../../claude/agent-view/agent-view-bridge
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AgentHookSource } from '../../../shared/agent-hook-listener/transport/agent-hook-relay'
 import type { AgentHookEventPayload } from '../../../shared/agent-hook-listener/listener-event'
-import { respondAfterAgentToolPluginHooks } from '../tool-events/agent-tool-plugin-hooks'
+
 import { ClaudePermissionHookHolds } from './claude-permission-hook-hold'
 
 export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServerRuntimeEnv {
@@ -22,13 +23,15 @@ export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServer
     req: IncomingMessage,
     res: ServerResponse,
     source: AgentHookSource,
-    body: unknown,
+    _body: unknown,
     accepted: AgentHookEventPayload | null
   ): Promise<void> {
     if (accepted && source === 'claude' && this.claudePermissionHooks.hold(req, res, accepted)) {
       return
     }
-    await respondAfterAgentToolPluginHooks(res, source, body, req.headers, accepted)
+    // RA: status and coordinator permission holds remain; plugin tool callbacks are removed.
+    res.writeHead(204)
+    res.end()
   }
 
   setStatusHooksEnabled(enabled: boolean): void {
@@ -39,7 +42,6 @@ export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServer
     if (!enabled) {
       this.claudeAgentViews.clear()
       this.flushStatusPersistSync()
-      this.stopOpenCodeBinderLoop()
       for (const timer of this.assistantMessageRetryTimers.values()) {
         clearTimeout(timer)
       }
@@ -51,7 +53,6 @@ export abstract class AgentHookServerStatusHookLifecycle extends AgentHookServer
       void this.initializeStatusHookOwner().catch((error: unknown) => {
         console.error('[agent-hooks] status initialization failed', error)
       })
-      this.startOpenCodeBinderLoop()
     }
   }
 

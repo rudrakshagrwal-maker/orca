@@ -1,10 +1,8 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { getAdvancedPaneSearchEntries } from '@/components/settings/advanced/advanced-search'
 import { getDeveloperPermissionsPaneSearchEntries } from '@/components/settings/developer-permissions/developer-permissions-search'
 import { getExperimentalPaneSearchEntries } from '@/components/settings/advanced/experimental-search'
-import {
-  getPluginsPaneSearchEntries,
-  getPluginsSectionPresentation
-} from '@/components/settings/plugins/plugins-search'
+
 import { getPrivacyPaneSearchEntries } from '@/components/settings/privacy/privacy-search'
 import { getRepositoryPaneSearchEntries } from '@/components/settings/repository/repository-search'
 import { buildSettingsProjectList } from '@/components/settings/navigation/settings-project-list'
@@ -15,7 +13,6 @@ import type { SettingsNavSection } from '@/components/settings/navigation/settin
 import { getRepoKindLabel } from '../../../shared/repo-kind'
 import type { Repo } from '../../../shared/repo-types'
 import {
-  Blocks,
   Bug,
   Cable,
   FlaskConical,
@@ -137,22 +134,7 @@ export function buildRemoteSettingsSections(
       searchEntries: getExperimentalPaneSearchEntries(),
       group: 'experimental'
     },
-    ...(showDesktopOnlySettings
-      ? [
-          {
-            id: 'plugins',
-            title: t('auto.hooks.useSettingsNavigationMetadata.pluginsTitle', 'Plugins'),
-            description: t(
-              'auto.hooks.useSettingsNavigationMetadata.pluginsDescription',
-              'Install and manage Orca plugins (Alpha).'
-            ),
-            icon: Blocks,
-            searchEntries: getPluginsPaneSearchEntries(),
-            group: 'experimental',
-            badge: getPluginsSectionPresentation(t).badge
-          }
-        ]
-      : []),
+    
     // Collapse host-specific repo rows to one project entry using the same inputs as settings panes.
     ...buildSettingsProjectList(repos, projectGrouping).map((settingsProject) => {
       const { project, representativeRepoId, setups, checkoutLabel } = settingsProject

@@ -141,35 +141,8 @@ async function openSeededUntitledFile(
 export function createPluginNewFileActions(
   _set: EditorSet,
   get: EditorGet
-): Pick<EditorSlice, 'openNewPluginFileInActiveWorkspace' | 'openBlankFileInActiveWorkspace'> {
+): Pick<EditorSlice, 'openBlankFileInActiveWorkspace'> {
   return {
-    openNewPluginFileInActiveWorkspace: async (newFile, groupId) => {
-      const readTemplate = window.api?.plugins?.readNewFileTemplate
-      if (!readTemplate) {
-        return
-      }
-      await openSeededUntitledFile(
-        get,
-        newFile.extension,
-        async () => {
-          const content = await readTemplate({
-            pluginKey: newFile.pluginKey,
-            newFileId: newFile.id
-          })
-          if (content === null) {
-            throw new Error(
-              translate(
-                'auto.store.pluginNewFile.unavailable',
-                '{{value0}} is no longer available. Turn its plugin back on.',
-                { value0: newFile.title }
-              )
-            )
-          }
-          return content
-        },
-        groupId
-      )
-    },
     openBlankFileInActiveWorkspace: async (extension) => {
       await openSeededUntitledFile(get, extension, async () => '')
     }

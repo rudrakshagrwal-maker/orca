@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   claudeBackgroundArgs,
   claudeTextGenerationToolArgs
@@ -24,10 +25,7 @@ type PrimaryAgentSpecDeps = {
 export function buildPrimaryCommitMessageAgentSpecs({
   CLAUDE_THINKING_LEVELS,
   OPENAI_THINKING_LEVELS,
-  parseClaudeModels,
-  parseLineModels,
-  parsePiModels,
-  withOpenAiThinking
+  parseClaudeModels
 }: PrimaryAgentSpecDeps): Partial<Record<TuiAgent, CommitMessageAgentSpec>> {
   return {
     claude: {
@@ -151,95 +149,6 @@ export function buildPrimaryCommitMessageAgentSpecs({
         }
       ],
       defaultModelId: 'gpt-5.6-terra'
-    },
-    opencode: {
-      id: 'opencode',
-      modelFlag: [{ aliases: ['--model', '-m'] }],
-      effortFlag: [{ aliases: ['--variant'] }],
-      label: 'OpenCode',
-      binary: 'opencode',
-      // OpenCode stdin avoids cross-platform argv limits for large staged diffs.
-      promptDelivery: 'stdin',
-      buildArgs: ({ model, thinkingLevel }) => [
-        'run',
-        ...(model && model !== 'default' ? ['--model', model] : []),
-        '--agent',
-        'build',
-        '--format',
-        'json',
-        ...(thinkingLevel ? ['--variant', thinkingLevel] : [])
-      ],
-      singletonOptions: [['--model', '-m'], ['--agent'], ['--format'], ['--variant']],
-      modelSource: 'dynamic',
-      modelDiscovery: { binary: 'opencode', args: ['models'], parse: parseLineModels },
-      models: [
-        { id: 'default', label: 'Config default' },
-        {
-          id: 'opencode/gpt-5.4-mini',
-          label: 'OpenCode GPT 5.4 Mini',
-          ...withOpenAiThinking('gpt-5.4-mini')
-        }
-      ],
-      defaultModelId: 'default'
-    },
-    opencode2: {
-      id: 'opencode2',
-      modelFlag: [{ aliases: ['--model', '-m'] }],
-      effortFlag: [{ aliases: ['--model', '-m'], modelVariant: true }],
-      label: 'OpenCode 2',
-      binary: 'opencode2',
-      promptDelivery: 'stdin',
-      buildArgs: ({ model, thinkingLevel }) => [
-        'run',
-        ...(model && model !== 'default'
-          ? ['--model', thinkingLevel ? `${model}#${thinkingLevel}` : model]
-          : []),
-        '--agent',
-        'build',
-        '--format',
-        'json'
-      ],
-      singletonOptions: [['--model', '-m'], ['--agent'], ['--format']],
-      modelSource: 'dynamic',
-      modelDiscovery: { binary: 'opencode2', args: ['models'], parse: parseLineModels },
-      models: [
-        { id: 'default', label: 'Config default' },
-        {
-          id: 'opencode/gpt-5.4-mini',
-          label: 'OpenCode GPT 5.4 Mini',
-          ...withOpenAiThinking('gpt-5.4-mini')
-        }
-      ],
-      defaultModelId: 'default'
-    },
-    pi: {
-      id: 'pi',
-      modelFlag: [{ aliases: ['--model'] }],
-      effortFlag: [{ aliases: ['--thinking'] }],
-      label: 'Pi',
-      binary: 'pi',
-      promptDelivery: 'stdin',
-      buildArgs: ({ model, thinkingLevel }) => [
-        '--print',
-        '--no-session',
-        '--no-tools',
-        '--no-skills',
-        '--no-context-files',
-        '--mode',
-        'text',
-        ...(model && model !== 'default' ? ['--model', model] : []),
-        ...(thinkingLevel ? ['--thinking', thinkingLevel] : [])
-      ],
-      modelSource: 'dynamic',
-      modelDiscovery: { binary: 'pi', args: ['--list-models'], parse: parsePiModels },
-      models: [
-        {
-          // Let Pi choose its configured provider instead of forcing Copilot credentials during automation.
-          id: 'default',
-          label: 'Config default'
-        }
-      ],
-      defaultModelId: 'default'
     }
   }
 }

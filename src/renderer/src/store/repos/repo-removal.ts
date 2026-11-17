@@ -178,13 +178,10 @@ export function createRepoRemovalActions(
         }
 
         get().clearOrcaHookTrustForRepo(projectId)
-        const repoPath = get().repos.find((repo) =>
-          repoMatchesHostIdentity(repo, projectId, ownerHostId)
-        )?.path
-        get().evictGitHubRepoCaches(projectId, repoPath, ownerHostId)
-        const { clearRepoSlugCacheEntry } =
-          await import('../../lib/workspace/catalog/repo-slug-index')
-        clearRepoSlugCacheEntry(projectId)
+        
+        
+        
+        
 
         const worktreeIds = [
           ...new Set([

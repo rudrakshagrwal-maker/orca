@@ -30,12 +30,7 @@ import { parseChromeExtensionUrl } from '../../shared/browser/extensions/browser
 import { getBrowserExtensionSessionForProfile } from '../browser/extensions/profile-sessions/browser-extension-session-loader'
 import { installBrowserJavaScriptDialogs } from '../browser/guest-lifecycle/prompts/browser-javascript-dialogs'
 import { installNativeChatVisualGuestTheme } from '../host/native-chat-visual-guest-theme'
-import {
-  admitPluginFrameAttach,
-  attachPluginFrameGuest,
-  isPluginFramePartition,
-  PLUGIN_FRAME_GUEST_RENDERER_ARGUMENTS
-} from '../plugins/panels/plugin-frame-guest-registry'
+
 import { attachBrowserPasswordGuest } from '../browser-passwords/browser-password-guest-service'
 
 /** orca-preview is outside normal browser URL admission; require the doc partition and a main-minted user-preview grant. */
@@ -87,22 +82,13 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
   const browserGuestPreload = join(__dirname, 'browser-guest-preload.js')
   // Only previews get this pinned editor-link preload; never accept renderer preload values or expose it to browsing guests.
   const docPreviewLinkPreload = join(__dirname, 'doc-preview-link-preload.js')
-  const pluginFrameGuestPreload = join(__dirname, 'plugin-frame-guest-preload.js')
+
   mainWindow.webContents.on('will-attach-webview', (event, webPreferences, params) => {
     const src = typeof params.src === 'string' ? params.src : ''
     const normalizedSrc = normalizeBrowserNavigationUrl(src)
     const partition = typeof webPreferences.partition === 'string' ? webPreferences.partition : ''
     // Plugin partitions are their own rule: never a browser guest, never another plugin's origin.
-    if (isPluginFramePartition(partition)) {
-      if (!admitPluginFrameAttach(partition, src)) {
-        event.preventDefault()
-        return
-      }
-      hardenPluginFrameGuestPreferences(webPreferences, pluginFrameGuestPreload, partition)
-      delete params.preload
-      delete params.allowpopups
-      return
-    }
+
     const isProfilePartition = browserSessionRegistry.isAllowedPartition(partition)
     const isRoutePartition = browserRouteSessionRegistry.isAllowedPartition(partition)
     // Direct-SSH partitions exist only after proxy verification; renderer URLs need no main-side grants, like profile partitions.
@@ -160,9 +146,6 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
   })
 
   mainWindow.webContents.on('did-attach-webview', (_event, guest) => {
-    if (attachPluginFrameGuest(guest, mainWindow.webContents)) {
-      return
-    }
     if (isDocPreviewSession(guest.session)) {
       // workspace-doc guests cannot use browser routing/popups/auth identity; attach this live host as their read-failure sink.
       setDocPreviewFailureSink(mainWindow.webContents)
@@ -184,41 +167,5 @@ export function installMainWindowWebviewSecurity(mainWindow: BrowserWindow): voi
 }
 
 // Derived by Electron from the embedder (zoom follows the host window); everything else is pinned.
-const PLUGIN_FRAME_GUEST_INHERITED_PREFERENCES: ReadonlySet<string> = new Set(['zoomFactor'])
 
 /** Renderer markup is a request: main drops every preference it did not pin, then pins its set. */
-function hardenPluginFrameGuestPreferences(
-  webPreferences: Electron.WebPreferences,
-  preload: string,
-  partition: string
-): void {
-  // Allowlist, not denylist: a preference Electron adds later cannot reach a plugin guest unreviewed.
-  for (const key of Object.keys(webPreferences)) {
-    if (!PLUGIN_FRAME_GUEST_INHERITED_PREFERENCES.has(key)) {
-      Reflect.deleteProperty(webPreferences, key)
-    }
-  }
-  // Why not a typed field: Electron derives it from `allowpopups` before this event.
-  Object.assign(webPreferences, { disablePopups: true })
-  Object.assign(webPreferences, ORCA_BROWSER_GUEST_WEB_PREFERENCES, {
-    partition,
-    preload,
-    additionalArguments: [...PLUGIN_FRAME_GUEST_RENDERER_ARGUMENTS],
-    sandbox: true,
-    contextIsolation: true,
-    nodeIntegration: false,
-    nodeIntegrationInSubFrames: false,
-    nodeIntegrationInWorker: false,
-    webSecurity: true,
-    allowRunningInsecureContent: false,
-    webviewTag: false,
-    javascript: true,
-    plugins: false,
-    navigateOnDragDrop: false,
-    spellcheck: false,
-    // Plugins have Orca's own UI for prompts; alert/confirm would block the guest silently.
-    disableDialogs: true,
-    enableBlinkFeatures: '',
-    disableBlinkFeatures: ''
-  } satisfies Electron.WebPreferences)
-}

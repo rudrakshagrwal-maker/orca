@@ -46,8 +46,6 @@ function idleMonitor() {
         hasChatProviders: () => rig.host.hasLoadedProviders(),
         agentStates: () => [{ state: 'blocked' }],
         hasStagedMigration: () => false,
-        automationsBusy: () => false,
-        emulatorsBusy: async () => false,
         activationFenceExists: async () => false
       }
     )

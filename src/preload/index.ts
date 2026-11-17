@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { HIDDEN_WINDOW_FRAME_PUMP_STOP_CHANNEL } from '../shared/hidden-window-frame-pump'
 import { installHiddenWindowFramePump } from './hidden-window-frame-pump'
-import type { PreloadApi } from './api-types'
+import type { DesktopPreloadApi, PreloadApi } from './api-types'
 import { installBrowserFindListener } from './preload-runtime-support'
 import { appApi } from './api/app-bridge'
 import { orcaProfilesApi } from './api/orca-profiles-bridge'
@@ -12,7 +12,7 @@ import { wslDriveProjectApi } from './api/wsl-drive-project-bridge'
 import { wslDriveUncConversionApi } from './api/wsl-drive-unc-conversion-bridge'
 import { pwshApi } from './api/pwsh-bridge'
 import { gitBashApi } from './api/git-bash-bridge'
-import { pluginsApi } from './api/plugins-bridge'
+
 import { reposApi } from './api/repos-bridge'
 import { projectsApi } from './api/projects-bridge'
 import { projectGroupsApi } from './api/project-groups-bridge'
@@ -20,20 +20,13 @@ import { folderWorkspacesApi } from './api/folder-workspaces-bridge'
 import { sparsePresetsApi } from './api/sparse-presets-bridge'
 import { worktreesApi } from './api/worktrees-bridge'
 import { workspaceCleanupApi } from './api/workspace-cleanup-bridge'
-import { workspaceSpaceApi } from './api/workspace-space-bridge'
-import { workspacePortsApi } from './api/workspace-ports-bridge'
+
 import { linkPreviewApi } from './api/link-preview-bridge'
 import { ptyApi } from './api/pty-bridge'
 import { feedbackApi } from './api/feedback-bridge'
 import { crashReportsApi } from './api/crash-reports-bridge'
 import { exportApi } from './api/export-bridge'
-import { ghApi } from './api/gh-bridge'
-import { hostedReviewApi } from './api/hosted-review-bridge'
-import { glApiBridge } from './api/gl-bridge'
-import { bitbucketApi } from './api/bitbucket-bridge'
-import { linearApi } from './api/linear-bridge'
-import { jiraApi } from './api/jira-bridge'
-import { starNagApi } from './api/star-nag-bridge'
+
 import { diagnosticsApi } from './api/diagnostics-bridge'
 import { settingsApi } from './api/settings-bridge'
 import { agentAwakeApi } from './api/agent-awake-bridge'
@@ -45,8 +38,7 @@ import { cliApi } from './api/cli-bridge'
 import { codexConfigSyncApi } from './api/codex-config-sync-bridge'
 import { preflightApi } from './api/preflight-bridge'
 import { notificationsApi } from './api/notifications-bridge'
-import { onboardingApi } from './api/onboarding-bridge'
-import { dashboardApi } from './api/dashboard-bridge'
+
 import { terminalPreviewApi } from './api/terminal-preview-bridge'
 import { macosTccPromptsApi } from './api/macos-tcc-prompts-bridge'
 import { developerPermissionsApi } from './api/developer-permissions-bridge'
@@ -57,7 +49,7 @@ import { petApi } from './api/pet-bridge'
 import { appIconApi } from './api/app-icon-bridge'
 import { browserPasswordsApi } from './api/browser-passwords-bridge'
 import { browserApi } from './api/browser/browser-bridge'
-import { emulatorApi } from './api/emulator-bridge'
+
 import { hooksApi } from './api/hooks-bridge'
 import { ephemeralVmApi } from './api/ephemeral-vm-bridge'
 import { cacheApi } from './api/cache-bridge'
@@ -69,27 +61,18 @@ import { fsApi } from './api/fs-bridge'
 import { gitApi } from './api/git-bridge'
 import { uiApi } from './api/ui-bridge'
 import { statsApi } from './api/stats-bridge'
-// RA: no renderer memory-monitor bridge.
-import { claudeUsageApi } from './api/claude-usage-bridge'
-import { codexUsageApi } from './api/codex-usage-bridge'
-import { openCodeUsageApi } from './api/open-code-usage-bridge'
-import { museUsageApi } from './api/muse-usage-bridge'
+
 import { aiVaultApi } from './api/ai-vault-bridge'
 import { nativeChatApi } from './api/native-chat-bridge'
 import { runtimeApi } from './api/runtime-bridge'
 import { runtimeEnvironmentsApi } from './api/runtime-environments-bridge'
-import { rateLimitsApi } from './api/rate-limits-bridge'
-import { opencodeGoCredentialsApi } from './api/opencode-go-credentials-bridge'
-import { minimaxCredentialsApi } from './api/minimax-credentials-bridge'
-import { zcodePlanCredentialsApi } from './api/zcode-plan-credentials-bridge'
-import { grokAccountsApi } from './api/grok-accounts-bridge'
-import { cursorAccountsApi } from './api/cursor-accounts-bridge'
+
 import { sshApi } from './api/ssh-bridge'
 import { plainSshTerminalApi } from './api/plain-ssh-terminal-bridge'
 import { legacyRelayBridgeApi } from './api/legacy-relay-bridge-api'
-import { automationsApi } from './api/automations-bridge'
+
 import { e2eApi } from './api/e2e-bridge'
-import { mobileApi } from './api/mobile-bridge'
+
 import { agentStatusApi } from './api/agent-status-bridge'
 import { speechApi } from './api/speech-bridge'
 
@@ -114,7 +97,7 @@ const api = {
   wslDriveUnc: wslDriveUncConversionApi,
   pwsh: pwshApi,
   gitBash: gitBashApi,
-  plugins: pluginsApi,
+
   repos: reposApi,
   projects: projectsApi,
   projectGroups: projectGroupsApi,
@@ -122,20 +105,13 @@ const api = {
   sparsePresets: sparsePresetsApi,
   worktrees: worktreesApi,
   workspaceCleanup: workspaceCleanupApi,
-  workspaceSpace: workspaceSpaceApi,
-  workspacePorts: workspacePortsApi,
+
   linkPreview: linkPreviewApi,
   pty: ptyApi,
   feedback: feedbackApi,
   crashReports: crashReportsApi,
   export: exportApi,
-  gh: ghApi,
-  hostedReview: hostedReviewApi,
-  gl: glApiBridge,
-  bitbucket: bitbucketApi,
-  linear: linearApi,
-  jira: jiraApi,
-  starNag: starNagApi,
+
   telemetryTrack: telemetryTrackApi,
   telemetrySetOptIn: telemetrySetOptInApi,
   telemetryAcknowledgeBanner: telemetryAcknowledgeBannerApi,
@@ -151,8 +127,7 @@ const api = {
   codexConfigSync: codexConfigSyncApi,
   preflight: preflightApi,
   notifications: notificationsApi,
-  onboarding: onboardingApi,
-  dashboard: dashboardApi,
+
   terminalPreview: terminalPreviewApi,
   macosTccPrompts: macosTccPromptsApi,
   developerPermissions: developerPermissionsApi,
@@ -163,7 +138,7 @@ const api = {
   appIcon: appIconApi,
   browser: browserApi,
   browserPasswords: browserPasswordsApi,
-  emulator: emulatorApi,
+
   hooks: hooksApi,
   ephemeralVm: ephemeralVmApi,
   cache: cacheApi,
@@ -175,29 +150,21 @@ const api = {
   git: gitApi,
   ui: uiApi,
   stats: statsApi,
-  claudeUsage: claudeUsageApi,
-  codexUsage: codexUsageApi,
-  openCodeUsage: openCodeUsageApi,
-  museUsage: museUsageApi,
+
   aiVault: aiVaultApi,
   nativeChat: nativeChatApi,
   runtime: runtimeApi,
   runtimeEnvironments: runtimeEnvironmentsApi,
-  rateLimits: rateLimitsApi,
-  opencodeGoCredentials: opencodeGoCredentialsApi,
-  minimaxCredentials: minimaxCredentialsApi,
-  zcodePlanCredentials: zcodePlanCredentialsApi,
-  grokAccounts: grokAccountsApi,
-  cursorAccounts: cursorAccountsApi,
+
   ssh: sshApi,
   plainSsh: plainSshTerminalApi,
   legacyRelayBridge: legacyRelayBridgeApi,
-  automations: automationsApi,
+
   e2e: e2eApi,
-  mobile: mobileApi,
+
   agentStatus: agentStatusApi,
   speech: speechApi
-} satisfies PreloadApi
+} satisfies DesktopPreloadApi
 
 if (process.contextIsolated) {
   try {
@@ -206,7 +173,8 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  window.api = api
+  // RA: the desktop exposes its smaller bridge on nonisolated development windows too.
+  Object.defineProperty(window, 'api', { value: api, configurable: true })
 }
 
 installHiddenWindowFramePump(

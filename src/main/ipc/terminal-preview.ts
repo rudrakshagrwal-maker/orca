@@ -1,10 +1,10 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { ipcMain, type WebContents } from 'electron'
 import type {
   TerminalPreviewConnectResult,
   TerminalPreviewSnapshot
 } from '../../shared/terminal/replay/terminal-preview'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
-import { isDashboardPopoutRenderer } from '../window/dashboard-popout-window'
 import { isTrustedUIRenderer } from './ui'
 import { abortWhenRendererGone } from './renderer-lifetime-abort'
 import {
@@ -20,7 +20,7 @@ function isValidPtyId(value: unknown): value is string {
 
 // Both popout and main-renderer overlay host previews; trusted UI already has ordinary PTY access.
 function isTerminalPreviewRenderer(sender: WebContents): boolean {
-  return isDashboardPopoutRenderer(sender) || isTrustedUIRenderer(sender)
+  return isTrustedUIRenderer(sender)
 }
 /** Pop-out terminal transport with an atomic snapshot/live boundary. */
 export function registerTerminalPreviewHandlers(runtime: OrcaRuntimeService): void {

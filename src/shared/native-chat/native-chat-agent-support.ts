@@ -1,18 +1,10 @@
-import type { TuiAgent } from '../agent-launch/catalog/tui-agent'
+import { FORK_TUI_AGENTS, isForkTuiAgent, type TuiAgent } from '../agent-launch/catalog/tui-agent'
 
 export type NativeChatTranscriptAgent = 'claude' | 'codex' | 'grok' | 'omp' | 'opencode'
 
 /** Agents whose transcripts the native chat view can parse and render. */
-export const NATIVE_CHAT_SUPPORTED_AGENT_LIST: readonly TuiAgent[] = [
-  'claude',
-  'openclaude',
-  'codex',
-  'grok',
-  'omp',
-  'opencode',
-  'opencode2',
-  'zcode'
-]
+// RA: transcript entry points follow the same launch allow-list.
+export const NATIVE_CHAT_SUPPORTED_AGENT_LIST: readonly TuiAgent[] = FORK_TUI_AGENTS
 
 export const NATIVE_CHAT_SUPPORTED_AGENTS: ReadonlySet<string> = new Set(
   NATIVE_CHAT_SUPPORTED_AGENT_LIST
@@ -50,17 +42,8 @@ export function nativeChatStopSendsSecondEscape(agent: string | null | undefined
 export function resolveNativeChatTranscriptAgent(
   agent: string | null | undefined
 ): NativeChatTranscriptAgent | null {
-  // OpenClaude writes Claude transcripts but retains distinct launch/UI identity.
-  if (agent === 'claude' || agent === 'openclaude') {
-    return 'claude'
-  }
-  if (agent === 'opencode' || agent === 'opencode2' || agent === 'zcode') {
-    return 'opencode'
-  }
-  if (agent === 'codex' || agent === 'grok' || agent === 'omp') {
-    return agent
-  }
-  return null
+  // RA: only retained integrations have a transcript reader.
+  return isForkTuiAgent(agent) ? agent : null
 }
 
 export function nativeChatApprovalAcceptKey(agent: string | null | undefined): string {

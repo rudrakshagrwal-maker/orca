@@ -1,7 +1,0 @@
-{
-  "id": "dsh",
-  "engineVersion": 1,
-  "profile": { "hooks": "turn-end" },
-  "anchors": [],
-  "rules": []
-}

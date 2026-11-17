@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import React from 'react'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import type { AppState } from '@/store/types'
@@ -24,7 +25,7 @@ import {
   LINEAGE_CHILDREN_INLINE_OFFSET
 } from './indentation'
 import type { LineageToggleHandler } from '../../workspace-card/identity/worktree-lineage-toggle-handler-cache'
-import { getFolderWorkspaceCardPrDisplay } from '../../workspace-card/review/folder-workspace-card-pr-display'
+
 import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
 import type { WorktreeItemRowContext } from './item-row'
 import type { FolderWorkspaceItemRow } from '../listing/renderable-rows'
@@ -43,8 +44,7 @@ export type FolderWorkspaceRowContext = {
   worktreeLineageById: Record<string, WorktreeLineage>
   workspaceLineageByChildKey: Record<string, WorkspaceLineage>
   crossStoreChildrenByFolderId: ReadonlyMap<string, readonly Worktree[]>
-  prCache: AppState['prCache'] | null
-  hostedReviewCache: AppState['hostedReviewCache'] | null
+
   getCachedFolderWorkspacePathStatus: (request: {
     scope: 'folder-workspace'
     folderWorkspaceId: string
@@ -102,17 +102,7 @@ export function renderFolderWorkspaceOption(args: {
   const activationDisabled =
     pathStatus?.exists === false &&
     (isConfirmedStaleFolderPathStatus(pathStatus) || pathStatus.reason === 'ambiguous-connection')
-  const folderPrDisplay = getFolderWorkspaceCardPrDisplay({
-    folderWorkspaceId: row.folderWorkspace.id,
-    workspaceLineageByChildKey: ctx.workspaceLineageByChildKey,
-    crossStoreChildren: ctx.crossStoreChildrenByFolderId.get(row.folderWorkspace.id) ?? [],
-    worktreeLineageById: ctx.worktreeLineageById,
-    worktreeMap: ctx.worktreeMap,
-    repoMap: ctx.repoMap,
-    hostedReviewCache: ctx.hostedReviewCache,
-    prCache: ctx.prCache,
-    settings: ctx.settings
-  })
+
   const { surfaceInset, cardContentIndent } = getFolderWorkspaceRowGeometry({
     experimentalNewWorktreeCardStyle: ctx.newCardStyle,
     isFolderBackedWorkspaceChild:
@@ -165,7 +155,7 @@ export function renderFolderWorkspaceOption(args: {
           activationRowKey={folderWorktreeIdentity}
           onSelectionGesture={(event) => ctx.onSelectionGesture(event, folderWorktree)}
           onContextMenuSelect={ctx.onContextMenuSelect}
-          statusPrDisplay={folderPrDisplay}
+
           hostContextLabel={row.hostContextLabel}
           lineageChildCount={row.lineageChildCount}
           lineageChildWorktreeIds={row.lineageChildWorktreeIds}

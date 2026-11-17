@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type React from 'react'
 import type { AppState } from '@/store/types'
 import type { ProjectGroup } from '../../../../../../shared/project-group-types'
@@ -89,7 +90,6 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
       onRenameProjectGroup: props.handleRenameProjectGroup,
       onDeleteProjectGroup: props.handleDeleteProjectGroup,
       onRefreshProjectGroup: props.handleRefreshProjectGroup,
-      onCreateFolderWorkspace: props.handleCreateFolderWorkspace,
       onWorkspaceStatusDragOver: statusDrag.handleWorkspaceStatusDragOver,
       onWorkspaceStatusDragLeave: statusDrag.handleWorkspaceStatusDragLeave,
       onWorkspacePinDragOver: statusDrag.handleWorkspacePinDragOver,
@@ -134,8 +134,7 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
       worktreeLineageById: props.worktreeLineageById,
       workspaceLineageByChildKey: props.workspaceLineageByChildKey,
       crossStoreChildrenByFolderId: props.crossStoreChildrenByFolderId,
-      prCache: props.prCache,
-      hostedReviewCache: props.hostedReviewCache,
+
       getCachedFolderWorkspacePathStatus: args.getCachedFolderWorkspacePathStatus,
       onSelectionGesture: props.onSelectionGesture,
       onContextMenuSelect: props.onContextMenuSelect,

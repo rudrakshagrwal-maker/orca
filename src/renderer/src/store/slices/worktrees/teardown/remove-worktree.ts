@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { getRepoIdFromWorktreeId } from '../../../../../../shared/worktree/id'
 import { parseExecutionHostId } from '../../../../../../shared/execution-host'
 import { ensureHooksConfirmed } from '@/runtime/repo-hooks/ensure-hooks-confirmed'
@@ -219,20 +220,6 @@ export function createRemoveWorktree(
       // Record unreachable forget-local removal to fence in-flight metadata reads; disconnected polls cannot correct resurrection.
       if (hostId && parseExecutionHostId(hostId)?.kind === 'ssh') {
         rememberAuthoritativelyRemovedWorktrees(hostId, [worktreeId])
-      }
-
-      const worktreeDisplayName = worktreeBeforeRemoval?.displayName?.trim()
-      if (worktreeDisplayName && hostId) {
-        try {
-          await window.api.automations?.snapshotWorkspaceName?.({
-            workspaceId: worktreeId,
-            hostId,
-            displayName: worktreeDisplayName
-          })
-        } catch (error) {
-          // Why: snapshotting automation labels is best-effort; a stale preload/test harness must not block removal.
-          console.warn('Failed to snapshot automation workspace name:', error)
-        }
       }
 
       await tearDownRemovedWorktreeRendererState({

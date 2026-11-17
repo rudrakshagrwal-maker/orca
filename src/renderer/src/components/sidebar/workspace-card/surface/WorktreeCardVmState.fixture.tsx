@@ -1,7 +1,8 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import { getDefaultSettings } from '../../../../../../shared/constants'
 import type { EphemeralVmRuntimeStatus } from '../../../../../../shared/ephemeral-vm-runtimes'
 import { defineFixture } from '../../../../component-fixtures/component-fixture'
-import { makeRepo, makeWorktree } from '../../../worktree-jump/worktree-jump-palette-test-fixtures'
+import { makeRepo, makeWorktree } from '../../../test-support/workspace-layout-test-fixtures'
 import type { EphemeralVmWorkspaceRuntime } from '@/store/slices/ephemeral-vm/ephemeral-vm-lifecycle'
 import WorktreeCard from './WorktreeCard'
 

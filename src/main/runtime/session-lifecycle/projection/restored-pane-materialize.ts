@@ -40,6 +40,9 @@ export abstract class OrcaRuntimeWithRestoredPaneStart extends OrcaRuntimeWithBu
     scope: TerminalWorkspaceLaunchScope,
     agent: TuiAgent | undefined
   ): AgentLaunchRuntime
+  protected abstract getPaneSleepingAgentRecord(
+    ...args: Parameters<AgentSessionResume['getPaneSleepingAgentRecord']>
+  ): ReturnType<AgentSessionResume['getPaneSleepingAgentRecord']>
   protected abstract resolvePaneOwnedResumeStartup(
     ...args: Parameters<AgentSessionResume['resolvePaneOwnedResumeStartup']>
   ): ReturnType<AgentSessionResume['resolvePaneOwnedResumeStartup']>

@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { Worktree } from '../../../../../../shared/worktree/types'
 import type { PRGroupKey } from '../../../../../../shared/workspace-view/workspace-pr-groups'

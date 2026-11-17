@@ -367,30 +367,6 @@ describe('OrcaRuntimeService', () => {
     ).resolves.toMatchObject({ postStopVerified: true })
   })
 
-  it('isolates a throwing subscriber across runtime listener fan-out', () => {
-    const runtime = new OrcaRuntimeService(store)
-    const delivered: number[] = []
-    // Sibling notification fan-outs must also isolate throwing subscribers.
-    runtime.onNotificationDispatched(() => {
-      throw new Error('subscriber_send_failed')
-    })
-    runtime.onNotificationDispatched((event) => {
-      delivered.push(event.notificationSeq ?? -1)
-    })
-
-    expect(() =>
-      runtime.dispatchMobileNotification({
-        type: 'notification',
-        source: 'test',
-        title: 'Test',
-        body: 'Body',
-        worktreeId: TEST_WORKTREE_ID
-      })
-    ).not.toThrow()
-
-    expect(delivered).toHaveLength(1)
-  })
-
   it('keeps the original committed disposition across an idempotent retry', async () => {
     const runtime = new OrcaRuntimeService(store)
     const events: RuntimeClientEvent[] = []

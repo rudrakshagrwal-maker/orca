@@ -1,3 +1,4 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as SnapshotModule from '../../../runtime/web-session-tabs-sync/inventory/web-runtime-session-snapshot'
 import { useAppStore } from '../../../store/index'
@@ -24,7 +25,7 @@ import {
 import {
   makeRepo,
   makeWorktree
-} from '../../../components/worktree-jump/worktree-jump-palette-test-fixtures'
+} from '../../../components/test-support/workspace-layout-test-fixtures'
 
 vi.mock(
   '../../../runtime/web-session-tabs-sync/inventory/web-runtime-session-snapshot',

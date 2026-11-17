@@ -17,13 +17,13 @@ import {
   type ParsedJiraIssueUrl
 } from '../../../../../../shared/jira/jira-issue-url'
 import {
+  parseLinearIssueInput,
   parseLinearIssueUrlIntent,
   type LinearIssueUrlIntent
 } from '../../../../../../shared/linear/links'
 import type { Repo } from '../../../../../../shared/repo-types'
 import { getWorkspaceAttachments } from '../../../../../../shared/workspace-attachments/workspace-attachments'
 import type { Worktree } from '../../../../../../shared/worktree/types'
-import { normalizeLinearIdentifier } from '../../../work-items/linear/linear-issue-workspace-attachment'
 import {
   worktreeMatchesGitLabUrl,
   type GitLabIssueOrMRLink
@@ -228,6 +228,15 @@ function worktreeMatchesGitHubUrl(
   return (
     attachmentMatch || legacyNumberMatch || Boolean(reviewUrl && githubLinksEqual(reviewUrl, link))
   )
+}
+
+function normalizeLinearIdentifier(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return null
+  }
+  const parsed = parseLinearIssueInput(trimmed)
+  return (parsed?.identifier ?? trimmed).toUpperCase()
 }
 
 function worktreeMatchesLinearUrl(worktree: Worktree, intent: LinearIssueUrlIntent): boolean {

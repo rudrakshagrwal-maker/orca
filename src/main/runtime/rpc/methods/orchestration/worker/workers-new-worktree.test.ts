@@ -12,7 +12,6 @@ import '../../../../orchestration/db/attempt-outcome-projection'
 import { RpcDispatcher } from '../../../dispatcher'
 import type { RpcRequest } from '../../../core'
 import { ORCHESTRATION_METHODS } from '../orchestration'
-import './worker-opencode-model-preflight'
 import '../../../../../../shared/rpc-contract/orchestration-federation-start-params'
 
 describe('orchestration new-worktree workers', () => {

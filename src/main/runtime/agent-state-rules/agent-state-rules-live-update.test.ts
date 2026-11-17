@@ -97,7 +97,7 @@ afterEach(() => {
 describe('agent state rules live updates', () => {
   it('lets no superseded start or fetch change the rules after a restart', async () => {
     const overridePath = join(userData, 'override.json')
-    writeFileSync(overridePath, bundleText(1, [bundledFile('gemini')]))
+    writeFileSync(overridePath, bundleText(1, [bundledFile('codex')]))
     const h = harness()
     let land: (response: Response) => void = () => {}
     h.fetch.mockImplementation(() => new Promise<Response>((resolve) => (land = resolve)))

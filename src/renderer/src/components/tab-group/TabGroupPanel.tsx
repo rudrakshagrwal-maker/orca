@@ -181,7 +181,7 @@ export default function TabGroupPanel({
       onNewTerminalTab={commands.newTerminalTab}
       onNewTerminalWithShell={commands.newTerminalWithShell}
       onNewBrowserTab={commands.newBrowserTab}
-      onNewSimulatorTab={commands.newSimulatorTab}
+
       onOpenEntry={commands.openEntry}
       onNewFileTab={commands.newFileTab}
       onSetCustomTitle={commands.setTabCustomTitle}
@@ -360,7 +360,8 @@ export default function TabGroupPanel({
           />
         ) : null}
         {/* RA: restored editor/Markdown/graph tabs never load Monaco. */}
-        {!backgroundJobsDisabled() && activeTab &&
+        {!backgroundJobsDisabled() &&
+          activeTab &&
           activeTab.contentType !== 'terminal' &&
           activeTab.contentType !== 'agent-session' &&
           activeTab.contentType !== 'browser' &&

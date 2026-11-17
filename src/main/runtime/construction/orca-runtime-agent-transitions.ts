@@ -3,12 +3,7 @@ import { AgentTransitionDetector } from '../../agent-hooks/observations/agent-tr
 import type { ConnectorCloud } from '../../connector-cloud/connector-cloud'
 import type { ExternalConversationSeam } from '../../external-conversations/external-conversation-seam'
 import { installExternalConversations } from '../../external-conversations/external-conversations-install'
-import { HEADLESS_RUNTIME_WINDOW_ID } from '../../../shared/runtime-session-contracts'
-import { parsePaneKey } from '../../../shared/workspace-layout/stable-pane-id'
-import { parseWorkspaceKey } from '../../../shared/workspace-scope'
-import { getRepoIdFromWorktreeId } from '../../../shared/worktree/id'
 import { OrcaRuntimeWithWindowlessTerminalActivity } from '../sidebar-inputs/orca-runtime-windowless-terminal-activity'
-import { getRuntimeDesktopSurface } from './runtime-desktop-surface'
 import type { AgentStatusStoreView } from '../sidebar-inputs/workspace-activity-facts-producer'
 import { subscribeHookStatusTitles } from '../terminal/layout/hook-status-title-subscription'
 import {
@@ -26,41 +21,19 @@ import {
 import { getStructuredAgentSessionHost } from '../../native-chat/agent-session-wire/host/structured-agent-session-registry'
 import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../../shared/sidebar-inputs-switch'
 import { WorktreeRowsChanges } from '../client/events/worktree-rows-change-events'
-import {
-  TerminalAgentPhonePush,
-  type TerminalAgentWorkspaceLabels
-} from '../push/notifications/terminal-agent-phone-push'
 
+// RA: worker approval holds still need this timer after phone push removal.
 function unrefTimer(run: () => void, delayMs: number): { cancel: () => void } {
   const timer = setTimeout(run, delayMs)
   timer.unref?.()
   return { cancel: () => clearTimeout(timer) }
 }
 
-/** All hosts/builds own transition detection and windowless phone pushes. */
+/** Hosts own transition detection and worker lifecycle observations. */
 export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithWindowlessTerminalActivity {
   readonly agentTransitions = new AgentTransitionDetector({
     resolveTabWorktreeId: (tabId) => this.tabs.get(tabId)?.worktreeId,
     subscribeToPtyExit: (ptyId, listener) => this.subscribeToPtyExit(ptyId, listener),
-    now: Date.now
-  })
-  private readonly terminalAgentPhonePush = new TerminalAgentPhonePush({
-    // Pending desktop windows seed missed state without announcing it; do not duplicate their phone pushes.
-    hasWindow: () =>
-      this.authoritativeWindowId === null
-        ? this.rendererGraphEpoch === 0
-        : this.authoritativeWindowId !== HEADLESS_RUNTIME_WINDOW_ID,
-    readNotificationSettings: () => this.store?.getSettings().notifications,
-    readWorkspaceLabels: (worktreeId, paneKey) =>
-      this.readTerminalAgentWorkspaceLabels(worktreeId, paneKey),
-    isWorkspaceMuted: (worktreeId) => this.isWorkspaceNotificationMuted(worktreeId),
-    readOrchestration: (paneKey) => this.getAgentStatusOrchestrationContextForPaneKey(paneKey),
-    readTerminalTitle: (paneKey) => this.getPtyRecordForPaneKey(paneKey)?.lastOscTitle ?? null,
-    readHookRow: (paneKey) => this.agentTransitions.latestRow(paneKey),
-    translate: (key, fallback) =>
-      getRuntimeDesktopSurface().translateNotification?.(key, fallback) ?? fallback,
-    dispatch: (event) => this.mobileNotifications.dispatch(event),
-    setTimer: unrefTimer,
     now: Date.now
   })
   private readonly terminalWorkerResolution = {
@@ -132,7 +105,7 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithWin
 
   constructor(...args: ConstructorParameters<typeof OrcaRuntimeWithWindowlessTerminalActivity>) {
     super(...args)
-    this.agentTransitions.subscribe((change) => this.terminalAgentPhonePush.observe(change))
+    // RA: transitions feed worker orchestration only; no phone notification observer.
     this.agentTransitions.subscribe((change) => this.terminalWorkerTurnStops.observe(change))
     this.agentTransitions.subscribe((change) => this.workerAutoReleaseActivity.observePane(change))
     const saveMovedWorkerSessions = watchMovedWorkerResumeSessions(
@@ -187,36 +160,6 @@ export abstract class OrcaRuntimeWithAgentTransitions extends OrcaRuntimeWithWin
       this.crewChanges.notify(new Set(['status', 'names']))
       detachTitles()
       detachTransitions()
-    }
-  }
-
-  private readTerminalAgentWorkspaceLabels(
-    worktreeId: string,
-    paneKey: string
-  ): TerminalAgentWorkspaceLabels {
-    const store = this.store
-    const tabId = parsePaneKey(paneKey)?.tabId
-    const fallback =
-      (tabId ? this.tabs.get(tabId)?.title?.trim() : undefined) ||
-      this.agentTransitions.latestRow(paneKey)?.agentType ||
-      'workspace'
-    const scope = parseWorkspaceKey(worktreeId)
-    if (scope?.type === 'folder') {
-      const folder = store?.getFolderWorkspaces?.().find((f) => f.id === scope.folderWorkspaceId)
-      const group = folder
-        ? store?.getProjectGroups?.().find((item) => item.id === folder.projectGroupId)
-        : undefined
-      return { repoLabel: group?.name, worktreeLabel: folder?.name || fallback }
-    }
-    const id = scope?.type === 'worktree' ? scope.worktreeId : worktreeId
-    // Catalog changes empty the listing cache; persisted metadata remains available.
-    const listed = this.resolvedWorktrees.peek()?.worktrees.find((item) => item.id === id)
-    const meta = listed ? undefined : store?.getWorktreeMeta(id)
-    const repoId = listed?.repoId ?? (meta ? getRepoIdFromWorktreeId(id) : undefined)
-    const repo = repoId ? store?.getRepo(repoId) : undefined
-    return {
-      repoLabel: repo?.displayName,
-      worktreeLabel: listed?.displayName || listed?.branch || meta?.displayName || fallback
     }
   }
 }

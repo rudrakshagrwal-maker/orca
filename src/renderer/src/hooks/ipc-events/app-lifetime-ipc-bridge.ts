@@ -1,8 +1,9 @@
-import { observeJiraImageHostStatus } from '@/runtime/jira/runtime-jira-image-cache'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { observeRuntimeHostStatusForPendingRemovals } from '@/store/repos/pending-runtime-repo-removal-replay'
 import type { RuntimeHostStatusSnapshot } from '../../../../shared/remote-runtime/host-status/runtime-host-status'
 import { getTabIdsAwaitingHostHydrationRemount } from '@/components/terminal-pane/mounting/parked-terminal-host-hydration'
-import { emitAutomationsChangedWindowEvent } from '@/components/automations/events/automations-changed-window-event'
+
 import { createBackgroundSleepingAgentWakeDispatcher } from '@/lib/agent-session/resume/wake-sleeping-agents-in-background'
 import { remoteRuntimeTerminalColorPush } from '@/runtime/hosted-terminals/streams/remote-runtime-terminal-color-push'
 import { resetAgentHookCompletionNotificationCoordinators } from '../agent-hook-completion-notifications'
@@ -15,17 +16,17 @@ import {
 } from './browser-request-ipc-bridge'
 import { registerBrowserTabActivateIpcBridge } from './browser-tab-activate-ipc-bridge'
 import { registerBrowserStateIpcBridge } from './browser-state-ipc-bridge'
-import { registerContentCreationIpcBridge } from './content-creation-ipc-bridge'
+
 import { registerDirectSshStateIpcBridge } from './direct-ssh-state-ipc-bridge'
-import { registerEphemeralVmLifecycleIpcBridge } from './ephemeral-vm-lifecycle-ipc-bridge'
+
 import { registerMobileAndTerminalCloseIpcBridge } from './mobile-terminal-close-ipc-bridge'
-import { registerMobileDriverIpcBridge } from './mobile-driver-ipc-bridge'
+
 import { registerOrcaProfileAuthIpcBridge } from './orca-profile-auth-ipc-bridge'
-import { registerPluginViewIpcBridge } from './plugin-view-ipc-bridge'
+
 import { registerPreflightWslRetryIpcBridge } from './preflight-wsl-retry-ipc-bridge'
 import { registerOsMarkdownFileOpenBridge } from './os-markdown-file-open-bridge'
 import { registerProjectCatalogIpcBridge } from './project-catalog-ipc-bridge'
-import { registerRateLimitIpcBridge } from './rate-limit-ipc-bridge'
+
 import { registerClaudeAccountSwitchIpcBridge } from './claude-account-switch-ipc-bridge'
 import { registerRuntimeClientIpcBridge } from './runtime-client-ipc-bridge'
 import { registerSessionTabIpcBridge } from './session-tab-ipc-bridge'
@@ -61,9 +62,6 @@ export function installAppLifetimeIpcEvents(): () => void {
   const unsubs: (() => void)[] = []
   const backgroundWakeDispatcher = createBackgroundSleepingAgentWakeDispatcher()
   unsubs.push(backgroundWakeDispatcher.dispose)
-  unsubs.push(
-    window.api.automations.onChanged((payload) => emitAutomationsChangedWindowEvent(payload))
-  )
 
   const worktreeRuntime = createWorktreeEventRuntime(unsubs, isRuntimeEnvironmentActive)
   const statusApi = window.api.runtimeEnvironments
@@ -72,7 +70,6 @@ export function installAppLifetimeIpcEvents(): () => void {
       useAppStore.getState().applyRuntimeHostStatusSnapshot(snapshot)
       observeRuntimeHostStatusForPendingRemovals(snapshot)
       remoteRuntimeTerminalColorPush.observeStatusSnapshot(snapshot)
-      observeJiraImageHostStatus(snapshot)
     }
     let stopped = false
     unsubs.push(statusApi.onStatusChanged(apply), () => {
@@ -90,7 +87,7 @@ export function installAppLifetimeIpcEvents(): () => void {
   const unsubscribeRuntimeEnvironmentStore = registerRuntimeClientIpcBridge(unsubs, worktreeRuntime)
   registerBackgroundWorktreeRemovalBridge(unsubs)
   registerWslHostIpcBridge(unsubs)
-  registerEphemeralVmLifecycleIpcBridge(unsubs)
+
   registerProjectCatalogIpcBridge(
     unsubs,
     worktreeRuntime.worktreeChangeRefreshQueue,
@@ -136,25 +133,20 @@ export function installAppLifetimeIpcEvents(): () => void {
   registerMobileAndTerminalCloseIpcBridge(unsubs, backgroundWakeDispatcher.request)
   registerUpdaterStatusIpcBridge(unsubs)
   registerBrowserStateIpcBridge(unsubs, isRuntimeEnvironmentActive)
-  registerContentCreationIpcBridge(unsubs, isRuntimeEnvironmentActive)
+
   registerBrowserRequestIpcBridge(unsubs)
   signalBrowserTabRequestsReadyAfterRestore(unsubs)
   registerBrowserTabActivateIpcBridge(unsubs)
   registerTabLifecycleIpcBridge(unsubs)
-  registerRateLimitIpcBridge(unsubs)
-  registerPluginViewIpcBridge(unsubs)
+
   registerClaudeAccountSwitchIpcBridge(unsubs)
   const stopDirectSshStateBridge = registerDirectSshStateIpcBridge(unsubs)
   registerZoomIpcBridge(unsubs)
   const agentStatusBridge = registerAgentStatusIpcBridge(unsubs)
-  const disposeMobileDriverHydration = registerMobileDriverIpcBridge(
-    unsubs,
-    isRuntimeEnvironmentActive
-  )
 
   return () => {
     agentStatusBridge.disposeAsyncState()
-    disposeMobileDriverHydration()
+
     unsubscribeRuntimeEnvironmentStore()
     agentStatusBridge.unsubscribeStore()
     unsubs.forEach((unsubscribe) => unsubscribe())

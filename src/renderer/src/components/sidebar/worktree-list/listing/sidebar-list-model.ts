@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import type { AppState } from '@/store/types'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { FolderWorkspace } from '../../../../../../shared/folder-workspaces/folder-workspace-types'
@@ -38,7 +39,7 @@ export type SidebarListModelArgs = {
   folderWorkspaces: readonly FolderWorkspace[]
   projectGrouping: ProjectGroupingModel
   detectedWorktreesByRepo: AppState['detectedWorktreesByRepo']
-  prCache: AppState['prCache'] | null
+
   agentSendTargetWorktreeId: string | null
 }
 
@@ -61,7 +62,7 @@ export type SectionRowsArgs = {
   repoMap: Map<string, Repo>
   worktreeMap: Map<string, Worktree>
   worktreeLineageById: Record<string, WorktreeLineage>
-  prCache: AppState['prCache'] | null
+
   settings: AppState['settings']
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   effectiveCollapsedGroups: Set<string>

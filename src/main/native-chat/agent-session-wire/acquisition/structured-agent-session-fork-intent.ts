@@ -1,7 +1,8 @@
 import { prepareStructuredAgentSessionFork } from './structured-agent-session-fork'
 import { resolveCommittedStructuredAgentSessionAdoptionIntent } from '../../../runtime/agent-session/structured-agent-session-create-adoption'
 import { agentConversationCopyRefusal } from '../../agent-conversation-copy-error'
-import { acpAgentName } from '../../../acp/session/acp-structured-agent-definitions'
+// RA: supported-agent labels do not load the removed ACP registry.
+import { formatAgentTypeLabel as acpAgentName } from '../../../../shared/agent-status/presentation/agent-type-label'
 import type { AgentSessionExecutionLocation } from '../../../../shared/agent-session/lifecycle/agent-session-record'
 import type { StructuredAgentId } from '../../../../shared/agent-session/lifecycle/agent-session-provider-handle'
 import type { StructuredAgentSessionHost } from '../host/structured-agent-session-host'

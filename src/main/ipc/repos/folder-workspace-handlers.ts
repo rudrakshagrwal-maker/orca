@@ -17,7 +17,7 @@ import {
   parseProjectGroupIpcArgs
 } from './repo-ipc-arg-schemas'
 import { visibleFolderWorkspaces } from '../../persistence/migrating-orcad-catalog/source/catalog/orcad-source-visibility'
-import { createFolderWorkspaceWithPluginHooks } from '../../plugins/hooks/workspace-create-plugin-hook'
+
 import {
   isLocalWslMoveRow,
   shouldDropWslMoveProjectUpdate
@@ -64,9 +64,11 @@ export function registerFolderWorkspaceHandlers(
         repos: store.getRepos()
       })
       assertFolderWorkspacePathUsable(status)
-      const workspace = await createFolderWorkspaceWithPluginHooks(args, (request) =>
-        store.createFolderWorkspace({ ...request, creatorProvenance: { kind: 'host' } })
-      )
+      // RA: create folders directly without plugin interception.
+      const workspace = store.createFolderWorkspace({
+        ...args,
+        creatorProvenance: { kind: 'host' }
+      })
       notifyReposChanged(mainWindow)
       return workspace
     }

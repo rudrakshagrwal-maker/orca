@@ -1,12 +1,13 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 // @vitest-environment happy-dom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { Suspense, use, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../shared/constants'
 import { ConfirmationDialogContext } from './confirmation-dialog-context'
 import { UntitledFileRenameDialog } from './editor/UntitledFileRenameDialog'
 import { QuickCommandsPane } from './settings/quick-commands/QuickCommandsPane'
-import { useWorkspaceKanbanColumnResize } from './sidebar/workspace-board/viewport/use-workspace-kanban-column-resize'
+
 import { useAddRepoCloneFlow } from './sidebar/project-admission/dialog/useAddRepoCloneFlow'
 
 beforeEach(() => {
@@ -45,26 +46,6 @@ async function renderThenDiscardUpdate(
   })
   return view
 }
-
-function KanbanColumn({ width, onCommit }: { width: number; onCommit: (w: number) => void }) {
-  const resize = useWorkspaceKanbanColumnResize(width, onCommit)
-  return (
-    <div data-testid="column" onKeyDown={resize.onColumnResizeKeyDown}>
-      {resize.columnWidth}
-    </div>
-  )
-}
-
-it('applies a committed board column width', async () => {
-  const onCommit = vi.fn()
-  await renderThenDiscardUpdate(
-    <KanbanColumn width={320} onCommit={onCommit} />,
-    <KanbanColumn width={420} onCommit={onCommit} />
-  )
-  expect(screen.getByTestId('column').textContent).toBe('420')
-  fireEvent.keyDown(screen.getByTestId('column'), { key: 'ArrowRight' })
-  expect(onCommit).toHaveBeenLastCalledWith(440)
-})
 
 function CloneDestination({ workspaceDir }: { workspaceDir?: string }) {
   const flow = useAddRepoCloneFlow({

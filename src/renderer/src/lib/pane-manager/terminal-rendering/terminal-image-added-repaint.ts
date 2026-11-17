@@ -1,3 +1,4 @@
+import { isTerminalOutputSuspended } from '../terminal-output/pane-terminal-output-queue-registry'
 type RepaintableTerminal = {
   rows: number
   refresh(start: number, end: number): void
@@ -20,7 +21,8 @@ export function repaintTerminalAfterImageAdded(
   let disposed = false
   const repaint = (): void => {
     scheduled = false
-    if (disposed || terminal.rows < 1) {
+    // RA: late decoder callbacks must not revive hidden rendering.
+    if (disposed || isTerminalOutputSuspended(terminal) || terminal.rows < 1) {
       return
     }
     try {
@@ -35,7 +37,7 @@ export function repaintTerminalAfterImageAdded(
     }
   }
   const subscription = addon.onImageAdded(() => {
-    if (scheduled || disposed) {
+    if (scheduled || disposed || isTerminalOutputSuspended(terminal)) {
       return
     }
     // Coalesce each decoded burst into one microtask repaint outside addImage.

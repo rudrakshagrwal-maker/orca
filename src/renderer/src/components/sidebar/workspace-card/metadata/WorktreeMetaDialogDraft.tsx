@@ -21,17 +21,11 @@ import {
 import { useMountedRef } from '@/hooks/useMountedRef'
 import { useTranslate } from '@/i18n/use-translate'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
-import {
-  getWorktreeExecutionHostId,
-  parseExecutionHostId,
-  toRuntimeExecutionHostId
-} from '../../../../../../shared/execution-host'
+import { parseExecutionHostId } from '../../../../../../shared/execution-host'
 import '@/lib/workspace/ownership/worktree-runtime-owner-index'
-import { findIndexedRepoOwnerForHost } from '@/lib/workspace/ownership/repo-owner-index'
 import { getWorkspaceAttachments } from '../../../../../../shared/workspace-attachments/workspace-attachments'
 import type { WorkspaceAttachment } from '../../../../../../shared/worktree/types'
 import { WorktreeDisplayNameField } from './WorktreeDisplayNameField'
-import { WorktreeLinkedItemsField } from './WorktreeLinkedItemsField'
 import { buildWorkspaceAttachmentEdits } from './worktree-attachment-editing'
 import { resizeCommentTextarea } from './worktree-comment-textarea-sizing'
 import {
@@ -56,29 +50,11 @@ const WorktreeMetaDialogDraft = React.memo(function WorktreeMetaDialogDraft() {
       : undefined
   const focusField = typeof modalData.focus === 'string' ? modalData.focus : 'comment'
   const suppressHostedReviewRefresh = modalData.suppressHostedReviewRefresh === true
-  const suggestedReviewNumber =
-    typeof modalData.currentReview === 'number'
-      ? modalData.currentReview
-      : typeof modalData.currentPR === 'number'
-        ? modalData.currentPR
-        : null
-  const suggestedReviewProvider = modalData.reviewProvider === 'gitlab' ? 'gitlab' : 'github'
-  const { worktree, isFolderWorkspace } = useWorktreeMetaWorkspace({
+  const { worktree } = useWorktreeMetaWorkspace({
     worktreeId,
     ownerRepoId,
     executionHostId
   })
-  const repo = useAppStore((s) =>
-    worktree && !isFolderWorkspace
-      ? (findIndexedRepoOwnerForHost(
-          s.repos,
-          worktree.repoId,
-          worktree.runtimeOwnerEnvironmentId
-            ? toRuntimeExecutionHostId(worktree.runtimeOwnerEnvironmentId)
-            : (executionHostId ?? getWorktreeExecutionHostId(worktree, undefined))
-        ) ?? undefined)
-      : undefined
-  )
   const [initial] = useState(() => ({
     displayName:
       typeof modalData.currentDisplayName === 'string'
@@ -92,7 +68,7 @@ const WorktreeMetaDialogDraft = React.memo(function WorktreeMetaDialogDraft() {
   }))
   const [displayNameInput, setDisplayNameInput] = useState(initial.displayName)
   const [commentInput, setCommentInput] = useState(initial.comment)
-  const [items, setItems] = useState<WorkspaceAttachment[]>(initial.items)
+  const [items] = useState<WorkspaceAttachment[]>(initial.items)
   const [notesOpen, setNotesOpen] = useState(
     Boolean(initial.comment.trim()) || focusField === 'comment'
   )
@@ -223,35 +199,6 @@ const WorktreeMetaDialogDraft = React.memo(function WorktreeMetaDialogDraft() {
             onValueChange={setDisplayNameInput}
             portalContainer={dialogElement}
             value={displayNameInput}
-          />
-          <WorktreeLinkedItemsField
-            key={`${worktreeId}:${isOpen}`}
-            items={items}
-            onItemsChange={setItems}
-            onSave={handleSave}
-            repo={repo}
-            workspace={worktree}
-            isFolderWorkspace={isFolderWorkspace}
-            inputRef={linkInputRef}
-            initialInput={
-              suggestedReviewNumber !== null &&
-              !items.some(
-                (item) =>
-                  item.provider === suggestedReviewProvider &&
-                  item.type !== 'issue' &&
-                  item.number === suggestedReviewNumber
-              )
-                ? String(suggestedReviewNumber)
-                : ''
-            }
-            initialKind={
-              focusField === 'pr'
-                ? modalData.reviewProvider === 'gitlab'
-                  ? 'gitlab-mr'
-                  : 'github-pr'
-                : 'github-issue'
-            }
-            disabled={saving}
           />
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">

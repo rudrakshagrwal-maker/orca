@@ -1,3 +1,4 @@
+// RA: keep workspace fixtures without the removed Cmd+J palette.
 // @vitest-environment happy-dom
 
 import 'react'
@@ -9,7 +10,7 @@ import {
   makeRepo,
   makeTerminalTab,
   makeWorktree
-} from '../../../worktree-jump/worktree-jump-palette-test-fixtures'
+} from '../../../test-support/workspace-layout-test-fixtures'
 import '../../../../../../shared/sidebar-list/sleeping-sweep-retention'
 import {
   forgetWorktreeSleepIntent,

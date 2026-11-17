@@ -26,6 +26,9 @@ export type GitInspectionApi = {
     worktreePath: string
     connectionId?: string
     admissionTier?: 'interactive' | 'status' | 'background'
+    // RA: sidebar summaries skip untracked scans and expensive diff/upstream probes.
+    summaryOnly?: boolean
+    refreshMetadata?: boolean
     includeIgnored?: boolean
     includeLineStats?: boolean
     bypassEffectiveUpstreamNegativeCache?: boolean

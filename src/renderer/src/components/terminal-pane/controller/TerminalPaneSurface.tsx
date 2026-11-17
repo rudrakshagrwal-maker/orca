@@ -25,7 +25,7 @@ import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
 import { TerminalAgentSessionForkDialog } from '../session-fork/TerminalAgentSessionForkDialog'
 import { handleInternalTerminalFileDrop } from '../input/file-drop/terminal-drop-handler'
 import { TerminalQuickCommandEditorDialog } from '../quick-commands/TerminalQuickCommandEditorDialog'
-import { TerminalPaneNativeChatPortal } from '../chat/TerminalPaneNativeChatPortal'
+
 import { TerminalPaneSleepingPortals } from '../session-restore/spawn-deferral/TerminalPaneSleepingPortals'
 import { TerminalPaneCodexRestartPortals } from './TerminalPaneCodexRestartPortals'
 import { TerminalPaneMobileDriverPortals } from '../mobile-driver/TerminalPaneMobileDriverPortals'
@@ -94,7 +94,6 @@ export function TerminalPaneSurface({
     managerRef,
     menuAgentSessionId,
     menuPaneHasCustomTitle,
-    openDiskSpaceAnalyzer,
     openQuickCommandEditor,
     paneCount,
     paneTitleBackground,
@@ -266,7 +265,6 @@ export function TerminalPaneSurface({
           open={sessionStateSaveFailureMessage !== null}
           failureMessage={sessionStateSaveFailureMessage ?? ''}
           onDismiss={() => setSessionStateSaveFailureMessage(null)}
-          onOpenSpaceAnalyzer={openDiskSpaceAnalyzer}
         />
       )}
       {activePane?.container &&
@@ -281,7 +279,7 @@ export function TerminalPaneSurface({
           activePane.container
         )}
       {/* RA: no informational session-restored banner. */}
-      <TerminalPaneNativeChatPortal controller={controller} />
+
       <TerminalContextMenu
         open={contextMenu.open}
         onOpenChange={contextMenu.setOpen}

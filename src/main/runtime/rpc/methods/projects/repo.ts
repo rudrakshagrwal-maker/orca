@@ -8,7 +8,6 @@ import {
   projectRepoSearchRefsForClient
 } from './repo-search-ref-projection'
 import {
-  RepoIssueCommandRead,
   RepoSelector,
   RepoShow
 } from '../../../../../shared/rpc-contract/github-repo-target-params'
@@ -22,7 +21,6 @@ import {
   RepoClone,
   RepoCreate,
   RepoHooksCheck,
-  RepoIssueCommandWrite,
   RepoList,
   RepoPath,
   RepoReorder,
@@ -221,21 +219,5 @@ export const REPO_METHODS = [
     permission: 'workspace',
     params: RepoSelector,
     handler: async (params, { runtime }) => runtime.inspectRepoSetupScriptImports(params.repo)
-  }),
-  defineMethod({
-    name: 'repo.issueCommandRead',
-    permission: 'workspace',
-    params: RepoIssueCommandRead,
-    handler: async (params, { runtime }) =>
-      runtime.readRepoIssueCommand(params.repo, { wakeWslDistro: params.wakeWslDistro })
-  }),
-  defineMethod({
-    name: 'repo.issueCommandWrite',
-    permission: 'workspace',
-    params: RepoIssueCommandWrite,
-    handler: async (params, { runtime }) =>
-      runtime.writeRepoIssueCommand(params.repo, params.content, {
-        wakeWslDistro: params.wakeWslDistro
-      })
   })
 ]

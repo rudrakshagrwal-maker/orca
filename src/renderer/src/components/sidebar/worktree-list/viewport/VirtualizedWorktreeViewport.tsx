@@ -1,3 +1,4 @@
+// RA: new-workspace composer entry points are removed; CLI worktree creation remains.
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { selectSidebarLineageParentIdentities } from '@/store/slices/worktrees/metadata/cross-store-lineage-parents'
@@ -15,7 +16,6 @@ import { usePendingSidebarReveal } from '../navigation/use-pending-reveal'
 import { usePrimaryActiveWorktreeRow } from '../navigation/use-active-row'
 import { useSidebarRevealHighlight } from '../navigation/use-reveal-highlight'
 import { useVirtualRowMeasurementSync } from './use-row-measurement'
-import { useVisiblePrRefreshReporting } from './use-visible-review-refresh'
 import { useWorkspaceStatusRowDrag } from '../drag/use-status-row-drag'
 import { useWorktreeDragRuntime } from '../drag/use-runtime'
 import { useWorktreeDragSession } from '../drag/use-session'
@@ -81,8 +81,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     handleCreateGroupFromRepo,
     handleMoveProjectToGroup,
     handleRemoveProjectFromGroup,
-    handleRemoveProject,
-    handleCreateForRepo
+    handleRemoveProject
   } = props
   // Why stable: a new object re-renders every project header's menu tree on each workspace switch.
   const projectActions = useMemo<RepoHeaderProjectActions>(
@@ -94,8 +93,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
       onCreateGroupFromRepo: handleCreateGroupFromRepo,
       onMoveProjectToGroup: handleMoveProjectToGroup,
       onRemoveProjectFromGroup: handleRemoveProjectFromGroup,
-      onRemoveProject: handleRemoveProject,
-      onCreateForRepo: handleCreateForRepo
+      onRemoveProject: handleRemoveProject
     }),
     [
       settings,
@@ -105,8 +103,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
       handleCreateGroupFromRepo,
       handleMoveProjectToGroup,
       handleRemoveProjectFromGroup,
-      handleRemoveProject,
-      handleCreateForRepo
+      handleRemoveProject
     ]
   )
 
@@ -198,7 +195,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     groupBy,
     pinnedDisplayPolicy,
     defaultHostId: props.defaultHostId,
-    prCache: props.prCache,
+
     workspaceStatuses,
     settings,
     projectGroups: props.visibleProjectGroups ?? projectGroups,
@@ -280,16 +277,6 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     groupBy,
     onMoveWorktreeToStatus: props.onMoveWorktreeToStatus,
     onPinWorktree: props.onPinWorktree
-  })
-
-  useVisiblePrRefreshReporting({
-    currentWorktreeId: props.currentWorktreeId,
-    worktreeMap,
-    groupBy,
-    newCardStyle,
-    renderRows,
-    virtualItems,
-    scrollRef
   })
 
   // Keep the ref callback stable so React cannot invoke null teardown mid-drag on ordinary renders.

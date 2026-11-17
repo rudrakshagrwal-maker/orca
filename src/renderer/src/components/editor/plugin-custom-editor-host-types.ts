@@ -1,10 +1,9 @@
-import type { CustomEditorKeyChord } from '../../../../shared/plugins/frames/plugin-custom-editor-bridge'
-import type { PluginFrameEditorChannel } from '../plugins/frames/plugin-frame-host'
-import type {
-  PluginFrameMessageContext,
-  PluginFrameWindow
-} from '../plugins/frames/plugin-frame-host-lanes'
-import type { PanelMessageBudget } from '../../../../shared/plugins/frames/plugin-panel-message-budget'
+// RA: plugin frames are removed; these opaque shapes keep the byte-document types readable.
+type CustomEditorKeyChord = unknown
+type PluginFrameEditorChannel = unknown
+type PluginFrameMessageContext = unknown
+type PluginFrameWindow = unknown
+type PanelMessageBudget = unknown
 
 export type CustomEditorEditRefusal = 'oversized' | 'rate_limited'
 

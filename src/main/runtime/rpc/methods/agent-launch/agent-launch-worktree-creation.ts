@@ -6,12 +6,6 @@ import { callerLaunchSource } from '../../../../agent-launch/agent-started-telem
 import { buildCliWorkspaceProvenance } from '../../../../../shared/cli-workspace-provenance'
 import type { TuiAgent } from '../../../../../shared/agent-launch/catalog/tui-agent'
 import type { OrcaRuntimeService } from '../../../orca-runtime'
-import {
-  finishAutomationWorkspaceProvenanceRequest,
-  releaseAutomationWorkspaceProvenanceRequest,
-  resolveAutomationWorkspaceProvenance,
-  resolveClientAutomationWorkspaceProvenance
-} from '../../../../automations/workspace-provenance'
 import type { AgentLaunchWorkspaceFactory } from '../../../../agent-launch/agent-launch-surface-factories'
 import { combineLaunchWarnings } from '../../../../agent-launch/agent-launch-warnings'
 import type { RpcContext } from '../../core'
@@ -67,18 +61,6 @@ export function agentLaunchWorkspaceFactory(
       const params = create as WorktreeCreateParams
       const { runtime } = context
       const repo = await runtime.showRepo(worktreeCreateRepoSelector(params))
-      const automationProvenance =
-        resolveAutomationWorkspaceProvenance({
-          authority: runtime,
-          repoSelector: params.repo,
-          repo,
-          request: params.automationProvenanceRequest,
-          ignoreUnknownAutomation: true
-        }) ??
-        resolveClientAutomationWorkspaceProvenance({
-          authority: runtime,
-          provenance: params.clientAutomationProvenance
-        })
       // Reserved before creation so a retry can recover; a failed attempt has to release it.
       try {
         const result = await runtime.createManagedWorktree({
@@ -93,7 +75,6 @@ export function agentLaunchWorkspaceFactory(
               ...(startupPrompt ? { startupPrompt } : {})
             },
             {
-              automationProvenance,
               cliProvenance: buildCliWorkspaceProvenance(params.cliProvenanceRequest, {
                 startupAgent: agent,
                 createdAt: Date.now()
@@ -130,7 +111,6 @@ export function agentLaunchWorkspaceFactory(
         if (!startupAgent) {
           await waitForStructuredSetup(runtime, result.setupReceipt)
         }
-        finishAutomationWorkspaceProvenanceRequest(params.automationProvenanceRequest)
         const warning =
           result.warnings?.reduce(
             (combined, lineage) => combineLaunchWarnings(combined, lineage.message),
@@ -149,7 +129,6 @@ export function agentLaunchWorkspaceFactory(
           ...(warning ? { warning } : {})
         }
       } catch (error) {
-        releaseAutomationWorkspaceProvenanceRequest(params.automationProvenanceRequest)
         throw error
       }
     }

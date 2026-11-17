@@ -3,7 +3,6 @@ import type { AppStoreApi } from '../queue/editor-save-queue-contract'
 import type { EditorSaveRequest } from '../queue/editor-save-slots'
 import { EditorSaveDiscardedError } from '../flush/editor-discard-epoch'
 import { editorFormatOnSave } from './editor-format-on-save'
-import { editorSavePluginHook } from './editor-save-plugin-hook'
 
 export function editorSaveTransform(
   store: AppStoreApi,
@@ -28,6 +27,7 @@ export function editorSaveTransform(
       }
     }
   )
-  const hook = (content: string) => editorSavePluginHook(store, file, request.trigger, content)
-  return formatted ? formatted.then((content) => hook(content) ?? content) : hook(text)
+
+  // RA: save runs built-in formatting without plugin interception.
+  return formatted
 }

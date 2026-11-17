@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
@@ -160,7 +161,6 @@ export function usePendingSidebarReveal(args: PendingSidebarRevealArgs): void {
     args.worktrees,
     args.folderWorkspaces,
     args.repoMap,
-    args.prCache,
     args.worktreeLineageById,
     args.lineageParentIdentities,
     args.occurrencePlan,

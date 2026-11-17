@@ -7,8 +7,6 @@ import {
 import type { Repo } from '../../../../../../shared/repo-types'
 import { applyWorktreeUpdates } from './worktree-meta-update-application'
 import { applyDetectedWorktreeUpdates } from '../listing/detected-worktree-meta'
-import { getHostedReviewCacheKey } from '../../hosted-review/hosted-review-cache-identity'
-import { getGitHubPRCacheKeyCandidates } from '../../../../../../shared/github/github-cache-key'
 
 type WorktreeMetaStateUpdate = WorktreeMetaBatchUpdate & {
   reviewRepo?: Repo
@@ -17,7 +15,7 @@ type WorktreeMetaStateUpdate = WorktreeMetaBatchUpdate & {
 
 export function buildWorktreeMetaStateUpdate(
   s: ReturnType<WorktreeSliceGet>,
-  { worktreeId, updates, executionHostId, reviewRepo, reviewBranch }: WorktreeMetaStateUpdate
+  { worktreeId, updates, executionHostId }: WorktreeMetaStateUpdate
 ) {
   const worktreesByRepo = selectWorktreesByRepo(s)
   const detectedWorktreesByRepo = selectDetectedWorktreesByRepo(s)
@@ -28,60 +26,17 @@ export function buildWorktreeMetaStateUpdate(
     updates,
     executionHostId
   )
-  const cacheKey =
-    reviewRepo && reviewBranch
-      ? getHostedReviewCacheKey(
-          reviewRepo.path,
-          reviewBranch,
-          s.settings,
-          reviewRepo.id,
-          reviewRepo.connectionId,
-          reviewRepo.executionHostId,
-          true
-        )
-      : null
-  const prCacheKeys =
-    reviewRepo && reviewBranch ? getGitHubPRCacheKeyCandidates(reviewRepo, reviewBranch) : []
-  const prCacheKey = prCacheKeys[0] ?? null
-  const hostedReviewCache = s.hostedReviewCache ?? {}
-  const prCache = s.prCache ?? {}
-  if (
-    nextWorktrees === worktreesByRepo &&
-    nextDetectedWorktrees === detectedWorktreesByRepo &&
-    !cacheKey &&
-    !prCacheKey
-  ) {
+
+  // RA: workspace edits no longer invalidate removed task-provider caches.
+  if (nextWorktrees === worktreesByRepo && nextDetectedWorktrees === detectedWorktreesByRepo) {
     return s
   }
-
-  const nextHostedReviewCache =
-    cacheKey && hostedReviewCache[cacheKey]
-      ? (() => {
-          const next = { ...hostedReviewCache }
-          delete next[cacheKey]
-          return next
-        })()
-      : hostedReviewCache
-  const nextPRCache = prCacheKeys.some((key) => prCache[key])
-    ? (() => {
-        const next = { ...prCache }
-        for (const key of prCacheKeys) {
-          delete next[key]
-        }
-        return next
-      })()
-    : prCache
-
   return {
     ...(nextWorktrees !== worktreesByRepo
       ? { worktreesByRepo: nextWorktrees, sortEpoch: s.sortEpoch + 1 }
       : {}),
     ...(nextDetectedWorktrees !== detectedWorktreesByRepo
       ? { detectedWorktreesByRepo: nextDetectedWorktrees }
-      : {}),
-    ...(nextHostedReviewCache !== hostedReviewCache
-      ? { hostedReviewCache: nextHostedReviewCache }
-      : {}),
-    ...(nextPRCache !== prCache ? { prCache: nextPRCache } : {})
+      : {})
   }
 }

@@ -6,24 +6,14 @@ import {
   toRuntimeExecutionHostId
 } from '../../../../../shared/execution-host'
 import type { ExecutionHostId } from '../../../../../shared/execution-host'
-import { isMacAppDataPath } from '@/app-shell/platform/passive-macos-app-data-access'
 import {
   resolveReviewRepository,
   reviewRepositoryMatchesWorkspace
 } from '@/lib/source-control/review/review-owner'
-import {
-  findIndexedReviewRepository,
-  hasUniqueIndexedRepositoryHost
-} from '@/lib/workspace/ownership/repository-owner-index'
+import { findIndexedReviewRepository } from '@/lib/workspace/ownership/repository-owner-index'
 import { worktreeOwnerHostIds } from '@/lib/workspace/ownership/workspace-catalog-owner-index'
-import '../cache/cache-identity'
-import { getGitHubRepoCacheKey } from '../../../../../shared/github/github-cache-key'
-import { settingsForGitHubRepoOwner } from '../work-items/work-item-routing'
-import { githubHostedReviewFallbackPRNumber } from '../pull-requests/pr-result-routing'
-import { resolvePRBranchFallback } from '../../../../../shared/github/pr-branch-fallback-rule'
 import { selectWorktreesByRepo } from '../../workspaces/catalog/workspace-record-fields'
 import type { AppState } from '../../types'
-import type { GitHubPRRefreshCandidate } from '../../../../../shared/github/pull-request-refresh-types'
 import type { Repo } from '../../../../../shared/repo-types'
 import type { Worktree } from '../../../../../shared/worktree/types'
 
@@ -203,95 +193,4 @@ export function findUniqueWorktreeById(
     return null
   }
   return match
-}
-
-export function isStaleExactLinkedPRLookup(
-  state: AppState,
-  worktreeId: string | undefined,
-  linkedPRNumber: number | null | undefined,
-  executionHostId?: string,
-  lookupIndex?: WorktreeLookupIndex
-): boolean {
-  if (!worktreeId || linkedPRNumber == null) {
-    return false
-  }
-  const worktree = findWorktreeById(state, worktreeId, executionHostId, lookupIndex)
-  return worktree?.linkedPR !== linkedPRNumber
-}
-
-export function buildPRRefreshCandidate(
-  state: AppState,
-  worktree: Worktree,
-  repoPath?: string,
-  repoOverride?: Repo
-): GitHubPRRefreshCandidate | null {
-  const repo = resolveReviewRepository(state.repos, worktree, repoOverride)
-  if (
-    !repo ||
-    !hasUniqueIndexedRepositoryHost(state.repos, repo.id, getRepoExecutionHostId(repo))
-  ) {
-    return null
-  }
-  if (isMacAppDataPath(repoPath ?? repo.path)) {
-    return null
-  }
-  const branch = worktree.branch.replace(/^refs\/heads\//, '')
-  const cacheKey = getGitHubRepoCacheKey(
-    repoPath ?? repo.path,
-    repo.id,
-    branch,
-    settingsForGitHubRepoOwner(state.settings, repo),
-    repo.connectionId,
-    repo.executionHostId,
-    true
-  )
-  const cachedPR = state.prCache[cacheKey]?.data ?? null
-  const hostedReviewFallbackPRNumber = githubHostedReviewFallbackPRNumber(
-    state,
-    repoPath ?? repo.path,
-    repo.id,
-    branch,
-    repo.connectionId,
-    repo.executionHostId,
-    true
-  )
-  const { fallbackPRNumber, fallbackPRSource } = resolvePRBranchFallback({
-    linkedPRNumber: worktree.linkedPR ?? null,
-    cachedPR,
-    hintPRNumber: hostedReviewFallbackPRNumber,
-    currentHeadOid: worktree.head
-  })
-  const sshStatus = repo.connectionId
-    ? state.sshConnectionStates.get(repo.connectionId)?.status
-    : null
-  return {
-    repoId: repo.id,
-    repoPath: repoPath ?? repo.path,
-    repoKind: repo.kind ?? 'git',
-    branch,
-    cacheKey,
-    worktreeId: worktree.id,
-    currentHeadOid: worktree.head ?? null,
-    cachedHeadOid: state.prCache[cacheKey]?.fetchedHeadOid ?? cachedPR?.headSha ?? null,
-    isSelected: state.activeWorktreeId === worktree.id,
-    // Why: persisted linked PR metadata is exact; PR cache numbers are only fallback hints after branch-lookup misses.
-    linkedPRNumber: worktree.linkedPR ?? null,
-    fallbackPRNumber,
-    fallbackPRSource,
-    isBare: worktree.isBare,
-    isArchived: worktree.isArchived,
-    connectionId: repo.connectionId ?? null,
-    executionHostId: repo.executionHostId ?? null,
-    connectionState: repo.connectionId
-      ? sshStatus === 'connected'
-        ? 'connected'
-        : 'disconnected'
-      : 'unknown',
-    cachedFetchedAt: state.prCache[cacheKey]?.fetchedAt ?? null,
-    cachedHasPR: cachedPR ? true : state.prCache[cacheKey] ? false : null,
-    cachedPRState: cachedPR?.state ?? null,
-    cachedChecksStatus: cachedPR?.checksStatus ?? null,
-    cachedMergeable: cachedPR?.mergeable ?? null,
-    cachedMergeStateStatus: cachedPR?.mergeStateStatus ?? null
-  }
 }

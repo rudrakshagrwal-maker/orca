@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { ipcMain, nativeTheme, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 
 import type { Store } from '../persistence/loading-store/store'
@@ -32,8 +33,7 @@ import type {
   UpdateInstallMode
 } from '../updater/lifecycle/updater-state'
 import { scheduleHistoryGc } from '../pty/history/terminal-history-gc'
-import { openCodeHookService, openCode2HookService } from '../opencode/hook-service'
-import { listLiveDaemonPtyIds } from '../daemon/providers/lifecycle/daemon-provider-state'
+
 import { hydrateLocalPtyRegistryAtBoot } from '../memory/hydrate-local-pty-registry'
 import type { ClaudeRuntimeAuthPreparation } from '../claude-accounts/runtime-auth-service'
 import { getKnownWorktreeIdsForHistoryGc } from './history-gc-worktree-ids'
@@ -48,8 +48,6 @@ import { registerRuntimeWindowLifecycle } from './runtime-window-lifecycle'
 import { ensureStructuredAgentSessionHostUnlessRefused } from '../runtime/agent-session/structured-agent-session-host-refusal'
 import { getAgentSessionAttachmentStore } from '../native-chat/agent-session-attachments/agent-session-attachment-store-registry'
 import { registerDroppedPathPreparation } from './dropped-path-preparation-ipc'
-import { isPluginFramePermissionRequest } from './host-frame-permission-policy'
-import { installPluginDesktopFrameServices } from '../plugins/panels/plugin-frame-desktop-services'
 
 export { ensureAutoUpdaterConfigured, registerUpdaterHandlers } from './main-window-updater'
 
@@ -118,8 +116,7 @@ export function attachMainWindowServices(
   scheduleHistoryGc(async () => {
     return getKnownWorktreeIdsForHistoryGc(store)
   })
-  openCodeHookService.configDirGc.schedule(listLiveDaemonPtyIds)
-  openCode2HookService.configDirGc.schedule(listLiveDaemonPtyIds)
+
   const localPtyProviderStartupReady = options?.awaitLocalPtyProviderStartup?.()
   if (localPtyProviderStartupReady) {
     void localPtyProviderStartupReady
@@ -143,15 +140,9 @@ export function attachMainWindowServices(
   registerTccPromptNoticeHandlers(mainWindow)
   registerRuntimeWindowLifecycle(mainWindow, runtime)
 
-  installPluginDesktopFrameServices(mainWindow, store)
   const allowedPermissions = new Set(['media', 'fullscreen', 'pointerLock'])
   mainWindow.webContents.session.setPermissionRequestHandler(
     (_webContents, permission, callback, details) => {
-      // Plugin srcdoc frames share this session but never the app's trust.
-      if (isPluginFramePermissionRequest(details)) {
-        callback(false)
-        return
-      }
       if (permission === 'media') {
         void requestSystemMediaAccess(details).then(callback, (error: unknown) => {
           console.error('[permissions] Failed to request media access:', error)

@@ -1,4 +1,4 @@
-import { MoreHorizontal, PanelLeft } from 'lucide-react'
+import { MoreHorizontal, PanelLeft, RefreshCw } from 'lucide-react'
 import logo from '../../../../resources/logo.svg'
 import { useTranslate } from '@/i18n/use-translate'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -71,6 +71,21 @@ export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): R
             </ContextMenuContent>
           </ContextMenu>
         )}
+        {/* RA: explicit refresh is available without a source-control sidebar. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="titlebar-icon-button"
+              aria-label="Refresh git status"
+              onClick={() => window.dispatchEvent(new Event('orca:refresh-git-summary'))}
+            >
+              <RefreshCw size={14} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            Refresh git status
+          </TooltipContent>
+        </Tooltip>
         {layout.showSidebar && (
           <Tooltip>
             <TooltipTrigger asChild>

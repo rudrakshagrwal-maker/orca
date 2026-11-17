@@ -1,3 +1,4 @@
+import { readRepositoryGitSummary } from '../../git/source-control/repository-git-summary'
 import { ipcMain } from 'electron'
 import type {
   GitConflictOperation,
@@ -54,6 +55,9 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
         worktreePath: string
         connectionId?: string
         admissionTier?: GitAdmissionTier
+        // RA: sidebar summaries skip untracked scans and expensive diff/upstream probes.
+        summaryOnly?: boolean
+        refreshMetadata?: boolean
         includeIgnored?: boolean
         includeLineStats?: boolean
         bypassEffectiveUpstreamNegativeCache?: boolean
@@ -65,7 +69,10 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
       }
     ): Promise<GitStatusResult> => {
       const controller = gitStatusCancellations.begin(event, args.requestToken)
+      // RA: preserve summary intent across the desktop bridge.
       const options = {
+        summaryOnly: args.summaryOnly,
+        refreshMetadata: args.refreshMetadata,
         includeIgnored: args.includeIgnored ?? false,
         admissionTier: args.admissionTier ?? ('status' as const),
         ...(args.includeLineStats === false ? { includeLineStats: false } : {}),
@@ -97,11 +104,21 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
           const gitOptions = getLocalGitOptionsForRepo(store, repo)
           await assertWslUncPathRunning(worktreePath, gitOptions.wslDistro)
           const sharedLinkPaths = repo ? getWorktreeSharedLinkPaths(repo) : []
-          return getStatus(worktreePath, {
-            ...options,
-            ...gitOptions,
-            ...(sharedLinkPaths.length > 0 ? { sharedLinkPaths } : {})
-          })
+          const read = () =>
+            getStatus(worktreePath, {
+              ...options,
+              ...gitOptions,
+              ...(sharedLinkPaths.length > 0 ? { sharedLinkPaths } : {})
+            })
+          // RA: all renderer windows share the repository summary budget.
+          return args.summaryOnly
+            ? readRepositoryGitSummary(
+                `${getConnectionExecutionHostId(args.connectionId)}\0${repo?.id ?? worktreePath}`,
+                worktreePath,
+                read,
+                args.refreshMetadata
+              )
+            : read()
         })
         if (wakeDistro) {
           noteWslDistroWokenForPath(args.worktreePath, wakeDistro)

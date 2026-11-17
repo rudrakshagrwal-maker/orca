@@ -1,10 +1,10 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   CircleX,
   Copy,
   FolderPlus,
   FolderTree,
   Folders,
-  GitBranchPlus,
   GitFork,
   Unlink,
   Workflow
@@ -58,15 +58,6 @@ export function WorktreeLineageSubMenu({ model }: { model: WorktreeContextMenuMo
         {t('auto.components.sidebar.WorktreeContextMenu.lineageSubmenu', 'Parent & Children')}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
-        {model.canCreateChildWorktree ? (
-          <DropdownMenuItem onSelect={model.handleNewChildWorktree} disabled={isDeleting}>
-            <GitBranchPlus className="size-3.5" />
-            {t(
-              'auto.components.sidebar.WorktreeContextMenu.newChildWorktree',
-              'New Child Worktree...'
-            )}
-          </DropdownMenuItem>
-        ) : null}
         <DropdownMenuItem
           onSelect={model.handleOpenParentPicker}
           disabled={isWorktreeParentPickerDisabled({

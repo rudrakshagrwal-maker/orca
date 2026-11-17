@@ -1,3 +1,4 @@
+// RA: keep terminal input support independently of the removed dashboard.
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { FitAddon } from '@xterm/addon-fit'
 import { TerminalKittyKeyboardModeTracker } from '../../../../shared/terminal/protocol/input-modes/terminal-kitty-keyboard-mode-tracker'
@@ -8,14 +9,14 @@ import { composeActiveTerminalTheme } from '@/components/terminal-pane/appearanc
 import { resolveEffectiveTerminalAppearance } from '@/lib/terminal/appearance/terminal-theme'
 import { useSystemPrefersDark } from '@/hooks/theme/use-system-prefers-dark'
 import { resolveTerminalMinimumContrastRatio } from '../../../../shared/terminal-themes/terminal-contrast-correction'
-import { syncPreviewTerminalLigatures } from '@/components/dashboard-popout/preview-terminal-ligatures'
+import { syncPreviewTerminalLigatures } from '@/components/standalone-terminal/preview-terminal-ligatures'
 import {
   buildPreviewAppearanceOptions,
   buildPreviewTerminalOptions
-} from '@/components/dashboard-popout/preview-terminal-options'
+} from '@/components/standalone-terminal/preview-terminal-options'
 import { openStandaloneTerminal } from '@/components/standalone-terminal/open-standalone-terminal'
 import { removePlainSshPanel } from '@/ssh/plain-ssh-terminal-panels'
-import { usePluginFontReady } from '@/store/plugins/appearance/plugin-fonts'
+
 import type { ITheme, Terminal } from '@xterm/xterm'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type {
@@ -91,7 +92,7 @@ export function PlainSshTerminalView({
   const terminalRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const settings = useAppStore((s) => s.settings)
-  const terminalFontReady = usePluginFontReady(settings?.terminalFontFamily)
+  // RA: installed terminal fonts need no plugin loading subscription.
   const systemPrefersDark = useSystemPrefersDark()
   const macOptionAsAlt = useEffectiveMacOptionAsAlt(settings?.terminalMacOptionAsAlt)
   // Why refs: keys and appearance read live values; a remount would hang up the SSH session.
@@ -304,7 +305,7 @@ export function PlainSshTerminalView({
     if (!hidden && container && container.offsetWidth > 0 && container.offsetHeight > 0) {
       fitRef.current?.fit()
     }
-  }, [settings, terminalFontReady, systemPrefersDark, macOptionAsAlt, hidden])
+  }, [settings, systemPrefersDark, macOptionAsAlt, hidden])
 
   useEffect(() => {
     if (!hidden) {

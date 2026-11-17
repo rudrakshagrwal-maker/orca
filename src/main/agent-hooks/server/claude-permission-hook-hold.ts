@@ -1,6 +1,7 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AgentHookEventPayload } from '../../../shared/agent-hook-listener/listener-event'
-import { AGENT_TOOL_DECISION_HEADER } from '../tool-events/agent-tool-plugin-hooks'
+import { AGENT_TOOL_DECISION_HEADER } from './claude-hook-decision-protocol'
 
 /** Sent by hook scripts that wait for, and print, Orca's answer to a Claude Code PermissionRequest. */
 export const CLAUDE_PERMISSION_REQUEST_DECISION = 'claude-permission-request-v1'

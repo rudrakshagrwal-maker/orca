@@ -1,6 +1,6 @@
 import type { EditorGet, EditorSet } from '../types/editor-set-get'
 import type { EditorSlice } from '../types/editor-slice'
-import { gitOperationExecutionHostId, resolveGitOperationTarget } from './git-operation-target'
+import { resolveGitOperationTarget } from './git-operation-target'
 import { toast } from 'sonner'
 import {
   fetchRuntimeGit,
@@ -79,13 +79,6 @@ export function createGitRemoteSync(
         runtimeTarget
       })
       if (pushed) {
-        const refreshGitHubForWorktree = get().refreshGitHubForWorktree
-        if (typeof refreshGitHubForWorktree === 'function') {
-          refreshGitHubForWorktree(
-            worktreeId,
-            gitOperationExecutionHostId(runtimeTarget, connectionId)
-          )
-        }
       }
     },
     rebaseFromBase: async (
@@ -112,13 +105,6 @@ export function createGitRemoteSync(
       void get().fetchUpstreamStatus(worktreeId, worktreePath, connectionId, pushTarget, {
         runtimeTarget
       })
-      const refreshGitHubForWorktree = get().refreshGitHubForWorktree
-      if (typeof refreshGitHubForWorktree === 'function') {
-        refreshGitHubForWorktree(
-          worktreeId,
-          gitOperationExecutionHostId(runtimeTarget, connectionId)
-        )
-      }
     },
     fetchBranch: async (worktreeId, worktreePath, connectionId, pushTarget, options) => {
       const runtimeTarget = resolveGitOperationTarget(get(), worktreeId, options)

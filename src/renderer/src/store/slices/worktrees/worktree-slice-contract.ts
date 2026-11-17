@@ -12,7 +12,6 @@ import type {
 } from './session/worktree-selection-contract'
 
 import type { WorkspaceAttachmentMutation } from '../../../../../shared/workspace-attachments/workspace-attachment-mutation'
-import type { WorkspaceReferenceObservationContext } from '@/lib/workspace/attachments/workspace-attachment-observed-origin'
 import type {
   CreateWorktreeCallOptions,
   CreatedWorktreeResult
@@ -44,7 +43,6 @@ import type {
   Worktree
 } from '../../../../../shared/worktree/types'
 import type { WorktreeRemovalTarget } from '../../../../../shared/worktree/removal'
-import type { TerminalGitHubPRLink } from '../../../../../shared/terminal/links/terminal-github-pr-link-detector'
 import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import type { TerminalPaneRecoveryOutcome } from '../../../../../shared/workspace-layout/terminal-tab-types'
 import type {
@@ -223,18 +221,12 @@ export type WorktreeSlice = {
     updates: Partial<WorktreeMeta> & WorkspaceAttachmentMutation,
     options?: WorktreeMetaUpdateOptions
   ) => Promise<{ ok: true } | { ok: false; error: string }>
-  ensureHostedReviewPushTarget: (worktreeId: string) => Promise<void>
   updateWorktreesMeta: (updatesByWorktreeId: readonly WorktreeMetaBatchUpdate[]) => Promise<void>
   /** Pin/unpin then reveal the first changed target so the shortcut remains visible alongside normal sidebar groups. */
   /** Each target names its copy; a host-less id two hosts publish is skipped, not guessed. */
   setWorktreesPinnedAndReveal: (
     targets: readonly Pick<Worktree, 'id' | 'hostId'>[],
     isPinned: boolean
-  ) => void
-  observeTerminalGitHubPullRequestLink: (
-    worktreeId: string,
-    link: TerminalGitHubPRLink,
-    context?: WorkspaceReferenceObservationContext
   ) => void
   bumpWorktreeActivity: (worktreeId: string) => void
   /** User-activation-only recency stamp; ignore non-increasing timestamps (cmd-j-empty-query-ordering.md). */

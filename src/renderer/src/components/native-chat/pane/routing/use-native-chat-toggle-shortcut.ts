@@ -1,10 +1,5 @@
-import { usePluginCommands } from '@/store/plugins/catalog/plugin-contribution-catalog'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { matchesRecentTabSwitcherChord } from '../../../../../../shared/window-shortcut-policy'
-import {
-  globalShortcutTargetYields,
-  findPluginCommandForKeybinding
-} from '@/lib/plugins/commands/plugin-command-keybindings'
 import { getKeybindingContext } from '../../../terminal-workspace-model'
 import {
   ModifierDoubleTapDetector,
@@ -51,11 +46,6 @@ export function resolveNativeChatToggleShortcutDetectedAgent({
 
 /** Toggle supported agent-terminal views only on the key event’s originating workspace surface. */
 export function useNativeChatToggleShortcut(worktreeId: string, isWorktreeActive: boolean): void {
-  const pluginCommands = usePluginCommands()
-  const pluginCommandsRef = useRef(pluginCommands)
-  useLayoutEffect(() => {
-    pluginCommandsRef.current = pluginCommands
-  }, [pluginCommands])
   useEffect(() => {
     if (!isWorktreeActive) {
       return
@@ -64,7 +54,7 @@ export function useNativeChatToggleShortcut(worktreeId: string, isWorktreeActive
     const detector = new ModifierDoubleTapDetector()
     const attemptToggle = (
       e: KeyboardEvent,
-      input: Parameters<typeof globalShortcutTargetYields>[0]
+      input: Parameters<typeof matchesNativeChatToggleShortcut>[0] & { target?: EventTarget | null; isComposing?: boolean; altGraph?: boolean }
     ): void => {
       const state = useAppStore.getState()
       if (!matchesNativeChatToggleShortcut(input, platform, state.keybindings)) {
@@ -72,20 +62,7 @@ export function useNativeChatToggleShortcut(worktreeId: string, isWorktreeActive
       }
       const context = getKeybindingContext(e.target)
       const options = { context, terminalShortcutPolicy: state.settings?.terminalShortcutPolicy }
-      if (
-        matchesRecentTabSwitcherChord(input, platform, state.keybindings, options) ||
-        (!input.isComposing &&
-          input.key !== 'Process' &&
-          !globalShortcutTargetYields(input, platform, state.keybindings, options) &&
-          findPluginCommandForKeybinding(
-            pluginCommandsRef.current,
-            input,
-            platform,
-            state.keybindings,
-            Boolean(state.activeWorktreeId),
-            options
-          ))
-      ) {
+      if (matchesRecentTabSwitcherChord(input, platform, state.keybindings, options)) {
         return
       }
       // Main and floating surfaces can coexist; only the key’s originating surface may act.

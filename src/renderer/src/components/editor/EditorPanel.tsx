@@ -25,14 +25,9 @@ import {
   selectEditorPanelGitStatusEntries
 } from './editor-panel-git-entry-selector'
 import { createEditorPanelDraftSelector } from './editor-panel-draft-selector'
-import {
-  createCurrentEditorArtifactRequest,
-  editorArtifactContentType
-} from './editor-artifact-upload'
 import { useEditorPanelSave } from './save/commands/useEditorPanelSave'
 import { isMarkdownReviewNotesEnabled } from '@/lib/editor/markdown/review-notes/markdown-review-notes-setting'
-import { useFileCustomEditors } from '@/store/plugins/file-editors/plugin-custom-editors'
-import { applyCustomEditorToggle } from './view-mode/custom-editor-toggle'
+
 import { editorPanelFileActions } from './editor-panel-file-actions'
 import { runAfterEditorFramesFlush } from './save/flush/editor-pending-flush'
 
@@ -90,7 +85,7 @@ function EditorPanelInner({
   const editorDrafts = useAppStore(editorDraftSelector)
   const diffDefaultView = useAppStore((s) => s.settings?.diffDefaultView)
   const updateSettings = useAppStore((s) => s.updateSettings)
-  const customEditors = useFileCustomEditors(activeFileId, activeFile?.filePath)
+
   const markdownReviewNotesEnabled = useAppStore((s) => isMarkdownReviewNotesEnabled(s.settings))
   const panelRef = useRef<HTMLDivElement>(null)
   const [copiedPathToast, setCopiedPathToast] = useState<{ fileId: string; token: number } | null>(
@@ -235,8 +230,7 @@ function EditorPanelInner({
     markdownDefaultViewMode,
     markdownRichModeSizeOverridden,
     isChangesMode,
-    canOpenWorkspaceFileBrowser,
-    ...customEditors
+    canOpenWorkspaceFileBrowser
   })
 
   const { handleOpenDiffTargetFile, handleOpenMarkdownPreview } = editorPanelFileActions(
@@ -266,7 +260,8 @@ function EditorPanelInner({
       return
     }
     setEditorViewMode(fileId, 'edit')
-    const markdownMode = applyCustomEditorToggle(fileId, next, model.customEditors.length > 0)
+    // RA: editor modes use built-in viewers only.
+    const markdownMode = next === 'preview' || next === 'rich' || next === 'source' ? next : null
     if (markdownMode) {
       setMarkdownViewMode(fileId, markdownMode)
     }
@@ -298,19 +293,6 @@ function EditorPanelInner({
     markdownFrontmatterVisible[markdownDocumentStateFileId] ?? true
   const isMarkdownTableOfContentsVisible =
     markdownTableOfContentsVisible[markdownDocumentStateFileId] ?? false
-  const artifactContentType = editorArtifactContentType(activeFile.filePath, model.isMarkdown)
-  const createActiveArtifactRequest =
-    activeDocumentContent === null || artifactContentType === null
-      ? undefined
-      : () =>
-          Promise.resolve(
-            createCurrentEditorArtifactRequest(
-              activeFile,
-              markdownDocumentStateFileId,
-              activeDocumentContent ?? '',
-              artifactContentType
-            )
-          )
 
   return (
     <EditorCommandOwnerContext value={isCmdSaveOwner}>
@@ -357,7 +339,7 @@ function EditorPanelInner({
           onExportMarkdownToPdf={() =>
             void exportActiveMarkdownToPdf({ fileId: activeFile.id, root: panelRef.current })
           }
-          createArtifactRequest={createActiveArtifactRequest}
+          
           onContentChange={handleContentChange}
           onContentChangeForFile={handleContentChangeForFile}
           onDirtyStateHint={handleDirtyStateHint}

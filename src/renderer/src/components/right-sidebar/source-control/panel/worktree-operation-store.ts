@@ -16,11 +16,10 @@ import {
 import type { GitConflictOperation } from '../../../../../../shared/git/status/git-status-types'
 import type { SourceControlActionError } from '../sync/action-error'
 import type { CreatePrIntentNotice } from '../commit/commit-area-types'
-import {
-  createPrIntentCurrentTargetConflictsWithToken,
-  type CreatePrIntentCurrentTarget,
-  type CreatePrIntentRunToken
-} from '../review/create-pr-intent-flow'
+
+// RA: the Create PR flow is removed; its run token stays only as an opaque idle marker.
+type CreatePrIntentRunToken = Readonly<Record<string, unknown>>
+type CreatePrIntentCurrentTarget = Readonly<Record<string, string | null | undefined>>
 
 /** Everything Source Control tracks for one worktree copy; lives past panel/section unmounts. */
 export type WorktreeOperationRecord = {
@@ -205,9 +204,5 @@ export function createPrIntentRunIsCurrent(
   store: WorktreeOperationStore,
   token: CreatePrIntentRunToken
 ): boolean {
-  const { createPrIntentRun, createPrIntentTarget } = store.getState()
-  return (
-    createPrIntentRun === token &&
-    !createPrIntentCurrentTargetConflictsWithToken(token, createPrIntentTarget)
-  )
+  return store.getState().createPrIntentRun === token
 }

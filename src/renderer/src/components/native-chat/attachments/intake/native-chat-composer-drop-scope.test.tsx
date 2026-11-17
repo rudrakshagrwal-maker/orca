@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 // @vitest-environment happy-dom
 
 import type * as AttachmentOwnerModule from '../uploads/native-chat-attachment-owner'
@@ -9,7 +10,7 @@ import type { NativeChatComposerInput } from '../../composer/editor/native-chat-
 import { NativeChatPromptEditor } from '../../composer/editor/NativeChatPromptEditor'
 import { useNativeChatFileDrops } from './use-native-chat-file-drops'
 import { NativeChatPaneFileDropSurface } from './NativeChatPaneFileDropSurface'
-import '../../../new-workspace/use-new-workspace-composer-file-drop'
+
 import { NativeChatImageAttachmentPreview } from '../chips/NativeChatImageAttachmentPreview'
 import '../../../editor/document-images/useLocalImageSrc'
 import { resetLocalImageCacheState as resetLocalImageSrcStateForTests } from '../../../editor/document-images/local-image-src-cache'

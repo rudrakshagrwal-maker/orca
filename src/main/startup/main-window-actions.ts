@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   app,
   clipboard,
@@ -24,8 +25,6 @@ import { ensureAutoUpdaterConfigured } from '../window/attach-main-window-servic
 import { focusExistingMainWindow, safelyRevealWindow } from '../window/focus-existing-window'
 import { mainProcessState as state } from './main-process-state'
 import { quitTeardownStartGate } from './quit/quit-teardown-start-gate'
-import { getDashboardPopoutWindow } from '../window/dashboard-popout-window'
-import { getWorkspaceSpaceWindow } from '../window/workspace-space-window'
 import { markUserQuitWindowClose } from '../window/user-quit-window-close'
 import { loadMainWindow } from '../window/createMainWindow'
 import {
@@ -104,7 +103,7 @@ export function openSettingsFromSystemMenu(): void {
 export function quitFromUserCommand(): void {
   if (state.isServeMode) {
     // Offscreen automation windows belong to the runtime and must survive desktop-window close.
-    for (const window of [state.mainWindow, getDashboardPopoutWindow()]) {
+    for (const window of [state.mainWindow]) {
       if (window && !window.isDestroyed()) {
         if (window === state.mainWindow) {
           markUserQuitWindowClose(window)
@@ -270,29 +269,18 @@ export function createSystemTrayDeferred(
 
 function resolveMenuTargetRenderer(targetWindow?: BrowserWindow | null): WebContents | undefined {
   const invokingWindow = targetWindow && !targetWindow.isDestroyed() ? targetWindow : undefined
-  const isCompanion =
-    invokingWindow &&
-    (invokingWindow === getDashboardPopoutWindow() || invokingWindow === getWorkspaceSpaceWindow())
-  if (invokingWindow && !isCompanion && !isNativeBrowserPopupWindow(invokingWindow)) {
+  if (invokingWindow && !isNativeBrowserPopupWindow(invokingWindow)) {
     return invokingWindow.webContents
   }
   const mainWindow = state.mainWindow
   if (!mainWindow || mainWindow.isDestroyed()) {
     return undefined
   }
-  // Companion renderers do not mount the Help dialogs.
-  if (isCompanion) {
+  // RA: browser popups route app dialogs to the main renderer.
+  if (invokingWindow) {
     safelyRevealWindow(mainWindow)
   }
   return mainWindow.webContents
-}
-
-export function sendOpenFeatureTour(targetWindow?: BrowserWindow | null): void {
-  resolveMenuTargetRenderer(targetWindow)?.send('ui:openFeatureTour')
-}
-
-export function sendOpenSetupGuide(targetWindow?: BrowserWindow | null): void {
-  resolveMenuTargetRenderer(targetWindow)?.send('ui:openSetupGuide')
 }
 
 export function sendOpenCrashReport(targetWindow?: BrowserWindow | null): void {

@@ -1,4 +1,5 @@
-import { readOpenCodeNativeChatTranscriptTail } from './transcript-opencode'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { isENOENT } from '../ipc/filesystem/access/filesystem-path-containment'
 import type { AgentType } from '../../shared/agent-status/contracts/agent-status-types'
 import type {
@@ -7,12 +8,7 @@ import type {
 } from '../../shared/native-chat/native-chat-types'
 import { resolveNativeChatTranscriptAgent } from '../../shared/native-chat/native-chat-agent-support'
 import { resolveSessionFilePath, type ResolveSessionFileOptions } from './session-file-resolver'
-import {
-  decodeClaudeTranscriptLine,
-  decodeCodexTranscriptLine,
-  decodeGrokTranscriptLine,
-  decodeOmpTranscriptLine
-} from './transcript-line-decoders'
+import { decodeClaudeTranscriptLine, decodeCodexTranscriptLine } from './transcript-line-decoders'
 import { transcriptFallbackId } from './transcript-fallback-id'
 import { inTranscriptFileOrder } from './transcript-file-order'
 import { extendTranscriptBoundary } from './transcript-file-version'
@@ -45,12 +41,7 @@ export function nativeChatLineDecoderForAgent(agent: AgentType): NativeChatLineD
   if (transcriptAgent === 'codex') {
     return decodeCodexTranscriptLine
   }
-  if (transcriptAgent === 'grok') {
-    return decodeGrokTranscriptLine
-  }
-  if (transcriptAgent === 'omp') {
-    return decodeOmpTranscriptLine
-  }
+
   return null
 }
 
@@ -254,13 +245,6 @@ export async function readNativeChatTranscriptTail(
     }
   | { error: string; notFound?: true }
 > {
-  if (resolveNativeChatTranscriptAgent(args.agent) === 'opencode') {
-    return readOpenCodeNativeChatTranscriptTail(
-      { ...args, agent: args.agent === 'zcode' ? 'zcode' : undefined },
-      {},
-      signal
-    )
-  }
   const decode = nativeChatLineDecoderForAgent(args.agent)
   const decodeLifecycle = nativeChatTurnLifecycleDecoderForAgent(args.agent)
   if (!decode) {

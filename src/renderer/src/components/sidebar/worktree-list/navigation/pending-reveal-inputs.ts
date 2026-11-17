@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import type { WorktreeOccurrencePlan } from '../../../../../../shared/worktree-occurrence-plan'
 import type React from 'react'
 import type { Virtualizer } from '@tanstack/react-virtual'
@@ -51,7 +52,7 @@ export type PendingSidebarRevealArgs = {
   groupBy: WorktreeGroupBy
   pinnedDisplayPolicy: PinnedWorktreeDisplayPolicy
   defaultHostId: ExecutionHostId
-  prCache: AppState['prCache'] | null
+
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
   settings: AppState['settings']
   projectGroups: readonly ProjectGroup[]

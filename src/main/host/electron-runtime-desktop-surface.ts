@@ -1,6 +1,7 @@
-import { isResourceWindowVisible } from '../window/resource-view-admission'
-import { BrowserWindow, ipcMain, Notification, powerMonitor } from 'electron'
-import { readDesktopAwayState } from '../notifications/desktop-away-state'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
+import { BrowserWindow, ipcMain, Notification } from 'electron'
+
 import type { RuntimeDesktopSurface } from '../runtime/construction/runtime-desktop-surface'
 import { translateMain } from '../i18n/main-i18n'
 import { encodeRepoIconPng } from './electron-repo-icon-png'
@@ -9,7 +10,7 @@ import { ORCA_SIDEBAR_INPUTS_IS_MAIN } from '../../shared/sidebar-inputs-switch'
 
 export const electronRuntimeDesktopSurface: RuntimeDesktopSurface = {
   translateNotification: translateMain,
-  isAwayForMobileNotifications: () => readDesktopAwayState(powerMonitor),
+
   showNotification: ({ title, body }) => {
     if (!Notification.isSupported()) {
       return false
@@ -30,7 +31,7 @@ export const electronRuntimeDesktopSurface: RuntimeDesktopSurface = {
     }
   },
   findWindowById: (id) => BrowserWindow.fromId(id),
-  isResourceViewVisible: (sender) => isResourceWindowVisible(BrowserWindow.fromWebContents(sender)),
+  
   onIpc: (channel, listener) => {
     ipcMain.on(channel, listener as Parameters<typeof ipcMain.on>[1])
   },

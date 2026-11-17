@@ -1,3 +1,4 @@
+import { invalidateGitSessionMetadata } from '../command-runner/git-session-metadata-cache'
 import type {
   GitBranchLineTotal,
   GitStatusEntry,
@@ -41,6 +42,10 @@ export async function getStatus(
   worktreePath: string,
   options: GetStatusOptions = {}
 ): Promise<GitStatusResult> {
+  // RA: explicit refresh invalidates session metadata without changing the status pacing.
+  if (options.refreshMetadata) {
+    invalidateGitSessionMetadata()
+  }
   // Reads preserve diff caches; mutations invalidate them and settled entries also validate input stamps.
   const cacheKey = getStatusReadKey(worktreePath, options)
   return statusReadLeaseOwner.lease(cacheKey, options.signal, (sharedSignal) =>
@@ -53,6 +58,7 @@ function getStatusReadKey(worktreePath: string, options: GetStatusOptions): stri
   const limit = resolveGitStatusLimit(options.limit)
   return `${getStatusLineStatsCacheKey(worktreePath, options)}\0${stableInFlightKey([
     options.admissionTier ?? 'status',
+    options.summaryOnly === true,
     options.includeIgnored === true,
     options.includeLineStats !== false,
     options.reuseLineStats === true,
@@ -160,15 +166,21 @@ async function runGetStatus(
     }
   }
 
-  if (statusSucceeded && !didHitLimit) {
+  if (!options.summaryOnly && statusSucceeded && !didHitLimit) {
     entries = await reconcileDriveCheckoutSuspects(worktreePath, entries, options)
   }
-  if (statusSucceeded) {
+  if (!options.summaryOnly && statusSucceeded) {
     entries = await markRecursiveSubmoduleRestores(worktreePath, entries, options)
   }
   await dropSharedSymlinkUntrackedEntries(worktreePath, entries, options)
 
-  if (statusSucceeded && !didHitLimit && shouldProbeEffectiveUpstreamStatus(branch, upstreamName)) {
+  // RA: porcelain already supplies the sidebar's ahead/behind counters.
+  if (
+    !options.summaryOnly &&
+    statusSucceeded &&
+    !didHitLimit &&
+    shouldProbeEffectiveUpstreamStatus(branch, upstreamName)
+  ) {
     const branchName = getShortBranchName(branch)
     if (branchName) {
       const cacheKey = getEffectiveUpstreamStatusCacheKey(
@@ -196,7 +208,7 @@ async function runGetStatus(
   // Count only populated areas and skip truncated scans to avoid unbounded numstat work.
   let branchLineTotal: GitBranchLineTotal | undefined
   let branchLineTotalUnavailable: string | undefined
-  if (!didHitLimit && lineStatsWriteToken !== null) {
+  if (!options.summaryOnly && !didHitLimit && lineStatsWriteToken !== null) {
     const branchLineTotalInput = createBranchLineTotalInput(
       worktreePath,
       entries,

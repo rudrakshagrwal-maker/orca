@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppStore } from '@/store/index'
 import type { Repo } from '../../../../../shared/repo-types'
-import { callRuntimeRpc } from '@/runtime/rpc/calls/runtime-rpc-call'
 import {
   deleteRepoSlugCacheKey,
   nextRepoSlugFailureRetryDelay,
@@ -78,25 +77,8 @@ export async function resolveRepoSlug(repo: Repo): Promise<string | null> {
       }
       return value
     }
-    try {
-      const result =
-        target.kind === 'environment'
-          ? await callRuntimeRpc<{ owner: string; repo: string; host?: string } | null>(
-              target,
-              'github.repoSlug',
-              { repo: repo.id },
-              { timeoutMs: 30_000 }
-            )
-          : await window.api.gh.repoSlug({ repoPath: repo.path, repoId: repo.id })
-      if (!result) {
-        return commit(null)
-      }
-      const slug = githubRepoIdentityKey(result)
-      return commit(slug)
-    } catch {
-      // GHES auth can change outside Orca; retry negative results after a bounded quiet period.
-      return commit(null)
-    }
+    // RA: GitHub integration is removed, so no repository resolves to a slug.
+    return commit(null)
   })()
   slugResolutionInFlight.set(cacheKey, resolution)
   try {

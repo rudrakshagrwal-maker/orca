@@ -1,3 +1,4 @@
+// RA: mirrored lineage checks use the Projects agent tree directly.
 import { act } from 'react'
 import { expect, vi } from 'vitest'
 import type { RuntimeAgentLineageTestModule } from '../../../../../../shared/runtime-agent-lineage-consumer.test-fixture'
@@ -35,8 +36,7 @@ export async function verifyMirroredTerminalLineage(
   const { makeUnifiedTab } = await import('@/store/slices/tabs/tab-group.test-fixture'),
     { makeWorktree } = await import('@/store/slices/worktrees/worktree.test-fixture'),
     { TEST_REPO } = await import('@/store/repos/repo.test-fixture')
-  const { selectDashboardOrchestration } =
-    await import('@/components/dashboard/dashboard-orchestration-selection')
+
   const { selectWorktreeAgentRowsCached } =
     await import('@/components/dashboard/worktree-agent-rows-cache')
   const { buildActivityEvents } = await import('@/components/activity/activity-event-builder')
@@ -183,8 +183,7 @@ export async function verifyMirroredTerminalLineage(
           context.parentPaneKey
       ).toBe(canonicalChatRow(LINEAGE_PARENT))
       const state = useAppStore.getState()
-      const orchestration =
-        selectDashboardOrchestration(state, [{ worktree }]).singletonOrchestration ?? {}
+      const orchestration = selectVisibleAgentOrchestration(state)
       const dashboard = selectWorktreeAgentRowsCached({
         state,
         worktreeId: 'folder-a',

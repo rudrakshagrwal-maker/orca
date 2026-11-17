@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { getClaudeAgentViewService } from '../claude/agent-view/agent-view-service'
 import { getAppEnvironment } from '../../shared/app-environment'
 import { startCodexHooks } from '../codex/hooks/reconciliation/codex-hook-reconcile'
@@ -8,7 +9,7 @@ import {
   isAgentStatusHooksEnabledForAgent
 } from '../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
 import { reconcileStartupManagedAgentHooks } from '../agent-hooks/installation/managed-agent-hook-startup'
-import { refreshInstalledOpenCodeStatusPlugins } from '../opencode/opencode-status-plugin-startup-refresh'
+
 import type { ProfilePreferences } from '../persistence/loading-store/profile-preferences/profile-preferences'
 import type { OrcadRuntimeCleanup } from './orcad-runtime-lifetime'
 import type { AgentHookServer } from '../agent-hooks/server/agent-hook-server'
@@ -63,10 +64,6 @@ export function startOrcadManagedAgentHooks(
       shouldHydrateShellPath
     })
   )
-  try {
-    refreshInstalledOpenCodeStatusPlugins(getSettings())
-  } catch (error) {
-    console.warn('[orcad] could not refresh OpenCode status plugins:', error)
-  }
+
   return { readinessPublished: () => published.resolve() }
 }

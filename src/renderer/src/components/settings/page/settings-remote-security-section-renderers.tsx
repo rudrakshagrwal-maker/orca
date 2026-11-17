@@ -35,7 +35,7 @@ export function renderServersSettingsSection(
         searchEntries={navigation.getSectionSearchEntries('servers')}
         headerAction={
           mounted ? (
-            <RuntimeServersHeaderActions canGeneratePairingUrl={!model.isWebClient} />
+            <RuntimeServersHeaderActions />
           ) : undefined
         }
         // Rows/cards already supply surfaces; another frame would nest cards.

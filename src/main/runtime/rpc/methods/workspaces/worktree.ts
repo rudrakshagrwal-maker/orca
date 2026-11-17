@@ -1,11 +1,7 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { readCallerStoreInstallationId } from '../../../hosts/platform-probe/host-descriptor'
 import { getCanonicalUserDataPath } from '../../../../persistence/loading-store/user-data-path'
-import {
-  finishAutomationWorkspaceProvenanceRequest,
-  releaseAutomationWorkspaceProvenanceRequest,
-  resolveAutomationWorkspaceProvenance,
-  resolveClientAutomationWorkspaceProvenance
-} from '../../../../automations/workspace-provenance'
+
 import { getLocalWorktreeCatalogVersion } from '../../../../workspaces/catalog/local-worktree-scan-generation'
 import { getExplicitWorktreeIdSelector } from '../../../workspaces/catalog/runtime-worktree-selection'
 import { splitWorktreeId } from '../../../../../shared/worktree/id'
@@ -123,46 +119,30 @@ export const WORKTREE_METHODS = [
       context.runtime.dedupeWorktreeCreate(params, params.clientMutationId, async () => {
         const { runtime } = context
         const repo = await runtime.showRepo(worktreeCreateRepoSelector(params))
-        const automationProvenance =
-          resolveAutomationWorkspaceProvenance({
-            authority: runtime,
-            repoSelector: params.repo,
-            repo,
-            request: params.automationProvenanceRequest,
-            ignoreUnknownAutomation: true
-          }) ??
-          resolveClientAutomationWorkspaceProvenance({
-            authority: runtime,
-            provenance: params.clientAutomationProvenance
-          })
+
         // Reserve provenance before create for recovery, but release failed reservations so retry is safe.
-        try {
-          const result = await createWorktreeWithStartupAgent(
-            runtime,
-            buildManagedWorktreeCreateArgs(
-              params,
-              {
-                automationProvenance,
-                cliProvenance: buildCliWorkspaceProvenance(params.cliProvenanceRequest, {
-                  startupAgent: params.startupAgent ?? params.createdWithAgent,
-                  createdAt: Date.now()
-                }),
-                creatorProvenance: resolveRpcWorkspaceCreatorProvenance(context)
-              },
-              context
-            )
+
+        const result = await createWorktreeWithStartupAgent(
+          runtime,
+          buildManagedWorktreeCreateArgs(
+            params,
+            {
+              cliProvenance: buildCliWorkspaceProvenance(params.cliProvenanceRequest, {
+                startupAgent: params.startupAgent ?? params.createdWithAgent,
+                createdAt: Date.now()
+              }),
+              creatorProvenance: resolveRpcWorkspaceCreatorProvenance(context)
+            },
+            context
           )
-          finishAutomationWorkspaceProvenanceRequest(params.automationProvenanceRequest)
-          // Create notification already bumped generation; stamp the catalog containing the new worktree.
-          const stamped = { ...result, catalogVersion: getLocalWorktreeCatalogVersion(repo.id) }
-          // Agent callers need a stable target without duplicate terminal-list layout entries.
-          return params.startupAgent && result.startupTerminal?.handle
-            ? { ...stamped, agentTerminalHandle: result.startupTerminal.handle }
-            : stamped
-        } catch (error) {
-          releaseAutomationWorkspaceProvenanceRequest(params.automationProvenanceRequest)
-          throw error
-        }
+        )
+
+        // Create notification already bumped generation; stamp the catalog containing the new worktree.
+        const stamped = { ...result, catalogVersion: getLocalWorktreeCatalogVersion(repo.id) }
+        // Agent callers need a stable target without duplicate terminal-list layout entries.
+        return params.startupAgent && result.startupTerminal?.handle
+          ? { ...stamped, agentTerminalHandle: result.startupTerminal.handle }
+          : stamped
       })
   }),
   WORKTREE_PROVISIONED_ROOT_METHOD,

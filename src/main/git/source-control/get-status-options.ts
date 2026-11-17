@@ -1,6 +1,9 @@
 import type { GitRuntimeOptions } from '../git-runtime-options'
 
 export type GetStatusOptions = GitRuntimeOptions & {
+  // RA: sidebar summaries skip untracked scans and expensive diff/upstream probes.
+  summaryOnly?: boolean
+  refreshMetadata?: boolean
   includeIgnored?: boolean
   includeLineStats?: boolean
   reuseLineStats?: boolean

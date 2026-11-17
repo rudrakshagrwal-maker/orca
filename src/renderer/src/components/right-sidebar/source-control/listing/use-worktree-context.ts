@@ -13,16 +13,10 @@ import { getWorktreeGitIdentityDisplay } from '../../../../../../shared/worktree
 import type { AppState } from '@/store/types'
 import { getIndexedWorktreeMap } from '@/store/slices/worktrees/listing/worktree-catalog-index'
 import { selectRepoByIdForActiveWorkspace } from '@/store/repos/active-workspace-repository'
-import { getGitHubPRCacheKey } from '../../../../../../shared/github/github-cache-key'
-import { getHostedReviewCacheKey } from '@/store/slices/hosted-review/hosted-review-cache-identity'
 import type { GitBranchChangeEntry } from '../../../../../../shared/git/diff/git-diff-compare-types'
 import type { GitStatusEntry } from '../../../../../../shared/git/status/git-status-types'
 import { isFolderRepo } from '../../../../../../shared/repo-kind'
 import { getRepoExecutionHostId } from '../../../../../../shared/execution-host'
-import {
-  selectReviewCacheData,
-  selectReviewCacheEntry
-} from '../review/review-cache-entry-selection'
 
 // Render inputs only; commands read current settings at their mutation boundary.
 const SOURCE_CONTROL_SETTINGS = [
@@ -156,38 +150,6 @@ export function useSourceControlWorktreeContext() {
     }
   }, [])
   const settings = useSourceControlState(selectSettings)
-  const hostedReviewCacheKey =
-    activeRepo && branchName
-      ? getHostedReviewCacheKey(
-          activeRepo.path,
-          branchName,
-          null,
-          activeRepo.id,
-          activeRepo.connectionId,
-          activeRepo.executionHostId,
-          true
-        )
-      : null
-  const activePrCacheKey =
-    activeRepo && branchName
-      ? getGitHubPRCacheKey(
-          activeRepo.path,
-          activeRepo.id,
-          branchName,
-          null,
-          activeRepo.connectionId,
-          activeRepo.executionHostId,
-          true
-        )
-      : null
-  // Subscribe only to active repo/branch entries because background refresh replaces whole cache maps.
-  const hostedReviewEntry = useSourceControlState((s) =>
-    selectReviewCacheEntry(s.hostedReviewCache, hostedReviewCacheKey)
-  )
-  const hostedReviewEntryData = hostedReviewEntry?.data ?? null
-  const activePrFromQueue = useSourceControlState((s) =>
-    selectReviewCacheData(s.prCache, activePrCacheKey)
-  )
   // Route Git and metadata to the repo owner; unresolved ownership must run nothing.
   const activeRepoTarget = useMemo(
     () =>
@@ -228,8 +190,6 @@ export function useSourceControlWorktreeContext() {
     activeConnectionId,
     activeGitStatusHead,
     activeGroupId,
-    activePrCacheKey,
-    activePrFromQueue,
     activeRepo,
     activeRepoConnectionId,
     activeRepoExecutionHostId,
@@ -249,9 +209,6 @@ export function useSourceControlWorktreeContext() {
     entries,
     gitIdentityDisplay,
     hasUncommittedEntries,
-    hostedReviewCacheKey,
-    hostedReviewEntry,
-    hostedReviewEntryData,
     inFlightRemoteOpKind,
     isRemoteOperationInAnotherWorktree,
     isBranchVisible,

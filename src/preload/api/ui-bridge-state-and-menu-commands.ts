@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { MarkdownDocument } from '../../shared/file-listing/file-document'
 import type { BrowserTabCreateRequest } from '../../shared/browser-tab-create-request'
 import { ipcRenderer } from 'electron'
@@ -10,10 +11,6 @@ import type {
 } from '../../shared/desktop-browser-bridge-protocol'
 
 export const uiStateAndMenuCommandsApi = {
-  getJiraQuickFilters: () => ipcRenderer.invoke('ui:getJiraQuickFilters'),
-  setJiraQuickFilters: (state) => ipcRenderer.invoke('ui:setJiraQuickFilters', state),
-  getJiraSavedFilters: () => ipcRenderer.invoke('ui:getJiraSavedFilters'),
-  mutateJiraSavedFilters: (mutation) => ipcRenderer.invoke('ui:mutateJiraSavedFilters', mutation),
   get: () => ipcRenderer.invoke('ui:get'),
   set: (args) => ipcRenderer.invoke('ui:set', args),
   setWithAck: (args) => ipcRenderer.invoke('ui:set', args),
@@ -39,20 +36,7 @@ export const uiStateAndMenuCommandsApi = {
     ipcRenderer.invoke('ui:consumePendingQuitAndStopAllSessions'),
   quitAfterStoppingAllSessions: (): Promise<boolean> =>
     ipcRenderer.invoke('ui:quitAfterStoppingAllSessions'),
-  onOpenSkillShare: (callback: (shareId: string) => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, shareId: string): void => callback(shareId)
-    ipcRenderer.on('ui:openSkillShare', listener)
-    return () => ipcRenderer.removeListener('ui:openSkillShare', listener)
-  },
-  consumePendingSkillShare: (): Promise<string | null> =>
-    ipcRenderer.invoke('ui:consumePendingSkillShare'),
-  onOpenPluginInstallLink: (callback: (link: string) => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, link: string): void => callback(link)
-    ipcRenderer.on('ui:openPluginInstallLink', listener)
-    return () => ipcRenderer.removeListener('ui:openPluginInstallLink', listener)
-  },
-  consumePendingPluginInstallLink: (): Promise<string | null> =>
-    ipcRenderer.invoke('ui:consumePendingPluginInstallLink'),
+
   onOpenMarkdownFiles: (callback: (documents: MarkdownDocument[]) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, documents: MarkdownDocument[]): void =>
       callback(documents)
@@ -61,16 +45,7 @@ export const uiStateAndMenuCommandsApi = {
   },
   consumePendingMarkdownFileOpens: (): Promise<MarkdownDocument[]> =>
     ipcRenderer.invoke('ui:consumePendingMarkdownFileOpens'),
-  onOpenSetupGuide: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:openSetupGuide', listener)
-    return () => ipcRenderer.removeListener('ui:openSetupGuide', listener)
-  },
-  onOpenFeatureTour: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:openFeatureTour', listener)
-    return () => ipcRenderer.removeListener('ui:openFeatureTour', listener)
-  },
+
   onOpenCrashReport: (callback: () => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => callback()
     ipcRenderer.on('ui:openCrashReport', listener)
@@ -81,21 +56,7 @@ export const uiStateAndMenuCommandsApi = {
     ipcRenderer.on('ui:toggleLeftSidebar', listener)
     return () => ipcRenderer.removeListener('ui:toggleLeftSidebar', listener)
   },
-  onToggleRightSidebar: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:toggleRightSidebar', listener)
-    return () => ipcRenderer.removeListener('ui:toggleRightSidebar', listener)
-  },
-  onToggleWorktreePalette: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:toggleWorktreePalette', listener)
-    return () => ipcRenderer.removeListener('ui:toggleWorktreePalette', listener)
-  },
-  onToggleFloatingTerminal: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:toggleFloatingTerminal', listener)
-    return () => ipcRenderer.removeListener('ui:toggleFloatingTerminal', listener)
-  },
+
   onTerminalShortcutCaptured: (
     callback: (data: { actionId: KeybindingActionId }) => void
   ): (() => void) => {
@@ -114,31 +75,13 @@ export const uiStateAndMenuCommandsApi = {
     ipcRenderer.on('ui:toggleQuickCommandsMenu', listener)
     return () => ipcRenderer.removeListener('ui:toggleQuickCommandsMenu', listener)
   },
-  onOpenNewWorkspace: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:openNewWorkspace', listener)
-    return () => ipcRenderer.removeListener('ui:openNewWorkspace', listener)
-  },
+
   onDeleteCurrentWorkspace: (callback: () => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => callback()
     ipcRenderer.on('ui:deleteCurrentWorkspace', listener)
     return () => ipcRenderer.removeListener('ui:deleteCurrentWorkspace', listener)
   },
-  onOpenWorkspaceBoard: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:openWorkspaceBoard', listener)
-    return () => ipcRenderer.removeListener('ui:openWorkspaceBoard', listener)
-  },
-  onOpenTasks: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:openTasks', listener)
-    return () => ipcRenderer.removeListener('ui:openTasks', listener)
-  },
-  onToggleAgentDashboard: (callback: () => void): (() => void) => {
-    const listener = (_event: Electron.IpcRendererEvent) => callback()
-    ipcRenderer.on('ui:toggleAgentDashboard', listener)
-    return () => ipcRenderer.removeListener('ui:toggleAgentDashboard', listener)
-  },
+
   onJumpToWorktreeIndex: (callback: (index: number) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, index: number) => callback(index)
     ipcRenderer.on('ui:jumpToWorktreeIndex', listener)

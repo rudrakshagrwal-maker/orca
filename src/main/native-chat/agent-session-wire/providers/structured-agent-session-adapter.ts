@@ -1,8 +1,9 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type { PrepareStructuredRewind } from './structured-agent-session-rewind-contract'
 import type { ProviderProcessCloseOptions } from '../../../provider-process/provider-process-close'
 import type { NativeCopyCoverage } from '../../agent-session-journal/context-epochs/journal-history-origin'
 import type { StructuredAgentSessionConversationCopyInput } from './structured-agent-session-conversation-copy-input'
-import type { CodexAccountUsageRead } from '../../../rate-limits/providers/codex/codex-rpc-rate-limit-mapper'
+
 import type { ClaudeAccountRecipe } from '../../../../shared/agent-session/lifecycle/agent-session-acquired-account'
 import type { StructuredAgentSessionAdmitFreshInput } from '../delivery/structured-agent-session-input-admission'
 import type { AiVaultConversationCopy } from '../../../../shared/ai-vault/resume/ai-vault-resume-preparation'
@@ -174,7 +175,6 @@ export type StructuredAgentSessionSetOptionInput = {
 }
 
 export type StructuredAgentSessionAdapter = StructuredAgentSessionAdapterStop & {
-  readAccountUsage?(record: AgentSessionRecord, signal: AbortSignal): Promise<CodexAccountUsageRead>
   open: StructuredAgentSessionProviderOpen
   supportsCreate?(location: AgentSessionExecutionLocation, agent: string): boolean
   /** Keep runtime/location support in adapter data for remote enablement. */

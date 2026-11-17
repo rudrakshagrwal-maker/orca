@@ -1,3 +1,4 @@
+import { registerBrowserHandlers, setAgentBrowserBridgeRef } from '../browser/browser'
 import { app } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
@@ -16,8 +17,7 @@ import { registerFeedbackHandlers } from '../feedback'
 import { registerCrashReportingHandlers } from '../crash-reporting/crash-reporting'
 import { registerExportHandlers } from '../export'
 import { registerStatsHandlers } from '../stats'
-// RA: memory collection is available only through the on-demand CLI diagnostics RPC.
-import { registerRateLimitHandlers } from '../rate-limits'
+
 import { registerRuntimeHandlers } from '../runtime'
 import {
   invalidateRuntimeEnvironmentTransport,
@@ -46,15 +46,9 @@ import {
   registerClipboardHandlers,
   setTrustedClipboardRendererWebContentsId
 } from '../../window/clipboard-ipc-handlers'
-import { isDashboardPopoutRenderer } from '../../window/dashboard-popout-window'
-import type { ClaudeUsageStore } from '../../claude-usage/store'
-import type { CodexUsageStore } from '../../codex-usage/store'
-import type { OpenCodeUsageStore } from '../../opencode-usage/store'
-import type { MuseUsageStore } from '../../muse-usage/store'
-import type { RateLimitService } from '../../rate-limits/service/rate-limit-service'
+
 import type { CodexAccountService } from '../../codex-accounts/service'
 import type { ClaudeAccountService } from '../../claude-accounts/service'
-import type { AutomationService } from '../../automations/service'
 import type { AgentAwakeService } from '../../power/agent-awake-service'
 import type { CrashReportStore } from '../../crash-reporting/reports/crash-report-store'
 import type { KeybindingService } from '../../keybindings/keybinding-service'
@@ -71,27 +65,11 @@ import {
 } from '../../ai-vault/runtime-session-scanner'
 import { configureRuntimeAiVaultSessionDelete } from '../ai-vault/ai-vault-delete'
 import { ensureStructuredAgentSessionHostUnlessRefused } from '../../runtime/agent-session/structured-agent-session-host-refusal'
-import type { PluginService } from '../../plugins/plugin-service'
-import type { PluginMarketplaceHandlerServices } from '../plugin-marketplaces'
-import { settleWithinMs } from '../../startup/quit/quit-teardown-deadline'
+
 import { getRuntimeEnvironmentRegistryRoot } from '../runtime-environments/runtime-environment-registry-root'
 
 let registered = false
-// Same cap as the restart path's auth preservation: bookkeeping must not hold Restart on a stalled disk.
-const RELAUNCH_DISMISSAL_CLOSE_TIMEOUT_MS = 2_000
-
-async function closeNotificationDismissalsBeforeRelaunch(
-  runtime: OrcaRuntimeService
-): Promise<void> {
-  const result = await settleWithinMs(
-    runtime.closeNotificationDismissals(),
-    RELAUNCH_DISMISSAL_CLOSE_TIMEOUT_MS
-  )
-  if (result.outcome === 'timed-out') {
-    console.warn('[notifications] Relaunching before dismissal recovery state finished saving')
-  }
-}
-
+// RA: removed notification persistence has no relaunch barrier.
 type CoreHandlerLifecycleOptions = {
   onBeforeRelaunch?: () => void | Promise<void>
   onOrcaProfileAuthMutation?: () => void
@@ -107,22 +85,15 @@ export function registerCoreHandlers(
   store: Store,
   runtime: OrcaRuntimeService,
   stats: StatsCollector,
-  _claudeUsage: ClaudeUsageStore,
-  _codexUsage: CodexUsageStore,
-  _openCodeUsage: OpenCodeUsageStore,
-  _museUsage: MuseUsageStore,
+  // RA: usage stores are removed from the IPC composition contract.
   codexAccounts: CodexAccountService,
   claudeAccounts: ClaudeAccountService,
-  rateLimits: RateLimitService,
   mainWindowWebContentsId: number | null = null,
-  _automations?: AutomationService,
   commitMessageAgentEnv?: CommitMessageAgentEnvironmentResolvers,
   agentAwakeService?: AgentAwakeService,
   crashReports?: CrashReportStore,
   keybindings?: KeybindingService,
-  lifecycleOptions: CoreHandlerLifecycleOptions = {},
-  _pluginService?: PluginService,
-  _marketplaceServices?: PluginMarketplaceHandlerServices
+  lifecycleOptions: CoreHandlerLifecycleOptions = {}
 ): void {
   // macOS activation can replace the window without ending the app; refresh trusted IDs but register IPC once.
   setTrustedClipboardRendererWebContentsId(mainWindowWebContentsId)
@@ -141,17 +112,18 @@ export function registerCoreHandlers(
             runtime.shutdownReconnectFactsFor(session, partition)
         }
       : {}),
-    onBeforeRelaunch: lifecycleOptions.onBeforeRelaunch,
+    onBeforeRelaunch: lifecycleOptions.onBeforeRelaunch
     // Restart/profile switching closes this through will-quit; this callback covers relaunch exit.
-    onBeforeRelaunchExit: () => closeNotificationDismissalsBeforeRelaunch(runtime)
   })
+  // RA: browser IPC stays live in the lean terminal fork.
+  registerBrowserHandlers(store)
+  setAgentBrowserBridgeRef(runtime.getAgentBrowserBridge())
   registerCliHandlers()
   registerPreflightHandlers(store)
   registerCodexAccountHandlers(codexAccounts, () => store.getSettings())
   registerAgentHookHandlers(runtime, { getPtyIdForPaneKey })
   registerCodexConfigSyncHandlers(codexAccounts.runtimeHomeService)
   registerClaudeAccountHandlers(claudeAccounts)
-  registerRateLimitHandlers(rateLimits, codexAccounts)
   registerFeedbackHandlers()
   if (crashReports) {
     registerCrashReportingHandlers(crashReports)
@@ -177,7 +149,7 @@ export function registerCoreHandlers(
   })
   registerShellHandlers(store)
   registerSessionHandlers(store, runtime)
-  registerUIHandlers(store, { isDashboardPopoutRenderer })
+  registerUIHandlers(store)
   registerFilesystemHandlers(store, commitMessageAgentEnv)
   registerFilesystemWatcherHandlers()
   registerRuntimeHandlers(runtime)

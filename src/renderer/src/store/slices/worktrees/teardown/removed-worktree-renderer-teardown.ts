@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { retireRemovedWorktreeTerminalNotices } from '../../../terminals/terminal-notice-removal'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { WorktreeSliceGet, WorktreeSliceSet } from '../listing/worktree-slice-types'
@@ -103,16 +104,4 @@ export async function tearDownRemovedWorktreeRendererState(args: {
   retireRemovedWorktreeTerminalNotices(beforeRemoval.terminalNotices)
   // Purge destroyed-target projects after row removal so selection clears with the row, not earlier.
   await purgeOrphanedRuntimeSshProjects(get, runtimeCleanup.destroyedSshTargetIds)
-  get().removeWorkspaceSpaceWorktrees?.(
-    hostId ? [{ id: worktreeId, executionHostId: hostId }] : [worktreeId]
-  )
-  // Why: PR/commit-message generation records are keyed by worktree; prune to the surviving set so they don't leak.
-  const liveWorktreeKeys = new Set(
-    get()
-      .allWorktrees()
-      .map((w) => w.id)
-  )
-  // Optional-chained: minimal store assemblies (some unit tests) omit the generation slices.
-  get().prunePullRequestGenerationRecords?.(liveWorktreeKeys)
-  get().pruneCommitMessageGenerationRecords?.(liveWorktreeKeys)
 }

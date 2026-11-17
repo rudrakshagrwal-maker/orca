@@ -102,8 +102,7 @@ export function createRepoCatalogActions(
       try {
         const catalog = await fetchRepoCatalogForTarget(
           target,
-          get().repos,
-          get().githubSourceCollections
+          get().repos
         )
         // A newer same-host fetch or a replaced connection superseded us — drop this stale result.
         if (!isHostCatalogFenceCurrent(get, fence)) {

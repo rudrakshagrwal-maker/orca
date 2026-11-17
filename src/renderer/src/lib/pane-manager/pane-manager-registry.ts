@@ -1,3 +1,4 @@
+import { isTerminalOutputSuspended } from './terminal-output/pane-terminal-output-queue-registry'
 import { recordTerminalWebglDiagnostic } from '../../../../shared/terminal/diagnostics/terminal-webgl-diagnostics'
 import { registerRendererMemoryProfileContributor } from '../../diagnostics/memory/renderer-memory-profile'
 import type { PaneRenderingDiagnostics } from './pane-manager-types'
@@ -157,6 +158,9 @@ export function forEachLivePaneForDesyncSentinel(
       continue
     }
     for (const pane of panes) {
+      if (isTerminalOutputSuspended(pane.terminal as object)) {
+        continue
+      } // RA: hidden panes have no pixel readback.
       try {
         visit(`m${managerId}:p${pane.id}`, pane)
       } catch {

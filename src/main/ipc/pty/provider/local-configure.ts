@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { getClaudeAgentViewService } from '../../../claude/agent-view/agent-view-service'
 import { inheritOmpLaunchEnvironment } from '../host-env/omp-launch-environment'
 import { getAppEnvironment } from '../../../../shared/app-environment'
@@ -27,7 +28,6 @@ import { clearProviderPtyState } from './state-cleanup'
 import { visibleRendererPtys } from '../delivery/visibility-state'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { awaitExplicitAgentPluginGuestReadiness } from '../../../agent-hooks/wsl-relay/wsl-agent-plugin-readiness'
-import { prepareAntigravityAccountForLaunch } from '../../../antigravity/native-account-launch'
 
 export function configureLocalPtyProvider(args: {
   runtime?: OrcaRuntimeService
@@ -45,13 +45,6 @@ export function configureLocalPtyProvider(args: {
     baseEnv,
     ctx
   ) => {
-    await prepareAntigravityAccountForLaunch({
-      launchAgent: ctx?.launchAgent,
-      command: ctx?.command,
-      isWsl: ctx?.isWsl,
-      env: baseEnv,
-      envIsComplete: true
-    })
     const codexSelectionTarget: CodexAccountSelectionTarget =
       ctx?.isWsl === true
         ? { runtime: 'wsl', wslDistro: ctx.wslDistro ?? null }

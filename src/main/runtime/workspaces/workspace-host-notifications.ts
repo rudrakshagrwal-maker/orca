@@ -6,9 +6,10 @@ import type { RuntimeWorkspaceRepoScanRefresh } from './catalog/workspace-repo-s
 import type { SshConnectionState } from '../../../shared/ssh-types'
 import { getPublicSshState } from '../hosts/platform-probe/public-ssh-state'
 import { splitWorktreeId } from '../../../shared/worktree/id'
-import { RuntimeEmulatorBinding } from '../emulator/runtime-emulator-binding'
+// RA: browser hosting does not depend on emulator bridges.
+import { RuntimeBrowserHostBindings } from '../browser/installation/runtime-browser-host-bindings'
 
-export abstract class OrcaRuntimeWithNotifySshStateChanged extends RuntimeEmulatorBinding {
+export abstract class OrcaRuntimeWithNotifySshStateChanged extends RuntimeBrowserHostBindings {
   protected abstract hydrateHeadlessMobileSessionTabsFromWorkspaceSession(
     ...args: Parameters<
       OrcaRuntimeWithHydrateHeadlessMobileSessionTabsFromWorkspaceSession['hydrateHeadlessMobileSessionTabsFromWorkspaceSession']

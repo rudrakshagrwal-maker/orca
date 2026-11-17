@@ -1,3 +1,4 @@
+import { withGitSessionMetadata } from './git-session-metadata-cache'
 import { withGitSpan } from '../../observability/instrumentation'
 import {
   resolveGitFetchHeadCommand,
@@ -192,16 +193,19 @@ export function gitExecFileAsync(
   const terminationState: { current: Promise<void> | null } = { current: null }
   const command = resolveGitFetchHeadCommand(args, options.cwd)
   // Missing folders start no child and must not record a git.exec span.
-  const result = runAdmittedWslGit(options, () =>
-    runUnlessGitCwdKnownMissing(options, () =>
-      command.needsLock
-        ? runWithGitFetchHeadLock(
-            command.cwd,
-            options.signal,
-            () => gitExecFileAsyncUnlocked(args, options, terminationState),
-            command.gitDir
-          )
-        : gitExecFileAsyncUnlocked(args, options, terminationState)
+  // RA: avoid spawning repeated config/remote/ref reads during the session.
+  const result = withGitSessionMetadata(args, options, () =>
+    runAdmittedWslGit(options, () =>
+      runUnlessGitCwdKnownMissing(options, () =>
+        command.needsLock
+          ? runWithGitFetchHeadLock(
+              command.cwd,
+              options.signal,
+              () => gitExecFileAsyncUnlocked(args, options, terminationState),
+              command.gitDir
+            )
+          : gitExecFileAsyncUnlocked(args, options, terminationState)
+      )
     )
   )
   return result.finally(() => {

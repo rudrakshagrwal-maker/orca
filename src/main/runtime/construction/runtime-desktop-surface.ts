@@ -1,4 +1,5 @@
-import type { BrowserWindow, IpcMainEvent, WebContents } from 'electron'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+import type { BrowserWindow, IpcMainEvent } from 'electron'
 
 /** Optional Electron facilities for runtime hosts: notifications, renderer lookup and renderer-backed tab creation IPC.
  * Node hosts legitimately lack these; terminal creation uses background spawn without a window (#10333), and notifications route to paired clients. */
@@ -14,7 +15,7 @@ export type RuntimeDesktopSurface = {
   sendToRenderers?(channel: string, payload: unknown): void
   /** The renderer window with this id, or null when there is no desktop. */
   findWindowById(id: number): BrowserWindow | null
-  isResourceViewVisible?(sender: WebContents): boolean
+  
   onIpc(channel: string, listener: (event: IpcMainEvent, ...args: never[]) => void): void
   removeIpcListener(channel: string, listener: (...args: never[]) => void): void
   /** Re-encodes as a PNG fitting `maxEdge`; null if undecodable. Absent on Node hosts. */

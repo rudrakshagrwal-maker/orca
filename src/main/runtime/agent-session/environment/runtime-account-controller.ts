@@ -1,28 +1,22 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type { ClaudeAccountService } from '../../../claude-accounts/service'
-import { hasAppEnvironment } from '../../../../shared/app-environment'
-import { getManagedDataAccountService } from '../../../managed-data-accounts/service'
+
 import type {
   ClaudeAccountSignIn,
   ClaudeRateLimitAccountsState,
   ClaudeSignInRequest,
-  CodexRateLimitAccountsState,
-  ManagedDataAccountProvider,
-  ManagedDataAccountsState
+  CodexRateLimitAccountsState
 } from '../../../../shared/managed-account-types'
 import type { CodexAccountService } from '../../../codex-accounts/service'
-import type { CodexResetCreditRejectedBeforeProviderReason } from '../../../codex-accounts/codex-account-service-types'
+
 import type { CodexAccountSelectionTarget } from '../../../../shared/codex-selection-lane'
-import type { RateLimitService } from '../../../rate-limits/service/rate-limit-service'
+
 import type {
   HostAccountSignInChannel,
   HostAccountSignInProvider,
   HostAccountSignInStatus
 } from '../../../../shared/host-account-sign-in-types'
-import type {
-  CodexRateLimitResetOutcome,
-  RateLimitState
-} from '../../../../shared/rate-limit-types'
-import type { CodexResetCreditExpectedScope } from '../../../../shared/codex-reset-credit-scope'
+
 import type { CommitMessageAgentEnvironmentResolvers } from '../../../text-generation/commit-message-agent-environment'
 import {
   getClaudeSelectionTargetForAccount,
@@ -40,28 +34,12 @@ import type { RuntimeNotifier } from '../../client/events/runtime-notifier-contr
 export type RuntimeAccountServices = {
   claudeAccounts: ClaudeAccountService
   codexAccounts: CodexAccountService
-  rateLimits: RateLimitService
 }
 
 export type AccountsSnapshot = {
-  opencode?: ManagedDataAccountsState
-  devin?: ManagedDataAccountsState
   claude: ClaudeRateLimitAccountsState
   codex: CodexRateLimitAccountsState
-  rateLimits: RateLimitState
 }
-
-export type CodexRateLimitResetRpcResult = {
-  scope: CodexResetCreditExpectedScope
-  snapshot: AccountsSnapshot
-} & (
-  | { outcome: CodexRateLimitResetOutcome }
-  | {
-      status: 'rejectedBeforeProvider'
-      retryDisposition: 'discardAttempt'
-      reason: CodexResetCreditRejectedBeforeProviderReason
-    }
-)
 
 type ClaudeSelectionNotifier = Pick<RuntimeNotifier, 'claudeAccountSelected'>
 
@@ -109,100 +87,27 @@ export class RuntimeAccountController {
   }
 
   /** Null where the desktop that owns this host's accounts polls usage instead (a WSL host). */
-  usageRateLimits(): RateLimitService | null {
-    return this.services?.rateLimits ?? null
-  }
 
   /** Refuses where no poller would read a saved key, so a save is never reported for nothing. */
-  requireUsageRateLimits(): RateLimitService {
-    return this.requireServices().rateLimits
-  }
 
   getClaudeConfigDirectory(target: ClaudeAccountSelectionTarget): string | null {
     return this.services?.claudeAccounts.getRuntimeConfigDir(target) ?? null
   }
 
   getSnapshot(): AccountsSnapshot {
-    const { claudeAccounts, codexAccounts, rateLimits } = this.requireServices()
+    const { claudeAccounts, codexAccounts } = this.requireServices()
     return {
-      ...this.dataAccountsSnapshot(),
       claude: claudeAccounts.listAccounts(),
-      codex: codexAccounts.listAccounts(),
-      rateLimits: rateLimits.getState()
+      codex: codexAccounts.listAccounts()
     }
   }
 
   getStreamSnapshot(): AccountsSnapshot {
-    const { claudeAccounts, codexAccounts, rateLimits } = this.requireServices()
+    const { claudeAccounts, codexAccounts } = this.requireServices()
     return {
-      ...this.streamDataAccountsSnapshot(),
       claude: claudeAccounts.listAccounts(),
-      codex: codexAccounts.listAccounts(),
-      rateLimits: rateLimits.getState()
+      codex: codexAccounts.listAccounts()
     }
-  }
-
-  private streamDataAccountsSnapshot(): Pick<AccountsSnapshot, 'opencode' | 'devin'> {
-    const snapshot: Pick<AccountsSnapshot, 'opencode' | 'devin'> = {}
-    if (hasAppEnvironment()) {
-      const service = getManagedDataAccountService()
-      for (const provider of ['opencode', 'devin'] as const) {
-        try {
-          snapshot[provider] = service.list(provider)
-        } catch {
-          // Optional unavailable evidence must not swallow another provider's committed change.
-        }
-      }
-    }
-    return snapshot
-  }
-
-  dataAccountsSnapshot(): Pick<AccountsSnapshot, 'opencode' | 'devin'> {
-    if (!hasAppEnvironment()) {
-      return {}
-    }
-    const service = getManagedDataAccountService()
-    return { opencode: service.list('opencode'), devin: service.list('devin') }
-  }
-
-  addDataFromHome(
-    provider: ManagedDataAccountProvider,
-    sourceDataHome: string,
-    label: string
-  ): Promise<ManagedDataAccountsState> {
-    return getManagedDataAccountService().add(provider, sourceDataHome, label)
-  }
-
-  selectData(
-    provider: ManagedDataAccountProvider,
-    accountId: string | null
-  ): Promise<ManagedDataAccountsState> {
-    return getManagedDataAccountService().select(provider, accountId)
-  }
-
-  removeData(
-    provider: ManagedDataAccountProvider,
-    accountId: string
-  ): Promise<ManagedDataAccountsState> {
-    return getManagedDataAccountService().remove(provider, accountId)
-  }
-
-  async refreshForMobile(): Promise<void> {
-    const { rateLimits } = this.requireServices()
-    await Promise.allSettled([
-      rateLimits.refresh(),
-      rateLimits.fetchInactiveClaudeAccountsOnOpen(),
-      rateLimits.fetchInactiveCodexAccountsOnOpen()
-    ])
-  }
-
-  async refreshForMobileSubscriber(): Promise<void> {
-    const { rateLimits } = this.requireServices()
-    await Promise.allSettled([
-      rateLimits.refreshIfStale(),
-      rateLimits.fetchInactiveClaudeAccountsOnOpen(),
-      rateLimits.fetchInactiveCodexAccountsOnOpen()
-    ])
   }
 
   /** Desktop switches go through IPC and handle their own sessions; this path tells the window. */
@@ -237,29 +142,6 @@ export class RuntimeAccountController {
     target: CodexAccountSelectionTarget
   ): Promise<CodexRateLimitAccountsState> {
     return this.requireServices().codexAccounts.selectAccountForTarget(accountId, target)
-  }
-
-  async consumeCodexResetCredit(
-    idempotencyKey: string,
-    expectedScope: CodexResetCreditExpectedScope
-  ): Promise<CodexRateLimitResetRpcResult> {
-    const { claudeAccounts, codexAccounts } = this.requireServices()
-    const result = await codexAccounts.consumeRateLimitResetCredit(idempotencyKey, expectedScope)
-    const snapshot = {
-      claude: claudeAccounts.listAccounts(),
-      codex: result.codex,
-      rateLimits: result.rateLimits
-    }
-    if ('status' in result) {
-      return {
-        status: result.status,
-        retryDisposition: result.retryDisposition,
-        reason: result.reason,
-        scope: result.scope,
-        snapshot
-      }
-    }
-    return { outcome: result.outcome, scope: result.scope, snapshot }
   }
 
   removeClaude(accountId: string): Promise<ClaudeRateLimitAccountsState> {
@@ -300,25 +182,6 @@ export class RuntimeAccountController {
     target?: { runtime?: 'host' | 'wsl'; wslDistro?: string | null }
   ): Promise<CodexRateLimitAccountsState> {
     return this.requireServices().codexAccounts.addAccountFromHome(sourceHome, target)
-  }
-
-  onChanged(listener: (snapshot: AccountsSnapshot) => void): () => void {
-    const services = this.requireServices()
-    const unsubscribeData = hasAppEnvironment()
-      ? getManagedDataAccountService().onChanged(() => listener(this.getStreamSnapshot()))
-      : () => {}
-    const unsubscribeUsage = services.rateLimits.onStateChange((rateLimits) => {
-      listener({
-        ...this.streamDataAccountsSnapshot(),
-        claude: services.claudeAccounts.listAccounts(),
-        codex: services.codexAccounts.listAccounts(),
-        rateLimits
-      })
-    })
-    return () => {
-      unsubscribeData()
-      unsubscribeUsage()
-    }
   }
 
   private requireServices(): RuntimeAccountServices {

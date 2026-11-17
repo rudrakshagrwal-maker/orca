@@ -28,9 +28,7 @@ import {
   RepositoryHookCommandSourceSetting,
   RepositorySetupPolicySetting
 } from './RepositoryHookPolicySettings'
-import { RepositoryIssueCommandSetting } from './RepositoryIssueCommandSetting'
 import { useRepositoryHookSettingsDraft } from './use-repository-hook-settings-draft'
-import { useRepositoryIssueCommand } from './use-repository-issue-command'
 import { getRepositoryHookScriptDescription } from './repository-git-hooks-search-entries'
 
 type RepositoryHooksSectionProps = {
@@ -213,13 +211,7 @@ export function RepositoryHooksSection({
             />
           </div>
         ) : null}
-        {isFolder ? null : (
-          <RepositoryIssueCommandRow
-            repo={repo}
-            repoHostIdentity={repoHostIdentity}
-            forceVisible={forceVisible}
-          />
-        )}
+        {/* RA: linked-task issue-command UI is retired; setup hooks remain. */}
         <SearchableSetting
           title={t('auto.components.settings.RepositoryHooksSection.c9bc1bfd8f', 'Advanced')}
           description={t(
@@ -254,40 +246,5 @@ export function RepositoryHooksSection({
         </SearchableSetting>
       </SettingsGroup>
     </div>
-  )
-}
-
-/** The issue command needs a GitHub repo, so only Git projects mount its file inspection. */
-function RepositoryIssueCommandRow({
-  repo,
-  repoHostIdentity,
-  forceVisible
-}: {
-  repo: Repo
-  repoHostIdentity: string
-  forceVisible: boolean
-}): React.JSX.Element {
-  const t = useTranslate()
-  const issueCommand = useRepositoryIssueCommand({
-    repoId: repo.id,
-    repoHostIdentity,
-    selectedHostId: getRepoExecutionHostId(repo)
-  })
-  return (
-    <SearchableSetting
-      title={t(
-        'auto.components.settings.RepositoryHooksSection.da00f141c2',
-        'Custom GitHub issue command'
-      )}
-      description={t(
-        'auto.components.settings.RepositoryHooksSection.2cc27dc12b',
-        'Optional per-user override for the linked-issue command.'
-      )}
-      className="py-4"
-      forceVisible={forceVisible}
-      keywords={['github issue command', 'issue command', 'workflow', 'agent', 'github']}
-    >
-      <RepositoryIssueCommandSetting {...issueCommand} />
-    </SearchableSetting>
   )
 }

@@ -1,7 +1,8 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { CommandHandler } from '../dispatch'
 import { RuntimeClientError } from '../runtime/types'
 import { resolveLaunchUserDataPath } from '../runtime/launch-user-data-path'
-import { pluginDevWatchConfirmFor } from '../plugin-dev-watch/plugin-dev-watch-approval'
+import { terminalConfirmFor } from '../runtime/terminal-confirm'
 
 const RESET_WARNING =
   "This gives this machine's Orca server a new pairing key and installation id and removes every " +
@@ -36,7 +37,7 @@ export const SERVE_RESET_IDENTITY_HANDLERS: Record<string, CommandHandler> = {
   'serve reset-identity': async ({ flags, json }) => {
     const userDataPath = resolveLaunchUserDataPath()
     if (flags.get('yes') !== true) {
-      const confirm = pluginDevWatchConfirmFor(json)
+      const confirm = terminalConfirmFor(json)
       if (!confirm) {
         throw new RuntimeClientError(
           'confirmation_required',

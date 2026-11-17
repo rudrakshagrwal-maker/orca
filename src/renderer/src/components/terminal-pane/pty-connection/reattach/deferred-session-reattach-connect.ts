@@ -136,7 +136,7 @@ function connectDeferredSessionReattach(
   )
   session.beginReattachLiveDataDeferral(outputCallbacks.generation)
   session.transportConnectInFlightSince = Date.now()
-  const reattachPromise = admitRestoredAgentStart(session, coldRestoreStartup?.agent, () =>
+  const reattachPromise = admitRestoredAgentStart(session, coldRestoreStartup?.agent, async () =>
     session.transport.connect({
       url: '',
       cols: session.cols,
@@ -269,7 +269,7 @@ function connectDeferredSessionReattach(
       }
       return {
         reopened: accepted,
-        agentResumed: accepted && resumedAgent(deferredReattachSessionId, result)
+        agentResumed: accepted && resumedAgent(deferredReattachSessionId, result ?? undefined)
       }
     })
     .catch(async (err): Promise<HeldPaneReopenOutcome> => {

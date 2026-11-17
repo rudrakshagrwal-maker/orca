@@ -1,5 +1,4 @@
 import { isFreshOmpLaunchCommand } from './agent-launch/startup/omp-fresh-launch'
-import { TUI_AGENT_CONFIG } from './agent-launch/catalog/tui-agent-config'
 import { getCommandTokenPathBasename, getFirstCommandToken } from './command-token-scanner'
 import { extractAgentLaunchCommand } from './agent-launch/startup/agent-command-line-intent'
 
@@ -32,9 +31,10 @@ function getLaunchBinary(command: string): string {
     .replace(/\.(?:cmd|exe|sh)$/, '')
 }
 
-const PI_LAUNCH_BINARY = getLaunchBinary(TUI_AGENT_CONFIG.pi.launchCmd)
-const OMP_LAUNCH_BINARY = getLaunchBinary(TUI_AGENT_CONFIG.omp.launchCmd)
-const PRIME_AGENT_LAUNCH_BINARY = getLaunchBinary(TUI_AGENT_CONFIG['prime-agent'].launchCmd)
+// RA: legacy record parsing never loads a removed agent's launch configuration.
+const PI_LAUNCH_BINARY = 'pi'
+const OMP_LAUNCH_BINARY = 'omp'
+const PRIME_AGENT_LAUNCH_BINARY = 'prime'
 
 export function detectExplicitPiAgentKindFromCommand(
   command: string | undefined

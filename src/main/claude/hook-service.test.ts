@@ -4,7 +4,7 @@ vi.mock('../../shared/fork-background-policy', () => ({
   preserveGlobalAgentConfiguration: () => false
 }))
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { vi, describe, expect, it } from 'vitest'
@@ -27,13 +27,10 @@ import { createManagedCommandMatcher } from '../agent-hooks/installation/command
 import { WINDOWS_CMD_SAFE_PATH } from '../agent-hooks/installation/commands/windows-hook-command'
 import { ClaudeHookService } from './hook-service'
 import { CLAUDE_EVENTS } from './claude-managed-hook-events'
-import { getWindowsManagedLifecycleHook, OPENCLAUDE_HOOK_SETTINGS } from './hook-settings'
+import { getWindowsManagedLifecycleHook } from './hook-settings'
 
 const CLAUDE_SCRIPT_FILE_NAME = process.platform === 'win32' ? 'claude-hook.cmd' : 'claude-hook.sh'
-const OPENCLAUDE_SCRIPT_FILE_NAME =
-  process.platform === 'win32' ? 'openclaude-hook.cmd' : 'openclaude-hook.sh'
 const isClaudeManagedCommand = createManagedCommandMatcher(CLAUDE_SCRIPT_FILE_NAME)
-const isOpenClaudeManagedCommand = createManagedCommandMatcher(OPENCLAUDE_SCRIPT_FILE_NAME)
 
 type TestHook = { command: string; args?: string[] }
 
@@ -500,55 +497,5 @@ describe('ClaudeHookService.installRemote', () => {
     const userCmds = stopDefs.flatMap((d) => d.hooks.map((h) => h.command))
     expect(userCmds).toContain('/usr/local/bin/my-user-hook')
     expect(userCmds.filter((c) => c.includes('claude-hook.sh'))).toHaveLength(1)
-  })
-})
-
-describe('OpenClaudeHookService-compatible install', () => {
-  const makeOpenClaudeService = (): ClaudeHookService =>
-    new ClaudeHookService({
-      agent: 'openclaude',
-      displayName: 'OpenClaude',
-      settings: OPENCLAUDE_HOOK_SETTINGS
-    })
-
-  it('installs managed hooks into OpenClaude settings without touching Claude settings', () => {
-    const tmpHome = mkdtempSync(join(tmpdir(), 'orca-openclaude-hooks-'))
-    vi.stubEnv('HOME', tmpHome)
-    vi.stubEnv('USERPROFILE', tmpHome)
-    try {
-      const openClaudeSettings = join(tmpHome, '.openclaude', 'settings.json')
-      mkdirSync(join(tmpHome, '.openclaude'), { recursive: true })
-      writeFileSync(openClaudeSettings, JSON.stringify({ hooks: {} }))
-
-      const status = makeOpenClaudeService().install()
-
-      expect(status).toMatchObject({
-        agent: 'openclaude',
-        state: 'installed',
-        configPath: openClaudeSettings
-      })
-      const parsed = JSON.parse(readFileSync(openClaudeSettings, 'utf-8'))
-      for (const event of ['UserPromptSubmit', 'Stop', 'StopFailure']) {
-        const command = parsed.hooks[event][0].hooks[0].command as string
-        expect(isOpenClaudeManagedCommand(command)).toBe(true)
-        expect(command).toContain('"${HOME-}/.orca/agent-hooks/openclaude-hook.cmd"')
-        expect(command).toContain('"${HOME-}/.orca/agent-hooks/openclaude-hook.sh"')
-        expect(command).not.toContain(tmpHome.replaceAll('\\', '/'))
-      }
-      expect(
-        readFileSync(join(tmpHome, '.orca', 'agent-hooks', OPENCLAUDE_SCRIPT_FILE_NAME), 'utf-8')
-      ).toContain('/hook/claude')
-      expect(
-        readFileSync(join(tmpHome, '.orca', 'agent-hooks', OPENCLAUDE_SCRIPT_FILE_NAME), 'utf-8')
-      ).not.toContain('DEVIN_PROJECT_DIR')
-      expect(
-        readFileSync(join(tmpHome, '.orca', 'agent-hooks', OPENCLAUDE_SCRIPT_FILE_NAME), 'utf-8')
-      ).not.toContain('GROK_HOOK_EVENT')
-      expect(parsed.statusLine).toBeUndefined()
-      expect(existsSync(join(tmpHome, '.claude', 'settings.json'))).toBe(false)
-    } finally {
-      vi.unstubAllEnvs()
-      rmSync(tmpHome, { recursive: true, force: true })
-    }
   })
 })

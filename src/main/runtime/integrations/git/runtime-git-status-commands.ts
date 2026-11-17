@@ -1,3 +1,4 @@
+import { readRepositoryGitSummary } from '../../../git/source-control/repository-git-summary'
 import type {
   GitHistoryOptions,
   GitHistoryResult
@@ -46,9 +47,19 @@ export class RuntimeGitStatusCommands {
     // A client showing this workspace is a user act; its status is the implicit wake (E9).
     const target = await this.host.resolveRuntimeGitTarget(worktreeSelector)
     const provider = requireRuntimeGitProvider(target)
-    return options
-      ? provider.getStatus(target.worktree.path, options)
-      : provider.getStatus(target.worktree.path)
+    const read = () =>
+      options
+        ? provider.getStatus(target.worktree.path, options)
+        : provider.getStatus(target.worktree.path)
+    // RA: remote clients share the same per-repository host budget.
+    return options?.summaryOnly
+      ? readRepositoryGitSummary(
+          `${target.executionHostId}\0${target.worktree.repoId}`,
+          target.worktree.path,
+          read,
+          options.refreshMetadata
+        )
+      : read()
   }
 
   async getRuntimeGitSubmoduleStatus(

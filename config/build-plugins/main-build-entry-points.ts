@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { resolve } from 'node:path'
 import { ORCAD_LOCAL_SERVE_SELECTION_ENTRY } from '../../src/shared/orcad-local-serve-selection'
 import { CLI_MAIN_ENTRY_NAMES } from './cli-main-entry-names'
@@ -9,10 +10,7 @@ export const MAIN_BUILD_ENTRY_POINTS: Record<string, string> = {
     'src/main/browser/extensions/native-messaging/browser-extension-native-host-supervisor-entry.ts'
   ),
   'daemon-entry': resolve('src/main/daemon/daemon-entry.ts'),
-  'plugin-host-entry': resolve('src/main/plugins/workers/plugin-host-entry.ts'),
-  'plugin-source-transpile-worker-entry': resolve(
-    'src/main/plugins/panels/plugin-source-transpile-worker-entry.ts'
-  ),
+
   'computer-sidecar': resolve('src/main/computer/computer-sidecar.ts'),
   'claude-conversation-fork-worker-entry': resolve(
     'src/main/claude/claude-conversation-fork-worker-entry.ts'
@@ -22,9 +20,7 @@ export const MAIN_BUILD_ENTRY_POINTS: Record<string, string> = {
   'session-search-worker-entry': resolve(
     'src/main/ai-vault-search/worker/session-search-worker-entry.ts'
   ),
-  'foreign-sqlite-reader-entry': resolve(
-    'src/main/foreign-sqlite-readers/foreign-sqlite-reader-entry.ts'
-  ),
+
   'session-scanner-service-entry': resolve(
     'src/main/ai-vault/scan-service/session-scanner-service-entry.ts'
   ),
@@ -32,7 +28,7 @@ export const MAIN_BUILD_ENTRY_POINTS: Record<string, string> = {
     'src/main/native-chat/wsl-transcript-fs-process-entry.ts'
   ),
   // libuv spawns inline; run port probes on a worker to keep the UI loop free.
-  'port-scan-command-worker-entry': resolve('src/main/ports/port-scan-command-worker-entry.ts'),
+
   'command-path-directory-worker-entry': resolve(
     'src/main/ipc/command-path/command-path-directory-worker-entry.ts'
   ),
@@ -41,10 +37,7 @@ export const MAIN_BUILD_ENTRY_POINTS: Record<string, string> = {
     'src/main/worker-thread-child-process/worker-thread-child-process-entry.ts'
   ),
   // Usage scans synchronously walk histories/SQLite; keep them off the main loop.
-  'usage-scan-worker-entry': resolve('src/main/usage/scan-worker/usage-scan-worker-entry.ts'),
-  'workspace-space-scan-worker-entry': resolve(
-    'src/main/workspaces/space-analysis/workspace-space-scan-worker-entry.ts'
-  ),
+
   // Why: a first account setup can merge a large history tree with sync fs calls.
   'claude-profile-setup-worker-entry': resolve(
     'src/main/claude-accounts/claude-profile-setup-worker-entry.ts'

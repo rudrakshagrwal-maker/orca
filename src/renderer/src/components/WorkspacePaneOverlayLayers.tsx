@@ -1,4 +1,3 @@
-import { backgroundJobsDisabled } from '../../../shared/fork-background-policy'
 import type { ActivityTerminalPortalTarget } from './activity/activity-terminal-portal'
 import TerminalPaneOverlayLayer from './terminal-pane/mounting/TerminalPaneOverlayLayer'
 import { lazyWithRetry as lazy } from '@/app-shell/startup/lazy-with-retry'
@@ -10,11 +9,6 @@ const RetainedBrowserPaneOverlayLayer = lazy(() =>
     default: m.RetainedBrowserPaneOverlayLayer
   }))
 )
-const EmulatorPaneOverlayLayer = lazy(() => import('./emulator-pane/EmulatorPaneOverlayLayer'))
-const StructuredAgentSessionPaneOverlayLayer = lazy(() =>
-  import('./native-chat/pane/routing/StructuredAgentSessionPaneOverlayLayer')
-)
-const AiVaultSessionDropLayer = lazy(() => import('./tab-group/AiVaultSessionDropLayer'))
 
 /** Share retained pane hosts across group-tree hosts so retention, parking and browser paint have one lifecycle owner. */
 export function WorkspacePaneOverlayLayers({
@@ -29,7 +23,6 @@ export function WorkspacePaneOverlayLayers({
   backgroundMountTabIds,
   activationDeferredMountTabIds,
   mountRetainedBrowserOverlay,
-  mountEmulatorOverlay,
   ownsNativeChatToggleShortcut = true
 }: {
   worktreeId: string
@@ -43,7 +36,6 @@ export function WorkspacePaneOverlayLayers({
   backgroundMountTabIds: ReadonlySet<string> | null
   activationDeferredMountTabIds: ReadonlySet<string> | null
   mountRetainedBrowserOverlay: boolean
-  mountEmulatorOverlay: boolean
   /** Floating overlays leave the toggle chord to the active workspace; duplicate listeners would both toggle. */
   ownsNativeChatToggleShortcut?: boolean
 }): React.JSX.Element {
@@ -62,23 +54,14 @@ export function WorkspacePaneOverlayLayers({
         activationDeferredMountTabIds={activationDeferredMountTabIds}
         ownsNativeChatToggleShortcut={ownsNativeChatToggleShortcut}
       />
-      {!backgroundJobsDisabled() ? (
-        <Suspense fallback={null}>
-          <RetainedBrowserPaneOverlayLayer
-            worktreeId={worktreeId}
-            isWorktreeActive={isVisible}
-            mountEligible={mountRetainedBrowserOverlay}
-          />
-          {mountEmulatorOverlay ? (
-            <EmulatorPaneOverlayLayer worktreeId={worktreeId} isWorktreeActive={isVisible} />
-          ) : null}
-          <StructuredAgentSessionPaneOverlayLayer
-            worktreeId={worktreeId}
-            isWorktreeActive={isVisible}
-          />
-          <AiVaultSessionDropLayer worktreeId={worktreeId} enabled={isVisible} />
-        </Suspense>
-      ) : null}
+      {/* RA: the browser stays available without removed background services. */}
+      <Suspense fallback={null}>
+        <RetainedBrowserPaneOverlayLayer
+          worktreeId={worktreeId}
+          isWorktreeActive={isVisible}
+          mountEligible={mountRetainedBrowserOverlay}
+        />
+      </Suspense>
     </>
   )
 }

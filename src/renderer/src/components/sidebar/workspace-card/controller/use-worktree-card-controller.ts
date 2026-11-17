@@ -1,13 +1,9 @@
-import { backgroundJobsDisabled } from '../../../../../../shared/fork-background-policy'
-import { useWorkspaceReferenceDetails } from '../review/use-workspace-reference-details'
-import { getWorkspaceAttachments } from '../../../../../../shared/workspace-attachments/workspace-attachments'
-import { summarizeWorkspaceReviewChecks } from '../../../../../../shared/workspace-review-checks'
 import { canShowWorkspaceDeleteQuickAction } from '../../workspace-actions/deletion/workspace-delete-quick-action'
 import { useWorktreeCardDetailsHoverControl } from '../details/worktree-card-details-hover-state'
 import type { ResolvedWorktreeCardProps } from './worktree-card-model'
 import { useWorktreeCardActivationActions } from './use-worktree-card-activation-actions'
 import { useWorktreeCardFoundation } from './use-worktree-card-foundation'
-import { useWorktreeCardLifecycleEffects } from './use-worktree-card-lifecycle-effects'
+
 import { useWorktreeCardLinkedDetails } from '../details/use-worktree-card-linked-details'
 import { useWorktreeCardReviewDetails } from '../details/use-worktree-card-review-details'
 import { useWorktreeCardSecondaryDetails } from '../details/use-worktree-card-secondary-details'
@@ -19,71 +15,16 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
   const review = useWorktreeCardReviewDetails({
     worktree,
     repo,
-    settings: foundation.settings,
     projectGroups: foundation.projectGroups,
     cardProps: foundation.cardProps,
     newCardStyle: foundation.newCardStyle
   })
-  const linked = useWorktreeCardLinkedDetails({
-    worktree,
-    newCardStyle: foundation.newCardStyle,
-    deleteState: foundation.deleteState,
-    branch: review.branch,
-    issueEntry: review.issueEntry,
-    linearIssueEntry: review.linearIssueEntry,
-    linearIssueFallbackEntry: review.linearIssueFallbackEntry,
-    prDisplay: review.prDisplay
-  })
+  const linked = useWorktreeCardLinkedDetails({ worktree, deleteState: foundation.deleteState })
 
-  // RA: saved PR/status properties cannot start hosted-review requests.
-  const showStatus = !backgroundJobsDisabled() && foundation.cardProps.includes('status')
-  const {
-    issue: showIssue,
-    linearIssue: showLinearIssue,
-    jiraIssue: showJiraIssue,
-    pr: showPR,
-    automation: showAutomation,
-    cli: showCli,
-    comment: showComment,
-    ports: showPorts
-  } = foundation.cardDetails
-  const shouldRefreshHostedReview = foundation.newCardStyle ? showStatus : showPR
+  // RA: the status lane keeps agent activity; task providers have no sidebar consumers.
+  const showStatus = foundation.cardProps.includes('status')
+  const showComment = foundation.cardDetails.comment
   const detailsHoverControl = useWorktreeCardDetailsHoverControl()
-  const hoverDetailsOpen = !backgroundJobsDisabled() && detailsHoverControl.hoverOpen
-  const referenceDetails = useWorkspaceReferenceDetails(
-    worktree,
-    repo,
-    review.prDisplay,
-    hoverDetailsOpen
-  )
-  const reviewChecks = summarizeWorkspaceReviewChecks(
-    getWorkspaceAttachments(worktree),
-    referenceDetails
-  )
-
-  useWorktreeCardLifecycleEffects({
-    worktree,
-    repo,
-    isFolder: review.isFolder,
-    hostedReviewCacheKey: review.hostedReviewCacheKey,
-    cachedBranchFallbackGitHubPRNumber: review.cachedBranchFallbackGitHubPRNumber,
-    linkedGitLabMR: review.linkedGitLabMR,
-    linkedBitbucketPR: review.linkedBitbucketPR,
-    linkedAzureDevOpsPR: review.linkedAzureDevOpsPR,
-    linkedGiteaPR: review.linkedGiteaPR,
-    branch: review.branch,
-    fetchHostedReviewForBranch: foundation.fetchHostedReviewForBranch,
-    shouldRefreshHostedReview,
-    newCardStyle: foundation.newCardStyle,
-    hoverDetailsOpen,
-    showIssue,
-    issueCacheKey: review.issueCacheKey,
-    fetchIssue: foundation.fetchIssue,
-    showLinearIssue,
-    linearSourceContext: review.linearSourceContext,
-    linearWorkspaceId: review.linearWorkspaceId,
-    fetchLinearIssue: foundation.fetchLinearIssue
-  })
 
   const activation = useWorktreeCardActivationActions({
     worktree,
@@ -128,33 +69,11 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
 
   const secondary = useWorktreeCardSecondaryDetails({
     worktree,
-    repo,
-    statusPrDisplay: props.statusPrDisplay,
     showStatus,
-    showIssue,
-    showLinearIssue,
-    showJiraIssue,
-    showPR,
-    showAutomation,
-    showCli,
     showComment,
-    showPorts,
-    issueDisplay: linked.issueDisplay,
-    linearIssue: linked.linearIssue,
-    linearIssueDisplay: linked.linearIssueDisplay,
-    jiraIssueDisplay: linked.jiraIssueDisplay,
-    prDisplay: review.prDisplay,
-    linkedGitLabMR: review.linkedGitLabMR,
-    linkedBitbucketPR: review.linkedBitbucketPR,
-    linkedAzureDevOpsPR: review.linkedAzureDevOpsPR,
-    linkedGiteaPR: review.linkedGiteaPR,
-    newCardStyle: foundation.newCardStyle,
     compactCards: foundation.compactCards,
     cardDetails: foundation.cardDetails,
     agentActivityDisplayMode: foundation.agentActivityDisplayMode,
-    workspacePorts: foundation.workspacePorts,
-    openTaskPage: foundation.openTaskPage,
-    updateWorktreeMeta: foundation.updateWorktreeMeta,
     settings: foundation.settings
   })
 
@@ -164,18 +83,8 @@ export function useWorktreeCardController(props: ResolvedWorktreeCardProps) {
     ...review,
     ...linked,
     detailsHoverControl,
-    referenceDetails,
-    reviewChecks,
     showStatus,
-    showIssue,
-    showLinearIssue,
-    showJiraIssue,
-    showPR,
-    showAutomation,
-    showCli,
     showComment,
-    showPorts,
-    shouldRefreshHostedReview,
     ...activation,
     showDeleteQuickAction,
     ...workspaceActions,

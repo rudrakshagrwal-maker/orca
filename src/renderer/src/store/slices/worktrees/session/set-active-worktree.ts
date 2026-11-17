@@ -214,9 +214,7 @@ export function createSetActiveWorktree(
     }
 
     // Why: activation is explicit enough to revalidate PR state now; the coordinator still coalesces and rate-guards.
-    if (worktreeId && workspaceScope?.type !== 'folder') {
-      get().refreshGitHubForWorktreeIfStale(worktreeId)
-    }
+    
 
     return true
   }

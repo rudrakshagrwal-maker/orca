@@ -65,11 +65,7 @@ export function renderTabBarSurface(
   } = props
   const {
     resolvedGroupId,
-    mobileEmulatorEnabled,
     managedBrowserCreationEnabled,
-    mobileEmulatorCreationEnabled,
-    workspaceHasSimulatorTab,
-    showMobileEmulatorIntroCallout,
     windowsTerminalCapabilities,
     defaultWindowsPowerShellImplementation,
     newTerminalShortcut,
@@ -97,12 +93,8 @@ export function renderTabBarSurface(
   } = createMenu
   const { orderedItems, sortableIds, dropIndicatorByVisibleId } = itemProjection
   const clientHostedBrowserRows = props.clientHostedBrowserRows ?? EMPTY_CLIENT_HOSTED_ROWS
-  const {
-    tabStripRef,
-    tabStripOverflowState,
-    scrollTabStrip,
-    subscribeToStripResize
-  } = tabStripNavigation
+  const { tabStripRef, tabStripOverflowState, scrollTabStrip, subscribeToStripResize } =
+    tabStripNavigation
   const singleTab = orderedItems.length + clientHostedBrowserRows.length === 1
   const includeTopTabBorder = tabStripChrome !== 'floating-panel'
   const renderedItems = renderTabBarItems({
@@ -265,11 +257,7 @@ export function renderTabBarSurface(
               props={props}
               groupId={resolvedGroupId}
               terminalOnly={terminalOnly}
-              mobileEmulatorEnabled={mobileEmulatorEnabled}
               managedBrowserCreationEnabled={managedBrowserCreationEnabled}
-              mobileEmulatorCreationEnabled={mobileEmulatorCreationEnabled}
-              workspaceHasSimulatorTab={workspaceHasSimulatorTab}
-              showMobileEmulatorIntroCallout={showMobileEmulatorIntroCallout}
               windowsShellEntries={windowsShellEntries}
               defaultWindowsPowerShellImplementation={defaultWindowsPowerShellImplementation}
               pwshAvailable={windowsTerminalCapabilities.pwshAvailable}

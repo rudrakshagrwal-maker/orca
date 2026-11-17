@@ -1,11 +1,11 @@
+import { BrowserWebAuthnAccountDialog } from './components/browser-webauthn-account-dialog'
+import { BrowserExtensionInstallDialog } from './components/browser-extension-install-dialog'
+import { BrowserPagePrompts } from './components/browser-pane/browser-page-prompts'
 import { useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ConfirmationDialogProvider } from './components/confirmation-dialog'
-import { BrowserWebAuthnAccountDialog } from './components/browser-webauthn-account-dialog'
-import { BrowserExtensionInstallDialog } from './components/browser-extension-install-dialog'
-import { BrowserPagePrompts } from './components/browser-pane/browser-page-prompts'
 import { LinkRoutingPreferenceDialogProvider } from './components/link-routing-preference-dialog'
 import PinnedTabCloseDialog from './components/terminal-pane/layout/close/PinnedTabCloseDialog'
 import RunningTerminalCloseDialog from './components/terminal-pane/layout/close/RunningTerminalCloseDialog'
@@ -30,23 +30,18 @@ import { startNativeChatDraftLoad } from './app-shell/native-chat-draft-startup'
 import { runWslMoveRendererStoreRewrites } from './lib/workspace/persistence/wsl-move-renderer-store-rewrites'
 import { runWslDriveUncRendererStoreRewrites } from './lib/workspace/persistence/wsl-drive-unc-renderer-store-rewrites'
 import { useDocumentAppearance } from './app-shell/use-document-appearance'
-import { useFloatingWorkspacePanel } from './app-shell/use-floating-workspace-panel'
 import { useGlobalKeybindings } from './app-shell/use-global-keybindings'
-import { useOnboardingAndFeatureTips } from './app-shell/use-onboarding-and-feature-tips'
 import { usePersistedUIWriter } from './app-shell/use-persisted-ui-writer'
 import { useRuntimeGraphSync } from './app-shell/use-runtime-graph-sync'
 import { useWindowVisibilityEffects } from './app-shell/use-window-visibility-effects'
-import { SpaceWindowStatePublisher } from './components/workspace-space/SpaceWindowStatePublisher'
 import { PlainSshTerminalPanels } from './components/plain-ssh-terminal/PlainSshTerminalPanels'
-import { PluginShotReplayMount } from './components/plugins/view/PluginShotReplayMount'
 import { AddToChatPointMenuHost } from './components/native-chat/selection-quotes/AddToChatMenu'
 import { installActiveWorktreeRemovalSuccessor } from './lib/workspace/activation/active-worktree-removal-successor'
 
+// RA: retain browser prompts; Space and plugin replay hosts are removed.
 function App(): React.JSX.Element {
   const layout = useAppChromeLayout()
-  const floatingWorkspace = useFloatingWorkspacePanel()
-  const onboardingGate = useOnboardingAndFeatureTips()
-  const clearUnreadDockBadge = useUnreadDockBadge(floatingWorkspace.open)
+  const clearUnreadDockBadge = useUnreadDockBadge(false)
 
   useAppShellServices()
   // Load drafts before the startup chain so no failed step can skip them.
@@ -55,13 +50,13 @@ function App(): React.JSX.Element {
   useEffect(() => void runWslMoveRendererStoreRewrites(), [])
   // A Windows-drive conversion's own stores, after the restart that converted the project.
   useEffect(() => void runWslDriveUncRendererStoreRewrites(), [])
-  useAppStartupHydration(onboardingGate.applyStartupOnboardingState)
+  useAppStartupHydration()
   useAppSessionPersistence()
   useRuntimeGraphSync()
   usePersistedUIWriter()
   useDocumentAppearance()
   useWindowVisibilityEffects()
-  useGlobalKeybindings({ layout, floatingWorkspace })
+  useGlobalKeybindings({ layout })
   // App owns active-selection removal; the Space window only mirrors selection.
   useEffect(() => installActiveWorktreeRemovalSuccessor(), [])
 
@@ -73,16 +68,14 @@ function App(): React.JSX.Element {
     root.setProperty('--mac-traffic-lights-width', MAC_TRAFFIC_LIGHTS_WIDTH)
   }, [])
 
-  const { cancelReturnFocusFrame } = floatingWorkspace
   const setAppRootNode = useCallback(
     (node: HTMLDivElement | null): void => {
       // Cancel chrome cleanup work when the App root unmounts.
       if (!node) {
-        cancelReturnFocusFrame()
         clearUnreadDockBadge()
       }
     },
-    [cancelReturnFocusFrame, clearUnreadDockBadge]
+    [clearUnreadDockBadge]
   )
 
   return (
@@ -104,17 +97,13 @@ function App(): React.JSX.Element {
       <TooltipProvider>
         <ConfirmationDialogProvider>
           <BrowserPagePrompts />
+          <BrowserWebAuthnAccountDialog />
+          <BrowserExtensionInstallDialog />
           <AddToChatPointMenuHost />
           <LinkRoutingPreferenceDialogProvider>
             <AppBackgroundServices />
-            <SpaceWindowStatePublisher />
-            <AppWorkspaceShell layout={layout} floatingWorkspace={floatingWorkspace} />
-            <AppRootSurfaces
-              floatingWorkspace={floatingWorkspace}
-              onboardingGate={onboardingGate}
-            />
-            <BrowserWebAuthnAccountDialog />
-            <BrowserExtensionInstallDialog />
+            <AppWorkspaceShell layout={layout} />
+            <AppRootSurfaces />
           </LinkRoutingPreferenceDialogProvider>
         </ConfirmationDialogProvider>
         {createPortal(
@@ -122,7 +111,6 @@ function App(): React.JSX.Element {
           document.body
         )}
         <PlainSshTerminalPanels />
-        <PluginShotReplayMount />
       </TooltipProvider>
       {/* RA: Skill updates remain user-invoked; never mount the automatic nudge. */}
       <WorktreeBaseFallbackDialog />

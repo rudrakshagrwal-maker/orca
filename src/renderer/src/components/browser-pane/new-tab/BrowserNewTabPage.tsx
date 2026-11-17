@@ -3,111 +3,27 @@ import { Globe } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslate } from '@/i18n/use-translate'
 import { useAppStore } from '@/store/index'
-import { useRepoById } from '@/store/repos/use-repository-catalog'
-import { useWorktreeById } from '@/store/workspaces/selection/use-selected-worktree'
+
 import {
   prepareBrowserHistoryEntries,
   rankBrowserTopSites
 } from '@/lib/browser/history/browser-history-match'
 import { BrowserFavicon } from '@/components/browser-favicon'
 import type { BrowserHistoryEntry } from '../../../../../shared/browser-workspace-types'
-import type { Repo } from '../../../../../shared/repo-types'
-import type { Worktree } from '../../../../../shared/worktree/types'
-import type { WorkspaceLinkedItemRow } from '../../sidebar/workspace-card/review/workspace-hover-attachments'
+
 import { BrowserNewTabTile } from './browser-new-tab-tile'
-import { useBrowserNewTabLinkedItems } from './use-browser-new-tab-linked-items'
-import { useBrowserNewTabServers, type BrowserNewTabServers } from './use-browser-new-tab-servers'
-import { BrowserNewTabWorkspaceCard } from './browser-new-tab-workspace-card'
+
 import { BrowserImportHintButton } from '../assemble-chrome/BrowserImportHintButton'
-import { resolveWorktreeDisplayName } from '@/lib/workspace/display/worktree-default-display-name'
-import { useWorktreeRuntimeTarget } from '@/runtime/rpc/targets/use-worktree-runtime-target'
-import type { RuntimeClientTarget } from '../../../../../shared/runtime-client-target'
 
 const SUGGESTED_TILE_LIMIT = 8
-const NO_LINKED_ITEMS: WorkspaceLinkedItemRow[] = []
-
-type BrowserNewTabServerContext = {
-  servers: BrowserNewTabServers
-  runtimeTarget: RuntimeClientTarget | null
-  /** False when this tab's page runs on another machine than the workspace's ports. */
-  openInPlace: boolean
-}
-
+// RA: the new-tab page keeps history and login import without port scans or task providers.
 export function BrowserNewTabPage({
-  worktreeId,
   onOpenUrl,
-  serversElsewhere = false,
   importProfileId
 }: {
   worktreeId: string
   onOpenUrl: (url: string) => void
-  /** This tab's page runs on another machine than the workspace's ports, so they open on theirs. */
   serversElsewhere?: boolean
-  /** Local session profile to import logins into; omitted where the session isn't local. */
-  importProfileId?: string | null
-}): React.JSX.Element {
-  const worktree = useWorktreeById(worktreeId)
-  const repo = useRepoById(worktree?.repoId ?? null) ?? undefined
-  const runtimeTarget = useWorktreeRuntimeTarget(worktreeId)
-  const servers: BrowserNewTabServerContext = {
-    servers: useBrowserNewTabServers(worktreeId, runtimeTarget),
-    runtimeTarget,
-    openInPlace: !serversElsewhere
-  }
-  return worktree ? (
-    <BrowserNewTabWorktreePage
-      worktree={worktree}
-      repo={repo}
-      servers={servers}
-      onOpenUrl={onOpenUrl}
-      importProfileId={importProfileId}
-    />
-  ) : (
-    <BrowserNewTabPageLayout
-      linkedItems={NO_LINKED_ITEMS}
-      servers={servers}
-      onOpenUrl={onOpenUrl}
-      importProfileId={importProfileId}
-    />
-  )
-}
-
-function BrowserNewTabWorktreePage({
-  worktree,
-  repo,
-  servers,
-  onOpenUrl,
-  importProfileId
-}: {
-  worktree: Worktree
-  repo: Repo | undefined
-  servers: BrowserNewTabServerContext
-  onOpenUrl: (url: string) => void
-  importProfileId?: string | null
-}): React.JSX.Element {
-  const linkedItems = useBrowserNewTabLinkedItems(worktree, repo)
-  return (
-    <BrowserNewTabPageLayout
-      workspaceName={resolveWorktreeDisplayName(worktree)}
-      linkedItems={linkedItems}
-      servers={servers}
-      onOpenUrl={onOpenUrl}
-      importProfileId={importProfileId}
-    />
-  )
-}
-
-function BrowserNewTabPageLayout({
-  workspaceName,
-  linkedItems,
-  servers: { servers, runtimeTarget, openInPlace },
-  onOpenUrl,
-  importProfileId
-}: {
-  workspaceName?: string
-  linkedItems: WorkspaceLinkedItemRow[]
-  servers: BrowserNewTabServerContext
-  onOpenUrl: (url: string) => void
   importProfileId?: string | null
 }): React.JSX.Element {
   const t = useTranslate()
@@ -122,11 +38,6 @@ function BrowserNewTabPageLayout({
       }),
     [browserUrlHistory]
   )
-  const openableLinkedItems = linkedItems.filter((row) => row.url)
-  const hasWorkspaceRows =
-    Boolean(runtimeTarget && (servers.own.length > 0 || servers.others.length > 0)) ||
-    openableLinkedItems.length > 0
-
   const removeSuggestion = (entry: BrowserHistoryEntry): void => {
     const removed = removeBrowserHistoryEntry(entry.normalizedUrl)
     if (!removed) {
@@ -154,7 +65,7 @@ function BrowserNewTabPageLayout({
       </div>
     )
 
-  if (!hasWorkspaceRows && suggested.length === 0) {
+  if (suggested.length === 0) {
     return (
       <BrowserNewTabScroller>
         <div className="flex flex-col items-center gap-2.5 px-4 pt-16 text-center">
@@ -167,7 +78,7 @@ function BrowserNewTabPageLayout({
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
             {t(
               'browser.newTab.emptyHint',
-              'Search or enter an address above. Sites you visit, dev servers running in this workspace, and its PR and issue will show up here.'
+              'Search or enter an address above. Sites you visit will show up here.'
             )}
           </p>
         </div>
@@ -178,20 +89,6 @@ function BrowserNewTabPageLayout({
 
   return (
     <BrowserNewTabScroller>
-      {hasWorkspaceRows ? (
-        <BrowserNewTabSection
-          label={t('browser.newTab.thisWorkspace', 'This workspace')}
-          detail={workspaceName}
-        >
-          <BrowserNewTabWorkspaceCard
-            servers={servers}
-            linkedItems={openableLinkedItems}
-            runtimeTarget={runtimeTarget}
-            openServersInPlace={openInPlace}
-            onOpenUrl={onOpenUrl}
-          />
-        </BrowserNewTabSection>
-      ) : null}
       {suggested.length > 0 ? (
         <BrowserNewTabSection label={t('browser.newTab.suggested', 'Suggested')}>
           <BrowserNewTabTileGrid>

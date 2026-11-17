@@ -1,5 +1,6 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { app, clipboard, dialog, type BrowserWindow } from 'electron'
-import { isRoutedOrcaDeepLink } from './startup/orca-deep-link-url'
+
 import { createMacAppActivationHandler } from './window/macos-app-activation'
 import { isBackgroundLaunch, isOrcadSidecarLaunch } from './window/foreground-activation-policy'
 import { createDesktopHandoff, desktopHandoffArguments } from './window/macos-desktop-handoff'
@@ -64,12 +65,6 @@ const requestDesktopHandoff = createDesktopHandoff({
 })
 
 function requestDesktopActivation(argv: readonly string[] = []): void {
-  state.skillShareDeepLinks.capture(argv, (shareId) => {
-    state.mainWindow?.webContents.send('ui:openSkillShare', shareId)
-  })
-  state.pluginInstallLinks.capture(argv, (link) => {
-    state.mainWindow?.webContents.send('ui:openPluginInstallLink', link)
-  })
   state.osOpenedDocuments.capture(argv, publishOsOpenedDocuments)
   // Duplicate serve launches must not activate a desktop on a headless server (#11935).
   if (!shouldActivateDesktopForSecondInstance(argv)) {
@@ -141,13 +136,7 @@ if (preflightReady) {
   if (process.platform === 'win32') {
     deleteLegacyWslHostWakeList(app.getPath('userData'))
   }
-  app.on('open-url', (event, url) => {
-    if (!isRoutedOrcaDeepLink(url)) {
-      return
-    }
-    event.preventDefault()
-    requestDesktopActivation([url])
-  })
+
   // macOS can deliver Open With before ready; claim only supported paths.
   app.on('open-file', (event, filePath) => {
     if (!state.osOpenedDocuments.captureFilePaths([filePath], publishOsOpenedDocuments)) {
@@ -163,8 +152,7 @@ if (preflightReady) {
     platform: process.platform,
     desktopLaunch: !state.isServeMode && !isBackgroundLaunch() && !isOrcadSidecarLaunch()
   })
-  state.skillShareDeepLinks.capture(process.argv)
-  state.pluginInstallLinks.capture(process.argv)
+
   // The first renderer pulls on mount; nothing listens this early.
   state.osOpenedDocuments.capture(process.argv)
   registerMainProcessIpcHandlers()

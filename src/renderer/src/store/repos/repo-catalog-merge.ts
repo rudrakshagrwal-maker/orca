@@ -28,16 +28,12 @@ export type FetchedRepoCatalog = {
   hostId: ReturnType<typeof getRuntimeTargetHostId>
   /** This store's repo rows when the request went out; a registration added since is not its to drop. */
   reposAtRequest: readonly Repo[]
-  sourceWrites?: ReturnType<AppState['githubSourceCollections']['catalogSnapshot']>
-  sourceOwner?: AppState['githubSourceCollections']
 }
 
 export async function fetchRepoCatalogForTarget(
   target: RuntimeClientTarget,
-  reposAtRequest: readonly Repo[],
-  sourceOwner?: AppState['githubSourceCollections']
+  reposAtRequest: readonly Repo[]
 ): Promise<FetchedRepoCatalog> {
-  const sourceWrites = sourceOwner?.catalogSnapshot()
   const fetchedRepos =
     target.kind === 'local'
       ? await window.api.repos.list()
@@ -53,8 +49,6 @@ export async function fetchRepoCatalogForTarget(
     projectHostSetupCompatibility: await fetchProjectHostSetupCompatibility(target, repos),
     hostId: getRuntimeTargetHostId(target),
     reposAtRequest,
-    sourceOwner,
-    sourceWrites
   }
 }
 
@@ -69,7 +63,7 @@ export function mergeFetchedRepoCatalog(
   const repos = mergeFetchedReposForHost(
     currentRepos,
     withoutPendingRuntimeRepoRemovals(
-      catalog.repos.map((repo) => catalog.sourceOwner?.adopt(repo, catalog.sourceWrites) ?? repo),
+      catalog.repos,
       catalog.hostId
     ),
     catalog.hostId,

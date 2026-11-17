@@ -1,4 +1,3 @@
-import { usePluginTerminalThemes } from '@/store/plugins/appearance/plugin-themes'
 import { withTerminalPluginPalettes } from '@/lib/terminal/themes/terminal-plugin-palettes'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
@@ -117,8 +116,8 @@ export function TerminalThemeCatalogSection({
     rememberTerminalThemeTarget(nextTarget)
     setTargetState(nextTarget)
   }
-  const pluginTerminalThemes = usePluginTerminalThemes()
-  const themeOptions = getAvailableTerminalThemeOptions(settings, pluginTerminalThemes, t)
+  // RA: only bundled and manually imported terminal themes are offered.
+  const themeOptions = getAvailableTerminalThemeOptions(settings)
   const isLightTarget = target === 'light'
   const matchDarkMode = !settings.terminalUseSeparateLightTheme
   const lightModeMatchesDark = isLightTarget && matchDarkMode
@@ -297,7 +296,7 @@ export function TerminalThemeCatalogSection({
                             ? { [TERMINAL_COLOR_OVERRIDES_SETTING[target]]: undefined }
                             : {})
                         },
-                        pluginTerminalThemes
+                        []
                       )
                     )
                   }}

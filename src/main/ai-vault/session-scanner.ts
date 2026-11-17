@@ -7,23 +7,16 @@ import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
 import { withSpan } from '../observability/tracer'
 import { sessionSortTime } from './session-scanner-accumulator'
 import { dedupeScannedSessions } from './session-root-dedup'
-import {
-  createAntigravityWorkspaceResolver,
-  readLocalAntigravityHistory
-} from './scanners/antigravity/session-scanner-antigravity-history'
+
 import { sessionCandidatesFromDiscoveries } from './session-scanner-candidates'
 import { parseSessionCandidates } from './session-scanner-candidate-parse'
 import { createSessionParseStats } from './parse-cache/session-scanner-parse-cache'
-import { recordSessionScanIssue } from './session-scan-issues'
+
 import { aiVaultScanWorkload, noteAiVaultScanReading } from './ai-vault-scan-progress'
 import { yieldScanInventory } from './session-scanner-scope-inventory'
 import { prepareScopeScan, scanInScopeSessions } from './session-scanner-scope-walk'
 import { discoverAiVaultSessionSources } from './session-scanner-source-discovery'
-import { withAntigravityArtifactPaths } from './scanners/antigravity/antigravity-session-artifacts'
-import {
-  cursorChatMetaRefusals,
-  withCursorChatMetaScan
-} from './scanners/cursor/session-scanner-cursor-chat-meta'
+
 import type { AiVaultScanOptions } from './session-scanner-types'
 import { clampPositiveInteger } from './session-scanner-values'
 import { scopeOnlyScan } from './session-scope-cwd'
@@ -33,8 +26,6 @@ import {
 } from '../../shared/ai-vault/scanning/ai-vault-scope-cwd-match'
 import { throwIfAiVaultScanCancelled } from './ai-vault-scan-cancellation'
 import { DEFAULT_AI_VAULT_SCAN_LIMIT } from '../../shared/ai-vault/scanning/ai-vault-session-depth'
-import { withDevinSessionsDbScan } from './scanners/devin/session-scanner-devin-db'
-import { withOpenCodeSqliteScanScope } from './scanners/opencode/sqlite/session-scanner-opencode-sqlite-scan-scope'
 
 const SESSION_PARSE_CANDIDATE_MULTIPLIER = 2
 
@@ -42,14 +33,14 @@ const SESSION_PARSE_CANDIDATE_MULTIPLIER = 2
 export async function scanAiVaultSessions(
   options: AiVaultScanOptions = {}
 ): Promise<AiVaultListResult> {
-  return withOpenCodeSqliteScanScope(() => scanAiVaultSessionStores(options))
+  return (() => scanAiVaultSessionStores(options))()
 }
 
 async function scanAiVaultSessionStores(options: AiVaultScanOptions): Promise<AiVaultListResult> {
-  // Keep Cursor metadata scoped across discovery and parsing to read the chats tree only once.
+  // RA: scan only the supported session stores.
   return withSpan('aiVault.scan', (span) =>
-    withDevinSessionsDbScan(() =>
-      withCursorChatMetaScan(async () => {
+    (() =>
+      (async () => {
         const limit = options.unlimited
           ? Number.POSITIVE_INFINITY
           : clampPositiveInteger(options.limit, DEFAULT_AI_VAULT_SCAN_LIMIT)
@@ -60,9 +51,7 @@ async function scanAiVaultSessionStores(options: AiVaultScanOptions): Promise<Ai
         const executionHostId = options.executionHostId ?? LOCAL_EXECUTION_HOST_ID
         const issues: AiVaultScanIssue[] = []
         const parseStats = createSessionParseStats()
-        const antigravityWorkspaceResolver = createAntigravityWorkspaceResolver((path) =>
-          readLocalAntigravityHistory(path, options.signal)
-        )
+
         throwIfAiVaultScanCancelled(options.signal)
         const discoveries = await discoverAiVaultSessionSources({
           options,
@@ -95,7 +84,7 @@ async function scanAiVaultSessionStores(options: AiVaultScanOptions): Promise<Ai
           issues,
           parseStats,
           signal: options.signal,
-          antigravityWorkspaceResolver,
+
           settled: (candidate, parsed) => workload?.settle(candidate, 'global', parsed)
         })
 
@@ -119,19 +108,10 @@ async function scanAiVaultSessionStores(options: AiVaultScanOptions): Promise<Ai
           platform,
           executionHostId,
           issues,
-          parseStats,
-          antigravityWorkspaceResolver
+          parseStats
         })
         // Scope discovery may parse nothing; check cancellation before returning a completed scan.
         throwIfAiVaultScanCancelled(options.signal)
-        for (const refusal of cursorChatMetaRefusals()) {
-          // Report each refused chats root once across its Cursor transcripts.
-          recordSessionScanIssue(issues, {
-            agent: 'cursor',
-            path: refusal.chatsRoot,
-            ...refusal.text
-          })
-        }
 
         span.setAttribute('candidates', candidates.length)
         span.setAttribute('reused', parseStats.reused)
@@ -142,15 +122,11 @@ async function scanAiVaultSessionStores(options: AiVaultScanOptions): Promise<Ai
         span.setAttribute('issues', issues.length)
 
         return {
-          sessions: withAntigravityArtifactPaths(
-            mergeSessions(cappedSessions, scopeSessions),
-            discoveries
-          ),
+          sessions: mergeSessions(cappedSessions, scopeSessions),
           issues: issues.map((issue) => ({ executionHostId, ...issue })),
           scannedAt: new Date().toISOString()
         }
-      })
-    )
+      })())()
   )
 }
 

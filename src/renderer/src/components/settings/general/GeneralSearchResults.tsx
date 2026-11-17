@@ -2,7 +2,6 @@ import { useTranslate } from '@/i18n/use-translate'
 import { SettingsGroup } from '../section-layout/SettingsGroup'
 import { SettingsNavigationRow } from '../form-controls/SettingsNavigationRow'
 import { matchesSettingsSearch, rankSettingsSearchItems } from '../search/settings-search'
-import { getGeneralEditorSearchDescriptors } from '../editor/general-editor-search'
 import { getGeneralWorkspaceSearchDescriptors } from './general-search'
 import { getGeneralSubPageTitle, type GeneralSubPage } from './general-sub-pages'
 
@@ -14,11 +13,9 @@ export function GeneralSearchResults({
   onSelect: (page: GeneralSubPage, sectionId?: string) => void
 }): React.JSX.Element {
   const t = useTranslate()
-  const descriptors = [
-    ...getGeneralWorkspaceSearchDescriptors(),
-    ...getGeneralEditorSearchDescriptors()
-  ]
-  const pages: GeneralSubPage[] = ['folder', 'worktrees', 'open-in', 'editor']
+  // RA: Search exposes only retained terminal-orchestrator settings.
+  const descriptors = getGeneralWorkspaceSearchDescriptors()
+  const pages: GeneralSubPage[] = ['folder', 'worktrees', 'open-in']
   return (
     <>
       {pages.map((page) => {

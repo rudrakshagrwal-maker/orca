@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { IPtyProvider, PtySpawnResult } from '../../../providers/pty-provider-contract'
 import { LocalPtyProvider } from '../../../providers/local-pty/local-pty-provider'
 import { makePaneKey, isTerminalLeafId } from '../../../../shared/workspace-layout/stable-pane-id'
@@ -13,7 +14,6 @@ import {
   seedPtySpawnSize
 } from '../spawn-options-assembly'
 import { isRuntimeWslBackgroundStart, type RuntimePtySpawnState } from './spawn-state'
-import { prepareAntigravityAccountForLaunch } from '../../../antigravity/native-account-launch'
 
 export async function buildRuntimePtySpawnOptions(
   ctx: RuntimePtySpawnState
@@ -44,14 +44,7 @@ export async function buildRuntimePtySpawnOptions(
     settings
   })
   ctx.env = deletions.env
-  await prepareAntigravityAccountForLaunch({
-    launchAgent: args.launchAgent,
-    command: ctx.launchCommand,
-    connectionId: args.connectionId,
-    isWsl: ctx.codexSelectionTarget.runtime === 'wsl',
-    env: ctx.env,
-    envToDelete: deletions.envToDelete
-  })
+
   ctx.materializedPaneKey = ctx.hostSessionBinding
     ? makePaneKey(ctx.hostSessionBinding.tabId, ctx.hostSessionBinding.leafId)
     : null

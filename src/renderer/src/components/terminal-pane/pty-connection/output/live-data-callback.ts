@@ -1,6 +1,5 @@
-import { makePaneKey } from '../../../../../../shared/workspace-layout/stable-pane-id'
-import { useAppStore } from '@/store/index'
 import { takeCurrentTerminalDeliveryCredit } from '@/lib/pane-manager/terminal-output/terminal-delivery-credit'
+import { isTerminalOutputSuspended } from '@/lib/pane-manager/terminal-output/pane-terminal-output-queue-registry'
 import { recordAgentHibernationPaneOutput } from '@/lib/agent-session/hibernation/agent-hibernation-output-activity'
 import { observeTerminalBracketedPasteModeOutput } from '../../input/paste/terminal-bracketed-paste'
 import type { PtyDataMeta } from '../../pty-transport/delivery/pty-dispatcher'
@@ -25,6 +24,9 @@ export function bindLiveDataCallback(session: ConnectPanePtySession): void {
     }
     const arrivedData = data
     const arrivedMeta = meta
+    // RA: a maximized split hides siblings even while their tab remains visible.
+    const paneVisible =
+      session.deps.isVisibleRef.current && !isTerminalOutputSuspended(session.pane.terminal)
     const admitLiveStreamBytes = (
       bytes: string,
       carvedRemainder: string,
@@ -92,27 +94,19 @@ export function bindLiveDataCallback(session: ConnectPanePtySession): void {
     observeTerminalBracketedPasteModeOutput(session.pane.terminal, data)
     // Why: under main side-effect authority these facts arrive via pty:sideEffect; byte-scanning here would double-fire. Remote PTYs / kill-switch-off keep this path.
     if (!session.mainSideEffectAuthority) {
-      for (const link of session.observeTerminalGitHubPRLink(data)) {
-        useAppStore.getState().observeTerminalGitHubPullRequestLink(session.deps.worktreeId, link, {
-          tabId: session.deps.tabId,
-          paneKey: makePaneKey(session.deps.tabId, session.pane.leafId),
-          ptyId: session.transport.getPtyId(),
-          executionHostId: session.transport.getExecutionHostId?.() ?? undefined
-        })
-      }
+      // RA: hosted-task link scanning is removed from terminal output.
       // RA: main retains shell facts; hidden renderers perform no shell-integration scan.
-      if (session.deps.isVisibleRef.current) {
+      if (paneVisible) {
         session.commandLifecycle.handlePtyData(data)
       }
     }
-    session.commandCodeOutputStatusDetector?.observe(data)
+
     const codexBackfillNotice = session.codexBackfillErrorDetector?.observe(data)
     if (codexBackfillNotice) {
       session.reportError(codexBackfillNotice)
     }
     // Why: split panes have visible-but-inactive panes the user watches; throttle only when the pane or whole document is hidden.
-    const foreground =
-      shouldWritePtyOutputForeground(session.deps.isVisibleRef.current) && meta?.background !== true
+    const foreground = shouldWritePtyOutputForeground(paneVisible) && meta?.background !== true
     // Why: latch the hidden-delivery gate from the byte path too, covering a PTY id that arrives after the initial sync (no-op when current).
     if (!foreground) {
       session.syncHiddenRendererPtyDelivery()

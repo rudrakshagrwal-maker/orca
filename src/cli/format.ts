@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { CliStatusCaller } from '../shared/orchestration/orchestration-caller-status'
 import type { CliStatusResult } from '../shared/runtime-types'
 import { formatBrowserActionEffects } from './browser/browser-format'
@@ -35,15 +36,7 @@ export {
   formatTerminalWait,
   terminalSendWarnings
 } from './terminal-format'
-export {
-  formatAutomationList,
-  formatAutomationRemoved,
-  formatAutomationRun,
-  formatAutomationRuns,
-  formatAutomationRunsPage,
-  formatAutomationShow
-} from './automation-format'
-export type { AutomationListPayload, AutomationShowPayload } from './automation-format'
+
 export {
   formatEnvironment,
   formatEnvironmentList,

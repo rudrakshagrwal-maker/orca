@@ -1,27 +1,20 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useAppStore } from '../store'
-import { i18n, setRendererPluginLanguagePacks, loadRendererUiLanguage } from './i18n'
-import { usePluginLanguagePacks } from '../store/plugins/localization/plugin-language-packs'
-import { isPluginUiLanguage } from '../../../shared/ui-language'
+import { i18n, loadRendererUiLanguage } from './i18n'
+
 import { initializeLanguageDetection, useLanguageReadiness } from './language-readiness'
 import { TranslationScopeProvider } from './translation-scope-provider'
 
 export function I18nProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const uiLanguage = useAppStore((state) => state.settings?.uiLanguage ?? null)
-  const packs = usePluginLanguagePacks()
+
   const retryCount = useLanguageReadiness((state) => state.retryCount)
   const systemLocale = useLanguageReadiness((state) =>
     uiLanguage === 'system' ? state.detection?.locale : null
   )
   const generation = useRef(0)
   // The store keeps unchanged packs by reference, so this changes only when the selected pack's content does.
-  const activePack = isPluginUiLanguage(uiLanguage)
-    ? packs.find((pack) => pack.id === uiLanguage)
-    : undefined
-
-  useEffect(() => {
-    setRendererPluginLanguagePacks(packs)
-  }, [packs])
 
   useEffect(() => {
     if (uiLanguage === null) {
@@ -60,7 +53,7 @@ export function I18nProvider({ children }: { children: ReactNode }): React.JSX.E
     return () => {
       cancelled = true
     }
-  }, [uiLanguage, activePack, retryCount, systemLocale])
+  }, [uiLanguage, retryCount, systemLocale])
 
   // initReactI18next already binds useTranslation to this instance.
   return <TranslationScopeProvider>{children}</TranslationScopeProvider>

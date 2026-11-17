@@ -39,7 +39,7 @@ export function useTerminalPaneActivityIsolation({
         }
       })
     if (isolatedPaneKey === null) {
-      restoreExpandedLayoutFrom(snapshots)
+      restoreExpandedLayoutFrom(snapshots, managerRef.current) // RA: restore split rendering too.
       const frame = scheduleRefit()
       return () => cancelAnimationFrame(frame)
     }
@@ -61,6 +61,7 @@ export function useTerminalPaneActivityIsolation({
         snapshots.set(root, { display: root.style.display, flex: root.style.flex })
         root.style.display = 'none'
       }
+      manager?.syncLayoutRendering() // RA: unresolved isolation hides every split without rendering.
       const frame = scheduleRefit()
       return () => cancelAnimationFrame(frame)
     }
@@ -69,10 +70,11 @@ export function useTerminalPaneActivityIsolation({
   }, [isolatedPaneKey, paneCount, tabId, activityIsolationSnapshotRef, containerRef, managerRef])
 
   useEffect(() => {
+    const manager = managerRef.current // RA: cleanup restores the manager owned by this effect.
     const snapshots = activityIsolationSnapshotRef.current
     return () => {
-      restoreExpandedLayoutFrom(snapshots)
+      restoreExpandedLayoutFrom(snapshots, manager)
       cancelPendingPaneSizeRefreshFrames({ pendingPaneSizeRefreshFrameIdsRef })
     }
-  }, [activityIsolationSnapshotRef, pendingPaneSizeRefreshFrameIdsRef])
+  }, [activityIsolationSnapshotRef, pendingPaneSizeRefreshFrameIdsRef, managerRef])
 }

@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { getRepoHostIdentityForParts } from '../../../../shared/repo-host-identity'
 import { createRepoRowExecutionHostLookup } from '../../../../shared/execution-host/worktree-execution-host-resolution'
 import { resolveWorktreeHostRouting } from '../catalog/worktree-launch-host-repo'
@@ -24,10 +25,7 @@ import { compareWorktreePs } from './runtime-worktree-status-projection'
 import type { Repo } from '../../../../shared/repo-types'
 import { enrichMissingRepoGitRemoteIdentities } from '../../../workspaces/catalog/repo-git-remote-identity-enrichment'
 import { ensureStructuredAgentSessionHost as installStructuredAgentSessionHost } from '../../agent-session/structured-agent-session-runtime'
-import {
-  createStructuredAttentionMobileDelivery,
-  readStructuredAttentionWorkspaceLabels
-} from '../../agent-session/structured-agent-session-mobile-attention'
+
 import {
   createStructuredAgentSessionLogger,
   neverThrowingStructuredAgentSessionLogger
@@ -292,17 +290,7 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends RuntimeChatWorkerEven
       queuedAgentMessageOwed: (sessionId, from, peek) =>
         this.structuredChatMailOwed(sessionId, from, peek),
       assertNoTerminalWriter: (record) => this.assertStructuredChatAcquireAdmissible(record),
-      attentionDelivery: createStructuredAttentionMobileDelivery({
-        readNotificationSettings: () => this.requireStore().getSettings().notifications,
-        readWorkspaceLabels: (scope) =>
-          readStructuredAttentionWorkspaceLabels(this.requireStore(), scope),
-        isWorkspaceMuted: (scope) => this.isWorkspaceNotificationMuted(scope.workspaceId),
-        // The same contexts the session's chat row carries.
-        readOrchestration: (paneKey) => this.agentOrchestrationProjection.getForPaneKey(paneKey),
-        dispatch: (event) => this.mobileNotifications.dispatch(event),
-        reconcile: (state) => this.mobileNotifications.reconcileStructuredPromptAttention(state),
-        now: () => Date.now()
-      }),
+
       onTurnAttention: chatWorkerTurnStopReporter(this.workerTurnStopReportDeps),
       // Re-read dispatch ownership each sweep; absence of a database cannot keep the worker alive.
       hasOpenDispatch: (record) =>

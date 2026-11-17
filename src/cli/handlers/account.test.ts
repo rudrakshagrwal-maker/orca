@@ -1,9 +1,10 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type * as NodeCliCommandResolutionModule from '../../shared/node-cli-command-resolution'
 import type * as ProcessHostModule from '@orca/process-host'
 import type { ProcessSpec } from '@orca/process-host/process-spec'
 import { EventEmitter } from 'node:events'
 import { existsSync } from 'node:fs'
-import { PassThrough } from 'node:stream'
+
 import type * as NodeFs from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -62,25 +63,13 @@ vi.mock('../../shared/windows-console-input', () => ({
 }))
 
 import { ACCOUNT_HANDLERS } from './account'
-import { REPEATED_FLAG_SEPARATOR } from '../args'
+
 import type { HandlerContext } from '../dispatch'
 import type { RuntimeClient } from '../runtime-client'
 import {
   ACCOUNT_IMPORT_RUNTIME_CAPABILITY,
-  ANTIGRAVITY_ACCOUNTS_RUNTIME_CAPABILITY,
-  CLAUDE_SIGN_IN_RUNTIME_CAPABILITY,
-  DATA_ACCOUNT_RUNTIME_CAPABILITY
+  CLAUDE_SIGN_IN_RUNTIME_CAPABILITY
 } from '../../shared/account-runtime-capabilities'
-
-function helpChild(stdout: string): EventEmitter {
-  const child = Object.assign(new EventEmitter(), { stdout: new PassThrough() })
-  queueMicrotask(() => {
-    child.stdout.write(stdout)
-    child.emit('exit', 0)
-    child.emit('close', 0)
-  })
-  return child
-}
 
 function successfulChild(): EventEmitter {
   const child = new EventEmitter()
@@ -267,45 +256,7 @@ describe('account CLI handlers', () => {
     expect(logSpy).not.toHaveBeenCalled()
   })
 
-  it('keeps OpenCode form answer values out of the login failure message', async () => {
-    callMock.mockResolvedValue({
-      id: 'test',
-      ok: true,
-      result: { capabilities: [DATA_ACCOUNT_RUNTIME_CAPABILITY] },
-      _meta: { runtimeId: 'test-runtime' }
-    })
-    resolveCliCommandMock.mockImplementation((command: string) => `/tools/${command}`)
-    probeMock.mockImplementation(() => helpChild('--standalone'))
-    spawnMock.mockImplementation(() => {
-      const child = new EventEmitter()
-      queueMicrotask(() => child.emit('exit', 1))
-      return child
-    })
-    const failure = ACCOUNT_HANDLERS['account add']({
-      ...context('opencode'),
-      flags: new Map([
-        ['agent', 'opencode'],
-        ['answer', ['token=secret-value', 'note=second-secret'].join(REPEATED_FLAG_SEPARATOR)]
-      ])
-    })
-    await expect(failure).rejects.toThrow(
-      '--answer token=<redacted> --answer note=<redacted> --standalone'
-    )
-    await expect(failure).rejects.not.toThrow('secret-value')
-    await expect(failure).rejects.not.toThrow('second-secret')
-    expect(spawnMock.mock.calls[0][1]).toEqual(
-      expect.arrayContaining(['token=secret-value', 'note=second-secret'])
-    )
-  })
-
   describe('select and rm by --account', () => {
-    const antigravityAccounts = {
-      accounts: [
-        { id: 'agy-1', email: 'me@gmail.example', subject: 'sub-1' },
-        { id: 'agy-2', email: null, subject: 'sub-2' }
-      ],
-      activeAccountId: 'agy-1'
-    }
     const claudeAccounts = {
       accounts: [
         { id: 'claude-org-a', email: 'shared@example.com' },
@@ -340,10 +291,8 @@ describe('account CLI handlers', () => {
           ok: true,
           result:
             method === 'status.get'
-              ? { capabilities: [ANTIGRAVITY_ACCOUNTS_RUNTIME_CAPABILITY] }
-              : method.startsWith('accounts.antigravity')
-                ? antigravityAccounts
-                : { claude: claudeAccounts, codex: { accounts: [], activeAccountId: null } },
+              ? { capabilities: [] }
+              : { claude: claudeAccounts, codex: { accounts: [], activeAccountId: null } },
           _meta: { runtimeId: 'test-runtime' }
         })
       )

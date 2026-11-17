@@ -1,3 +1,4 @@
+import { AgentModelCatalogLaunchBudget } from './agent-model-catalog-launch-budget'
 import { createAgentModelEffortDiscovery } from './agent-model-catalog-effort-discovery'
 import { createAgentModelCatalogFences } from './agent-model-catalog-fences'
 import {
@@ -5,7 +6,6 @@ import {
   createAgentModelCatalogEntryFactory,
   retireAgentModelCatalogObservations,
   agentModelCatalogLaunchAgents,
-  agentModelCatalogEntryIsStale,
   pruneAgentModelCatalogPartialAttempts
 } from './agent-model-catalog-entry-lifetime'
 import { independentAgentModelCatalog } from '../../../shared/agent-session/options/agent-model-catalog-ownership'
@@ -48,7 +48,6 @@ export { AGENT_MODEL_CATALOG_FRESH_MS } from './agent-model-catalog-entry-lifeti
 export const AGENT_MODEL_CATALOG_MAX_ENTRIES = 256
 
 import {
-  refreshAgentModelCatalogListing,
   retireAgentModelCatalogListing,
   type AgentModelCatalogListModels,
   type AgentModelCatalogListingBudget,
@@ -57,6 +56,8 @@ import {
 export type { AgentModelCatalogSessionAccess } from './agent-model-catalog-lister'
 
 export class AgentModelCatalogStore {
+  // RA: one discovery attempt per agent per launch, including failed probes.
+  readonly discoveryAttempts: AgentModelCatalogLaunchBudget
   private readonly entries = new Map<string, AgentModelCatalogEntry>()
   private readonly failures: AgentModelCatalogFailures
   private readonly refreshes = new Map<string, InFlightListing>()
@@ -75,8 +76,9 @@ export class AgentModelCatalogStore {
   readonly efforts: ReturnType<typeof createAgentModelEffortDiscovery>
   private readonly now: () => number
 
-  constructor(options?: { now?: () => number }) {
+  constructor(options?: { now?: () => number; oncePerLaunch?: boolean }) {
     this.now = options?.now ?? Date.now
+    this.discoveryAttempts = new AgentModelCatalogLaunchBudget(options?.oncePerLaunch === true)
     this.failures = new AgentModelCatalogFailures(this.now)
     this.efforts = createAgentModelEffortDiscovery({
       entries: this.entries,
@@ -128,7 +130,7 @@ export class AgentModelCatalogStore {
 
   /** Live saves must not delay account-level discovery. */
   isStale(entry: AgentModelCatalogEntry): boolean {
-    return agentModelCatalogEntryIsStale(entry, this.dueEntries.has(entry.fingerprint), this.now())
+    return this.discoveryAttempts.isStale(entry, this.dueEntries.has(entry.fingerprint), this.now())
   }
 
   failureDetail(fingerprint: string): string | null {
@@ -271,20 +273,23 @@ export class AgentModelCatalogStore {
     selectedModel?: string
   ): Promise<AgentModelCatalogEntry | null> {
     this.isListing(fingerprint)
-    return refreshAgentModelCatalogListing({
-      fingerprint,
-      agent,
-      listModels,
-      selectedModel,
-      maxTargets: AGENT_MODEL_CATALOG_MAX_ENTRIES,
-      targetDue: (model) => this.efforts.due(fingerprint, model),
-      targetAttempted: (model) => this.efforts.attempted(fingerprint, agent, model),
-      budget,
-      refreshes: this.refreshes,
-      failures: this.failures,
-      listingWaiters: this.listingWaiters,
-      writeSuccess: (...args) => this.writeSuccess(...args)
-    })
+    return this.discoveryAttempts.refresh(
+      {
+        fingerprint,
+        agent,
+        listModels,
+        selectedModel,
+        maxTargets: AGENT_MODEL_CATALOG_MAX_ENTRIES,
+        targetDue: (model) => this.efforts.due(fingerprint, model),
+        targetAttempted: (model) => this.efforts.attempted(fingerprint, agent, model),
+        budget,
+        refreshes: this.refreshes,
+        failures: this.failures,
+        listingWaiters: this.listingWaiters,
+        writeSuccess: (...args) => this.writeSuccess(...args)
+      },
+      () => this.observation(fingerprint)
+    )
   }
 
   isListing(fingerprint: string): boolean {
@@ -337,14 +342,12 @@ export class AgentModelCatalogStore {
   }
 
   private evictOverCap(): void {
-    evictAgentModelCatalogEntries(
-      this.entries,
-      this.dueEntries,
-      this.partialAttempts,
-      AGENT_MODEL_CATALOG_MAX_ENTRIES,
-      this.retiredObservations
-    )
+    // RA: retain the existing cap while keeping the launch-budget store compact.
+    const { entries, dueEntries, partialAttempts, retiredObservations } = this
+    const cap = AGENT_MODEL_CATALOG_MAX_ENTRIES
+    evictAgentModelCatalogEntries(entries, dueEntries, partialAttempts, cap, retiredObservations)
   }
 }
 
-export const agentModelCatalogStore = new AgentModelCatalogStore()
+// RA: the host singleton enforces launch budgets; generic stores remain usable by deep library consumers.
+export const agentModelCatalogStore = new AgentModelCatalogStore({ oncePerLaunch: true })

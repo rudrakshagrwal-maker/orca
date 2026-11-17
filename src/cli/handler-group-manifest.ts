@@ -1,10 +1,8 @@
 import type { CommandHandler } from './dispatch'
 import { BROWSER_HANDLER_GROUPS } from './browser/browser-handler-groups'
-import { JIRA_HANDLER_GROUP } from './jira-handler-group'
-import { LINEAR_HANDLER_GROUP } from './linear-handler-group'
+
 import { REFERENCE_HANDLER_GROUP } from './reference-handler-group'
-import { SERVE_PAIRING_HANDLER_GROUPS } from './serve-pairing-handler-groups'
-import { PLUGIN_HANDLER_GROUPS } from './plugin-handler-groups'
+
 import { HOST_HANDLER_GROUPS } from './host-handler-groups'
 import { WORKTREE_HANDLER_GROUPS } from './worktree-handler-groups'
 
@@ -17,15 +15,13 @@ export type HandlerGroup = {
 
 // handler-group-manifest.test.ts checks keys against the real exports to prevent drift.
 export const HANDLER_GROUPS: readonly HandlerGroup[] = [
-  JIRA_HANDLER_GROUP,
-  LINEAR_HANDLER_GROUP,
   REFERENCE_HANDLER_GROUP,
   {
     name: 'core',
-    keys: ['claude-teams', 'open', 'serve', 'status'],
+    keys: ['open', 'serve', 'status'],
     load: async () => (await import('./handlers/core.js')).CORE_HANDLERS
   },
-  ...SERVE_PAIRING_HANDLER_GROUPS,
+
   {
     name: 'serve-reset-identity',
     keys: ['serve reset-identity'],
@@ -42,30 +38,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     keys: ['account add', 'account list', 'account select', 'account rm'],
     load: async () => (await import('./handlers/account.js')).ACCOUNT_HANDLERS
   },
-  {
-    name: 'artifacts',
-    keys: [
-      'artifacts list',
-      'artifacts share',
-      'artifacts update',
-      'artifacts unshare',
-      'artifacts delete'
-    ],
-    load: async () => (await import('./handlers/artifacts.js')).ARTIFACT_HANDLERS
-  },
-  {
-    name: 'automations',
-    keys: [
-      'automations list',
-      'automations show',
-      'automations create',
-      'automations edit',
-      'automations remove',
-      'automations run',
-      'automations runs'
-    ],
-    load: async () => (await import('./handlers/automations.js')).AUTOMATION_HANDLERS
-  },
+
   {
     name: 'project',
     keys: [
@@ -155,28 +128,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     ],
     load: async () => (await import('./handlers/orchestration.js')).ORCHESTRATION_HANDLERS
   },
-  {
-    name: 'emulator',
-    keys: [
-      'emulator list',
-      'emulator devices',
-      'emulator attach',
-      'emulator tap',
-      'emulator type',
-      'emulator gesture',
-      'emulator button',
-      'emulator rotate',
-      'emulator exec',
-      'emulator kill',
-      'emulator shutdown',
-      'emulator install',
-      'emulator launch',
-      'emulator permissions',
-      'emulator ax',
-      'emulator logcat'
-    ],
-    load: async () => (await import('./handlers/emulator.js')).EMULATOR_HANDLERS
-  },
+
   {
     name: 'computer',
     keys: [
@@ -232,7 +184,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
   },
   {
     name: 'diagnostics',
-    keys: ['diagnostics memory', 'terminal-daemon status', 'terminal-daemon restart'],
+    keys: [ 'terminal-daemon status', 'terminal-daemon restart'],
     load: async () => (await import('./handlers/diagnostics.js')).DIAGNOSTICS_HANDLERS
   },
   {
@@ -246,12 +198,7 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     load: async () => (await import('./handlers/introspection.js')).INTROSPECTION_HANDLERS
   },
   ...HOST_HANDLER_GROUPS,
-  {
-    name: 'skill-sharing',
-    keys: ['skills installed', 'skills share'],
-    load: async () => (await import('./handlers/skill-sharing.js')).SKILL_SHARING_HANDLERS
-  },
-  ...PLUGIN_HANDLER_GROUPS,
+
   {
     name: 'skills',
     keys: ['skills list', 'skills get', 'skills install', 'skills update'],
@@ -261,10 +208,5 @@ export const HANDLER_GROUPS: readonly HandlerGroup[] = [
     name: 'search',
     keys: ['search'],
     load: async () => (await import('./handlers/search.js')).SEARCH_HANDLERS
-  },
-  {
-    name: 'ports',
-    keys: ['ports'],
-    load: async () => (await import('./handlers/ports.js')).PORTS_HANDLERS
   }
 ]

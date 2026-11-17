@@ -1,5 +1,5 @@
-import { prepareWorktreeModelStartupInputs } from './runtime-worktree-model-startup'
-import { isWslShellName } from '../../../../shared/local-windows-terminal-runtime'
+// RA: Claude/Codex startup uses shared plans without unsupported model preparation.
+
 import type { SessionOptionValue } from '../../../../shared/native-chat/input/native-chat-session-options'
 import { agentStartedTelemetry } from '../../../agent-launch/agent-started-telemetry'
 import type { AgentLaunchPreferences } from '../../../../shared/agent-session/agent-session-host-authority'
@@ -122,16 +122,10 @@ export async function buildWorktreeStartupForDraft(
         }
       : {})
   })
-  const prepared = await prepareWorktreeModelStartupInputs({
-    inputs: resolvedInputs,
-    cwd: repo.path,
-    isWsl: !(launchRuntime instanceof Error) && isWslShellName(launchRuntime.pty.shellOverride)
-  })
-  const launchArgs = prepared.inputs
+
+  const launchArgs = resolvedInputs
   const telemetry = agentStartedTelemetry(agent, environment.launchSource)
-  const draftPlan = prepared.launchConfig
-    ? null
-    : buildAgentDraftLaunchPlan({ ...launchArgs, draft: content })
+  const draftPlan = buildAgentDraftLaunchPlan({ ...launchArgs, draft: content })
   if (draftPlan) {
     return {
       agent,
@@ -159,7 +153,7 @@ export async function buildWorktreeStartupForDraft(
     agent,
     startup: {
       command: startupPlan.launchCommand,
-      launchConfig: prepared.launchConfig ?? startupPlan.launchConfig,
+      launchConfig: startupPlan.launchConfig,
       ...(startupPlan.startupCommandDelivery
         ? { startupCommandDelivery: startupPlan.startupCommandDelivery }
         : {}),
@@ -205,12 +199,8 @@ export async function buildWorktreeStartupForAgent(
     sessionOptions:
       environment.sessionOptions ?? environment.toSessionOptions(environment.launchPreferences)
   })
-  const prepared = await prepareWorktreeModelStartupInputs({
-    inputs: resolvedInputs,
-    cwd: repo.path,
-    isWsl: !(launchRuntime instanceof Error) && isWslShellName(launchRuntime.pty.shellOverride)
-  })
-  const planInputs = prepared.inputs
+
+  const planInputs = resolvedInputs
   const prompt = environment.prompt ?? ''
   let startupPlan: ReturnType<typeof buildAgentStartupPlan>
   if (environment.onPromptCarry) {
@@ -240,7 +230,7 @@ export async function buildWorktreeStartupForAgent(
     agent,
     startup: {
       command: startupPlan.launchCommand,
-      launchConfig: prepared.launchConfig ?? startupPlan.launchConfig,
+      launchConfig: startupPlan.launchConfig,
       ...(startupPlan.startupCommandDelivery
         ? { startupCommandDelivery: startupPlan.startupCommandDelivery }
         : {}),

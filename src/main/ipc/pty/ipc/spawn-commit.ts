@@ -9,56 +9,55 @@ import { commitPtySpawn } from '../spawn-commit-assembly'
 import type { PtySpawnPaneBinding } from '../spawn-commit-binding'
 import { spawnCommitBindingOrigin } from '../../../persistence/loading-store/terminal-bindings/pty-binding-span'
 import { parseTerminalPanePlacement } from '../../../../shared/workspace-layout/terminal-pane-placement'
-import { commitPtyWithOpenCodePromptIntent } from '../../../opencode/opencode-startup-prompt-owner'
+
 import { resumeSpawnRefusal, savedResumeResult } from '../host-env/saved-resume-admission'
 
 export async function commitPtyIpcSpawn(ctx: PtyIpcSpawnState): Promise<PtySpawnOutcome> {
-  return commitPtyWithOpenCodePromptIntent(ctx, () => {
-    const args = ctx.args
-    // IPC workspace identity is untrusted; the actual provider result supplies memory identity.
-    const worktreeId =
-      typeof args.worktreeId === 'string' &&
-      args.worktreeId.length > 0 &&
-      args.worktreeId.length <= 512
-        ? args.worktreeId
-        : null
-    const response = ipcSpawnResponse(ctx)
-    const freshSpawn = ctx.result.isReattach !== true && ctx.stablePaneOwner === null
-    return commitPtySpawn({
-      state: ctx,
-      nativeWindowsConptySpawn: ctx.nativeWindowsConptySpawn,
-      seedPaneKey: ctx.validatedPaneKey,
-      paneBinding: ipcSpawnPaneBinding(ctx),
-      registration: {
-        store: ctx.deps.store,
-        worktreeId,
-        shellOverride: ctx.effectiveShellOverride,
-        rendererLaunchAuthority: admitRendererAgentLaunchAuthority({
-          launchToken: args.launchToken,
-          spawnEnv: ctx.spawnEnv,
-          launchAgent: args.launchAgent,
-          launchConfig: ctx.effectiveLaunchConfig,
-          isReattach: ctx.result.isReattach === true,
-          hasStablePaneOwner: ctx.stablePaneOwner !== null,
-          incarnationId: ctx.result.incarnationId
-        }),
-        launchedAgent: freshSpawn ? resolveLaunchedAgent(args.command, args.launchAgent) : null,
-        freshSpawn
-      },
-      preAllocatedHandle: ctx.preAllocatedHandle,
-      spawnTiming: ctx.spawnTiming,
-      paneKey: ctx.validatedPaneKey,
-      paneKeyAliases: {
-        legacySpawnPaneKey: ctx.legacySpawnPaneKey,
-        migrationUnsupportedPaneKey: ctx.migrationUnsupportedPaneKey,
-        opaqueRemintedSpawnPaneKey: ctx.opaqueRemintedSpawnPaneKey
-      },
-      resumeArgvDropped: ctx.codexResumeLaunch.droppedResumeArgv,
-      codexLaunchEnv: ctx.baseEnv,
-      initiallyHidden: ctx.initiallyHidden,
-      hiddenDelivery: 'renderer-scoped',
-      response
-    })
+  // RA: commit directly; unsupported startup-prompt ownership is removed.
+  const args = ctx.args
+  // IPC workspace identity is untrusted; the actual provider result supplies memory identity.
+  const worktreeId =
+    typeof args.worktreeId === 'string' &&
+    args.worktreeId.length > 0 &&
+    args.worktreeId.length <= 512
+      ? args.worktreeId
+      : null
+  const response = ipcSpawnResponse(ctx)
+  const freshSpawn = ctx.result.isReattach !== true && ctx.stablePaneOwner === null
+  return commitPtySpawn({
+    state: ctx,
+    nativeWindowsConptySpawn: ctx.nativeWindowsConptySpawn,
+    seedPaneKey: ctx.validatedPaneKey,
+    paneBinding: ipcSpawnPaneBinding(ctx),
+    registration: {
+      store: ctx.deps.store,
+      worktreeId,
+      shellOverride: ctx.effectiveShellOverride,
+      rendererLaunchAuthority: admitRendererAgentLaunchAuthority({
+        launchToken: args.launchToken,
+        spawnEnv: ctx.spawnEnv,
+        launchAgent: args.launchAgent,
+        launchConfig: ctx.effectiveLaunchConfig,
+        isReattach: ctx.result.isReattach === true,
+        hasStablePaneOwner: ctx.stablePaneOwner !== null,
+        incarnationId: ctx.result.incarnationId
+      }),
+      launchedAgent: freshSpawn ? resolveLaunchedAgent(args.command, args.launchAgent) : null,
+      freshSpawn
+    },
+    preAllocatedHandle: ctx.preAllocatedHandle,
+    spawnTiming: ctx.spawnTiming,
+    paneKey: ctx.validatedPaneKey,
+    paneKeyAliases: {
+      legacySpawnPaneKey: ctx.legacySpawnPaneKey,
+      migrationUnsupportedPaneKey: ctx.migrationUnsupportedPaneKey,
+      opaqueRemintedSpawnPaneKey: ctx.opaqueRemintedSpawnPaneKey
+    },
+    resumeArgvDropped: ctx.codexResumeLaunch.droppedResumeArgv,
+    codexLaunchEnv: ctx.baseEnv,
+    initiallyHidden: ctx.initiallyHidden,
+    hiddenDelivery: 'renderer-scoped',
+    response
   })
 }
 

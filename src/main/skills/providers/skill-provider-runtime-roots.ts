@@ -1,12 +1,10 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { homedir } from 'node:os'
 import path, { isAbsolute, join, posix, resolve } from 'node:path'
 import { SKILL_INSTALL_PROVIDERS } from '../../../shared/skill-install-providers'
 import { buildWslCapturedLoginShellCommand } from '../../../shared/wsl-login-shell-command'
 import { toWindowsWslPath } from '../../../shared/wsl-paths'
-import {
-  type DefaultHermesHomeInput,
-  resolveDefaultHermesHome
-} from '../../hermes/hermes-default-home'
+
 import { runWslProcess } from '../../wsl/execution/wsl-runner'
 import type { SkillProviderRootOverrides } from './skill-provider-destinations'
 
@@ -66,16 +64,6 @@ export function resolveEnvironmentSkillProviderRoots(
 }
 
 // HERMES_HOME relocates profile trees; honor it without adding Hermes to install-provider overrides.
-export function resolveEnvironmentHermesSkillsRoot(
-  env: NodeJS.ProcessEnv = process.env
-): string | null {
-  const hermesHome = normalizedRoot(env.HERMES_HOME)
-  return hermesHome ? join(hermesHome, 'skills') : null
-}
-
-export function resolveDefaultHermesSkillsRoot(input: DefaultHermesHomeInput): string {
-  return join(resolveDefaultHermesHome(input), 'skills')
-}
 
 export function withClaudeSkillProviderRoot(
   roots: SkillProviderRootOverrides,

@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { isTuiAgentEnabled, normalizeDisabledTuiAgents, pickTuiAgent } from './tui-agent-selection'
 
 describe('pickTuiAgent', () => {
+  // RA: saved preferences cannot launch an agent removed from this fork.
+  it('falls back from Hermes and refuses inventories containing only removed agents', () => {
+    expect(pickTuiAgent('hermes', ['hermes', 'codex'])).toBe('codex')
+    expect(pickTuiAgent(null, ['gemini', 'opencode', 'hermes'])).toBeNull()
+  })
   it('respects the explicit blank terminal preference', () => {
     expect(pickTuiAgent('blank', ['cursor', 'claude'])).toBeNull()
   })

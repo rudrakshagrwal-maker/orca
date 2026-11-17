@@ -1,3 +1,5 @@
+import { useBrowserIdentityMigrationNotice } from '../components/browser-pane/browser-user-agent-migration-notice'
+import { useBrowserClientHostedDownloadNotices } from '../components/browser-pane/browser-client-hosted-download-notices'
 import { useAppStore } from '../store'
 import { useClosedEditorTabCleanup } from '../components/editor/model-lifetime/retention/useClosedEditorTabCleanup'
 import { useIpcEvents } from '../hooks/useIpcEvents'
@@ -18,21 +20,18 @@ import { useLegacyChatRenameMigration } from '../runtime/native-chat/naming/lega
 import { useHostModelCatalogSnapshotsSync } from '../runtime/native-chat/model-catalogs/host-model-catalog-snapshots-sync'
 import { useRemoteRuntimeRecoveryTriggers } from '../runtime/hosts/connections/use-remote-runtime-recovery-triggers'
 import { useTerminalViewerColorPublication } from './use-terminal-viewer-color-publication'
-import { useBrowserIdentityMigrationNotice } from '../components/browser-pane/browser-user-agent-migration-notice'
-import { useBrowserClientHostedDownloadNotices } from '../components/browser-pane/browser-client-hosted-download-notices'
 import { useCodexTerminalServerIsolationNotice } from '../components/terminal-pane/provider-notices/codex-server-isolation/codex-terminal-server-isolation-notice'
 import { useClaudeThemeSyncOffer } from '../components/terminal-pane/provider-notices/claude-theme-sync/claude-theme-sync-offer'
-import { useVisibleHostedReviewRefresh } from './use-visible-hosted-review-refresh'
 import { useProfileStateSaveDelayNotice } from './use-profile-state-save-delay-notice'
 
 /** Keep subscriptions above surfaces that unmount or never appear on Landing. */
 export function useAppShellServices(): void {
-  const workspaceSessionReady = useAppStore((s) => s.workspaceSessionReady)
   const persistedUIReady = useAppStore((s) => s.persistedUIReady)
   const primarySelectionMiddleClickPaste = useAppStore((s) =>
     resolvePrimarySelectionMiddleClickPaste(s.settings?.primarySelectionMiddleClickPaste)
   )
 
+  // RA: no browser notices or hosted-review refresh subscriptions.
   useClosedEditorTabCleanup()
   useRadixBodyPointerEventsRecovery()
   useLocalStructuredSessionTabsSync()
@@ -42,7 +41,6 @@ export function useAppShellServices(): void {
   useIpcEvents()
   useProfileStateSaveDelayNotice()
   useRemoteRuntimeRecoveryTriggers()
-  useVisibleHostedReviewRefresh({ enabled: workspaceSessionReady })
   useTerminalViewerColorPublication()
   useReadOnScreenAttention()
   useAppMenuPaste()
@@ -51,8 +49,9 @@ export function useAppShellServices(): void {
   usePrimarySelectionPaste(primarySelectionMiddleClickPaste)
   useOsc52ClipboardDefaultOnNotice(persistedUIReady)
   useWindowsTerminalFontWeightNotice(persistedUIReady)
-  useBrowserIdentityMigrationNotice()
-  useBrowserClientHostedDownloadNotices()
   useCodexTerminalServerIsolationNotice()
   useClaudeThemeSyncOffer()
+  // RA: retained browser identity/download notices.
+  useBrowserIdentityMigrationNotice()
+  useBrowserClientHostedDownloadNotices()
 }

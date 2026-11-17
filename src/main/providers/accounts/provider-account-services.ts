@@ -1,14 +1,15 @@
 // Keep Electron imports out: both desktop and orcad bundle these account services.
+
 import type { Store } from '../../persistence/loading-store/store'
-import { RateLimitService } from '../../rate-limits/service/rate-limit-service'
+
 import { CodexRuntimeHomeService } from '../../codex-accounts/runtime-home-service'
 import { CodexAccountService } from '../../codex-accounts/service'
 import { ClaudeRuntimeAuthService } from '../../claude-accounts/runtime-auth-service'
 import { ClaudeAccountService } from '../../claude-accounts/service'
+
 import type { ClaudeStatusLineRateLimits } from '../../../shared/claude-statusline-rate-limits'
 
 export type ProviderAccountServices = {
-  rateLimits: RateLimitService
   codexRuntimeHome: CodexRuntimeHomeService
   codexAccounts: CodexAccountService
   claudeRuntimeAuth: ClaudeRuntimeAuthService
@@ -22,16 +23,15 @@ export function createProviderAccountServices(
     setClaudeStatusLineListener: (listener: (event: ClaudeStatusLineRateLimits) => void) => void
   }
 ): ProviderAccountServices {
-  const rateLimits = new RateLimitService()
   const codexRuntimeHome = new CodexRuntimeHomeService(store)
   const codexAccounts = new CodexAccountService(
     store,
-    rateLimits,
+    undefined,
     codexRuntimeHome,
     options.codexAccountLifecycle
   )
   const claudeRuntimeAuth = new ClaudeRuntimeAuthService(store)
-  const claudeAccounts = new ClaudeAccountService(store, rateLimits, claudeRuntimeAuth)
-  // RA: terminal auth owns Claude/Codex accounts; remove unused quota/provider imports and polling setup.
-  return { rateLimits, codexRuntimeHome, codexAccounts, claudeRuntimeAuth, claudeAccounts }
+  const claudeAccounts = new ClaudeAccountService(store, undefined, claudeRuntimeAuth)
+  // RA: authentication has no quota polling, credential probes or unused provider setup.
+  return { codexRuntimeHome, codexAccounts, claudeRuntimeAuth, claudeAccounts }
 }

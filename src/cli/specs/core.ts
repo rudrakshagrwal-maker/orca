@@ -28,18 +28,7 @@ export const CORE_COMMAND_SPECS: CommandSpec[] = [
     ],
     examples: ['orca status', 'orca status --json']
   },
-  {
-    path: ['claude-teams'],
-    argumentMode: 'passthrough',
-    summary: 'Start Claude Code Agent Teams in the current Orca terminal',
-    usage: 'orca claude-teams [claude args...]',
-    allowedFlags: [...GLOBAL_FLAGS],
-    notes: [
-      'Passes all following arguments through to Claude Code after enabling Agent Teams native panes.',
-      'Must be run from inside an Orca terminal. Starts Claude Code Agent Teams in the current pane and opens teammates as native Orca splits.'
-    ],
-    examples: ['orca claude-teams', 'orca claude-teams --resume <session-id>']
-  },
+
   ...REPO_COMMAND_SPECS,
   {
     path: ['worktree', 'list'],
@@ -120,7 +109,14 @@ export const CORE_COMMAND_SPECS: CommandSpec[] = [
     usage:
       'orca terminal list [--worktree <selector>] [--limit <n>] [--layout] [--preview] [--include-visual-layouts] [--json]',
     // RA: small saved-state text list; machine-readable behaviour remains compatible.
-    allowedFlags: [...GLOBAL_FLAGS, 'worktree', 'limit', 'include-visual-layouts', 'layout', 'preview'],
+    allowedFlags: [
+      ...GLOBAL_FLAGS,
+      'worktree',
+      'limit',
+      'include-visual-layouts',
+      'layout',
+      'preview'
+    ],
     notes: [
       'Text lists all saved terminals, including sleeping panes, without refreshing process inventory. Use --worktree to narrow it; --layout and --preview add details.',
       'JSON omits visualLayouts by default; pass --include-visual-layouts when machine-readable tab and pane topology is required.'

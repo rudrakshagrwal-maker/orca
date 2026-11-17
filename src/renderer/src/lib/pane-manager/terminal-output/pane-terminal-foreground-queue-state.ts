@@ -1,3 +1,4 @@
+import { isTerminalOutputSuspended } from './pane-terminal-output-queue-registry'
 import {
   queuedByTerminal,
   scheduleDrain,
@@ -155,5 +156,8 @@ export function scheduleForegroundCoalesceRelease(
 }
 
 export function isEntryDrainable(entry: QueueEntry): boolean {
-  return !entry.foregroundHold && !entry.foregroundCoalesce
+  // RA: visibility is a hard parse/render gate, independent of output priority.
+  return (
+    !isTerminalOutputSuspended(entry.terminal) && !entry.foregroundHold && !entry.foregroundCoalesce
+  )
 }

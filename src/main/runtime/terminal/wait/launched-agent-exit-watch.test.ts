@@ -48,7 +48,7 @@ function watchedLaunch(options: {
   let finishWait: (value: string) => void = () => {}
   let waitSignal: AbortSignal | undefined
   const settled = vi.fn()
-  const result = failOnLaunchedAgentExit(runtime, 'pty-1', 'cursor', undefined, (signal) => {
+  const result = failOnLaunchedAgentExit(runtime, 'pty-1', 'claude', undefined, (signal) => {
     waitSignal = signal
     return new Promise<string>((resolve) => {
       finishWait = resolve
@@ -120,7 +120,7 @@ describe('worker readiness on a real runtime pane', () => {
   })
 
   // cursor waits on tui-idle, opencode on its composer marker, claude on the first of both.
-  it.each(['cursor', 'opencode', 'claude'] as const)(
+  it.each(['claude', 'codex'] as const)(
     '%s: a rejected launch fails on the shell’s report, not at the deadline',
     async (agent) => {
       const { runtime, handle, terminal } = await createTranscriptPane({

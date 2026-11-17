@@ -1,5 +1,4 @@
-import type { AntigravityAccountState } from '../../shared/antigravity-account-types'
-import type { ManagedDataAccountsState } from '../../shared/managed-account-types'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 
 type AccountsBlock = {
   accounts: readonly { id: string; email: string; needsSignIn?: true }[]
@@ -8,19 +7,6 @@ type AccountsBlock = {
     host: string | null
     wsl: Record<string, string | null>
   }
-}
-
-export function formatDataAccounts(label: string, state: ManagedDataAccountsState): string {
-  const system = `  system  System default${state.activeAccountId === null ? ' (active)' : ''}`
-  if (state.accounts.length === 0) {
-    return `No managed ${label} accounts.\n${system}`
-  }
-  return `Managed ${label} accounts (${state.accounts.length}):\n${system}\n${state.accounts
-    .map(
-      (account) =>
-        `  ${account.id}  ${account.label}${account.id === state.activeAccountId ? ' (active)' : ''}`
-    )
-    .join('\n')}`
 }
 
 export function formatAccountsBlock(label: string, block: AccountsBlock): string {
@@ -45,16 +31,3 @@ export function formatAccountsBlock(label: string, block: AccountsBlock): string
 }
 
 /** Antigravity has no system default: one saved account always owns the native login. */
-export function formatAntigravityAccounts(state: AntigravityAccountState): string {
-  if (state.accounts.length === 0) {
-    return 'No managed Antigravity accounts.'
-  }
-  return `Managed Antigravity accounts (${state.accounts.length}):\n${state.accounts
-    .map(
-      (account) =>
-        `  ${account.id}  ${account.email ?? account.subject ?? account.id}${
-          account.id === state.activeAccountId ? ' (active)' : ''
-        }`
-    )
-    .join('\n')}`
-}

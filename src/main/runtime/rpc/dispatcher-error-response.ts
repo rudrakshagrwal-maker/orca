@@ -1,11 +1,11 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { BranchSwitchLandedWithWarningError } from '../../git/branch-switch'
 import { mapBrowserError } from './browser-error-response'
 import { ZodError } from 'zod'
 import { InvalidArgumentError, formatZodError } from './core'
 import type { RpcEnvelopeMeta, RpcRequest, RpcResponse } from './core'
 import { computerUseErrorRecoveryData } from '../../../shared/computer-use-error-recovery'
-import { errorResponse, mapEmulatorError, mapRuntimeError } from './errors'
-import { PluginHookDeniedError } from '../../plugins/hooks/plugin-hook-dispatch'
+import { errorResponse, mapRuntimeError } from './errors'
 
 export function invalidArgumentResponse(
   request: RpcRequest,
@@ -39,15 +39,10 @@ export function mapDispatcherError(
   if (error instanceof InvalidArgumentError) {
     return invalidArgumentResponse(request, meta, error.message)
   }
-  if (error instanceof PluginHookDeniedError) {
-    // Final, not transient: a retry sends the same refused action.
-    return errorResponse(request.id, meta, error.code, error.message, error.data)
-  }
+
   if (request.method.startsWith('browser.')) {
     return mapBrowserError(request.id, meta, error)
   }
-  if (request.method.startsWith('emulator.')) {
-    return mapEmulatorError(request.id, meta, error)
-  }
+
   return mapRuntimeError(request.id, meta, error)
 }

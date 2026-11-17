@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store/index'
@@ -235,7 +236,7 @@ export function useMainSidebarListModel(args: SidebarListModelArgs): SidebarList
     repoMap: index.repoMap,
     worktreeMap: planned.worktreeMap,
     worktreeLineageById: planned.lineageById,
-    prCache: args.prCache,
+
     workspaceStatuses: args.workspaceStatuses,
     projectGroups: planned.visibleProjectGroups,
     projectGrouping: args.projectGrouping,

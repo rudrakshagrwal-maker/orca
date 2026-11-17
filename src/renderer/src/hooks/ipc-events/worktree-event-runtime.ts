@@ -241,7 +241,6 @@ export function createWorktreeEventRuntime(
       afterState.purgeWorktreeTerminalState(
         purgeHostId ? removed.map((id) => hostWorktreeTarget({ id, hostId: purgeHostId })) : removed
       )
-      afterState.removeWorkspaceSpaceWorktrees(removed)
     }
   }
   const refreshQueue = createWorktreeChangeRefreshQueue(handleWorktreesChanged)

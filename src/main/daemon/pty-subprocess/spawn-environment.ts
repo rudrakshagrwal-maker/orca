@@ -1,4 +1,5 @@
-import { getLegacyOpenCodeEnvKeysToDelete } from '../../opencode/legacy-shared-config-dir'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { restoreManagedDataAccountEnvironment } from '../../../shared/managed-data-account-environment'
 import { restoreOrStripOverlayEnv } from '../../../shared/agent-launch/startup/agent-overlay-env'
 import { delimiter } from 'node:path'
@@ -65,12 +66,6 @@ function deleteRequestedDaemonEnvKeys(
   env: Record<string, string>,
   keys: readonly string[] | undefined
 ): void {
-  const userDataPath = process.env.ORCA_USER_DATA_PATH
-  if (userDataPath) {
-    for (const key of getLegacyOpenCodeEnvKeysToDelete(env, userDataPath, {})) {
-      delete env[key]
-    }
-  }
   // Persistent daemon state may differ from Electron; remove CODEX_HOME only if its Orca overlay owns it.
   const deleteOrcaOwnedCodexHome =
     keys?.includes('ORCA_CODEX_HOME') === true &&

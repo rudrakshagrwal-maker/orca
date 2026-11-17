@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type React from 'react'
 
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
@@ -35,7 +36,7 @@ import {
   AppearanceThemeSlotSelect,
   CodeEditorThemeSelect
 } from './themes/AppearanceThemeControl'
-import { useIconThemePickerLabels, useUiLanguagePickerLabels } from './use-appearance-picker-labels'
+import { useUiLanguagePickerLabels } from './use-appearance-picker-labels'
 
 type AppearanceInterfaceSectionProps = {
   settings: GlobalSettings
@@ -60,8 +61,6 @@ export function AppearanceInterfaceSection({
 }: AppearanceInterfaceSectionProps): React.JSX.Element {
   const t = useTranslate()
   const searchQuery = useAppStore((state) => state.settingsSearchQuery)
-  const iconThemes = useIconThemePickerLabels()
-  const pluginIconThemes = iconThemes.themes
   const languages = useUiLanguagePickerLabels()
   const themeSlots = [
     {
@@ -92,10 +91,6 @@ export function AppearanceInterfaceSection({
       )
     }
   ]
-  const iconThemeTitle = t(
-    'auto.components.settings.AppearanceInterfaceSection.pluginIconTheme.title',
-    'Icon theme'
-  )
   const isSearching = normalizeSettingsSearchQuery(searchQuery).length > 0
   const zoomInKeyCombos = useShortcutKeyComboDetails('zoom.in')
   const zoomOutKeyCombos = useShortcutKeyComboDetails('zoom.out')
@@ -108,18 +103,13 @@ export function AppearanceInterfaceSection({
   const typographyEntry = getTypographyEntries()[0]
   const zoomEntry = getZoomEntries()[0]
   const reduceVisualEffectsEntry = getReduceVisualEffectsEntries()[0]
-  const languageOptions: SettingsSearchableSelectOption[] = [
-    ...UI_LANGUAGE_CHOICES.map((choice, index) => ({
+  const languageOptions: SettingsSearchableSelectOption[] = UI_LANGUAGE_CHOICES.map(
+    (choice, index) => ({
       value: choice.value,
       label: languages.choices[index],
       keywords: [choice.value]
-    })),
-    ...languages.packs.map((pack) => ({
-      value: pack.id,
-      label: languages.packLabels.get(pack.id) ?? pack.locale,
-      keywords: [pack.id, pack.locale]
-    }))
-  ]
+    })
+  )
   if (!languageOptions.some((option) => option.value === settings.uiLanguage)) {
     languageOptions.push({
       value: settings.uiLanguage,
@@ -219,53 +209,6 @@ export function AppearanceInterfaceSection({
           />
         </SearchableSetting>
       ))}
-
-      {pluginIconThemes.length > 0 ? (
-        <SearchableSetting
-          title={iconThemeTitle}
-          description={t(
-            'auto.components.settings.AppearanceInterfaceSection.pluginIconTheme.description',
-            'File and folder icons from an enabled plugin.'
-          )}
-          keywords={['plugin', 'icon', 'file', 'folder']}
-          forceVisible={forceVisiblePrimary}
-        >
-          <SettingsRow
-            label={iconThemeTitle}
-            control={
-              <SettingsSearchableSelect
-                ariaLabel={iconThemeTitle}
-                value={
-                  pluginIconThemes.find((theme) => theme.id === settings.pluginIconTheme)?.id ??
-                  'built-in'
-                }
-                onValueChange={(value) =>
-                  updateSettings({
-                    pluginIconTheme:
-                      pluginIconThemes.find((theme) => theme.id === value)?.id ?? null
-                  })
-                }
-                searchPlaceholder={t(
-                  'auto.components.settings.AppearanceInterfaceSection.pluginIconTheme.search',
-                  'Search icon themes…'
-                )}
-                groups={[
-                  {
-                    key: 'icon-themes',
-                    options: [
-                      { value: 'built-in', label: iconThemes.builtIn },
-                      ...pluginIconThemes.map((theme) => ({
-                        value: theme.id,
-                        label: iconThemes.labels.get(theme.id) ?? theme.label
-                      }))
-                    ]
-                  }
-                ]}
-              />
-            }
-          />
-        </SearchableSetting>
-      ) : null}
 
       {SHOW_UI_LANGUAGE_SETTING ? (
         <SearchableSetting

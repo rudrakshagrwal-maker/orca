@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import type { Store } from '../persistence/loading-store/store'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type {
@@ -66,7 +67,6 @@ export function createOrcadAccountServices(args: {
     setClaudeStatusLineListener: args.setClaudeStatusLineListener
   })
   args.registerCleanup(() => {
-    services.rateLimits.stop()
     args.setClaudeStatusLineListener(null)
   })
   const { codexRuntimeHome } = services
@@ -111,8 +111,7 @@ export function createOrcadAccountServices(args: {
     attachToRuntime: (runtime) => {
       runtime.setAccountServices({
         claudeAccounts: services.claudeAccounts,
-        codexAccounts: services.codexAccounts,
-        rateLimits: services.rateLimits
+        codexAccounts: services.codexAccounts
       })
       runtime.setCommitMessageAgentEnvironmentResolvers({
         prepareForCodexLaunch: prepareCodexHome,

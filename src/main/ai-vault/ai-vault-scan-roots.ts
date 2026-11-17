@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { join } from 'node:path'
 import { isWslUncPath } from '../../shared/wsl-paths'
 import { LOCAL_EXECUTION_HOST_ID } from '../../shared/execution-host'
@@ -9,10 +10,6 @@ import {
 } from '../wsl/discovery/wsl-home-unless-stopped'
 import { filterPathsToRunningWslDistrosAsync } from '../wsl/filesystem/wsl-running-path-filter'
 import type { AiVaultScanOptions } from './session-scanner-types'
-import { managedOpenCodeAccountDataDirs } from '../opencode/opencode-managed-account-data-dirs'
-import { antigravityChatBrainDir } from '../antigravity/antigravity-chat-home'
-import { getProfileUserDataPath } from '../orca-profiles/profile-storage-paths'
-import { prepareOpenCodeWslReaders } from './scanners/opencode/reader-transport/opencode-wsl-runtime-preparation'
 
 // Configure sources through the runtime service; headless serve never runs window-only IPC registration.
 export type AiVaultSessionSources = {
@@ -67,10 +64,9 @@ export async function resolveLocalAiVaultScanRoots(): Promise<{
       wslHomeDirs: wsl.homes,
       // Scanner workers have no account router; supply profile roots from this process.
       claudeProfileProjectsDirs: claudeProfileHistoryDirs('projects'),
-      opencodeAccountDataDirs: managedOpenCodeAccountDataDirs(),
+
       // The chat host's state root, as structured-session-account-home resolves it.
-      antigravityChatBrainDir: antigravityChatBrainDir(getProfileUserDataPath()),
-      wslOpenCodeReaders: await prepareOpenCodeWslReaders(wsl.homes),
+
       // Runtime-addressed callers restamp host-local results at the RPC edge instead of rescanning.
       executionHostId: LOCAL_EXECUTION_HOST_ID
     }

@@ -1,5 +1,4 @@
 import type { ResourceViewAdmission } from '../../../../shared/resource-view-admission'
-import { assertResourceViewVisible } from '../../../window/resource-view-admission'
 import { getPtyIpc } from '../pty-host-bindings'
 import {
   PtyProcessListAdmission,
@@ -26,11 +25,10 @@ export function installPtySessionListingIpcHandler(deps: {
   ipcMain.handle(
     'pty:listSessions',
     async (
-      event,
+      _event,
       scope?: PtySessionListScope,
       viewAdmission?: ResourceViewAdmission
     ): Promise<PtyListedSession[]> => {
-      assertResourceViewVisible(event, viewAdmission)
       if (scope !== undefined) {
         if (
           !scope ||
@@ -47,7 +45,6 @@ export function installPtySessionListingIpcHandler(deps: {
           await getLocalPtyProviderStartupPromise()
         }
       }
-      assertResourceViewVisible(event, viewAdmission)
       const deduped = new Map<string, PtyListedSession>()
       const admission = new PtyProcessListAdmission()
       const diagnostic = scope?.includeUnrouted === true
@@ -61,7 +58,6 @@ export function installPtySessionListingIpcHandler(deps: {
               }
             ],
         ({ provider, hostId }) => {
-          assertResourceViewVisible(event, viewAdmission)
           if (diagnostic && hostId === LOCAL_EXECUTION_HOST_ID) {
             return provider.listProcesses({ includeUnrouted: true })
           }

@@ -7,7 +7,9 @@ import type {
   StructuredAgentSessionLifecycleEvent
 } from '../../../native-chat/agent-session-wire/providers/structured-agent-session-adapter'
 import type { StructuredAgentCommandSettings } from '../../../native-chat/structured-agent-command-resolution'
-import type { AcpHostBackendSettings } from '../../../acp/launch/acp-launch-contract'
+// RA: optional host programs need only saved command settings for Claude/Codex.
+import type { GlobalSettings } from '../../../../shared/global-settings-types'
+type AcpHostBackendSettings = Partial<Omit<GlobalSettings, 'branchPrefix'>> & { branchPrefix?: string }
 import type { StructuredAgentDefinition } from '../../../native-chat/agent-session-wire/providers/structured-agent-definition'
 import type { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/host/structured-agent-session-host'
 import type { JournalHostDatabase } from '../../../native-chat/agent-session-journal/database/journal-host-database'

@@ -1,4 +1,3 @@
-import { assertOpenCodeModelLaunchPreferencesAbsent } from '../../../opencode/opencode-model-startup-plan'
 import {
   formatAmbiguousCwdParentMessage,
   type WorktreeLineageInput,
@@ -38,7 +37,7 @@ import { resolveManagedWorktreeCreateStartup } from '../startup/managed-worktree
 import type { WorkspaceCreationHandle } from '../lifecycle/workspace-lifecycle-creations'
 import { workspaceLifecycleKey } from '../lifecycle/workspace-lifecycle-commands'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
-import { applyWorkspaceCreatePluginHook } from '../../../plugins/hooks/workspace-create-plugin-hook'
+
 import { withProjectWorktreeCreate } from '../../../workspaces/creation/worktree-create-in-flight'
 
 export abstract class OrcaRuntimeWithCreateManagedWorktree extends OrcaRuntimeWithGetWorktreeTerminalProvisioningHost {
@@ -68,14 +67,9 @@ export abstract class OrcaRuntimeWithCreateManagedWorktree extends OrcaRuntimeWi
   ): Promise<CreateWorktreeResult> {
     this.requireStore()
 
-    assertOpenCodeModelLaunchPreferencesAbsent(
-      args.startup ? (args.startupAgent ?? args.createdWithAgent) : undefined,
-      args.startupSessionOptions ?? args.startupLaunchPreferences
-    )
-
     const repo = await this.resolveRepoSelector(args.repoSelector)
     return withProjectWorktreeCreate(repo, async () => {
-      const request = await applyWorkspaceCreatePluginHook(args, repo)
+      const request = args // RA: workspace creation has no plugin callback.
       // Listed from here: a create refused before its project resolved has nothing to show.
       const creation = this.workspaceLifecycle?.openCreate({
         creationId: request.creationId,

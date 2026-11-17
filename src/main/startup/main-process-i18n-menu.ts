@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { app, BrowserWindow } from 'electron'
 import { setMainUiLanguage } from '../i18n/main-i18n'
 import {
@@ -5,17 +6,13 @@ import {
   rebuildAppMenu,
   getNextDefaultOnAppearanceSettingValue
 } from '../menu/register-app-menu'
-import { zoomDashboardPopoutIfFocused } from '../window/dashboard-popout-window'
-import { zoomWorkspaceSpaceWindowIfFocused } from '../window/workspace-space-window'
 import { recordCrashBreadcrumb } from '../crash-reporting/breadcrumbs/crash-breadcrumb-store'
 import { mainProcessState as state } from './main-process-state'
 import {
   getAppMenuQuitHandlers,
   openSettingsFromSystemMenu,
   runUserInitiatedUpdateCheck,
-  sendOpenCrashReport,
-  sendOpenFeatureTour,
-  sendOpenSetupGuide
+  sendOpenCrashReport
 } from './main-window-actions'
 import { ensureAutoUpdaterConfigured } from '../window/attach-main-window-services'
 import { logStartupMilestone } from './startup-diagnostics'
@@ -43,34 +40,21 @@ export async function initializeMainProcessI18nAndMenu(): Promise<void> {
     },
     onOpenSettings: openSettingsFromSystemMenu,
     toggleFocusedPageDevTools: (focused) => browserManager.toggleDevToolsOfFocusedPage(focused),
-    onOpenSetupGuide: (targetWindow) => {
-      recordCrashBreadcrumb('setup_guide_opened')
-      sendOpenSetupGuide(targetWindow instanceof BrowserWindow ? targetWindow : null)
-    },
+
     onOpenCrashReport: (targetWindow) => {
       recordCrashBreadcrumb('crash_report_opened')
       sendOpenCrashReport(targetWindow instanceof BrowserWindow ? targetWindow : null)
     },
-    onOpenFeatureTour: (targetWindow) => {
-      recordCrashBreadcrumb('feature_tour_opened')
-      // Route to the invoking renderer so hidden tests/multiple windows do not depend on global focus.
-      sendOpenFeatureTour(targetWindow instanceof BrowserWindow ? targetWindow : null)
-    },
+
     // Zoom the focused popout rather than changing the main window behind it.
     onZoomIn: () => {
-      if (!zoomDashboardPopoutIfFocused('in') && !zoomWorkspaceSpaceWindowIfFocused('in')) {
-        state.mainWindow?.webContents.send('terminal:zoom', 'in')
-      }
+      state.mainWindow?.webContents.send('terminal:zoom', 'in')
     },
     onZoomOut: () => {
-      if (!zoomDashboardPopoutIfFocused('out') && !zoomWorkspaceSpaceWindowIfFocused('out')) {
-        state.mainWindow?.webContents.send('terminal:zoom', 'out')
-      }
+      state.mainWindow?.webContents.send('terminal:zoom', 'out')
     },
     onZoomReset: () => {
-      if (!zoomDashboardPopoutIfFocused('reset') && !zoomWorkspaceSpaceWindowIfFocused('reset')) {
-        state.mainWindow?.webContents.send('terminal:zoom', 'reset')
-      }
+      state.mainWindow?.webContents.send('terminal:zoom', 'reset')
     },
     onToggleLeftSidebar: () => state.mainWindow?.webContents.send('ui:toggleLeftSidebar'),
     onToggleRightSidebar: () => state.mainWindow?.webContents.send('ui:toggleRightSidebar'),

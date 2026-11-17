@@ -30,6 +30,7 @@ import {
   LARGE_BACKLOG_CHARS,
   queuedByTerminal,
   parsingTerminals,
+  isTerminalOutputSuspended,
   scheduleDrain,
   type WriteTerminalOutputOptions
 } from './pane-terminal-output-queue-registry'
@@ -40,6 +41,12 @@ export function writeTerminalOutputImpl(
   data: string,
   options: WriteTerminalOutputOptions
 ): void {
+  // RA: credit transport immediately while retaining bounded bytes without parsing xterm.
+  const suspended = isTerminalOutputSuspended(terminal)
+  if (suspended) {
+    options.ackCredit?.()
+    options = { ...options, foreground: false, ackCredit: undefined }
+  }
   exposeTerminalOutputSchedulerDebugApi()
   // Why: recovery may be budget-delayed while PTY output keeps flowing; main owns the authoritative buffer, so credit delivery without waking dead xterm.
   if (isTerminalWritePipelineCertifiedDead(terminal)) {
@@ -168,6 +175,9 @@ export function writeTerminalOutputImpl(
   }
   if (terminalOutputSchedulerDebugEnabled) {
     terminalOutputSchedulerDebugState.backgroundEnqueueCount++
+  }
+  if (suspended) {
+    return
   }
   // Why: letting every non-focused pane call xterm.write immediately spawns a WriteBuffer timer per pane, starving the focused terminal on the shared renderer thread.
   scheduleDrain(

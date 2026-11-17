@@ -1,7 +1,4 @@
 import React from 'react'
-import { PluginDeclarativeBadge } from '@/components/plugins/declarative/PluginDeclarativeDisplay'
-import { PluginDeclarativeIconGlyph } from '@/components/plugins/declarative/plugin-declarative-icons'
-import type { PluginDeclarativeTone } from '../../../../../../shared/plugins/declarative/plugin-declarative-catalog'
 import { cn } from '@/lib/class-names'
 import { cardElement, type CardHostElement } from './card-template-compiler'
 
@@ -102,14 +99,6 @@ const TONE: Readonly<Record<string, string>> = {
   warning: 'text-status-warning-text',
   danger: 'text-destructive'
 }
-const BADGE_TONES: readonly PluginDeclarativeTone[] = [
-  'neutral',
-  'accent',
-  'success',
-  'warning',
-  'danger'
-]
-
 function toText(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
 }
@@ -134,18 +123,22 @@ function text(props: Props): React.ReactNode {
   )
 }
 
+// RA: plugin glyph and badge components are removed; badges render as plain text chips.
 function badge(props: Props): React.ReactNode {
-  const tone = BADGE_TONES.find((candidate) => candidate === props.tone)
-  return <PluginDeclarativeBadge tone={tone}>{toText(props.text)}</PluginDeclarativeBadge>
+  return (
+    <span
+      className={cn(
+        'rounded border px-1 text-[10px] leading-4',
+        pick(TONE, props.tone) ?? TONE.neutral
+      )}
+    >
+      {toText(props.text)}
+    </span>
+  )
 }
 
-function icon(props: Props): React.ReactNode {
-  return (
-    <PluginDeclarativeIconGlyph
-      name={typeof props.name === 'string' ? props.name : ''}
-      className={cn('size-3 shrink-0', pick(TONE, props.tone) ?? 'text-muted-foreground')}
-    />
-  )
+function icon(_props: Props): React.ReactNode {
+  return null
 }
 
 /** Primitives draw from props alone, so they work under any context. */

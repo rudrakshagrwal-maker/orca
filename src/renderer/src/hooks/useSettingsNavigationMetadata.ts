@@ -7,7 +7,6 @@ import {
 } from '@/components/settings/runtime-environments/catalog/runtime-environments-search'
 import { getTerminalPaneSearchEntries } from '@/components/settings/terminal/terminal-search'
 import { isMacUserAgent, isWindowsUserAgent } from '@/app-shell/platform/user-agent-platform'
-import { useLinearProviderConnected } from '@/hooks/useLinearProviderConnected'
 import { getClientCreationActionPolicy } from '@/lib/workspace/creation/surface-policy/client-creation-action-policy'
 import { isWebClientLocation } from '@/app-shell/platform/web-client-location'
 import {
@@ -119,7 +118,20 @@ export function buildSettingsNavigationMetadata(
     (section) =>
       !['privacy', 'plugins', 'orca-account', 'mobile', 'setup-guide'].includes(section.id) &&
       // RA: settings retain terminal, launch, host and orchestration controls only.
-      (!backgroundJobsDisabled() || ['agents', 'orchestration', 'general', 'terminal', 'quick-commands', 'appearance', 'shortcuts', 'ssh', 'servers'].includes(section.id) || section.id.startsWith('repo-'))
+      (!backgroundJobsDisabled() ||
+        [
+          'agents',
+          'orchestration',
+          'general',
+          'terminal',
+          'quick-commands',
+          'browser',
+          'appearance',
+          'shortcuts',
+          'ssh',
+          'servers'
+        ].includes(section.id) ||
+        section.id.startsWith('repo-'))
   )
 }
 
@@ -144,7 +156,6 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
   const isMac = isMacUserAgent()
   const isWindows = isWindowsUserAgent()
   const isWebClient = isWebClientLocation()
-  const isLinearConnected = useLinearProviderConnected()
   const windowsTerminalCapabilityOwnerKey = useWindowsTerminalCapabilityOwnerKey(
     settings?.activeRuntimeEnvironmentId
   )
@@ -187,7 +198,6 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
           managedBrowserCreationEnabled,
           mobileEmulatorCreationEnabled,
           isDev: import.meta.env.DEV,
-          isLinearConnected,
           repos,
           projectGrouping: {
             projects: projectHostSetupProjection.projects,
@@ -207,7 +217,6 @@ export function useSettingsNavigationMetadata(): SettingsNavSection[] {
       typedChatPermissions,
       managedBrowserCreationEnabled,
       mobileEmulatorCreationEnabled,
-      isLinearConnected,
       repos,
       projectHostSetupProjection,
       languageRevision,

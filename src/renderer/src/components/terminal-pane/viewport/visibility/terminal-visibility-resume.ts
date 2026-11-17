@@ -122,33 +122,15 @@ export function resumeTerminalVisibility({
 export function hideTerminalVisibility({
   manager,
   wasVisible,
-  wasWorktreeActive,
   isWorktreeActive,
-  hasCompletedVisibleResume,
   captureViewportPositions
 }: HideTerminalVisibilityArgs): HideTerminalVisibilityResult {
-  const surfaceBecameHidden = wasWorktreeActive && !isWorktreeActive
+  // RA: every hidden tab/worktree suspends links, output parsing and GPU rendering.
   if (wasVisible) {
-    // Hidden DOM/layout churn can move viewport; retain the last visible position.
     captureViewportPositions(false)
   }
-  if (!isWorktreeActive && (wasVisible || surfaceBecameHidden)) {
-    // xterm.write() keeps updating the hidden buffer; suspension only changes renderer lifetime.
-    manager.suspendRendering()
-    return { hiddenReason: 'surface', renderingSuspended: true }
-  }
-  if (!hasCompletedVisibleResume && wasVisible && wasWorktreeActive && isWorktreeActive) {
-    // Initially hidden tabs must still suspend WebGL or exhaust Chromium’s limited context budget.
-    manager.suspendRendering()
-    return { hiddenReason: 'tab', renderingSuspended: true }
-  }
-  if (wasVisible && isWorktreeActive) {
-    return { hiddenReason: 'tab', renderingSuspended: false }
-  }
-  if (!isWorktreeActive) {
-    return { hiddenReason: 'surface', renderingSuspended: false }
-  }
-  return { hiddenReason: null, renderingSuspended: false }
+  manager.suspendRendering()
+  return { hiddenReason: isWorktreeActive ? 'tab' : 'surface', renderingSuspended: true }
 }
 
 export function recoverVisibleTerminalWindowWake({

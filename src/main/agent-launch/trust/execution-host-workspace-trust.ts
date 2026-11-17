@@ -1,16 +1,9 @@
 import { preserveGlobalAgentConfiguration } from '../../../shared/fork-background-policy'
 import { realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { markQoderWorkspaceTrusted } from '../../qoder/workspace-trust'
-import {
-  type AgentTrustPreset,
-  markAntigravityWorkspaceTrusted,
-  markCodexProjectTrusted,
-  markCopilotFolderTrusted,
-  markCursorWorkspaceTrusted,
-  markKimiWorkspaceTrusted
-} from './agent-trust-presets'
+import { resolve } from 'node:path'
+
+import { type AgentTrustPreset, markCodexProjectTrusted } from './agent-trust-presets'
 import { awaitAgentTrustWriteWithinDeadline } from './agent-trust-write-deadline'
 import {
   type ClaudeTrustConfigTarget,
@@ -103,21 +96,6 @@ async function writePreset(
     }
     case 'codex':
       return markCodexProjectTrusted(storedPath, host.codexConfigFiles())
-    case 'cursor':
-      return markCursorWorkspaceTrusted(storedPath, host.agentHome)
-    case 'copilot':
-      return markCopilotFolderTrusted(storedPath, host.agentHome)
-    case 'qoder-cn':
-      return markQoderWorkspaceTrusted(storedPath, host.agentHome, '.qoder-cn')
-    case 'qoder':
-      return markQoderWorkspaceTrusted(storedPath, host.agentHome)
-    case 'antigravity':
-      return markAntigravityWorkspaceTrusted(storedPath, host.agentHome, host.guestWorkspacePath)
-    case 'kimi':
-      return markKimiWorkspaceTrusted(
-        storedPath,
-        host.kimiHome || join(host.agentHome, '.kimi-code')
-      )
   }
 }
 

@@ -1,11 +1,11 @@
-import React, { useCallback } from 'react'
-import { FolderPlus, Plus } from 'lucide-react'
+import React from 'react'
+import { FolderPlus } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatOptionalPrimaryShortcutLabel } from '@/hooks/useShortcutLabel'
+
 import { useTranslate } from '@/i18n/use-translate'
-import { openWorkspaceCreationComposerWithTourHandoff } from '../contextual-tours/workspace-creation-tour-handoff'
+
 import SidebarWorkspaceOptionsMenu from './worktree-list/controls/SidebarWorkspaceOptionsMenu'
 
 function AddProjectButton({
@@ -39,66 +39,12 @@ function AddProjectButton({
   )
 }
 
-function NewWorkspaceButton({
-  preserveWorkspaceBoardOpen
-}: {
-  preserveWorkspaceBoardOpen: boolean
-}): React.JSX.Element {
-  const t = useTranslate()
-  const keybindings = useAppStore((s) => s.keybindings)
-  // Show the primary create shortcut so aliases do not crowd the tooltip.
-  const shortcutLabel = formatOptionalPrimaryShortcutLabel('workspace.create', keybindings)
-  const label = t('auto.components.sidebar.SidebarHeader.92154beb7e', 'New workspace')
-
-  const handleCreateWorkspace = useCallback(() => {
-    openWorkspaceCreationComposerWithTourHandoff()
-  }, [])
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          type="button"
-          className="text-muted-foreground"
-          aria-label={label}
-          data-workspace-board-preserve-open={preserveWorkspaceBoardOpen ? '' : undefined}
-          data-contextual-tour-target="workspace-create-control"
-          onClick={handleCreateWorkspace}
-        >
-          <Plus className="size-3.5" strokeWidth={2.25} />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" sideOffset={6}>
-        {label}
-        {shortcutLabel ? <span className="ml-1.5 text-background/60">{shortcutLabel}</span> : null}
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
-export function SidebarHeaderActions({
-  onWorkspaceBoardMenuOpenChange,
-  agentsViewActive = false,
-  activityOptionsTarget
-}: {
-  onWorkspaceBoardMenuOpenChange: (open: boolean) => void
-  agentsViewActive?: boolean
-  activityOptionsTarget?: React.Ref<HTMLDivElement>
-}): React.JSX.Element {
+// RA: project admission and list filters remain; the new-workspace composer is deleted.
+export function SidebarHeaderActions(): React.JSX.Element {
   return (
     <div className="flex shrink-0 items-center gap-1" data-sidebar-header-actions="">
-      <div ref={activityOptionsTarget} className="flex size-6 shrink-0 items-center">
-        {agentsViewActive ? null : (
-          <SidebarWorkspaceOptionsMenu
-            preserveWorkspaceBoardOpen
-            onMenuOpenChange={onWorkspaceBoardMenuOpenChange}
-          />
-        )}
-      </div>
-      <AddProjectButton preserveWorkspaceBoardOpen />
-      <NewWorkspaceButton preserveWorkspaceBoardOpen />
+      <SidebarWorkspaceOptionsMenu />
+      <AddProjectButton preserveWorkspaceBoardOpen={false} />
     </div>
   )
 }

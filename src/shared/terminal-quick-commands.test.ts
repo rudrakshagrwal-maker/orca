@@ -8,8 +8,8 @@ import {
 } from './terminal/quick-commands/terminal-quick-commands'
 
 describe('terminal quick commands', () => {
-  // RA: saved OpenCode commands survive settings normalization and RPC parsing intact.
-  it.each(['opencode', 'opencode2'] as const)('retains saved %s prompts', (agent) => {
+  // RA: saved agent commands survive settings normalization and RPC parsing intact.
+  it.each(['claude', 'codex'] as const)('retains saved %s prompts', (agent) => {
     const commands = [
       {
         id: 'saved',

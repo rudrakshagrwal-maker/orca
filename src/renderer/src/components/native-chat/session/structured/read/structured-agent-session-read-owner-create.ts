@@ -10,7 +10,7 @@ import {
 } from '../../../../../../../shared/agent-session/structured-agent-session-reducer'
 import type { RuntimeClientTarget } from '../../../../../../../shared/runtime-client-target'
 import { startStructuredAgentSessionReadTransport } from './structured-agent-session-read-transport'
-import { createStructuredAgentSessionPRLinkObserver } from './structured-agent-session-pr-link-observer'
+
 
 import { createStructuredAgentSessionReadActivity } from './structured-agent-session-read-activity'
 import { createStructuredAgentSessionOlderPageLoader } from './structured-agent-session-older-page-loader'
@@ -49,9 +49,7 @@ export function createReadOwner(
     () => !disposed,
     () => snapshot.state
   )
-  const observePRLinks = target
-    ? createStructuredAgentSessionPRLinkObserver(sessionId, target)
-    : () => {}
+  
 
   const emit = (): void => {
     for (const listener of listeners) {
@@ -155,7 +153,7 @@ export function createReadOwner(
         ) {
           commandListeners.forEach((listener) => listener())
         }
-        observePRLinks(event, effects.getState)
+        
       },
       applyError: (message, refusal) => {
         // After loading, transport failures retain history while retrying; host refusals are explicit answers to show.

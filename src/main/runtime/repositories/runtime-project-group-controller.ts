@@ -29,7 +29,7 @@ import {
   type FolderWorkspaceMutationOptions
 } from './folder-workspace-unique-id-mutation'
 import { deleteFolderWorkspaceRow } from './folder-workspace-deletion'
-import { createFolderWorkspaceWithPluginHooks } from '../../plugins/hooks/workspace-create-plugin-hook'
+
 import {
   assertWslMoveRepoWritable,
   isLocalWslMoveRow,
@@ -215,12 +215,11 @@ export class RuntimeProjectGroupController {
     if (pathRefusal) {
       throw new FolderWorkspaceCreateRefusedError(pathRefusal)
     }
-    const workspace = await createFolderWorkspaceWithPluginHooks(input, (request) =>
-      createFolder({
-        ...request,
-        creatorProvenance: request.creatorProvenance ?? { kind: 'host' }
-      })
-    )
+    // RA: folder creation has no plugin interception.
+    const workspace = await createFolder({
+      ...input,
+      creatorProvenance: input.creatorProvenance ?? { kind: 'host' }
+    })
     this.deps.notifyReposChanged()
     return workspace
   }

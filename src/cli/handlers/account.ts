@@ -24,39 +24,21 @@ import type { RuntimeStatus } from '../../shared/runtime-types'
 import type {
   ClaudeAccountSignIn,
   ClaudeRateLimitAccountsState,
-  CodexRateLimitAccountsState,
-  ManagedDataAccountsState
+  CodexRateLimitAccountsState
 } from '../../shared/managed-account-types'
 import {
   type InteractiveLoginSession,
   withInteractiveLoginCleanup
 } from './interactive-login-interruption'
 import { getWslAccountTarget } from './account-wsl-location'
-import {
-  addDataAccount,
-  redactLoginAnswers,
-  rejectOpenCodeLoginFlagsForAgent
-} from './data-account-commands'
-import {
-  formatAccountsBlock,
-  formatAntigravityAccounts,
-  formatDataAccounts
-} from './account-list-format'
-import { resolveOpenCodeLoginCommand } from './opencode-account-login-command'
-import {
-  listAgentAccounts,
-  readAntigravityAccountsForList,
-  removeAgentAccount,
-  selectAgentAccount
-} from './account-selection'
-import type { AntigravityAccountState } from '../../shared/antigravity-account-types'
+
+import { formatAccountsBlock } from './account-list-format'
+
+import { listAgentAccounts, removeAgentAccount, selectAgentAccount } from './account-selection'
 
 type AccountsListSnapshot = {
-  opencode?: ManagedDataAccountsState
-  devin?: ManagedDataAccountsState
   claude: ClaudeRateLimitAccountsState
   codex: CodexRateLimitAccountsState
-  antigravity?: AntigravityAccountState
 }
 
 function addAgentNodePaths(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
@@ -83,12 +65,6 @@ async function runAgentLoginInTerminal(
   json: boolean,
   session: InteractiveLoginSession
 ): Promise<void> {
-  if (command === 'opencode') {
-    command = await resolveOpenCodeLoginCommand(
-      addAgentNodePaths({ ...stripElectronRunAsNode(process.env), ...extraEnv }),
-      session
-    )
-  }
   await new Promise<void>((resolvePromise, rejectPromise) => {
     const resolvedCommand = resolveCliCommand(command)
     // Put the CLI's own Node ahead of newer version-manager bins to keep the command/runtime pair intact.
@@ -127,10 +103,7 @@ async function runAgentLoginInTerminal(
         return
       }
       rejectPromise(
-        new RuntimeClientError(
-          'internal',
-          `\`${[command, ...redactLoginAnswers(args)].join(' ')}\` exited with code ${code ?? 'null'}.`
-        )
+        new RuntimeClientError('internal', `\`${command}\` exited with code ${code ?? 'null'}.`)
       )
     })
   })
@@ -246,22 +219,18 @@ export const ACCOUNT_HANDLERS: Record<string, CommandHandler> = {
     if (agentFlag !== undefined && typeof agentFlag !== 'string') {
       throw new RuntimeClientError(
         'invalid_argument',
-        'Missing a value for --agent. Use `--agent claude`, `--agent codex`, `--agent opencode`, or `--agent devin`.'
+        'Missing a value for --agent. Use claude or codex.'
       )
     }
     const agent = agentFlag ?? 'claude'
-    if (agent !== 'claude' && agent !== 'codex' && agent !== 'opencode' && agent !== 'devin') {
+    if (agent !== 'claude' && agent !== 'codex') {
       throw new RuntimeClientError(
         'invalid_argument',
-        `Unsupported --agent "${agent}". Use "claude", "codex", "opencode", or "devin".`
+        `Unsupported --agent "${agent}". Use "claude" or "codex".`
       )
     }
     rejectAccountRemoteSelectionFlags(ctx, 'orca account add')
-    rejectOpenCodeLoginFlagsForAgent(ctx, agent)
-    if (agent === 'opencode' || agent === 'devin') {
-      await addDataAccount(ctx, agent, runAgentLoginInTerminal)
-      return
-    }
+
     // Check runtime support before spending an OAuth round trip.
     await assertAccountImportSupported(ctx, agent)
     await ctx.client.call('accounts.list', { refreshUsage: false })
@@ -276,21 +245,15 @@ export const ACCOUNT_HANDLERS: Record<string, CommandHandler> = {
     }
     const { client, json } = ctx
     // JSON carries usage: refresh stale windows within throttles; a forced refresh bypasses Retry-After.
-    const response = await client.call<AccountsListSnapshot>('accounts.list', {
-      refreshUsage: false,
-      ...(json ? { refreshStaleUsage: true } : {})
-    })
+    const response = await client.call<AccountsListSnapshot>('accounts.list', {})
     // Why separate: Antigravity accounts live in their own native vault, not in the
     // accounts.list snapshot, and an older host simply has none to show.
-    const antigravity = await readAntigravityAccountsForList(ctx)
-    const result = antigravity ? { ...response.result, antigravity } : response.result
+    // RA: account listings contain supported authentication only.
+    const result = response.result
     printResult({ ...response, result }, json, (snapshot) =>
       [
         formatAccountsBlock('Claude', snapshot.claude),
-        formatAccountsBlock('Codex', snapshot.codex),
-        ...(snapshot.opencode ? [formatDataAccounts('OpenCode', snapshot.opencode)] : []),
-        ...(snapshot.devin ? [formatDataAccounts('Devin', snapshot.devin)] : []),
-        ...(snapshot.antigravity ? [formatAntigravityAccounts(snapshot.antigravity)] : [])
+        formatAccountsBlock('Codex', snapshot.codex)
       ].join('\n\n')
     )
   },

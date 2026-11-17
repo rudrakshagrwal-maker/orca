@@ -1,5 +1,4 @@
-import { AcpAtRestCommandCatalog } from '../../../acp/discovery/acp-at-rest-commands'
-import { resolveNativeChatVisualsSkillLocation } from '../../../native-chat/native-chat-visuals-skill-location'
+import { agentSessionAttachmentStoreRoot } from '../../../native-chat/agent-session-attachments/agent-session-attachment-references'
 import { withSupportedCodexCli } from '../../../codex/structured/launch/codex-cli-installation-error'
 import { codexStructuredLaunchPart } from '../../../codex/structured/launch/codex-structured-launch-resolution'
 import { claudeStructuredLaunchPart } from '../../../claude/structured/launch/claude-structured-launch-resolution'
@@ -10,24 +9,13 @@ import { createCodexAtRestSkillCatalog } from '../../../codex/structured/catalog
 import { CODEX_STRUCTURED_AGENT } from '../../../codex/structured/launch/codex-structured-agent-definition'
 import { CLAUDE_STRUCTURED_AGENT } from '../../../claude/structured/claude-structured-agent-definition'
 import { agentModelCatalogStore } from '../../../native-chat/agent-model-catalog/agent-model-catalog-store'
-import { agentSessionAttachmentStoreRoot } from '../../../native-chat/agent-session-attachments/agent-session-attachment-references'
-import { restoreJournal } from '../../../native-chat/agent-session-journal/replay/journal-open'
 import { createStructuredClaudeRuntimeAdapter } from './structured-claude-runtime-adapter'
-import { acpListingNeedsChatFolder } from '../../../acp/discovery/acp-model-discovery-policy'
-import type { AcpLaunchSpec } from '../../../acp/launch/acp-launch-contract'
-import { acpStructuredAgentDefinition } from '../../../acp/session/acp-structured-agent-definitions'
-import { createAcpAgentConnection } from '../../../acp/process/acp-agent-connection'
-import { createOpenCodeAcpConnection } from '../../../opencode/opencode-acp-connection'
-import { acpStructuredLaunchPart } from '../../../acp/launch/acp-structured-launch-resolution'
-import { AcpStructuredSessionAdapter } from '../../../acp/session/acp-structured-session-adapter'
-import { PI_RPC_RUNTIME_REGISTRATION } from '../../../pi/rpc-runtime-registration'
 import {
   claudeLaunchEnvOverlay,
   claudeListingDeps
 } from '../model-catalog/structured-agent-model-catalog-discovery'
 import {
   composeStructuredLaunch,
-  composeStructuredLaunchRead,
   structuredAgentLaunchSources
 } from '../launch/structured-agent-launch-composition'
 import {
@@ -140,81 +128,16 @@ function createClaudeAdapter(
   })
 }
 
-function createAcpAdapter(
-  spec: AcpLaunchSpec
-): StructuredAgentRuntimeRegistration['createAdapter'] {
-  return (context) => {
-    const { deps, followUps } = context
-    const readJournal = (sessionId: string) => restoreJournal(context.journalDatabase.db, sessionId)
-    const definition = acpStructuredAgentDefinition(spec)
-    const sources = structuredAgentLaunchSources(context)
-    const part = acpStructuredLaunchPart(spec, {
-      readJournal,
-      ...deps.acpLaunchCommand,
-      dataDirectory: deps.stateDirectory,
-      logger: deps.logger
-    })
-    return new AcpStructuredSessionAdapter({
-      spec,
-      textTaskLaunch: {
-        resolveEnvironment: sources.resolveBaseEnvironment,
-        resolveLaunchEnv: sources.resolveAgentLaunchEnv,
-        resolveCommandSettings: sources.resolveCommandSettings,
-        refreshEnvironmentAfterMiss: sources.refreshAfterMissingProgram,
-        ...deps.acpLaunchCommand,
-        dataDirectory: deps.stateDirectory
-      },
-      // Agents that list models in a throwaway chat-folder session report commands there too.
-      ...(acpListingNeedsChatFolder(spec.modelDiscovery)
-        ? {
-            atRestCommands: new AcpAtRestCommandCatalog(spec, {
-              ...deps.acpLaunchCommand,
-              resolveWorkspacePath: deps.resolveWorkspacePath,
-              resolveEnvironment: context.environment.resolveBaseEnvironment,
-              refreshEnvironmentAfterMiss: context.environment.refreshAfterMissingProgram,
-              resolveLaunchEnv: deps.resolveAgentLaunchEnv,
-              resolveCommandSettings: deps.resolveAgentCommandSettings,
-              dataDirectory: deps.stateDirectory,
-              resolveVisualsSkill: () =>
-                deps.nativeChatVisuals && deps.nativeChatVisuals.isEnabled?.() !== false
-                  ? resolveNativeChatVisualsSkillLocation()
-                  : Promise.resolve(null),
-              logger: deps.logger
-            })
-          }
-        : {}),
-      resolveLaunch: composeStructuredLaunch(definition, sources, part),
-      readLaunch: composeStructuredLaunchRead(definition, sources, part),
-      dataDirectory: deps.stateDirectory,
-      resolveLaunchArgs: () => deps.resolveLaunchArgs(spec.agent),
-      connect:
-        deps.openAcpConnection ??
-        (spec.agent === 'opencode' || spec.agent === 'opencode2'
-          ? createOpenCodeAcpConnection
-          : createAcpAgentConnection),
-      onChildWorkEvidence: (sessionId, evidence, producer) =>
-        context.host()?.publishChildWorkEvidence(sessionId, evidence, producer),
-      ...(deps.readProcessStartTime ? { readProcessStartTime: deps.readProcessStartTime } : {}),
-      onDispatchSettledLate: followUps.onDispatchSettledLate,
-      logger: deps.logger,
-      onEvent: context.deliverLifecycle
-    })
-  }
-}
-
+// RA: adapter construction is limited to Claude and Codex.
 function registrationWithAdapter(
   entry: StructuredAgentRuntimeCatalogEntry
 ): StructuredAgentRuntimeRegistration {
   // Keep overrides visible through both the metadata and full-registration views.
   switch (entry.kind) {
-    case 'pi':
-      return PI_RPC_RUNTIME_REGISTRATION
     case 'codex':
       return Object.assign(entry.metadata, { createAdapter: createCodexAdapter })
     case 'claude':
       return Object.assign(entry.metadata, { createAdapter: createClaudeAdapter })
-    case 'acp':
-      return Object.assign(entry.metadata, { createAdapter: createAcpAdapter(entry.spec) })
   }
 }
 

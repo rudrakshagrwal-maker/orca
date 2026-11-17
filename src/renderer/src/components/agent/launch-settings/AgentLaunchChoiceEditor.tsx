@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 import { useRef, useState, type Ref } from 'react'
 import {
   AGENT_LAUNCH_CHOICE_KEYS,
@@ -39,10 +40,12 @@ export function AgentLaunchChoiceEditor({
   save: (patch: AgentChoicePatch | undefined, userArgs: string) => Promise<void>
 }): React.JSX.Element {
   const t = useTranslate()
-  const { catalog: liveCatalog, usesSeedModels } = useAgentSettingsModelCatalog(
-    agent,
-    catalogTarget
-  )
+  const {
+    catalog: liveCatalog,
+    usesSeedModels,
+    refresh,
+    refreshing
+  } = useAgentSettingsModelCatalog(agent, catalogTarget)
   const menu = useRef({ open: false, committed: false })
   const editorRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<string | null>(null)
@@ -104,6 +107,12 @@ export function AgentLaunchChoiceEditor({
         }
       }}
     >
+      {/* RA: users control all model rediscovery after the launch attempt. */}
+      {catalogTarget ? (
+        <Button variant="outline" size="sm" disabled={refreshing} onClick={refresh}>
+          Refresh models
+        </Button>
+      ) : null}
       <div className="space-y-2">
         <AgentChoiceFields
           agent={agent}

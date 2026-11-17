@@ -1,7 +1,7 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { publishedLegacyChatPermissionMode } from '../../../../shared/agent-launch/permissions/agent-chat-permission-mode'
 import { getClaudeAgentViewService } from '../../../claude/agent-view/agent-view-service'
 import { getAppEnvironment } from '../../../../shared/app-environment'
-import { isArtifactSharingEnabled } from '../../../../shared/artifacts/artifact-sharing-gate'
 import { isAgentSkillSharingEnabled } from '../../../../shared/agent-skill-sharing-gate'
 import { applyPRBotAuthorOverride } from '../../../../shared/source-control/review-comments/pr-bot-author-overrides'
 import { TASK_PROVIDERS } from '../../../../shared/work-items/task-providers'
@@ -43,7 +43,6 @@ import type {
 
 /** Which Orca cloud services this host registered; headless hosts register none. */
 export type RuntimeSharingServicePresence = {
-  artifacts(): boolean
   skills(): boolean
 }
 
@@ -101,9 +100,6 @@ export class RuntimeClientSettingsController {
       sourceControlCompareAgainstUpstream: settings.sourceControlCompareAgainstUpstream === true,
       diffShowWhitespace: settings.diffShowWhitespace === true,
       // Omitted without a service: clients treat absence as "ask the host", which names the real cause.
-      ...(this.sharingServices?.artifacts() === false
-        ? {}
-        : { artifactSharingEnabled: isArtifactSharingEnabled(settings) }),
       worktreeVisibilityDefaults: settings.worktreeVisibilityDefaults ?? { external: 'hide' },
       ...(this.sharingServices?.skills() === false
         ? {}

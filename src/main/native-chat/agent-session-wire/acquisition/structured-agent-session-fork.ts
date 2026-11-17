@@ -11,7 +11,8 @@ import {
 } from '../../../../shared/agent-session/agent-session-conversation-name'
 import { sliceAtCodeUnitLimit } from '../../../../shared/surrogate-safe-text-slice'
 import { AgentConversationCopyError } from '../../agent-conversation-copy-error'
-import { acpAgentName } from '../../../acp/session/acp-structured-agent-definitions'
+// RA: supported-agent labels do not load the removed ACP registry.
+import { formatAgentTypeLabel as acpAgentName } from '../../../../shared/agent-status/presentation/agent-type-label'
 import { AGENT_CHAT_PERMISSION_MODE_OPTION_ID } from '../../../../shared/agent-launch/permissions/agent-chat-permission-mode'
 import { isAgentSessionRefusalError } from '../../../../shared/agent-session/failures/agent-session-wire-refusals'
 import { requireUnownedStructuredAgentSessionAdoption } from '../../../runtime/agent-session/structured-agent-session-create-adoption'

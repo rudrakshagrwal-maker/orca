@@ -1,10 +1,7 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { useCallback } from 'react'
-import {
-  getRepoExecutionHostId,
-  LOCAL_EXECUTION_HOST_ID
-} from '../../../../../../shared/execution-host'
-import { getRepoWorkspaceCreationTargetHint } from '@/lib/workspace/creation/project-host-workspace-target'
-import { resolveReviewRepository } from '@/lib/source-control/review/review-owner'
+import { getRepoExecutionHostId } from '../../../../../../shared/execution-host'
+
 import {
   createWorktreeContextMenuDeleteIntent,
   deferWorktreeContextMenuDeleteIntent
@@ -17,23 +14,12 @@ import { formatClipboardFilePath } from '@/lib/clipboard/clipboard-file-path'
 import { getWorktreeRowLocalPathOpenOwner } from '@/lib/workspace/ownership/worktree-row-open-in-owner'
 import { VIRTUALIZED_SCROLL_ANCHOR_RECORD_EVENT } from '@/hooks/useVirtualizedScrollAnchor'
 import {
-  canCreateChildWorktree,
   planWorkspaceStatusAssignment,
   preserveDeleteSiblingPosition
 } from './worktree-context-menu-policy'
 import type { useAppStore } from '@/store/index'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { WorkspaceStatusDefinition, Worktree } from '../../../../../../shared/worktree/types'
-
-function resolveChildWorktreeRepository(repos: readonly Repo[], worktree: Worktree): Repo | null {
-  return resolveReviewRepository(repos, {
-    ...worktree,
-    // Unstamped clicked rows are local, regardless of the active workspace's owner.
-    hostId:
-      worktree.hostId ??
-      (worktree.runtimeOwnerEnvironmentId?.trim() ? undefined : LOCAL_EXECUTION_HOST_ID)
-  })
-}
 
 export function useWorktreeContextMenuCommands(args: {
   activeContextWorktrees: readonly Worktree[]
@@ -162,20 +148,7 @@ export function useWorktreeContextMenuCommands(args: {
       focus: 'displayName'
     })
   }, [args])
-  const handleNewChildWorktree = useCallback(() => {
-    const state = args.getState()
-    const repo = resolveChildWorktreeRepository(state.repos, args.worktree)
-    if (!repo || !canCreateChildWorktree({ ...args, repo })) {
-      return
-    }
-    args.setMenuOpenState(false)
-    args.openModal('new-workspace-composer', {
-      initialRepoId: repo.id,
-      initialWorkspaceTarget: getRepoWorkspaceCreationTargetHint(repo, state.projectHostSetups),
-      initialParentWorktreeId: args.worktree.id,
-      telemetrySource: 'sidebar'
-    })
-  }, [args])
+
   const sleepWorktreesAfterMenuClose = useCallback(
     (worktrees: readonly Worktree[]) => {
       args.setMenuOpenState(false)
@@ -228,10 +201,6 @@ export function useWorktreeContextMenuCommands(args: {
     }
   }, [args.validParent])
   return {
-    canCreateChildWorktree: canCreateChildWorktree({
-      ...args,
-      repo: resolveChildWorktreeRepository(args.getState().repos, args.worktree)
-    }),
     handleAssignWorkspaceStatus,
     handleCloseTerminals,
     handleCopyName,
@@ -240,7 +209,6 @@ export function useWorktreeContextMenuCommands(args: {
     handleCreateGroupFromRepo,
     handleDelete,
     handleMoveProjectToGroup,
-    handleNewChildWorktree,
     handleOpenParent,
     handleRemoveProjectFromGroup,
     handleRename,

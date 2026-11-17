@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { NO_RESOURCE_EVIDENCE } from '@/lib/workspace/ownership/workspace-copy-owner'
 import { useDiffCommentView } from '../../../diff-comments/use-diff-comment-owner'
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -35,7 +36,7 @@ import { useDiffEditorRegistration } from '../review/diff-navigation-context'
 import { preserveDiffViewStateAcrossModelSwaps } from './diff-model-swap-view-state'
 import { monacoFindOptions } from '../../monaco-find-options'
 import { buildEditorUnicodeHighlightOptions } from '../../editor-unicode-highlight-options'
-import { usePluginSyntaxLanguage } from '../../use-plugin-syntax-language'
+
 import {
   PLUGIN_SYNTAX_EDITOR_OPTIONS,
   applyModelLanguage
@@ -80,7 +81,7 @@ export default function DiffViewer({
   )
   const addDiffComment = useAppStore((s) => s.addDiffComment)
   const deleteDiffComment = useAppStore((s) => s.deleteDiffComment)
-  const language = usePluginSyntaxLanguage(filePath, coreLanguage)
+  const language = coreLanguage
   const updateDiffComment = useAppStore((s) => s.updateDiffComment)
   const scrollToDiffCommentId = useAppStore((s) => s.scrollToDiffCommentId)
   const setScrollToDiffCommentId = useAppStore((s) => s.setScrollToDiffCommentId)

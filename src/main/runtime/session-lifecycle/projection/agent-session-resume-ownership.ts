@@ -211,7 +211,7 @@ export abstract class OrcaRuntimeWithAgentSessionResumeOwnership extends OrcaRun
     )
   }
 
-  private getPaneSleepingAgentRecord(
+  protected getPaneSleepingAgentRecord(
     worktreeId: string,
     tab: RuntimeMobileSessionTerminalTab
   ): SleepingAgentSessionRecord | null {

@@ -1,8 +1,9 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import {
   PROJECT_GROUP_UPDATE_MANY_RUNTIME_CAPABILITY,
   PROJECT_ROOT_ORDER_RUNTIME_CAPABILITY
 } from './project-group-order-capability'
-import { EMULATOR_RUNTIME_CAPABILITIES } from './emulator-runtime-capabilities'
+
 import { ACCOUNT_RUNTIME_CAPABILITIES } from './account-runtime-capabilities'
 import * as agentLaunchCapabilities from './agent-launch/contracts/agent-launch-runtime-capability'
 import {
@@ -10,10 +11,7 @@ import {
   AGENT_SESSION_RUNTIME_CAPABILITIES
 } from './agent-session/agent-session-runtime-capabilities'
 import { AI_VAULT_RUNTIME_CAPABILITIES } from './ai-vault/contracts/ai-vault-runtime-capabilities'
-import {
-  AUTOMATION_RUNTIME_CAPABILITIES,
-  AUTOMATION_RUNTIME_CLIENT_CAPABILITIES
-} from './automations/automation-runtime-capabilities'
+import { AUTOMATION_RUNTIME_CLIENT_CAPABILITIES } from './automations/automation-runtime-capabilities'
 import { BROWSER_RUNTIME_CAPABILITIES } from './browser/runtime/browser-runtime-capabilities'
 import {
   DEVICE_KEY_RUNTIME_CAPABILITIES,
@@ -22,7 +20,7 @@ import {
 import { PAIRING_TICKET_EXCHANGE_RUNTIME_CAPABILITIES } from './remote-runtime/pairing/ticket-exchange-capability'
 import { FILES_RUNTIME_CAPABILITIES } from './file-access/files-runtime-capabilities'
 import { HOST_RUNTIME_CAPABILITIES } from './host-runtime-capabilities'
-import { MOBILE_RUNTIME_CAPABILITIES } from './mobile-runtime-capabilities'
+
 import { ORCAD_RUNTIME_CAPABILITIES } from './orcad-runtime-capabilities'
 import { ORCHESTRATION_RUNTIME_CAPABILITIES } from './orchestration/orchestration-runtime-capabilities'
 import { PREFLIGHT_RUNTIME_CAPABILITIES } from './preflight-runtime-capabilities'
@@ -32,9 +30,9 @@ import {
 } from './session-tabs-runtime-capabilities'
 import { SKILL_RUNTIME_CAPABILITIES } from './skill-install-capability'
 import { SOURCE_CONTROL_RUNTIME_CAPABILITIES } from './source-control/runtime/source-control-runtime-capabilities'
-import { TASK_SOURCE_RUNTIME_CAPABILITIES } from './work-items/task-source-runtime-capabilities'
+
 import { TERMINAL_RUNTIME_CAPABILITIES } from './terminal/runtime-policy/terminal-runtime-capabilities'
-import { WORKSPACE_PORTS_RUNTIME_CAPABILITIES } from './workspace-ports-runtime-capabilities'
+
 import {
   REPO_SEARCH_QUALIFIED_REFS_RUNTIME_CAPABILITY,
   WORKTREE_GITHUB_PR_SUPPRESSION_RUNTIME_CAPABILITY,
@@ -90,31 +88,30 @@ export const SAVED_RESUME_ORIGIN_RUNTIME_CAPABILITY =
 // Individual protocol exports must not retain the unused host capability aggregate.
 export const RUNTIME_CAPABILITIES = /* @__PURE__ */ (() =>
   [
-    ...EMULATOR_RUNTIME_CAPABILITIES,
     SAVED_RESUME_ORIGIN_RUNTIME_CAPABILITY,
     ...HOST_RUNTIME_CAPABILITIES,
     ...DEVICE_KEY_RUNTIME_CAPABILITIES,
     E2EE_V2_TOKEN_CAPABILITIES_RUNTIME_CAPABILITY,
     ...PAIRING_TICKET_EXCHANGE_RUNTIME_CAPABILITIES,
-    ...MOBILE_RUNTIME_CAPABILITIES,
+
     ...ORCAD_RUNTIME_CAPABILITIES,
     ...ORCHESTRATION_RUNTIME_CAPABILITIES,
     ...agentLaunchCapabilities.AGENT_LAUNCH_RUNTIME_CAPABILITIES,
     ...AGENT_SESSION_RUNTIME_CAPABILITIES,
     ...ACCOUNT_RUNTIME_CAPABILITIES,
     ...SKILL_RUNTIME_CAPABILITIES,
-    ...AUTOMATION_RUNTIME_CAPABILITIES,
+
     ...WORKTREE_RUNTIME_CAPABILITIES,
     PROJECT_ROOT_ORDER_RUNTIME_CAPABILITY,
     PROJECT_GROUP_UPDATE_MANY_RUNTIME_CAPABILITY,
     ...PREFLIGHT_RUNTIME_CAPABILITIES,
-    ...WORKSPACE_PORTS_RUNTIME_CAPABILITIES,
+
     ...SESSION_TABS_RUNTIME_CAPABILITIES,
     ...TERMINAL_RUNTIME_CAPABILITIES,
     ...FILES_RUNTIME_CAPABILITIES,
     ...BROWSER_RUNTIME_CAPABILITIES,
     ...SOURCE_CONTROL_RUNTIME_CAPABILITIES,
-    ...TASK_SOURCE_RUNTIME_CAPABILITIES,
+
     ...AI_VAULT_RUNTIME_CAPABILITIES
   ] as const)()
 

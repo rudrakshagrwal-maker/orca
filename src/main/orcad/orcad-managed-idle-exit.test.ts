@@ -19,8 +19,6 @@ function idlePorts(): OrcadManagedIdleExitPorts {
     agentStates: () => [{ state: 'done' }],
     hasChatProviders: () => false,
     hasStagedMigration: () => false,
-    automationsBusy: () => false,
-    emulatorsBusy: async () => false,
     activationFenceExists: async () => false
   }
 }

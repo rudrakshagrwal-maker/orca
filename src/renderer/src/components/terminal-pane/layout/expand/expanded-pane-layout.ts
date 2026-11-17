@@ -28,13 +28,15 @@ function rememberPaneStyle(
 }
 
 export function restoreExpandedLayoutFrom(
-  snapshots: Map<HTMLElement, { display: string; flex: string }>
+  snapshots: Map<HTMLElement, { display: string; flex: string }>,
+  manager?: PaneManager | null
 ): void {
   for (const [el, prev] of snapshots.entries()) {
     el.style.display = prev.display
     el.style.flex = prev.flex
   }
   snapshots.clear()
+  manager?.syncLayoutRendering() // RA: reveal buffered sibling splits only after restoring layout.
 }
 
 export function applyExpandedLayoutTo(
@@ -78,6 +80,7 @@ export function applyExpandedLayoutTo(
     }
     current = parent
   }
+  manager.syncLayoutRendering() // RA: expanded-away panes stop parsing, links and GPU work.
   return true
 }
 
@@ -120,7 +123,7 @@ export function createExpandCollapseActions(state: ExpandCollapseState) {
   }
 
   const restoreExpandedLayout = (): void => {
-    restoreExpandedLayoutFrom(state.expandedStyleSnapshotRef.current)
+    restoreExpandedLayoutFrom(state.expandedStyleSnapshotRef.current, state.managerRef.current)
   }
 
   // Fit after rAF settles ancestor display/flex changes; safeFit owns scroll preservation to avoid matching duplicate scrollback lines.

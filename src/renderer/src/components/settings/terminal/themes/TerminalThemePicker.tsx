@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type React from 'react'
 import { Trash2 } from 'lucide-react'
-import { ThemeColorSwatch } from '../../../plugins/page/PluginThemeSwatch'
 import { SettingsRow } from '../../form-controls/SettingsFormControls'
 import { SettingsSearchableSelect } from '../../form-controls/SettingsSearchableSelect'
 import { useTranslate } from '@/i18n/use-translate'
@@ -113,5 +112,24 @@ export function ThemePicker({
         />
       }
     />
+  )
+}
+
+/** A two-tone chip of a theme's background and accent. */
+function ThemeColorSwatch({
+  background,
+  accent
+}: {
+  background: string
+  accent: string
+}): React.JSX.Element {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-3.5 overflow-hidden rounded-sm ring-1 ring-border"
+    >
+      <span className="flex-1" style={{ background }} />
+      <span className="flex-1" style={{ background: accent }} />
+    </span>
   )
 }

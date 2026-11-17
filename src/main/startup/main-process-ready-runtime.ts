@@ -1,5 +1,5 @@
 import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
-import { app, ipcMain, nativeTheme } from 'electron'
+import { app, nativeTheme } from 'electron'
 import { performance } from 'node:perf_hooks'
 import { startPreGoneCrashSampling } from '../crash-reporting/process-exits/process-gone-diagnostics'
 import { refuseRealtimeSchedulingUnderZeroRtTime } from './linux-realtime-scheduling-guard'
@@ -36,34 +36,10 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   initializeMainProcessObservers()
   initializeMainProcessAccountServices()
   const runtime = initializeMainProcessRuntime()
-  // RA: skip both construction and module loading of the automation scheduler.
-  if (!backgroundJobsDisabled()) {
-    const { initializeMainProcessAutomations } = await import('./main-process-automations')
-    initializeMainProcessAutomations()
-  }
+  // RA: automations and plugins have no startup services.
   configureRuntimeServices(runtime)
   installFirstWorkRenameHookSubscription()
-  // RA: do not load marketplace and worker implementations into the terminal runtime.
-  if (!backgroundJobsDisabled()) {
-    const { initializeMainProcessPlugins } = await import('./main-process-plugins')
-    await initializeMainProcessPlugins(runtime)
-  }
-  // RA: legacy renderer calls stay harmless without loading star nags or spawning GitHub probes.
-  for (const action of [
-    'dismiss',
-    'later',
-    'complete',
-    'disable',
-    'openWeb',
-    'forceShow',
-    'showAgentValueMoment',
-    'onboardingCompleted'
-  ]) {
-    ipcMain.handle(`star-nag:${action}`, () => {})
-  }
-  ipcMain.handle('star-nag:starOrca', () => false)
-  ipcMain.handle('star-nag:agentValueMoment', () => ({ status: 'skipped' }))
-  // RA: agents drive the embedded browser (1000+ uses), so its runtime always starts.
+  // RA: embedded browsers remain available to orchestration agents.
   const { initializeMainProcessBrowserRuntime } = await import('./main-process-browser-runtime')
   initializeMainProcessBrowserRuntime(runtime)
   // Finish recorded deletes and old trash left across crashes; defer disk sweeps so they do not compete with first paint/catalog hydration.

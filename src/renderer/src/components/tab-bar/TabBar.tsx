@@ -5,7 +5,6 @@ import type { TabBarProps } from './tab-bar-props'
 import type { TabBarItem } from './tab-bar-item-model'
 import { useTabBarRuntimeModel } from './use-tab-bar-runtime-model'
 import { useTabBarCreateMenuController } from './use-tab-bar-create-menu-controller'
-import { usePluginNewFileMenuOptions } from './use-plugin-new-file-menu-options'
 import { useTabBarItemProjection } from './use-tab-bar-item-projection'
 import { renderTabBarSurface } from './tab-bar-surface'
 import { useTabBarItemActions } from './use-tab-bar-item-actions'
@@ -33,10 +32,7 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     resolvedGroupId: runtime.resolvedGroupId,
     showAgentLaunchItems: props.showAgentLaunchItems,
     terminalOnly,
-    mobileEmulatorEnabled: runtime.mobileEmulatorEnabled,
     managedBrowserCreationEnabled: runtime.managedBrowserCreationEnabled,
-    mobileEmulatorCreationEnabled: runtime.mobileEmulatorCreationEnabled,
-    workspaceHasSimulatorTab: runtime.workspaceHasSimulatorTab,
     showWindowsShellMenu: runtime.showWindowsShellMenu,
     projectRuntimeShellMenuMode: runtime.projectRuntimeShellMenuMode,
     defaultWindowsShell: runtime.defaultWindowsShell,
@@ -50,16 +46,7 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     onNewFileTab,
     onOpenFileTab
   })
-  const pluginCreateMenu = usePluginNewFileMenuOptions(
-    baseCreateMenu.createMenuOptions,
-    baseCreateMenu.handleSelectCreateMenuOption,
-    runtime.resolvedGroupId
-  )
-  const createMenu = {
-    ...baseCreateMenu,
-    createMenuOptions: pluginCreateMenu.menuOptions,
-    handleSelectCreateMenuOption: pluginCreateMenu.onSelectMenuOption
-  }
+  const createMenu = baseCreateMenu
   const itemProjection = useTabBarItemProjection({
     props,
     resolvedGroupId: runtime.resolvedGroupId,

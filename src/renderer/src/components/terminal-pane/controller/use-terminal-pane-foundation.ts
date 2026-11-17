@@ -1,4 +1,15 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  getWindowParkVisible,
+  subscribeWindowParkVisibility
+} from '@/lib/window-activity/window-park-visibility'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { IDisposable } from '@xterm/xterm'
 import { useAppStore } from '../../../store/index'
@@ -59,7 +70,13 @@ export function useTerminalPaneFoundation(props: TerminalPaneProps) {
   // Event/PTY callbacks need current visibility before passive effects run.
   // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
   isActiveRef.current = isActive
-  const isRendererVisible = isVisible && isWorktreeActive
+  // RA: document-hidden windows suspend the same way as hidden tabs.
+  const windowVisible = useSyncExternalStore(
+    subscribeWindowParkVisibility,
+    getWindowParkVisible,
+    getWindowParkVisible
+  )
+  const isRendererVisible = isVisible && isWorktreeActive && windowVisible
   const isVisibleRef = useRef(isRendererVisible)
   // react-doctor-disable-next-line react-doctor/no-ref-current-in-render
   isVisibleRef.current = isRendererVisible

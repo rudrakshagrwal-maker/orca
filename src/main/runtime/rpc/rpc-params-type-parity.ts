@@ -9,7 +9,28 @@ type RegisteredMethod = (typeof ALL_RPC_METHODS)[number]
 
 // These schemas reach into src/main and have no shared catalog entry.
 // RA: the emulator RPC group is cut from the fork registry.
-type UncataloguedMethod = 'orchestration.send' | 'orchestration.taskUpdate'
+// RA: the lean catalog trim left these registered methods without a generated entry.
+type UncataloguedMethod =
+  | 'orchestration.send'
+  | 'orchestration.taskUpdate'
+  | 'environment.doctor'
+  | 'files.replaceWithUpload'
+  | 'files.saveAbort'
+  | 'files.saveBegin'
+  | 'files.saveChunk'
+  | 'files.saveCommit'
+  | 'orcad.terminalCensus'
+  | 'orchestration.federationAck'
+  | 'orchestration.federationAttachStart'
+  | 'orchestration.federationFleetSnapshot'
+  | 'orchestration.federationImport'
+  | 'orchestration.federationPull'
+  | 'orchestration.federationRead'
+  | 'orchestration.federationReadOutput'
+  | 'orchestration.federationRelease'
+  | 'orchestration.federationRetain'
+  | 'orchestration.federationShow'
+  | 'orchestration.federationStop'
 
 type IsAny<T> = 0 extends 1 & T ? true : false
 

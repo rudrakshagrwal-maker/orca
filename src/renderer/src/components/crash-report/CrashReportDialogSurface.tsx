@@ -1,4 +1,5 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Clipboard, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,7 @@ import {
   type CrashReportDiagnosticBundle,
   type CrashReportRecord
 } from '../../../../shared/crash-reporting'
-import type { GitHubViewer } from '../../../../shared/github/pull-request-types'
+
 import { translate } from '@/i18n/i18n'
 import { useIntlLocale, useTranslate, type Translate } from '@/i18n/use-translate'
 import {
@@ -119,9 +120,9 @@ export function CrashReportDialogSurface({
   const [notes, setNotes] = useState('')
   const [includeDiagnosticLogs, setIncludeDiagnosticLogs] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [viewer, setViewer] = useState<GitHubViewer | null>(null)
+  
   // Sequence viewer lookups so late close/reopen results cannot supply a stale submission identity.
-  const viewerRequestIdRef = useRef(0)
+  
   const deferredNotes = useDeferredValue(notes)
   const diagnosticText = useMemo(
     // Defer full-payload redaction/truncation so notes typing stays responsive.
@@ -130,37 +131,18 @@ export function CrashReportDialogSurface({
   )
   const copyCrashReportDetails = useCrashReportCopy(report, notes)
 
-  const clearViewer = useCallback((): void => {
-    viewerRequestIdRef.current += 1
-    setViewer(null)
-  }, [])
+  
 
-  const loadViewerForOpenDialog = useCallback((): void => {
-    const requestId = ++viewerRequestIdRef.current
-    setViewer(null)
-    void window.api.gh
-      .viewer()
-      .then((nextViewer) => {
-        if (mountedRef.current && requestId === viewerRequestIdRef.current) {
-          setViewer(nextViewer)
-        }
-      })
-      .catch((error) => {
-        if (mountedRef.current && requestId === viewerRequestIdRef.current) {
-          setViewer(null)
-          console.error('Failed to load GitHub viewer for crash report:', error)
-        }
-      })
-  }, [mountedRef])
+  
 
   useEffect(() => {
     if (!open) {
-      clearViewer()
+      
       return
     }
     setIncludeDiagnosticLogs(true)
-    loadViewerForOpenDialog()
-  }, [clearViewer, loadViewerForOpenDialog, open])
+    
+  }, [open])
 
   const showSubmitFailure = (
     error: unknown,
@@ -207,8 +189,8 @@ export function CrashReportDialogSurface({
         notes,
         includeDiagnosticLogs,
         // Identity lookup is best-effort; allow anonymous reports when gh is unavailable.
-        submitAnonymously: !viewer,
-        githubLogin: viewer?.login ?? null,
+        submitAnonymously: true,
+        githubLogin: null,
         githubEmail: null
       })
       if (!result.ok) {
@@ -249,7 +231,7 @@ export function CrashReportDialogSurface({
           return
         }
         if (!nextOpen) {
-          clearViewer()
+          
           void dismissReportIfNeeded().finally(() => {
             if (mountedRef.current) {
               onOpenChange(false)

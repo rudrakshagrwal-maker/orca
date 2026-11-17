@@ -1,3 +1,4 @@
+import { backgroundJobsDisabled } from '../../../../../shared/fork-background-policy'
 import { useCallback, useEffect, useState } from 'react'
 import { onDriverChange } from '@/lib/pane-manager/mobile-driver-state'
 import {
@@ -39,6 +40,10 @@ export function useMobileOverlayTicks({ managerRef, paneTransportsRef }: MobileO
   // Why: override state lives in a Map for perf; this counter forces a re-render on override change so the mobile-fit banner toggles.
   const [, setOverrideTick] = useState(0)
   useEffect(() => {
+    // RA: mobile drivers cannot schedule pane fits or repaint work.
+    if (backgroundJobsDisabled()) {
+      return
+    }
     let active = true
     const latestOverrideByTerminal = new WeakMap<ManagedPane['terminal'], object>()
     const pendingFitFrames = new Set<number>()

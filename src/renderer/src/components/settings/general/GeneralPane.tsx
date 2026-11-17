@@ -3,16 +3,11 @@ import { GeneralWorkerSettings } from './GeneralWorkerSettings' // RA: searchabl
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
 import { useAppStore } from '../../../store/index'
 import { CliSection } from '../cli/install/CliSection'
-import { GeneralEditorSettingsSection } from '../editor/GeneralEditorSettingsSection'
-import { GeneralAutoSaveSetting } from '../editor/GeneralAutoSaveSetting'
 import { GeneralWorkspaceSettingsSection } from './GeneralWorkspaceSettingsSection'
 import { getGeneralCliSearchEntries, getGeneralNavigationSearchEntries } from './general-search'
-import { getGeneralEditorSearchDescriptors } from '../editor/general-editor-search'
 import { getGeneralProjectRuntimeSearchEntries } from './project-runtime/general-project-runtime-search'
 import { RecentTabOrderControl } from '../appearance/RecentTabOrderControl'
 import { matchesSettingsSearch, type SettingsSearchEntry } from '../search/settings-search'
-import { SearchableSetting } from '../section-layout/SearchableSetting'
-import { SettingsSwitchRow } from '../form-controls/SettingsFormControls'
 import { SettingsNavigationRow } from '../form-controls/SettingsNavigationRow'
 import { useTranslate } from '@/i18n/use-translate'
 import { DefaultWindowsProjectRuntimeSetting } from './project-runtime/DefaultWindowsProjectRuntimeSetting'
@@ -88,10 +83,9 @@ function GeneralPaneView({
   const defaultsSupported = target.kind === 'local' || target.environmentId === defaultsRuntimeId
   const sourceDefaultsSupported =
     defaultsSupported && (target.kind === 'local' || target.environmentId === sourceRuntimeId)
-  if (query.trim() === '' && subPage) {
-    return subPage === 'editor' ? (
-      <GeneralEditorSettingsSection {...props} />
-    ) : (
+  // RA: old editor deep links return to the retained General controls.
+  if (query.trim() === '' && subPage && subPage !== 'editor') {
+    return (
       <GeneralWorkspaceSettingsSection
         {...props}
         page={subPage}
@@ -129,9 +123,6 @@ function GeneralRootSettings({
   const tabsEntries = getGeneralNavigationSearchEntries()
   const runtimeEntries = getGeneralProjectRuntimeSearchEntries()
   const showRuntime = shouldShowProjectRuntimeSection(wslSupportedPlatform, query, runtimeEntries)
-  const autoSaveEntries = getGeneralEditorSearchDescriptors()
-    .filter((descriptor) => descriptor.page === null)
-    .map(({ entry }) => entry)
   const worktreeDefaults = settings.worktreeVisibilityDefaults
   const visibilitySummary =
     Object.keys(worktreeDefaults?.sourcePreferences?.builtIn ?? {}).length ||
@@ -152,40 +143,7 @@ function GeneralRootSettings({
             keywords={getTabOrderControlSearchKeywords(tabsEntries)}
             updateSettings={updateSettings}
           />
-          <SearchableSetting
-            title={t('settings.general.previewTabs.title', 'Preview tabs')}
-            description={t(
-              'settings.general.previewTabs.description',
-              'Single-clicking a file reuses one preview tab until you edit or pin it.'
-            )}
-            keywords={[
-              'preview',
-              'tab',
-              'editor',
-              'explorer',
-              'reuse',
-              'replace',
-              'italic',
-              t(
-                'auto.components.settings.GeneralPane.editor_preview_tabs',
-                'Reuse a preview tab when browsing files'
-              )
-            ]}
-          >
-            <SettingsSwitchRow
-              label={t('settings.general.previewTabs.title', 'Preview tabs')}
-              description={t(
-                'settings.general.previewTabs.description',
-                'Single-clicking a file reuses one preview tab until you edit or pin it.'
-              )}
-              checked={settings.editorPreviewTabsEnabled ?? true}
-              onChange={() =>
-                updateSettings({
-                  editorPreviewTabsEnabled: !(settings.editorPreviewTabsEnabled ?? true)
-                })
-              }
-            />
-          </SearchableSetting>
+          {/* RA: preview/editor tab controls are retired with the editor. */}
         </SettingsGroup>
       ) : null}
       {showNavigation || showRuntime ? (
@@ -238,28 +196,6 @@ function GeneralRootSettings({
         </SettingsGroup>
       ) : null}
       <GeneralConfirmationsSection settings={settings} updateSettings={updateSettings} />
-      {showNavigation || matchesSettingsSearch(query, autoSaveEntries) ? (
-        <SettingsGroup
-          title={t('auto.components.settings.GeneralEditorSettingsSection.45c6e85c4d', 'Editor')}
-        >
-          <GeneralAutoSaveSetting settings={settings} updateSettings={updateSettings} />
-          {showNavigation ? (
-            <SettingsNavigationRow
-              title={getGeneralSubPageTitle('editor', t)}
-              description={t(
-                'settings.general.editor.description',
-                'Saving, editor, diff and Markdown options'
-              )}
-              value={
-                settings.diffDefaultView === 'side-by-side'
-                  ? t('settings.general.editor.sideBySide', 'Side-by-side diffs')
-                  : t('settings.general.editor.inline', 'Inline diffs')
-              }
-              onClick={() => onSelectSubPage('editor')}
-            />
-          ) : null}
-        </SettingsGroup>
-      ) : null}
       {matchesSettingsSearch(query, getGeneralCliSearchEntries()) ? (
         <CliSection
           currentPlatform={getDesktopPlatformFromUserAgent(navigator.userAgent)}

@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type {
   CodexManagedAccount,
   CodexRateLimitAccountsState,
@@ -5,7 +6,7 @@ import type {
 } from '../../shared/managed-account-types'
 import { parseWslUncPath } from '../../shared/wsl-paths'
 import type { Store } from '../persistence/loading-store/store'
-import type { RateLimitService } from '../rate-limits/service/rate-limit-service'
+
 import type { CodexRuntimeHomeService } from './runtime-home-service'
 import type { CodexConfigMirror } from './codex-config-mirror'
 import type { ResolvedCodexIdentity } from './codex-account-identity'
@@ -14,7 +15,6 @@ import type { CodexAccountServiceLifecycle } from './codex-account-service-types
 import { toCodexManagedAccountSummary } from './codex-account-service-types'
 import {
   getCodexSelectionTargetForAccount,
-  getSelectedCodexAccountIdForTarget,
   normalizeCodexAccountSelectionTarget,
   normalizeCodexRuntimeSelection,
   pruneInvalidCodexRuntimeSelection,
@@ -25,7 +25,7 @@ import {
 
 type CodexAccountSelectionDependencies = {
   store: Store
-  rateLimits: RateLimitService
+
   runtimeHome: CodexRuntimeHomeService
   configMirror: CodexConfigMirror
   lifecycle: CodexAccountServiceLifecycle
@@ -36,7 +36,6 @@ type CodexAccountSelectionDependencies = {
     expectedAccountId: string
   ) => ResolvedCodexIdentity
   removeManagedHome: (candidatePath: string, expectedAccountId: string) => Promise<void>
-  discardResetAttempts: (accountId: string) => Promise<void>
 }
 
 export class CodexAccountSelection {
@@ -92,20 +91,7 @@ export class CodexAccountSelection {
     }
 
     await this.dependencies.removeManagedHome(account.managedHomePath, account.id)
-    this.dependencies.rateLimits.evictInactiveCodexCache(accountId)
-    try {
-      await this.dependencies.discardResetAttempts(accountId)
-    } catch (error) {
-      // Removal already succeeded; retain the ledger's safety guards if cleanup fails.
-      console.warn('[codex-accounts] Removed account, but credit ledger cleanup failed:', error)
-    }
-    const accountTarget = getCodexSelectionTargetForAccount(account)
-    this.startQuotaRefresh(
-      getSelectedCodexAccountIdForTarget(settings, accountTarget) === accountId
-        ? accountId
-        : undefined,
-      accountTarget
-    )
+
     return this.snapshot()
   }
 
@@ -129,7 +115,7 @@ export class CodexAccountSelection {
     }
 
     const previousSettings = this.dependencies.store.getSettings()
-    const outgoingAccountId = getSelectedCodexAccountIdForTarget(previousSettings, effectiveTarget)
+
     const nextSelection = setSelectedCodexAccountIdForTarget(
       normalizeCodexRuntimeSelection(previousSettings),
       accountId,
@@ -149,7 +135,6 @@ export class CodexAccountSelection {
       this.dependencies.lifecycle.onHostSystemDefaultSelected?.()
     }
 
-    this.startQuotaRefresh(outgoingAccountId, effectiveTarget)
     return this.snapshot()
   }
 
@@ -209,16 +194,5 @@ export class CodexAccountSelection {
     if (selection.host !== null && nextSelection.host === null) {
       this.dependencies.lifecycle.onHostSystemDefaultSelected?.()
     }
-  }
-
-  private startQuotaRefresh(
-    outgoingAccountId: string | null | undefined,
-    target: CodexAccountSelectionTarget | undefined
-  ): void {
-    void this.dependencies.rateLimits
-      .refreshForCodexAccountChange(outgoingAccountId, target)
-      .catch((error) => {
-        console.error('[codex-accounts] Quota refresh after account change failed:', error)
-      })
   }
 }

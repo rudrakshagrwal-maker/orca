@@ -1,3 +1,4 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import React, { useRef, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import type { editor, IRange } from 'monaco-editor'
@@ -29,7 +30,7 @@ import { useMonacoEditorDecorations } from './use-monaco-editor-decorations'
 import { useMonacoEditorMount } from './use-monaco-editor-mount'
 import { snapshotMonacoViewState } from './monaco-view-state-persistence'
 import { MonacoMarkdownAnnotationOverlay } from './markdown-source-tools/monaco/MonacoMarkdownAnnotationOverlay'
-import { usePluginSyntaxLanguage } from './use-plugin-syntax-language'
+
 import {
   PLUGIN_SYNTAX_EDITOR_OPTIONS,
   applyModelLanguage
@@ -91,7 +92,7 @@ export default function MonacoEditor({
   const editorContainerRef = useRef<HTMLDivElement | null>(null)
   const [mountedEditor, setMountedEditor] = useState<editor.IStandaloneCodeEditor | null>(null)
   const [autoHeightContentHeight, setAutoHeightContentHeight] = useState<number | null>(null)
-  const language = usePluginSyntaxLanguage(filePath, coreLanguage)
+  const language = coreLanguage
   const languageRef = useRef(language)
   languageRef.current = language
   useEffect(

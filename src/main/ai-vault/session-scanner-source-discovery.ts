@@ -1,12 +1,11 @@
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
 import { delimiter } from 'node:path'
 import type { AiVaultAgent, AiVaultScanIssue } from '../../shared/ai-vault/contracts/ai-vault-types'
 import { discoverFiles } from './session-scanner-discovery'
-import { opencodeDiscoveries } from './scanners/opencode/session-scanner-opencode-sources'
-import { zcodeDiscoveries } from './scanners/zcode/session-scanner-zcode-sources'
-import { antigravityDiscoveries } from './scanners/antigravity/session-scanner-antigravity-sources'
+
 import { AI_VAULT_AGENT_SOURCES, type AiVaultAgentSource } from './session-scanner-agent-sources'
 import { normalizedWslHomeDirs } from './session-scanner-roots'
-import { configureOpenCodeWslReaders } from './scanners/opencode/reader-transport/session-scanner-opencode-wsl-client'
+
 import { scopeOnlyScan, scopeWalksAgentFiles } from './session-scope-cwd'
 import type { AiVaultScanOptions, SessionFileDiscovery } from './session-scanner-types'
 
@@ -18,16 +17,11 @@ export async function discoverAiVaultSessionSources(args: {
   issues: AiVaultScanIssue[]
 }): Promise<SessionFileDiscovery[]> {
   const { options, limitPerAgent, issues } = args
-  if (options.wslOpenCodeReaders) {
-    configureOpenCodeWslReaders(options.wslOpenCodeReaders)
-  }
+
   const wslHomeDirs = normalizedWslHomeDirs(options.wslHomeDirs)
 
-  return Promise.all([
-    ...opencodeDiscoveries(options, wslHomeDirs, limitPerAgent, issues),
-    ...zcodeDiscoveries(options, wslHomeDirs, limitPerAgent, issues),
-    ...antigravityDiscoveries(options, wslHomeDirs, limitPerAgent, issues),
-    ...Object.entries(AI_VAULT_AGENT_SOURCES).flatMap(([agent, source]) =>
+  return Promise.all(
+    Object.entries(AI_VAULT_AGENT_SOURCES).flatMap(([agent, source]) =>
       source
         ? agentDiscoveries(
             agent as AiVaultAgent,
@@ -39,7 +33,7 @@ export async function discoverAiVaultSessionSources(args: {
           )
         : []
     )
-  ])
+  )
 }
 
 function agentDiscoveries(

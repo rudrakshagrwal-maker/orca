@@ -4,61 +4,29 @@ import { getGeneralSubPageTitle } from '../general/general-sub-pages'
 import { ActiveSettingsSectionProvider } from '../section-layout/SettingsSection'
 import { SettingsContentScrollElementProvider } from './settings-content-scroll-element'
 import { SettingsSidebar } from '../navigation/SettingsSidebar'
-import { PluginInstallTrustDialogHost } from '../../plugins/dialogs/PluginInstallTrustDialog'
 import { cn } from '@/lib/class-names'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
 import type { SettingsInteractionController } from './use-settings-interaction-controller'
 import type { SettingsRenderContext } from './settings-render-context'
 import {
-  renderAccountsSettingsSection,
   renderAgentsSettingsSection,
-  renderDesktopCapabilitySettingsSections,
-  renderLinearSettingsSection,
   renderOrchestrationSettingsSection
 } from './settings-capability-section-renderers'
-import {
-  renderArtifactsSettingsSection,
-  renderSessionHistorySettingsSection,
-  renderAutomationsSettingsSection,
-  renderGeneralSettingsSection,
-  renderIntegrationsSettingsSection,
-  renderMobileSettingsSection,
-  renderOrcaAccountSettingsSection,
-  renderSetupGuideSettingsSection,
-  renderShareSkillsSettingsSection
-} from './settings-setup-workflow-section-renderers'
-import {
-  renderGitSettingsSection,
-  renderTasksSettingsSection
-} from './settings-git-task-section-renderers'
+import { renderGeneralSettingsSection } from './settings-setup-workflow-section-renderers'
 import {
   renderBrowserSettingsSection,
-  renderFloatingWorkspaceSettingsSection,
-  renderMobileEmulatorSettingsSection,
   renderQuickCommandsSettingsSection,
   renderTerminalSettingsSection
 } from './settings-interface-primary-section-renderers'
 import {
   renderAppearanceSettingsSection,
-  renderChatSettingsSection,
-  renderInputSettingsSection,
-  renderNotificationsSettingsSection,
-  renderShortcutsSettingsSection,
-  renderStatsSettingsSection
+  renderShortcutsSettingsSection
 } from './settings-interface-secondary-section-renderers'
 import {
-  renderDeveloperPermissionsSettingsSection,
-  renderPrivacySettingsSection,
   renderServersSettingsSection,
   renderSshSettingsSection
 } from './settings-remote-security-section-renderers'
-import {
-  renderAdvancedSettingsSection,
-  renderDevSettingsSection,
-  renderExperimentalSettingsSection,
-  renderPluginsSettingsSection
-} from './settings-advanced-section-renderers'
 import { renderProjectSettingsSections } from './settings-project-section-renderer'
 import {
   SettingsHostScopePicker,
@@ -164,41 +132,18 @@ export function renderSettingsPage(
                   <SettingsTargetHighlightProvider
                     value={model.highlightedSettingsTarget?.id ?? null}
                   >
+                    {/* RA: mount only retained terminal-orchestration settings. */}
                     {renderAgentsSettingsSection(context, t)}
-                    {renderAccountsSettingsSection(context, t)}
                     {renderOrchestrationSettingsSection(context, t)}
-                    {renderLinearSettingsSection(context, t)}
-                    {renderDesktopCapabilitySettingsSections(context, t)}
-                    {renderOrcaAccountSettingsSection(context, t)}
-                    {renderSetupGuideSettingsSection(context, t)}
                     {renderGeneralSettingsSection(context, t)}
-                    {renderIntegrationsSettingsSection(context, t)}
-                    {renderMobileSettingsSection(context, t)}
-                    {renderAutomationsSettingsSection(context, t)}
-                    {renderArtifactsSettingsSection(context, t)}
-                    {renderShareSkillsSettingsSection(context, t)}
-                    {renderSessionHistorySettingsSection(context, t)}
-                    {renderGitSettingsSection(context, t)}
-                    {renderTasksSettingsSection(context, t)}
                     {renderTerminalSettingsSection(context, t)}
-                    {renderQuickCommandsSettingsSection(context, t)}
+                    {/* RA: retain embedded browser preferences. */}
                     {renderBrowserSettingsSection(context, t)}
-                    {renderMobileEmulatorSettingsSection(context, t)}
-                    {renderFloatingWorkspaceSettingsSection(context, t)}
+                    {renderQuickCommandsSettingsSection(context, t)}
                     {renderAppearanceSettingsSection(context, t)}
-                    {renderChatSettingsSection(context)}
-                    {renderInputSettingsSection(context, t)}
-                    {renderNotificationsSettingsSection(context, t)}
                     {renderShortcutsSettingsSection(context, t)}
-                    {renderStatsSettingsSection(context, t)}
                     {renderServersSettingsSection(context, t)}
                     {renderSshSettingsSection(context, t)}
-                    {renderDeveloperPermissionsSettingsSection(context, t)}
-                    {renderPrivacySettingsSection(context, t)}
-                    {renderAdvancedSettingsSection(context, t)}
-                    {renderDevSettingsSection(context, t)}
-                    {renderExperimentalSettingsSection(context, t)}
-                    {renderPluginsSettingsSection(context)}
                     {renderProjectSettingsSections(context, t)}
                   </SettingsTargetHighlightProvider>
                 </ActiveSettingsSectionProvider>
@@ -207,8 +152,6 @@ export function renderSettingsPage(
           </div>
         </div>
       </div>
-      {/* Why page level: Plugins and the Appearance theme pickers both install through it. */}
-      <PluginInstallTrustDialogHost />
     </div>
   )
 }

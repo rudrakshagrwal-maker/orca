@@ -1,10 +1,5 @@
-import { normalizeJiraQuickFilterState } from '../../shared/jira/jira-quick-filters'
-import { JiraQuickFilterStateParam } from '../../shared/rpc-contract/jira-quick-filter-params'
-import {
-  normalizeJiraSavedFilterState,
-  mutateJiraSavedFilterState
-} from '../../shared/jira/jira-saved-filters'
-import { JiraSavedFilterMutationParam } from '../../shared/rpc-contract/jira-saved-filter-params'
+// RA: Remove unused surfaces and their startup dependencies from the lean fork.
+
 import { BrowserWindow, ipcMain, webContents, type WebContents } from 'electron'
 import type { Store } from '../persistence/loading-store/store'
 import type { PersistedUIState } from '../../shared/persisted-ui-state-types'
@@ -53,29 +48,9 @@ export function getTrustedUIRendererWindow(): BrowserWindow | null {
   return renderer ? BrowserWindow.fromWebContents(renderer) : null
 }
 
-export function registerUIHandlers(
-  store: Store,
-  options: { isDashboardPopoutRenderer?: (sender: WebContents) => boolean } = {}
-): void {
+export function registerUIHandlers(store: Store): void {
   store.onUIChanged((ui) => sendToTrustedUIRenderer('ui:stateChanged', ui))
 
-  ipcMain.handle('ui:getJiraQuickFilters', () =>
-    normalizeJiraQuickFilterState(store.getUI().jiraQuickFilterState)
-  )
-  ipcMain.handle('ui:setJiraQuickFilters', (_event, input: unknown) => {
-    const state = normalizeJiraQuickFilterState(JiraQuickFilterStateParam.parse(input))
-    store.updateUI({ jiraQuickFilterState: state })
-    return state
-  })
-  ipcMain.handle('ui:getJiraSavedFilters', () =>
-    normalizeJiraSavedFilterState(store.getUI().jiraSavedFilterState)
-  )
-  ipcMain.handle('ui:mutateJiraSavedFilters', (_event, input: unknown) => {
-    const mutation = JiraSavedFilterMutationParam.parse(input)
-    const state = mutateJiraSavedFilterState(store.getUI().jiraSavedFilterState, mutation)
-    store.updateUI({ jiraSavedFilterState: state })
-    return state
-  })
   ipcMain.handle('ui:get', () => {
     return store.getUI()
   })
@@ -110,10 +85,7 @@ export function registerUIHandlers(
 
   ipcMain.removeAllListeners('ui:performNativeSelectionAction')
   ipcMain.on('ui:performNativeSelectionAction', (event, action: unknown) => {
-    if (
-      !isTrustedUIRenderer(event.sender) &&
-      options.isDashboardPopoutRenderer?.(event.sender) !== true
-    ) {
+    if (!isTrustedUIRenderer(event.sender)) {
       return
     }
     const target = BrowserWindow.fromWebContents(event.sender)?.webContents

@@ -10,8 +10,6 @@ import {
   type CheckRunDetailsTabPatch
 } from '@/components/editor/check-details/actions/check-run-details-tab'
 import type { OpenCheckRunDetailsState } from '../../../../../../shared/editor-tab-view-types'
-import { loadGitLabJobLogDetails } from '@/runtime/repository-gitlab/gitlab-job-trace-client'
-import { forgeOwnerHostIdForWorkspace } from '@/runtime/source-control/forge/forge-credential-target'
 import type { OpenFile } from '../types/open-file'
 import { openWorkspaceEditorItem } from '../tabs/workspace-editor-item'
 import { reconcileCheckDetailsReadingCache } from '@/components/editor/check-details/reading/check-details-reading-cache'
@@ -247,7 +245,6 @@ export function createCheckRunDetailsActions(
         })
       }
       const owner = findCheckRunDetailsOwner(state, file)
-      const worktree = owner?.worktree
       const repo = owner?.repo
       if (!repo?.path) {
         patch({
@@ -265,28 +262,8 @@ export function createCheckRunDetailsActions(
       }
       patch({ details: checkRunDetails.details, loading: true, error: null })
       try {
-        const repoOwnerExecutionHostId = forgeOwnerHostIdForWorkspace(repo, worktree)
-        // GitLab jobs require GitLab trace; GitHub check-runs returns null and blanks the refreshed tab.
-        const details = check.gitlabJobId
-          ? await loadGitLabJobLogDetails({
-              repoPath: repo.path,
-              repoId: repo.id,
-              repoOwnerExecutionHostId,
-              check,
-              // Why: a fork MR's job lives in the source project, not the repo's own.
-              projectRef: checkRunDetails.gitlabProjectRef ?? null
-            })
-          : await get().fetchPRCheckDetails(
-              repo.path,
-              {
-                checkRunId: check.checkRunId,
-                workflowRunId: check.workflowRunId,
-                checkName: check.name,
-                url: check.url,
-                prRepo: checkRunDetails.githubRepository ?? null
-              },
-              { repoId: repo.id, repoOwnerExecutionHostId }
-            )
+        // RA: GitHub and GitLab check backends are removed, so a refresh finds no details.
+        const details: typeof checkRunDetails.details = null
         patch({
           details,
           loading: false,

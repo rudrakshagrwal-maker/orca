@@ -1,3 +1,4 @@
+// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import {
   AgentHookStartup,
   listenForAgentHooks
@@ -232,9 +233,6 @@ export abstract class AgentHookServerLifecycle extends AgentHookServerStatusHook
       this.rollbackTransportStart()
       throw error
     }
-    if (isCurrent() && this.statusHooksEnabled) {
-      this.startOpenCodeBinderLoop()
-    }
   }
 
   private rollbackTransportStart(): void {
@@ -254,7 +252,6 @@ export abstract class AgentHookServerLifecycle extends AgentHookServerStatusHook
     if (this.statusHooksEnabled || this.statusPersistTimer) {
       this.flushStatusPersistSync()
     }
-    this.stopOpenCodeBinderLoop()
     this.stopTmuxStatus()
     this.rollbackTransportStart()
     this.env = 'production'

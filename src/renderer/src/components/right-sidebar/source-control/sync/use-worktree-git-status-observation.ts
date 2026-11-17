@@ -1,315 +1,115 @@
-import type { OpenFile } from '@/store/slices/editor/types/open-file'
+import { useCallback, useEffect, useRef } from 'react'
 import type { SourceControlScope } from '../panel/worktree-scope'
-import { sourceControlFileWatchRuntimeEnvironmentId } from './worktree-git-owner-target'
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useAppStore } from '@/store/index'
 import { useRepoById } from '@/store/repos/use-repository-catalog'
 import { useWorktreeById } from '@/store/workspaces/selection/use-selected-worktree'
 import { isGitRepoKind } from '../../../../../../shared/repo-kind'
 import { getExecutionHostIdForWorktree } from '@/lib/workspace/ownership/worktree-runtime-owner'
-import { refreshGitStatusForWorktree } from './git-status-refresh'
-import {
-  isWindowVisible,
-  windowPollSlowdown
-} from '@/lib/window-activity/window-visibility-interval'
-import { takeRecentWorkspaceSwitchWake } from '@/lib/workspace/activation/workspace-switch-user-act'
-import { useRefreshOnHostContact } from './use-refresh-on-host-contact'
-import { useGitStatusWindowPresence } from './use-git-status-window-presence'
-import {
-  hasInteractiveActiveGitStatusConsumer,
-  shouldPollActiveGitStatus
-} from '@/app-shell/platform/passive-macos-app-data-access'
 import { resolveWorktreeGitCopyNow } from '@/lib/workspace/ownership/worktree-git-copy'
-import { useGitStatusFileWatchRefresh } from './git-status-file-watch-refresh'
-import { useGitStatusPushSignalRefresh } from './git-status-push-signal-refresh'
-import { useGitStatusUpstreamRefWatch } from './use-git-status-upstream-ref-watch'
-import {
-  admissionTierForGitStatusRefreshReason,
-  createGitStatusRefreshPacing,
-  createGitStatusRefreshScheduler,
-  type GitStatusRefreshPacing,
-  type GitStatusRefreshReason,
-  type GitStatusRefreshScheduler
-} from './git-status-refresh-scheduler'
+import { isWindowVisible } from '@/lib/window-activity/window-visibility-interval'
+import { getRuntimeGitStatus } from '@/runtime/source-control/git/runtime-git-status-client'
 
-const NO_OWNER_FILES: OpenFile[] = []
+// RA: shared across observer remounts and worktree switches; never schedule a timer.
+const repoRefreshes = new Map<string, { at: number; pending: boolean; refreshMetadata: boolean }>()
+const MIN_REFRESH_MS = 60_000
 
-const STATUS_SAFETY_INTERVAL_MS = 60_000
-const STATUS_ACTIVITY_DEBOUNCE_MS = 125
-// Retain the pre-scheduler floor so sustained change signals cannot run Git back-to-back (#7983).
-const STATUS_ACTIVITY_MIN_GAP_MS = 3000
-// Duration-aware spacing keeps slow scans/probes from running nonstop beyond their timer cadence.
-export const SLOW_GIT_POLL_BACKOFF = {
-  idleMultiplier: 1,
-  changeSignalMultiplier: 1,
-  maxIntervalMs: 5 * 60_000
-}
-
-/** Returns a coalesced refresh that runs through this observer's scheduler, tier and apply guards. */
 export function useWorktreeGitStatusObservation(
   owner: SourceControlScope | null,
   options: { enabled?: boolean } = {}
 ): () => void {
   const enabled = options.enabled ?? true
-  const activeWorktreeId = useAppStore((s) => owner?.worktreeId ?? s.activeWorktreeId)
-  const selectedWorktree = useWorktreeById(owner ? null : activeWorktreeId)
-  const activeWorktree = owner?.worktree ?? selectedWorktree
-  const activeExecutionHostId = useAppStore(
-    (s) => owner?.executionHostId ?? getExecutionHostIdForWorktree(s, activeWorktreeId)
+  const worktreeId = useAppStore((s) => owner?.worktreeId ?? s.activeWorktreeId)
+  const selectedWorktree = useWorktreeById(owner ? null : worktreeId)
+  const worktree = owner?.worktree ?? selectedWorktree
+  const hostId = useAppStore(
+    (s) => owner?.executionHostId ?? getExecutionHostIdForWorktree(s, worktreeId)
   )
-  const fileWatchRuntimeEnvironmentId = useAppStore((state) =>
-    owner ? sourceControlFileWatchRuntimeEnvironmentId(state, owner) : undefined
-  )
-  const updateWorktreeGitIdentity = useAppStore((s) => s.updateWorktreeGitIdentity)
-  const setGitStatus = useAppStore((s) => s.setGitStatus)
-  const huge = useAppStore((s) =>
-    activeWorktreeId ? s.gitStatusHugeByWorktree[activeWorktreeId] : undefined
-  )
-  const fetchUpstreamStatus = useAppStore((s) => s.fetchUpstreamStatus)
-  const setUpstreamStatus = useAppStore((s) => s.setUpstreamStatus)
-  const openFiles = useAppStore((s) => (owner ? NO_OWNER_FILES : s.openFiles))
-  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen)
-  const rightSidebarTab = useAppStore((s) => s.rightSidebarTab)
-  const rightSidebarExplorerView = useAppStore((s) => s.rightSidebarExplorerView)
-  const pollingAllowed = useAppStore((s) =>
-    owner
-      ? options.enabled === true
-      : shouldPollActiveGitStatus({
-          activeWorktreeId,
-          worktreePath: activeWorktree?.path ?? null,
-          rightSidebarOpen: s.rightSidebarOpen,
-          rightSidebarTab: s.rightSidebarTab,
-          rightSidebarExplorerView: s.rightSidebarExplorerView,
-          openFiles: s.openFiles
-        })
-  )
-  const interactiveConsumerVisible = useAppStore((s) =>
-    owner
-      ? options.enabled === true
-      : hasInteractiveActiveGitStatusConsumer({
-          activeWorktreeId,
-          worktreePath: activeWorktree?.path ?? null,
-          rightSidebarOpen: s.rightSidebarOpen,
-          rightSidebarTab: s.rightSidebarTab,
-          rightSidebarExplorerView: s.rightSidebarExplorerView,
-          openFiles: s.openFiles
-        })
-  )
-
-  const worktreePath = activeWorktree?.path ?? null
-  const activePushTarget = activeWorktree?.pushTarget
-  const activeRepoId = activeWorktree?.repoId ?? null
-  const selectedRepo = useRepoById(owner ? null : activeRepoId)
-  const activeRepo = owner?.repo ?? selectedRepo
-  const activeRepoSupportsGit = activeRepo ? isGitRepoKind(activeRepo) : false
-  const activeConnectionId = activeRepo?.connectionId ?? null
-  const isActiveConnectionReady = useAppStore(
-    (s) =>
-      !activeConnectionId || s.sshConnectionStates.get(activeConnectionId)?.status === 'connected'
-  )
-  const canFetchActiveWorktreeGitStatus =
-    enabled &&
-    !!activeWorktreeId &&
-    !!worktreePath &&
-    activeRepoSupportsGit &&
-    pollingAllowed &&
-    isActiveConnectionReady
-  // Pause only evidence-free polling: gating signal refreshes too would prevent a fresh result from clearing huge status.
-  const shouldPollActiveWorktreeGitStatus =
-    canFetchActiveWorktreeGitStatus && !!activeWorktreeId && !huge
-  const activeStatusPollScope = shouldPollActiveWorktreeGitStatus
-    ? `${activeExecutionHostId}\0${activeWorktreeId}\0${worktreePath}`
-    : null
-  // Main binds one upstream ref (the selected worktree's); sections must not add per-tick resolutions.
-  const publishUpstreamRefWatch = useGitStatusUpstreamRefWatch({
-    enabled: canFetchActiveWorktreeGitStatus && !owner,
-    executionHostId: activeExecutionHostId,
-    worktreeId: activeWorktreeId,
-    worktreePath
-  })
-
-  const runFetchStatus = useCallback(
-    async (request: {
-      reason: GitStatusRefreshReason
-      signal: AbortSignal
-      shouldApply: () => boolean
-    }) => {
-      // Recheck eligibility after timer dispatch so changed liveness cannot launch stale work.
-      // RA: safety ticks only scan the focused workspace; watch-triggered refreshes remain valid.
-      if (request.reason === 'safety') {
-        const state = useAppStore.getState()
-        if (!document.hasFocus() || state.activeWorktreeId !== activeWorktreeId ||
-          getExecutionHostIdForWorktree(state, state.activeWorktreeId) !== activeExecutionHostId) return
-      }
-      if (
-        request.signal.aborted ||
-        !isWindowVisible() ||
-        !canFetchActiveWorktreeGitStatus ||
-        !activeWorktreeId ||
-        !worktreePath
-      ) {
+  const selectedRepo = useRepoById(owner ? null : (worktree?.repoId ?? null))
+  const repo = owner?.repo ?? selectedRepo
+  const path = worktree?.path
+  const repoId = repo?.id
+  const git = repo ? isGitRepoKind(repo) : false
+  const generation = useRef(0)
+  const refresh = useCallback(
+    (explicit = false): void => {
+      if (!enabled || !git || !worktreeId || !path || !repoId || !isWindowVisible()) {
         return
       }
-      try {
-        // Why one resolution: a same-path twin must not get this copy's transport, SSH target or answer.
-        const copy = resolveWorktreeGitCopyNow(activeWorktreeId, activeExecutionHostId)
-        if (!copy) {
-          return
-        }
-        // Only the first status after the user's own switch here may start WSL (E9); polls, remounts
-        // and restores stay gated.
-        const wakeWslDistro = takeRecentWorkspaceSwitchWake(activeWorktreeId, 'git-status')
-        await refreshGitStatusForWorktree({
+      const copy = resolveWorktreeGitCopyNow(worktreeId, hostId)
+      if (!copy) {
+        return
+      }
+      const key = `${hostId}\0${repoId}`
+      const held = repoRefreshes.get(key) ?? {
+        at: -Infinity,
+        pending: false,
+        refreshMetadata: false
+      }
+      held.refreshMetadata ||= explicit
+      repoRefreshes.set(key, held)
+      if (held.pending || Date.now() - held.at < MIN_REFRESH_MS) {
+        return
+      }
+      held.at = Date.now()
+      held.pending = true
+      const refreshMetadata = held.refreshMetadata
+      held.refreshMetadata = false
+      const currentGeneration = generation.current
+      void getRuntimeGitStatus(
+        {
           target: copy.transport,
-          ownerHostId: copy.hostId,
-          worktreeId: activeWorktreeId,
-          worktreePath,
-          connectionId: copy.connectionId,
-          pushTarget: activePushTarget,
-          deps: { setGitStatus, updateWorktreeGitIdentity, setUpstreamStatus, fetchUpstreamStatus },
-          request: {
-            admissionTier: admissionTierForGitStatusRefreshReason(request.reason),
-            ...(request.reason === 'safety' ? { reuseLineStats: true } : {}),
-            signal: request.signal,
-            shouldApply: request.shouldApply,
-            onStatusAccepted: publishUpstreamRefWatch,
-            ...(wakeWslDistro ? { wakeWslDistro: true } : {})
+          worktreeId,
+          worktreePath: path,
+          connectionId: copy.connectionId
+        },
+        { summaryOnly: true, refreshMetadata, includeLineStats: false, admissionTier: 'status' }
+      )
+        .then((status) => {
+          if (generation.current !== currentGeneration) {
+            return
+          }
+          const state = useAppStore.getState()
+          state.setGitStatus(worktreeId, status)
+          state.updateWorktreeGitIdentity(
+            worktreeId,
+            {
+              head: status.head,
+              branch: status.branch ?? (status.head ? null : undefined)
+            },
+            copy.hostId
+          )
+          if (status.upstreamStatus) {
+            state.setUpstreamStatus(worktreeId, status.upstreamStatus)
           }
         })
-      } catch {}
+        .catch(() => {})
+        .finally(() => {
+          held.pending = false
+        })
     },
-    [
-      activeExecutionHostId,
-      activePushTarget,
-      activeWorktreeId,
-      fetchUpstreamStatus,
-      canFetchActiveWorktreeGitStatus,
-      publishUpstreamRefWatch,
-      worktreePath,
-      setGitStatus,
-      setUpstreamStatus,
-      updateWorktreeGitIdentity
-    ]
+    [enabled, git, worktreeId, path, repoId, hostId]
   )
 
-  // Preserve scheduler lifetime across harmless rerenders so in-flight/trailing/pacing state remains authoritative.
-  const runFetchStatusRef = useRef(runFetchStatus)
-  const canApplyScheduledStatusRef = useRef(canFetchActiveWorktreeGitStatus)
-  useLayoutEffect(() => {
-    runFetchStatusRef.current = runFetchStatus
-    canApplyScheduledStatusRef.current = canFetchActiveWorktreeGitStatus
-  }, [runFetchStatus, canFetchActiveWorktreeGitStatus])
-  const statusRefreshGenerationRef = useRef(0)
-
-  const statusSchedulerRef = useRef<GitStatusRefreshScheduler | null>(null)
-  // Persist pacing per worktree across host/target scheduler rebuilds so flapping cannot bypass the minimum gap.
-  const statusPacingRef = useRef<{
-    key: string
-    pacing: GitStatusRefreshPacing
-  } | null>(null)
   useEffect(() => {
-    const generation = ++statusRefreshGenerationRef.current
-    const pacingKey = `${activeWorktreeId}\0${worktreePath}`
-    let pacing =
-      statusPacingRef.current?.key === pacingKey ? statusPacingRef.current.pacing : undefined
-    if (!pacing) {
-      pacing = createGitStatusRefreshPacing()
-      statusPacingRef.current = { key: pacingKey, pacing }
-    }
-    const scheduler = createGitStatusRefreshScheduler(
-      ({ reason, signal }) =>
-        runFetchStatusRef.current({
-          reason,
-          signal,
-          shouldApply: () =>
-            statusRefreshGenerationRef.current === generation &&
-            canApplyScheduledStatusRef.current &&
-            !signal.aborted &&
-            isWindowVisible()
-        }),
-      {
-        safetyIntervalMs: STATUS_SAFETY_INTERVAL_MS,
-        activityDebounceMs: STATUS_ACTIVITY_DEBOUNCE_MS,
-        activityMinGapMs: STATUS_ACTIVITY_MIN_GAP_MS,
-        slowTaskBackoff: SLOW_GIT_POLL_BACKOFF,
-        pacing,
-        // Agents editing files behind another app must not drive (remote) git status every 3s.
-        cadenceScale: windowPollSlowdown
+    // RA: only selection, window focus/reveal and explicit refresh read git state.
+    generation.current += 1
+    refresh()
+    const onExplicitRefresh = (): void => refresh(true)
+    const onFocus = (): void => refresh()
+    const onVisibility = (): void => {
+      if (isWindowVisible()) {
+        refresh()
       }
-    )
-    statusSchedulerRef.current = scheduler
+    }
+    window.addEventListener('orca:refresh-git-summary', onExplicitRefresh)
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
-      statusRefreshGenerationRef.current += 1
-      scheduler.dispose()
-      if (statusSchedulerRef.current === scheduler) {
-        statusSchedulerRef.current = null
-      }
+      generation.current += 1
+      window.removeEventListener('orca:refresh-git-summary', onExplicitRefresh)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
-    // Target changes must invalidate in-flight results captured against an old remote/branch.
-  }, [activeExecutionHostId, activePushTarget, activeWorktreeId, worktreePath])
-
-  useGitStatusWindowPresence(
-    statusSchedulerRef,
-    canFetchActiveWorktreeGitStatus,
-    activeStatusPollScope
-  )
-
-  useRefreshOnHostContact(activeExecutionHostId, statusSchedulerRef, canApplyScheduledStatusRef)
-
-  const previousConsumerVisibilityRef = useRef({
-    worktreeId: activeWorktreeId,
-    visible: interactiveConsumerVisible,
-    canFetch: canFetchActiveWorktreeGitStatus
-  })
-  useEffect(() => {
-    const previous = previousConsumerVisibilityRef.current
-    if (
-      interactiveConsumerVisible &&
-      previous.worktreeId === activeWorktreeId &&
-      !previous.visible &&
-      previous.canFetch &&
-      canFetchActiveWorktreeGitStatus &&
-      isWindowVisible()
-    ) {
-      statusSchedulerRef.current?.refreshNow()
-    }
-    previousConsumerVisibilityRef.current = {
-      worktreeId: activeWorktreeId,
-      visible: interactiveConsumerVisible,
-      canFetch: canFetchActiveWorktreeGitStatus
-    }
-  }, [activeWorktreeId, canFetchActiveWorktreeGitStatus, interactiveConsumerVisible])
-
-  // Coalesce file/terminal/metadata evidence so one Git operation cannot fan out status subprocesses.
-  const fetchStatusOnChangeSignal = useCallback(() => {
-    statusSchedulerRef.current?.signal()
-  }, [])
-
-  useGitStatusFileWatchRefresh({
-    activeConnectionId,
-    activeRepoSupportsGit,
-    activeWorktreeId,
-    enabled: canFetchActiveWorktreeGitStatus,
-    runtimeEnvironmentId: fileWatchRuntimeEnvironmentId,
-    fetchStatus: fetchStatusOnChangeSignal,
-    gitStatusHugeByWorktree: activeWorktreeId ? { [activeWorktreeId]: huge } : {},
-    isConnectionReady: () => isActiveConnectionReady,
-    openFiles,
-    rightSidebarExplorerView,
-    rightSidebarOpen,
-    rightSidebarTab,
-    worktreePath
-  })
-
-  useGitStatusPushSignalRefresh({
-    activeRepoId,
-    activeWorktreeId,
-    activeWorktreePath: worktreePath,
-    enabled: canFetchActiveWorktreeGitStatus,
-    fetchStatus: fetchStatusOnChangeSignal
-  })
-
-  return useCallback(() => {
-    statusSchedulerRef.current?.refreshNow()
-  }, [])
+  }, [refresh])
+  return useCallback(() => refresh(true), [refresh])
 }

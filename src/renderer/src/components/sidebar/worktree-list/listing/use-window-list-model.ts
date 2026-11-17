@@ -1,3 +1,4 @@
+// RA: Projects listing no longer subscribes to task-provider caches.
 import type { SidebarListModel, SidebarListModelArgs } from './sidebar-list-model'
 import { useSidebarExternalWorktreeCards } from './use-external-worktree-cards'
 import { useSidebarHostVisibleScope } from './use-host-visible-scope'
@@ -46,7 +47,7 @@ export function useWindowSidebarListModel(args: SidebarListModelArgs): SidebarLi
     repoMap,
     worktreeMap: args.worktreeMap,
     worktreeLineageById: args.worktreeLineageById,
-    prCache: args.prCache,
+
     settings: args.settings,
     workspaceStatuses: args.workspaceStatuses,
     effectiveCollapsedGroups: args.collapsedGroups,

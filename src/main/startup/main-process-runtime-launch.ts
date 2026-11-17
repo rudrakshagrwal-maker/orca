@@ -1,11 +1,7 @@
-import { backgroundJobsDisabled } from '../../shared/fork-background-policy'
 import { app, type BrowserWindow } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../shared/layout-owner-switch'
 import { placeUnshownLiveTerminalsBestEffort } from '../runtime/terminal/adoption/unshown-live-terminal-placement'
-import {
-  getCanonicalUserDataPath,
-  migrateMobilePairingDataToCanonicalUserDataPath
-} from '../persistence/loading-store/user-data-path'
+import { getCanonicalUserDataPath } from '../persistence/loading-store/user-data-path'
 import { OrcaRuntimeRpcServer } from '../runtime/rpc/server/runtime-rpc'
 import { resolveServePinnedBindHost } from './serve-pinned-bind-host'
 import { isOrcadSidecarLaunch } from '../window/foreground-activation-policy'
@@ -13,7 +9,7 @@ import { getLocalPtyProvider } from '../ipc/pty/provider/registry'
 import { registerHeadlessPtyRuntime } from '../ipc/pty/register-headless-runtime'
 import { LocalPtyProvider } from '../providers/local-pty/local-pty-provider'
 import { publishHeadlessRuntimeGraph } from '../runtime/session-graph/headless-runtime-graph'
-import { getServeOptions, getBundledWebClientRoot, printServeReady } from './main-process-serve'
+import { getServeOptions, printServeReady } from './main-process-serve'
 import {
   bindTerminalRuntimeStartupServices,
   handleCodexHomePtySpawned,
@@ -62,9 +58,6 @@ function installRuntimeRpc(
 ): OrcaRuntimeRpcServer {
   // Migrate pairing credentials from late-resolved userData before switching to the canonical path.
   // RA: terminal RPC does not migrate or initialize phone pairing state.
-  if (!backgroundJobsDisabled()) {
-    migrateMobilePairingDataToCanonicalUserDataPath(app.getPath('userData'))
-  }
   // Use OS-assigned ports for concurrent E2E Electron instances to avoid EADDRINUSE.
   const isE2E = Boolean(process.env.ORCA_E2E_USER_DATA_DIR)
   const requestedE2EWsPort = process.env.ORCA_E2E_RUNTIME_WS_PORT
@@ -83,7 +76,7 @@ function installRuntimeRpc(
     // Pairing must use pre-setName canonical userData or restarts can lose devices.
     userDataPath: getCanonicalUserDataPath(),
     // RA: desktop CLI uses the named pipe/socket; no mobile WS/HTTP server at idle.
-    enableWebSocket: !backgroundJobsDisabled() || serveOptions !== null,
+    enableWebSocket: serveOptions !== null,
     // STA-2370: desktop stays loopback until pairing; serve explicitly opts into remote access and E2E needs harness-wide bind.
     exposeNetworkByDefault: Boolean(serveOptions) || isE2E,
     ...(pinnedBindHost !== undefined ? { pinnedBindHost } : {}),
@@ -106,7 +99,8 @@ function installRuntimeRpc(
           requirePinnedWsPort: true
         }
       : {}),
-    webClientRoot: backgroundJobsDisabled() ? undefined : getBundledWebClientRoot()
+    // RA: remote orchestration/browser transports remain, without a bundled pairing UI.
+    webClientRoot: undefined
   })
   state.runtimeRpc = runtimeRpc
   runtime.setAgentSenderPeerKey(() => runtimeRpc.getE2EEPublicKey())
@@ -162,9 +156,6 @@ async function launchServeMode(
   await registerCliForHeadlessServe()
   // Headless automation cannot wait for a renderer that never opens.
   // RA: headless workers do not start the disabled automation scheduler either.
-  if (!backgroundJobsDisabled()) {
-    state.automations?.start()
-  }
   // Arm history-removal GC without a window so interrupted serve deletions do not leak until desktop launch.
   void scheduleAllPendingHistoryTreeRemovals()
   await printServeReady(serveOptions)

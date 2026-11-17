@@ -29,8 +29,7 @@ export function getNextDefaultOnAppearanceSettingValue(current: boolean | undefi
 
 type RegisterAppMenuOptions = AppMenuQuitHandlers & {
   onOpenSettings: () => void
-  onOpenSetupGuide: (window?: Electron.BaseWindow | null) => void
-  onOpenFeatureTour: (window?: Electron.BaseWindow | null) => void
+
   onOpenCrashReport: (window?: Electron.BaseWindow | null) => void
   onCheckForUpdates: (options: UpdateCheckOptions) => void
   onBeforeReload?: (options: { ignoreCache: boolean; webContentsId: number }) => void
@@ -56,7 +55,6 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
     onZoomOut,
     onZoomReset,
     onToggleLeftSidebar,
-    onToggleRightSidebar,
     onToggleAppearance,
     getAppearanceState,
     getKeybindings
@@ -170,29 +168,7 @@ function buildAndApplyMenu(options: RegisterAppMenuOptions): void {
         label: `${translateMain('menu.toggleLeftSidebar', 'Toggle Left Sidebar')}\t${shortcutLabel('sidebar.left.toggle')}`,
         click: () => onToggleLeftSidebar()
       },
-      {
-        label: `${translateMain('menu.toggleRightSidebar', 'Toggle Right Sidebar')}\t${shortcutLabel('sidebar.right.toggle')}`,
-        click: () => onToggleRightSidebar()
-      },
-      {
-        label: translateMain('menu.showStatusBar', 'Show Status Bar'),
-        type: 'checkbox',
-        checked: appearance.statusBarVisible,
-        click: () => onToggleAppearance('statusBarVisible')
-      },
-      { type: 'separator' },
-      {
-        label: translateMain('menu.showTasksButton', 'Show Tasks Button'),
-        type: 'checkbox',
-        checked: appearance.showTasksButton,
-        click: () => onToggleAppearance('showTasksButton')
-      },
-      {
-        label: translateMain('menu.showAutomationsButton', 'Show Automations Button'),
-        type: 'checkbox',
-        checked: appearance.showAutomationsButton,
-        click: () => onToggleAppearance('showAutomationsButton')
-      },
+      // RA: empty right sidebar, status/plugins, tasks and automations have no menu entries.
       // RA: no Orca Mobile entry without the relay.
       {
         label: translateMain('menu.showTitlebarAppName', 'Show Titlebar App Name'),

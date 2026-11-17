@@ -39,6 +39,9 @@ export const GIT_STATUS_METHODS = [
     params: GitStatusParams,
     handler: async (params, { runtime, signal, clientCapabilities }) => {
       const options =
+        // RA: summary flags are host-owned for remote workspaces too.
+        params.summaryOnly === undefined &&
+        params.refreshMetadata === undefined &&
         params.includeIgnored === undefined &&
         params.includeLineStats === undefined &&
         params.bypassEffectiveUpstreamNegativeCache === undefined &&
@@ -48,6 +51,8 @@ export const GIT_STATUS_METHODS = [
         signal === undefined
           ? undefined
           : {
+              summaryOnly: params.summaryOnly,
+              refreshMetadata: params.refreshMetadata,
               ...(params.includeIgnored === undefined
                 ? {}
                 : { includeIgnored: params.includeIgnored }),
