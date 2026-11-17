@@ -116,6 +116,11 @@ export function isPaneOwnerUnverifiedError(error: string): boolean {
   return lines.length > 0 && lines.every((line) => line.includes(PANE_OWNER_UNVERIFIED_MARKER))
 }
 
+/** RA: a restored agent's saved folder is gone; the pane keeps its cwd and session, and Retry starts it again. */
+export function isStartupCwdMissingError(error: string): boolean {
+  return error.includes('startup_cwd_missing')
+}
+
 /** Owner errors a reattach can recover from: the saved session is kept, and Retry asks again. */
 export function isPaneOwnerRecoveryError(error: string): boolean {
   const lines = error.split('\n').filter((line) => line.length > 0)

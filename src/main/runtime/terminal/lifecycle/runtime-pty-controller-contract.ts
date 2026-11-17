@@ -116,6 +116,8 @@ export type RuntimePtyController = {
     }
     agentSessionCreateOperationId?: string
     spawnIntent?: SpawnIntent
+    /** RA: saved-pane agent relaunch; a missing cwd is never replaced by the workspace root. */
+    keepMissingCwd?: true
     signal?: AbortSignal
     refuseSleptWorktree?: boolean
     onPtySpawnCommitted?: () => void

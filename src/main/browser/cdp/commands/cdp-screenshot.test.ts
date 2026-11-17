@@ -44,7 +44,7 @@ describe('an SSH host’s capture', () => {
     ).rejects.toThrow(REFUSED)
   })
 
-  it('stops at the next probe once the page moved to a desktop file, never falling back', async () => {
+  it('stops before any native capture once the page moved to a desktop file, never falling back', async () => {
     // Fake timers do not carry the host command context into probes.
     const webContents = createMockWebContents()
     webContents.debugger.sendCommand.mockImplementation(() => new Promise(() => {}))
@@ -52,7 +52,8 @@ describe('an SSH host’s capture', () => {
     url = 'file:///Users/me/private.txt'
 
     await expect(capture).rejects.toThrow(REFUSED)
-    expect(webContents.debugger.sendCommand).toHaveBeenCalledTimes(1)
+    // RA: the capture now waits for its slot, so the access recheck refuses before any native capture starts.
+    expect(webContents.debugger.sendCommand).not.toHaveBeenCalled()
     expect(webContents.capturePage).not.toHaveBeenCalled()
   })
 })

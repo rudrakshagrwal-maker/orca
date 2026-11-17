@@ -7,6 +7,7 @@ import type {
   BrowserSnapshotResult,
   BrowserWaitResult
 } from '../../../../shared/browser/runtime/runtime-browser-contracts'
+import { runExclusiveCapture } from './cdp-capture-slot'
 import { BrowserError } from '../../browser-error'
 import type { CdpBridgeState } from './cdp-bridge-state'
 import type { CdpDebuggerLifecycle } from '../debugger/cdp-debugger-lifecycle'
@@ -129,17 +130,20 @@ export class CdpPageCommands {
         throw new BrowserError('browser_error', 'Unable to determine full-page screenshot bounds')
       }
 
-      const { data } = (await sender('Page.captureScreenshot', {
-        format,
-        captureBeyondViewport: true,
-        clip: {
-          x: 0,
-          y: 0,
-          width: Math.ceil(contentSize.width),
-          height: Math.ceil(contentSize.height),
-          scale: 1
-        }
-      })) as { data: string }
+      // RA: one native capture at a time per guest.
+      const { data } = (await runExclusiveCapture(guest, () =>
+        sender('Page.captureScreenshot', {
+          format,
+          captureBeyondViewport: true,
+          clip: {
+            x: 0,
+            y: 0,
+            width: Math.ceil(contentSize.width),
+            height: Math.ceil(contentSize.height),
+            scale: 1
+          }
+        })
+      )) as { data: string }
 
       return { data, format }
     })
@@ -181,9 +185,10 @@ export class CdpPageCommands {
       const sender = this.debuggerLifecycle.makeCdpSender(guest)
       await this.debuggerLifecycle.ensureDebuggerAttached(guest)
 
-      const { data } = (await sender('Page.captureScreenshot', {
-        format
-      })) as { data: string }
+      // RA: one native capture at a time per guest.
+      const { data } = (await runExclusiveCapture(guest, () =>
+        sender('Page.captureScreenshot', { format })
+      )) as { data: string }
 
       return { data, format }
     })

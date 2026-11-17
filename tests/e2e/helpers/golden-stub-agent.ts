@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import type { Page } from '@stablyai/playwright-test'
 import { expect } from '@stablyai/playwright-test'
@@ -15,11 +17,28 @@ export const GOLDEN_STUB_AGENTS = [
 
 const fixtureDir = path.join(process.cwd(), 'tests', 'e2e', 'fixtures', 'golden-stub-agent')
 
-export function getGoldenStubAgentLaunchEnv(): NodeJS.ProcessEnv {
+export function getGoldenStubAgentLaunchEnv(options: { inputLog?: string } = {}): NodeJS.ProcessEnv {
   const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === 'path') ?? 'PATH'
   return {
-    [pathKey]: [fixtureDir, process.env[pathKey] ?? ''].filter(Boolean).join(path.delimiter)
+    [pathKey]: [fixtureDir, process.env[pathKey] ?? ''].filter(Boolean).join(path.delimiter),
+    // RA: makes the stub log the raw stdin chunks it receives, for assertions on child-side input.
+    ...(options.inputLog ? { GOLDEN_STUB_INPUT_LOG: options.inputLog } : {})
   }
+}
+
+/** RA: a fresh log path for GOLDEN_STUB_INPUT_LOG. */
+export function newGoldenStubInputLogPath(): string {
+  return path.join(os.tmpdir(), `golden-stub-input-${process.pid}-${Date.now()}.log`)
+}
+
+/** RA: the stdin chunks the stub process received so far, in order. */
+export function readGoldenStubReceivedInput(logPath: string): string[] {
+  return existsSync(logPath)
+    ? readFileSync(logPath, 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as string)
+    : []
 }
 
 export async function configureGoldenStubAgent(

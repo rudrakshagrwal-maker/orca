@@ -21,18 +21,24 @@ const spawnShellInputs = ({
 
 /** Abort disconnected callers, refuse sleeping workspaces, and pass fork intent and the user's act for host validation. */
 function callerSpawnScope(
-  opts: Pick<TerminalCreateOptions, 'signal' | 'refuseSleptWorktree' | 'spawnIntent' | 'wslUserAct'>
+  opts: Pick<
+    TerminalCreateOptions,
+    'signal' | 'refuseSleptWorktree' | 'spawnIntent' | 'wslUserAct' | 'reopensPane' | 'launchAgent'
+  >
 ): {
   signal?: AbortSignal
   refuseSleptWorktree?: true
   spawnIntent?: SpawnIntent
   wslUserAct?: true
+  keepMissingCwd?: true
 } {
   return {
     ...(opts.signal ? { signal: opts.signal } : {}),
     ...(opts.refuseSleptWorktree ? { refuseSleptWorktree: true } : {}),
     ...(opts.spawnIntent ? { spawnIntent: opts.spawnIntent } : {}),
-    ...(opts.wslUserAct ? { wslUserAct: true } : {})
+    ...(opts.wslUserAct ? { wslUserAct: true } : {}),
+    // RA: an agent relaunched into its saved pane keeps its cwd even with no recorded session.
+    ...(opts.reopensPane && opts.launchAgent ? { keepMissingCwd: true as const } : {})
   }
 }
 

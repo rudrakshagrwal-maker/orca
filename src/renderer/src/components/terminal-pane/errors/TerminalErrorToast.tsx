@@ -4,6 +4,7 @@ import {
   isExplainedTerminalError,
   isRemoteTerminalClosedError,
   isPaneOwnerRecoveryError,
+  isStartupCwdMissingError,
   isFolderWorkspacePathOnlyError,
   humanizeTerminalError
 } from './terminal-error-display'
@@ -49,7 +50,8 @@ export function TerminalErrorToast({
   const ssh = isSshSignInRequiredTerminalError(error) || isSshReconnectOwnedTerminalError(error)
   // Why: the client's OS and shell describe neither the host nor its shell, and the renderer knows neither.
   const showClientEnvironment = paneOnClient && !ssh
-  const paneOwnerUnverified = isPaneOwnerRecoveryError(error)
+  // RA: a missing saved folder is retryable like an unverified owner (Retry starts the pane again).
+  const paneOwnerUnverified = isPaneOwnerRecoveryError(error) || isStartupCwdMissingError(error)
   const showDaemonRestart = !ssh && onRestartDaemon && shouldOfferDaemonRestart(error)
   // Restart cannot recover a session after its owning daemon exits.
   const showIssueLink =

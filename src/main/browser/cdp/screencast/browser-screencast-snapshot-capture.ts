@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import { tryAcquireCaptureSlot } from '../commands/cdp-capture-slot'
 import type { Debugger, WebContents } from 'electron'
 import { readBrowserScreencastImageSize } from './browser-screencast-image-size'
 import { runDebuggerCommandWithTimeout } from './browser-screencast-debugger-command'
@@ -74,6 +75,12 @@ export function createBrowserScreencastSnapshotCapture(
     if (isSnapshotStale(initialOnly, generation)) {
       return
     }
+    // RA: a snapshot is a best-effort stream frame; skip it while another capture holds the slot.
+    const releaseSlot = tryAcquireCaptureSlot(webContents)
+    if (!releaseSlot) {
+      return
+    }
+    const natives: Promise<unknown>[] = []
     try {
       const viewportWidth = positiveInteger(options.viewportWidth)
       const viewportHeight = positiveInteger(options.viewportHeight)
@@ -85,10 +92,12 @@ export function createBrowserScreencastSnapshotCapture(
       if (viewportWidth && viewportHeight && typeof webContents.capturePage === 'function') {
         try {
           // Prefer capturePage to avoid CDP tiling; stopped compositing can leave it pending.
+          const nativePage = holdPaintUntilSettled(holdPaint, () =>
+            webContents.capturePage({ x: 0, y: 0, width: viewportWidth, height: viewportHeight })
+          )
+          natives.push(nativePage)
           const nativeImage = await withTimeout(
-            holdPaintUntilSettled(holdPaint, () =>
-              webContents.capturePage({ x: 0, y: 0, width: viewportWidth, height: viewportHeight })
-            ),
+            nativePage,
             SNAPSHOT_CAPTURE_TIMEOUT_MS,
             null
           )
@@ -125,11 +134,13 @@ export function createBrowserScreencastSnapshotCapture(
             : {}),
           captureBeyondViewport: false
         }
-        const result = await runDebuggerCommandWithTimeout('Page.captureScreenshot', () =>
-          holdPaintUntilCdpCaptureSettles(webContents, holdPaint, () =>
+        const result = await runDebuggerCommandWithTimeout('Page.captureScreenshot', () => {
+          const native = holdPaintUntilCdpCaptureSettles(webContents, holdPaint, () =>
             dbg.sendCommand('Page.captureScreenshot', screenshotParams)
           )
-        )
+          natives.push(native)
+          return native
+        })
         if (isSnapshotStale(initialOnly, generation)) {
           return
         }
@@ -161,6 +172,9 @@ export function createBrowserScreencastSnapshotCapture(
       })
     } catch {
       // Live frames can still arrive after a fallback capture fails.
+    } finally {
+      // RA: free the slot only when every native capture started here has settled.
+      void Promise.allSettled(natives).then(releaseSlot)
     }
   }
 
