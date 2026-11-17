@@ -2,7 +2,7 @@
 // browser tab through the bundled CLI, and fail on any crash report. Typecheck and unit tests
 // cannot see a renderer error boundary; this can.
 import { spawn, execFile } from 'node:child_process'
-import { existsSync, readFileSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
@@ -21,7 +21,13 @@ function fail(message) {
 }
 
 async function orca(args, timeout = 60_000) {
-  const { stdout } = await run(cli, [...args, '--json'], { timeout, windowsHide: true })
+  let stdout
+  try {
+    ;({ stdout } = await run(cli, [...args, '--json'], { timeout, windowsHide: true }))
+  } catch (error) {
+    // Why: the CLI prints its JSON error on stdout with a non-zero exit; surface it.
+    throw new Error(`orca ${args.join(' ')}: ${(error.stdout || '').trim() || error.message} ${(error.stderr || '').trim()}`)
+  }
   const parsed = JSON.parse(stdout)
   if (!parsed.ok) throw new Error(`orca ${args.join(' ')}: ${JSON.stringify(parsed.error)}`)
   return parsed.result
@@ -65,7 +71,8 @@ try {
   )
   console.log('[boot-gate] runtime ready')
 
-  const repo = mkdtempSync(join(tmpdir(), 'orca-boot-'))
+  // Why native realpath: the runner's TEMP is an 8.3 short path (RUNNER~1) that Orca registers long.
+  const repo = realpathSync.native(mkdtempSync(join(tmpdir(), 'orca-boot-')))
   writeFileSync(join(repo, 'README.md'), 'boot gate\n')
   await run('git', ['init', '-q'], { cwd: repo })
   await run('git', ['-c', 'user.email=ci@local', '-c', 'user.name=ci', 'add', '.'], { cwd: repo })
