@@ -3,8 +3,8 @@ import type { GlobalSettings } from '../../global-settings-types'
 import { isTuiAgent } from './tui-agent-config'
 import { backgroundJobsDisabled } from '../../fork-background-policy'
 
-// RA: only the three terminal agents used by this fork can be selected or probed.
-const FORK_TUI_AGENTS = new Set<TuiAgent>(['claude', 'codex', 'hermes'])
+// RA: only Claude Code and Codex can be selected or probed (owner call, Hermes removed).
+const FORK_TUI_AGENTS = new Set<TuiAgent>(['claude', 'codex'])
 
 // Match desktop catalog order: this determines fallback priority without a selected default.
 export const TUI_AGENT_AUTO_PICK_ORDER = [

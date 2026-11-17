@@ -56,5 +56,28 @@ function hasBusyStatusRowAbove(lines: readonly string[], composer: number): bool
   const row = above.at(-1)?.trimStart().startsWith(CODEX_STATUS_TIP_PREFIX)
     ? above.at(-2)
     : above.at(-1)
-  return row?.includes(CODEX_BUSY_STATUS_MARKER) ?? false
+  // RA: also the timer-only status row (`Working (12s)`), which has no interrupt hint.
+  return row !== undefined && (row.includes(CODEX_BUSY_STATUS_MARKER) || isCodexTimerStatusRow(row))
+}
+
+// RA: herdr codex.toml screen_working_fallback. Reduced-motion or remapped-interrupt Codex still prints a live
+// timer, `Working (12s)` or `Working (12s • esc to interrupt)`; the old marker alone missed the first form.
+const CODEX_STATUS_TIMER_RE = new RegExp(
+  String.raw`^(?:[\u2022\u25E6]\s+)?[^\s\u203A\u2022\u25E6\u25A0\u2717\u2713\u2500]\S* ?.* \((?:\d+[hm] )*\d+s(?: \u2022 [^\n]+? to interrupt)?\)(?: \u00B7 .*)?$`
+)
+const CODEX_RECONNECT_FAILED_RE = /Reconnect failed/
+const CODEX_COMPOSER_ROW_RE = new RegExp(String.raw`^\u203A`)
+
+/** Whether a status row just above the composer, or at the screen bottom with no composer, shows a running turn. */
+export function isCodexBusyScreen(lines: readonly string[]): boolean {
+  const rows = lines.filter((line) => line.trim() !== '')
+  const composer = rows.findLastIndex((line) => CODEX_COMPOSER_ROW_RE.test(line))
+  const above = (composer === -1 ? rows : rows.slice(0, composer)).slice(-3)
+  return above.some(
+    (row) => isCodexTimerStatusRow(row) || row.includes(CODEX_BUSY_STATUS_MARKER)
+  )
+}
+
+function isCodexTimerStatusRow(row: string): boolean {
+  return CODEX_STATUS_TIMER_RE.test(row.trim()) && !CODEX_RECONNECT_FAILED_RE.test(row)
 }

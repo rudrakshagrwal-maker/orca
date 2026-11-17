@@ -7,7 +7,7 @@ import {
   isKnownReadyPromptBody,
   isQuietReadyScreenBody
 } from './terminal-wait-detection'
-import { readScreenInputVeto, type RuledScreen } from './screen-input-veto'
+import { readScreenBusy, readScreenInputVeto, type RuledScreen } from './screen-input-veto'
 import {
   evaluateAgentStateRules,
   readsTrustedScreen,
@@ -110,6 +110,23 @@ function screenInputVetoReader(
   }
 }
 
+// RA: memoized like the veto; read only once a ready verdict needs it.
+function screenBusyReader(
+  source: TuiIdleEvidenceSource,
+  agent: TuiAgent | null,
+  ptyId: string | null | undefined
+): () => boolean | null {
+  let read = false
+  let busy: boolean | null = null
+  return () => {
+    if (!read) {
+      busy = readScreenBusy(agent, () => source.readRuledScreen?.(ptyId) ?? null)
+      read = true
+    }
+    return busy
+  }
+}
+
 function lazyWaitText(readWaitText: () => string): () => string {
   let waitText: string | null = null
   return () => (waitText ??= readWaitText())
@@ -136,6 +153,7 @@ export function ptyTuiIdleEvidence(
     readQuietReadyBodyEvidence: () => isQuietReadyScreenBody(waitText(), agent, readScreen),
     readAgentRuleVerdict: () => readAgentRuleVerdict(agent, record, readScreen, waitText),
     readScreenInputVeto: screenInputVetoReader(source, agent, pty.ptyId),
+    readScreenBusy: screenBusyReader(source, agent, pty.ptyId),
     titleObservedAtEpochMs: pty.lastOscTitleEpochMs,
     agent,
     firstPartyStatus: source.getFirstPartyAgentStatus(pty.ptyId),

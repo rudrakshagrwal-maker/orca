@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeDisabledTuiAgents, pickTuiAgent } from './tui-agent-selection'
+import { isTuiAgentEnabled, normalizeDisabledTuiAgents, pickTuiAgent } from './tui-agent-selection'
 
 describe('pickTuiAgent', () => {
   it('respects the explicit blank terminal preference', () => {
@@ -18,5 +18,15 @@ describe('normalizeDisabledTuiAgents', () => {
       'codex',
       'claude'
     ])
+  })
+})
+
+// RA: the fork allows Claude Code and Codex only.
+describe('fork agent allow-list', () => {
+  it('enables exactly claude and codex', () => {
+    expect(isTuiAgentEnabled('claude')).toBe(true)
+    expect(isTuiAgentEnabled('codex')).toBe(true)
+    expect(isTuiAgentEnabled('hermes')).toBe(false)
+    expect(pickTuiAgent(null, ['hermes'])).toBeNull()
   })
 })

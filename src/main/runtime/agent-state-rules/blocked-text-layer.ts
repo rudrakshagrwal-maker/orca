@@ -12,7 +12,7 @@ import {
 // Any pane can contain another agent's dialog; the latest live blocker wins.
 
 const BUILT_IN_SENTINEL_RE =
-  /update available|choose working directory to|codex just got an upgrade|available\s*\u00B7|esc\s*skip|enter\s*confirm\s*\u00B7|enter\/esc\s*(?:continue|confirm)|hooks need review|do you trust|trust this|trusted workspace|press enter to (?:confirm|continue|view|insert)|press t to trust|new\s*mcp\s*servers?\s*found|custom\s*api\s*key|bypass\s*permissions\s*mode|external\s*claude\.md|permission required|requires permission|allow once|allow always/
+  /update available|choose working directory to|codex just got an upgrade|available\s*\u00B7|esc\s*skip|enter\s*confirm\s*\u00B7|enter\/esc\s*(?:continue|confirm)|hooks need review|do you trust|trust this|trusted workspace|press enter to (?:confirm|continue|view|insert)|press t to trust|new\s*mcp\s*servers?\s*found|custom\s*api\s*key|bypass\s*permissions\s*mode|external\s*claude\.md|permission required|requires permission|allow once|allow always|requests\s*your\s*input|allow command\?|enter to submit (?:answer|all)|press enter to confirm or esc to cancel/
 
 /** Cheap negative test; identity remains stable until rules change for caller caches. */
 export const terminalWaitBlockedSentinelRe = compiledFromActiveAgentStateRules(
@@ -92,7 +92,12 @@ function findBlockedSignalInLiveWindow(normalized: string): BlockedTextSignal | 
     interactivePromptContext.includes('sandbox') ||
     interactivePromptContext.includes('trust') ||
     interactivePromptContext.includes('hook')
-  if (interactivePromptIndex !== -1 && hasInteractiveDialogContext) {
+  // RA: live only while the footer ends the tail with no composer row under it; an answered dialog leaves both.
+  if (
+    interactivePromptIndex !== -1 &&
+    hasInteractiveDialogContext &&
+    isFooterLive(normalized, interactivePromptIndex)
+  ) {
     const contextStart = Math.max(0, interactivePromptIndex - 600)
     const hasSpecificPromptInContext = candidates.some(
       (candidate) => candidate.index >= contextStart && candidate.index <= interactivePromptIndex
@@ -102,6 +107,14 @@ function findBlockedSignalInLiveWindow(normalized: string): BlockedTextSignal | 
     }
   }
   candidates.push(...findBlockedAnchorSignals(normalized))
+  const codexPromptIndex = findLiveCodexPromptIndex(normalized)
+  if (codexPromptIndex !== -1) {
+    candidates.push({ reason: 'agent-interactive-prompt', index: codexPromptIndex })
+  }
+  const mcpDialogIndex = findLiveMcpElicitationIndex(normalized)
+  if (mcpDialogIndex !== -1) {
+    candidates.push({ reason: 'agent-interactive-prompt', index: mcpDialogIndex })
+  }
   const permissionPromptIndex = Math.max(
     normalized.lastIndexOf('permission required'),
     normalized.lastIndexOf('requires permission')
@@ -122,4 +135,82 @@ function findBlockedSignalInLiveWindow(normalized: string): BlockedTextSignal | 
         candidate.index > latest.index ? candidate : latest
       )
     : null
+}
+
+// RA: Claude's MCP elicitation dialog (herdr claude.toml mcp_elicitation_prompt): header, Accept/Decline, `esc to cancel`.
+// Tails fold words together under cell-diff painting, so spaces are optional. Hook-free Claude shows no other signal.
+const MCP_ELICITATION_HEADER_RE = new RegExp(String.raw`mcp\s*server\s*["\u201C'][^\n]*["\u201D']\s*requests\s*your\s*input`, 'g')
+// Live only while the cancel footer ends the tail; an answered or quoted dialog has the prompt box and status row after it.
+const LIVE_DIALOG_FOOTER_TRAILING_LINES = 2
+
+const CANCEL_FOOTER_RE = new RegExp(String.raw`esc\s*to\s*cancel`, 'g')
+
+function lastCancelFooter(segment: string): number {
+  let end = -1
+  for (const match of segment.matchAll(CANCEL_FOOTER_RE)) {
+    end = match.index + match[0].length
+  }
+  return end
+}
+
+function findLiveMcpElicitationIndex(normalized: string): number {
+  let header = -1
+  for (const match of normalized.matchAll(MCP_ELICITATION_HEADER_RE)) {
+    header = match.index
+  }
+  if (header === -1) {
+    return -1
+  }
+  const segment = normalized.slice(header)
+  const footer = lastCancelFooter(segment)
+  const choices = segment.indexOf('accept') !== -1 || segment.indexOf('decline') !== -1
+  if (footer === -1 || !choices) {
+    return -1
+  }
+  const trailing = segment
+    .slice(footer)
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+  return trailing.length <= LIVE_DIALOG_FOOTER_TRAILING_LINES ? header : -1
+}
+
+const NEWLINE = String.fromCharCode(10)
+
+// RA: herdr codex.toml live_strong_blocker. Codex approval and question dialogs end the screen with these rows;
+// the permission wording above covers only `permission required`, so an approval prompt read as idle.
+const CODEX_LIVE_PROMPT_QUESTION = 'allow command?'
+const CODEX_LIVE_PROMPT_FOOTERS = [
+  'press enter to confirm or esc to cancel',
+  'enter to submit answer',
+  'enter to submit all'
+]
+const CODEX_QUESTION_TRAILING_LINES = 8
+const CODEX_FOOTER_TRAILING_LINES = 2
+
+function trailingRows(text: string, from: number): number {
+  return text.slice(from).split(NEWLINE).filter((line) => line.trim() !== '').length - 1
+}
+
+function findLiveCodexPromptIndex(normalized: string): number {
+  // Why: an answered dialog scrolls up and leaves the composer and status rows below it.
+  const question = normalized.lastIndexOf(CODEX_LIVE_PROMPT_QUESTION)
+  let latest = question !== -1 && trailingRows(normalized, question) <= CODEX_QUESTION_TRAILING_LINES ? question : -1
+  for (const footer of CODEX_LIVE_PROMPT_FOOTERS) {
+    const index = normalized.lastIndexOf(footer)
+    if (index !== -1 && isFooterLive(normalized, index)) {
+      latest = Math.max(latest, index)
+    }
+  }
+  return latest
+}
+
+const COMPOSER_ROW_RE = new RegExp(String.raw`^\s*\u203A`)
+
+/** The footer is within the last 2 non-empty rows and no Codex composer row follows it. */
+function isFooterLive(normalized: string, footerIndex: number): boolean {
+  const rows = normalized
+    .slice(footerIndex)
+    .split(NEWLINE)
+    .filter((line) => line.trim() !== '')
+  return rows.length - 1 <= CODEX_FOOTER_TRAILING_LINES && !rows.slice(1).some((row) => COMPOSER_ROW_RE.test(row))
 }

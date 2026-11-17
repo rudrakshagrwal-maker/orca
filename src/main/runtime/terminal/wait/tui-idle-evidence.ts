@@ -130,6 +130,8 @@ export type TuiIdleEvaluationInput = {
   readAgentRuleVerdict: () => AgentStateVerdict | null
   /** Whether an overlay on the agent's screen refuses input; null with no rule or no screen. */
   readScreenInputVeto: () => boolean | null
+  /** RA: whether the agent's live screen shows a running turn (status row, background work); null with no rule or screen. */
+  readScreenBusy?: () => boolean | null
   /** When the PTY's own current title was observed; null when it has none or no clock. */
   titleObservedAtEpochMs: number | null
   agent: TuiAgent | null | undefined
@@ -180,9 +182,17 @@ export function evaluateTuiIdle(input: TuiIdleEvaluationInput): TuiIdleVerdict {
   const verdict = rankTuiIdleEvidence(input)
   // Why over the verdict rather than per lane: an overlay refuses input whichever lane would
   // settle, and only a ready verdict pays for the screen read.
-  return isTuiIdleReadyVerdict(verdict) && input.readScreenInputVeto() === true
-    ? { kind: 'pending', quietForeground: 'closed' }
-    : verdict
+  if (!isTuiIdleReadyVerdict(verdict)) {
+    return verdict
+  }
+  if (input.readScreenInputVeto() === true) {
+    return { kind: 'pending', quietForeground: 'closed' }
+  }
+  // RA: a title or quiet-body idle cannot outrank a live status row; a fresh hook `done` stays authoritative.
+  if (input.readScreenBusy?.() === true && input.readHookTurn?.()?.state !== 'done') {
+    return { kind: 'pending', quietForeground: 'closed' }
+  }
+  return verdict
 }
 
 function rankTuiIdleEvidence(input: TuiIdleEvaluationInput): TuiIdleVerdict {
