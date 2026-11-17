@@ -239,13 +239,23 @@ export function scheduleDrain(delayMs: number): void {
   }
   // RA: visible splits share one frame; timers remain for background-only output.
   if (useFrame) {
-    const frame = requestAnimationFrame(() => {
+    // A synchronous callback (test shims) runs before the id is known and must not leave a stale drainFrame.
+    let frame: number | null = null
+    let ranSynchronously = false
+    frame = requestAnimationFrame(() => {
+      if (frame === null) {
+        ranSynchronously = true
+        runDrainTick()
+        return
+      }
       // RA: ignore an obsolete callback if cancellation raced a visibility transition.
       if (drainFrame === frame) {
         runDrainTick()
       }
     })
-    drainFrame = frame
+    if (!ranSynchronously) {
+      drainFrame = frame
+    }
     return
   }
   // RA: non-browser consumers retain the same bounded visible cadence.

@@ -71,7 +71,8 @@ describe('pane zoom', () => {
       managerRef: {
         current: {
           getPanes: () => panes,
-          setActivePane: vi.fn()
+          setActivePane: vi.fn(),
+          syncLayoutRendering: vi.fn()
         } as unknown as PaneManager
       },
       pendingPaneSizeRefreshFrameIdsRef: { current: [] },

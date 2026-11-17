@@ -234,8 +234,6 @@ export function createPanePtyBinding(session: ConnectPanePtySession): PanePtyBin
       session.pendingTerminalInputWrite = null
       session.interruptInference.dispose()
       session.clearTitleOnlyInterruptTimer()
-      // Release without cancelling the turn’s settle deadline so the parked watcher inherits it.
-      session.releaseCommandCodeDoneSettleExecutor()
       if (session.shiftEnterReconfirmTimer !== null) {
         clearTimeout(session.shiftEnterReconfirmTimer)
         session.shiftEnterReconfirmTimer = null

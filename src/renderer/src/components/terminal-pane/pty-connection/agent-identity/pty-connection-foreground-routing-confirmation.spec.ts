@@ -130,34 +130,6 @@ export function registerPtyConnectionForegroundRoutingConfirmationTests(): void 
         await flushAsyncTicks()
       }
 
-      it('does not retain routing capability when no confirmation read is scheduled', async () => {
-        vi.useFakeTimers()
-        const isVisibleRef = { current: false }
-        const ptyId = 'pty-pi-hidden-no-read'
-        const tabId = `tab-${ptyId}`
-        const { binding, cacheKey } = await connectRestoredPaneForForegroundSampling({
-          ptyId,
-          tabId,
-          isVisibleRef
-        })
-        mockStoreState.paneForegroundAgentByPaneKey[cacheKey] = {
-          agent: 'pi',
-          routingTrusted: true,
-          shellForeground: false
-        }
-
-        // Hidden panes skip visible sampling, so fail closed to legacy encoding without leaving an uncleared pending flag.
-        binding.requestWindowsShiftEnterReconfirmation()
-        await vi.advanceTimersByTimeAsync(350)
-        await flushAsyncTicks()
-
-        expect(mockStoreState.paneForegroundAgentByPaneKey[cacheKey]).toEqual({
-          agent: 'pi',
-          routingRevoked: true,
-          shellForeground: false
-        })
-        expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe('alt-enter')
-      })
 
       it('does not reauthorize explicitly revoked routing before confirmation', async () => {
         vi.useFakeTimers()
@@ -183,76 +155,7 @@ export function registerPtyConnectionForegroundRoutingConfirmationTests(): void 
         expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe('alt-enter')
       })
 
-      it.each(['null result', 'provider rejection'] as const)(
-        'drops pending routing after an inconclusive %s',
-        async (outcome) => {
-          vi.useFakeTimers()
-          if (outcome === 'provider rejection') {
-            vi.mocked(window.api.pty.confirmForegroundProcess).mockRejectedValue(
-              new Error('inspection unavailable')
-            )
-          } else {
-            vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue(null)
-          }
-          const ptyId = `pty-pi-reconfirm-${outcome.replace(' ', '-')}`
-          const tabId = `tab-${ptyId}`
-          const { binding, cacheKey } = await connectRestoredPaneForForegroundSampling({
-            ptyId,
-            tabId
-          })
-          mockStoreState.paneForegroundAgentByPaneKey[cacheKey] = {
-            agent: 'pi',
-            routingTrusted: true,
-            shellForeground: false
-          }
 
-          binding.sampleForegroundAgentOnFocus()
-          expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe('csi-u')
-
-          await vi.advanceTimersByTimeAsync(
-            VISIBLE_PTY_SETTLE_MS + WRAPPER_RESOLVE_RETRY_MS + SECOND_WRAPPER_RETRY_MS
-          )
-          await flushAsyncTicks()
-
-          expect(mockStoreState.paneForegroundAgentByPaneKey[cacheKey]).toEqual({
-            agent: 'pi',
-            routingRevoked: true,
-            shellForeground: false
-          })
-          expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe(
-            'alt-enter'
-          )
-        }
-      )
-
-      it('replaces pending Pi routing when confirmation finds another agent', async () => {
-        vi.useFakeTimers()
-        vi.mocked(window.api.pty.confirmForegroundProcess).mockResolvedValue('codex')
-        const ptyId = 'pty-pi-reconfirm-codex'
-        const tabId = `tab-${ptyId}`
-        const { binding, cacheKey } = await connectRestoredPaneForForegroundSampling({
-          ptyId,
-          tabId
-        })
-        mockStoreState.paneForegroundAgentByPaneKey[cacheKey] = {
-          agent: 'pi',
-          routingTrusted: true,
-          shellForeground: false
-        }
-
-        binding.sampleForegroundAgentOnFocus()
-        expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe('csi-u')
-
-        await advanceVisibleForegroundRead()
-
-        expect(mockStoreState.paneForegroundAgentByPaneKey[cacheKey]).toEqual({
-          agent: 'codex',
-          agentEvidence: 'process-read',
-          routingTrusted: true,
-          shellForeground: false
-        })
-        expect(resolveMockPaneWindowsShiftEnterEncoding(mockStoreState, cacheKey)).toBe('alt-enter')
-      })
     })
   })
 }

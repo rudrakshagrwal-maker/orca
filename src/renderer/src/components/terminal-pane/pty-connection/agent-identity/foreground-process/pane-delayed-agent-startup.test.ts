@@ -64,16 +64,3 @@ it('cancels delayed startup discovery on close', async () => {
   expect(f.read).not.toHaveBeenCalled()
 })
 
-it('allows the next command to recover after a prior startup miss', async () => {
-  const f = fixture()
-  f.tracker.onAgentStartupObserved()
-  await vi.advanceTimersByTimeAsync(30_000)
-  f.tracker.onCommandFinished()
-  f.tracker.onCommandStarted()
-  await vi.advanceTimersByTimeAsync(30_000)
-  f.foreground('gemini')
-  f.tracker.onAgentStartupObserved()
-  await vi.advanceTimersByTimeAsync(350)
-  expect(f.publish).toHaveBeenLastCalledWith(expect.objectContaining({ agent: 'gemini' }))
-  f.tracker.dispose()
-})

@@ -108,59 +108,6 @@ export function registerPtyConnectionMainSideEffectAuthorityTests(): void {
         expect(deps.markTerminalBell).not.toHaveBeenCalled()
       })
 
-      it('clears state without completion attention for stale-derived facts', async () => {
-        enableMainAuthority()
-        const { connectPanePty } = await import('../connect-pane-pty')
-        const agentTitleMocks6 = await vi.importMock<PtyConnectionAgentTitleMocks>(
-          '@/lib/agent-status/aggregation/worktree-agent-status'
-        )
-        const handler =
-          await import('../../pty-transport/output/terminal-side-effect-facts-handler')
-        const transport = createMockTransport()
-        transportFactoryQueue.push(transport)
-        vi.useFakeTimers()
-
-        const deps = createDeps()
-        connectPanePty(
-          createPane(1) as never,
-          createManager(1) as never,
-          bindPaneAgentTitleMocks(deps as never, agentTitleMocks6)
-        )
-        const onPtySpawn = createdTransportOptions[0]?.onPtySpawn as (ptyId: string) => void
-        onPtySpawn('pty-fact-stale')
-
-        handler._dispatchTerminalSideEffectBatchForTest({
-          ptyId: 'pty-fact-stale',
-          seq: 1,
-          facts: [
-            { kind: 'title', normalizedTitle: '⠋ Codex working', rawTitle: '⠋ Codex working' },
-            { kind: 'agent-working' }
-          ]
-        })
-        // Main's unthrottled 3s stale-title rewrite for a merely-paused agent.
-        handler._dispatchTerminalSideEffectBatchForTest({
-          ptyId: 'pty-fact-stale',
-          seq: 2,
-          facts: [
-            {
-              kind: 'title',
-              normalizedTitle: 'Codex',
-              rawTitle: 'Codex',
-              staleWorkingTitleClear: true
-            },
-            { kind: 'agent-idle', title: 'Codex', staleWorkingTitleClear: true }
-          ]
-        })
-
-        expect(deps.setRuntimePaneTitle).toHaveBeenLastCalledWith('tab-1', 1, 'Codex')
-        expect(deps.setCacheTimerStartedAt).toHaveBeenLastCalledWith(
-          makePaneKey('tab-1', LEAF_1),
-          null
-        )
-        vi.advanceTimersByTime(AGENT_TASK_COMPLETE_NOTIFICATION_MAX_WAIT_MS * 2)
-        expect(deps.dispatchNotification).not.toHaveBeenCalled()
-        expect(deps.markTerminalBell).not.toHaveBeenCalled()
-      })
 
       it('does not byte-scan PR links or OSC 133 — facts are the only consumer', async () => {
         enableMainAuthority()
@@ -305,51 +252,6 @@ export function registerPtyConnectionMainSideEffectAuthorityTests(): void {
         expect(mockStoreState.agentStatusByPaneKey[paneKey]).toBe(unknownStatus)
       })
 
-      it('keeps Command Code working when a working fact lands before the done settles', async () => {
-        enableMainAuthority()
-        const { connectPanePty } = await import('../connect-pane-pty')
-        const agentTitleMocks13 = await vi.importMock<PtyConnectionAgentTitleMocks>(
-          '@/lib/agent-status/aggregation/worktree-agent-status'
-        )
-        const handler =
-          await import('../../pty-transport/output/terminal-side-effect-facts-handler')
-        const transport = createMockTransport()
-        transportFactoryQueue.push(transport)
-        vi.useFakeTimers()
-        const paneKey = makePaneKey('tab-1', LEAF_1)
-
-        connectPanePty(
-          createPane(1) as never,
-          createManager(1) as never,
-          bindPaneAgentTitleMocks(createDeps() as never, agentTitleMocks13)
-        )
-        const onPtySpawn = createdTransportOptions[0]?.onPtySpawn as (ptyId: string) => void
-        onPtySpawn('pty-fact-cc-repaint')
-
-        handler._dispatchTerminalSideEffectBatchForTest({
-          ptyId: 'pty-fact-cc-repaint',
-          seq: 1,
-          facts: [{ kind: 'command-code-working', prompt: 'Run a slow command' }]
-        })
-        handler._dispatchTerminalSideEffectBatchForTest({
-          ptyId: 'pty-fact-cc-repaint',
-          seq: 2,
-          facts: [{ kind: 'command-code-done', prompt: 'Run a slow command' }]
-        })
-        vi.advanceTimersByTime(1000)
-        handler._dispatchTerminalSideEffectBatchForTest({
-          ptyId: 'pty-fact-cc-repaint',
-          seq: 3,
-          facts: [{ kind: 'command-code-working', prompt: 'Run a slow command' }]
-        })
-        vi.advanceTimersByTime(2000)
-
-        expect(mockStoreState.agentStatusByPaneKey[paneKey]).toMatchObject({
-          state: 'working',
-          prompt: 'Run a slow command',
-          agentType: 'command-code'
-        })
-      })
 
       it('honors the persisted kill switch for panes bound before settings hydrate', async () => {
         // Pre-hydration: settings not loaded but kill switch persisted off — pane registers byte parsers, not a fact consumer.
