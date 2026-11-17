@@ -310,7 +310,7 @@ export class PaneManager {
     releaseHiddenWebglRetention(this)
     for (const pane of this.panes.values()) {
       if (isManagedPaneDisplayNone(pane)) {
-        suspendPaneRendering([pane])
+        suspendPaneRendering([pane], undefined, false)
       } else {
         resumePaneRendering([pane])
       }

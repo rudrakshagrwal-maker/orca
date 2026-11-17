@@ -66,13 +66,15 @@ export function suspendPaneRendering(
   retention?: {
     owner: HiddenWebglRetentionOwner
     livePanes: () => Iterable<ManagedPaneInternal>
-  }
+  },
+  // RA: a split hidden inside a visible tab keeps parsing; main only answers queries for hidden tabs.
+  suspendParsing = true
 ): void {
   const suspended = Array.from(panes)
   // Blur both suspension branches: opacity:0 startup probes can retain focus even though display:none/inert normally blur and disposal stops blink.
   for (const pane of suspended) {
     // RA: suspend parsing alongside links and WebGL, retaining bytes for reveal.
-    setTerminalOutputSuspended(pane.terminal, true)
+    setTerminalOutputSuspended(pane.terminal, suspendParsing)
     setTerminalLinkDetectionSuspended(pane.terminal, true) // RA: pause hidden link work immediately.
     pane.webglAttachmentDeferred = true
     pane.terminal.blur()

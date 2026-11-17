@@ -16,7 +16,7 @@ vi.mock('./pane-lifecycle', async (importOriginal) => {
 })
 const { PaneManager } = await import('./pane-manager')
 
-it('buffers an expanded-away split through tab hide/reveal and replays it on collapse', () => {
+it('keeps parsing an expanded-away split so its terminal queries still get replies, without replaying on collapse', () => {
   vi.useFakeTimers()
   vi.stubGlobal('requestAnimationFrame', () => 1)
   vi.stubGlobal('cancelAnimationFrame', () => {})
@@ -45,7 +45,7 @@ it('buffers an expanded-away split through tab hide/reveal and replays it on col
     manager.resumeRendering()
     flushTerminalOutput(second.terminal)
     vi.advanceTimersByTime(60_000)
-    expect(screen).toBe('')
+    expect(screen).toBe('hidden output\n')
     restoreExpandedLayoutFrom(snapshots, manager)
     flushTerminalOutput(second.terminal)
     expect(screen).toBe('hidden output\n')
