@@ -84,39 +84,6 @@ describe('layout command refusals', () => {
     expect(shellTab).not.toHaveProperty('viewMode')
   })
 
-  // RA: "Start in workspace root" drops the tab's saved start folder; a plain start keeps it.
-  it('startPane with inWorkspaceRoot clears the tab startupCwd, a plain startPane keeps it', () => {
-    const { model, tabB, leafB } = setup()
-    const paneKey = `${tabB}:${leafB}`
-    const withCwd: WorkspaceLayoutModel = {
-      ...model,
-      workspaces: {
-        ...model.workspaces,
-        [WS]: {
-          ...model.workspaces[WS]!,
-          tabs: model.workspaces[WS]!.tabs.map((tab) =>
-            tab.id === tabB && tab.kind === 'terminal'
-              ? { ...tab, terminal: { ...tab.terminal, startupCwd: '/gone' } }
-              : tab
-          )
-        }
-      }
-    }
-    const cwdOf = (m: WorkspaceLayoutModel) => {
-      const tab = m.workspaces[WS]!.tabs.find((t) => t.id === tabB)
-      return tab?.kind === 'terminal' ? tab.terminal.startupCwd : 'not-terminal'
-    }
-    const plain = applyLayoutCommand(withCwd, { type: 'startPane', workspace: WS, paneKey }, context)
-    expect(plain.ok && cwdOf(plain.model)).toBe('/gone')
-    const root = applyLayoutCommand(
-      withCwd,
-      { type: 'startPane', workspace: WS, paneKey, inWorkspaceRoot: true },
-      context
-    )
-    expect(root).toMatchObject({ ok: true, effects: { startPaneKeys: [paneKey] } })
-    expect(root.ok && cwdOf(root.model)).toBeUndefined()
-  })
-
   it('startPane refuses a missing pane and starts a slept one from its record; restartPane refuses a missing one', () => {
     const { model, tabB, leafB } = setup()
     const paneKey = `${tabB}:${leafB}`

@@ -20,6 +20,8 @@ export type RestoredPaneTrigger = {
   /** A user's own tab open or Start; without it a stopped WSL distro holds the start. */
   wslUserAct?: true
   targetsHost?: boolean
+  /** RA: this one pane starts in the workspace root, ignoring its saved cwd and its resume record's cwd. */
+  inWorkspaceRoot?: true
   targetGroupId?: string
 }
 

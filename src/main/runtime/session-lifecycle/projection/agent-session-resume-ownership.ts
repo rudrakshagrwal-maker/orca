@@ -69,7 +69,8 @@ export abstract class OrcaRuntimeWithAgentSessionResumeOwnership extends OrcaRun
    */
   protected async resolvePaneOwnedResumeStartup(
     worktreeId: string,
-    tab: RuntimeMobileSessionTerminalTab
+    tab: RuntimeMobileSessionTerminalTab,
+    inWorkspaceRoot?: true
   ): Promise<PaneResumeStartup | Record<string, never> | undefined> {
     const stored = this.getPaneSleepingAgentRecord(worktreeId, tab)
     const record = stored
@@ -108,7 +109,12 @@ export abstract class OrcaRuntimeWithAgentSessionResumeOwnership extends OrcaRun
       return vetoed
     }
     // Unresumable here (including a WSL host's Windows-only CLI) restores a plain shell.
-    const resume = await this.preparePaneOwnedResume(worktreeId, record, !stored).catch(() => null)
+    const resume = await this.preparePaneOwnedResume(
+      worktreeId,
+      record,
+      !stored,
+      inWorkspaceRoot
+    ).catch(() => null)
     if (!resume) {
       resumeClaim.settleFailure(false)
       return vetoed
@@ -119,7 +125,8 @@ export abstract class OrcaRuntimeWithAgentSessionResumeOwnership extends OrcaRun
   private async preparePaneOwnedResume(
     worktreeId: string,
     record: SleepingAgentSessionRecord,
-    fromHookRows: boolean
+    fromHookRows: boolean,
+    inWorkspaceRoot?: true
   ): Promise<MobileTerminalResumeCommand | null> {
     if (
       (await this.isProviderSessionLiveInAnotherPane(record, record.paneKey)) ||
@@ -128,7 +135,7 @@ export abstract class OrcaRuntimeWithAgentSessionResumeOwnership extends OrcaRun
       return null
     }
     const workspace = await this.resolveTerminalWorkspaceLaunchScope(`id:${worktreeId}`)
-    const resume = this.resolveMobileSessionResumeCommand(workspace, record)
+    const resume = this.resolveMobileSessionResumeCommand(workspace, record, inWorkspaceRoot)
     if (!resume) {
       return null
     }

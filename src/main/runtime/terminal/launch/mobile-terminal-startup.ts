@@ -58,6 +58,11 @@ export type MobileTerminalResumeCommand = MobileTerminalCommand & {
   resumeProviderSession: AgentProviderSessionMetadata
 }
 
+function withoutAgentCwd<T extends { cwd?: string }>(session: T): Omit<T, 'cwd'> {
+  const { cwd: _cwd, ...rest } = session
+  return rest
+}
+
 function normalizeOriginConnectionId(connectionId: string | null | undefined): string | null {
   return connectionId?.trim() || null
 }
@@ -66,7 +71,8 @@ export abstract class OrcaRuntimeWithResolveMobileSessionTerminalCommand extends
   /** The `--resume` launch for a pane's recorded agent session, as the host window's cold restore builds it. */
   protected resolveMobileSessionResumeCommand(
     workspace: TerminalWorkspaceLaunchScope,
-    record: ResumableAgentSessionSource
+    record: ResumableAgentSessionSource,
+    inWorkspaceRoot?: true
   ): MobileTerminalResumeCommand | null {
     const providerSession = normalizeAgentProviderSession(record.providerSession)
     if (!this.store || !providerSession || !isResumableTuiAgent(record.agent)) {
@@ -89,7 +95,8 @@ export abstract class OrcaRuntimeWithResolveMobileSessionTerminalCommand extends
     // Throws WslHostWindowsOnlyAgentError; callers choose refusal or a plain-shell restore.
     const resumeInputs = resolveWslHostAgentResumeInputs({
       agent: record.agent,
-      providerSession,
+      // RA: a start in the workspace root must not `cd` into the resume record's (missing) folder.
+      providerSession: inWorkspaceRoot ? withoutAgentCwd(providerSession) : providerSession,
       cmdOverrides: settings.agentCmdOverrides ?? {},
       ...resolveResumeLaunchRecipe(launchConfig, record.agent, providerSession),
       platform: launchRuntime.platform,

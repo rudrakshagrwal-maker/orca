@@ -7,7 +7,6 @@ import {
   leafIdsOf,
   locatePane,
   refuse,
-  replaceTab,
   setLeaf,
   type Applied
 } from './workspace-layout-command-steps'
@@ -52,19 +51,7 @@ export function startPane(
   if (live || context.isStarting?.(pane.leafId)) {
     return applied(model)
   }
-  // RA: a restored agent whose saved folder is gone starts in the workspace root: drop the tab's saved start cwd.
-  const next =
-    command.inWorkspaceRoot && pane.tab.terminal.startupCwd
-      ? withWorkspace(
-          model,
-          command.workspace,
-          replaceTab(workspace, {
-            ...pane.tab,
-            terminal: omitStoredFields(pane.tab.terminal, ['startupCwd'])
-          })
-        )
-      : model
-  return applied(next, {}, { startPaneKeys: [command.paneKey] }, { [pane.leafId]: null })
+  return applied(model, {}, { startPaneKeys: [command.paneKey] }, { [pane.leafId]: null })
 }
 
 /** Stops then starts in place: the pane keeps its id, its terminal binding is cleared until the new one starts. */

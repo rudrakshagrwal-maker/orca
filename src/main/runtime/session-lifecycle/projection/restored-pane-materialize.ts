@@ -213,11 +213,12 @@ export abstract class OrcaRuntimeWithRestoredPaneStart extends OrcaRuntimeWithBu
       targetsHost = false,
       targetGroupId,
       sessionId,
-      wslUserAct
+      wslUserAct,
+      inWorkspaceRoot
     }: RestoredPaneTrigger & { sessionId?: string }
   ): Promise<RuntimeMobileSessionCreateTerminalResult> {
     // Recover undelivered startup commands (#7587) or recorded agent sessions (#27147, #27777); live-session attach skips startup commands, preventing double launches.
-    const resumeStartup = await this.resolvePaneOwnedResumeStartup(worktreeId, tab)
+    const resumeStartup = await this.resolvePaneOwnedResumeStartup(worktreeId, tab, inWorkspaceRoot)
     // After a claimed-record resume starts, mark that record live.
     const paneKey = `${tab.parentTabId}:${tab.leafId}`
     const resumedRecord =
@@ -262,7 +263,8 @@ export abstract class OrcaRuntimeWithRestoredPaneStart extends OrcaRuntimeWithBu
             leafId: tab.leafId,
             sessionId: startSessionId
           },
-          cwd: tab.startupCwd,
+          // RA: the workspace root replaces the pane's saved cwd (the resume record's is dropped in the resume command).
+          cwd: inWorkspaceRoot ? undefined : tab.startupCwd,
           command: agentStartup.command,
           env: agentStartup.env,
           startupCommandDelivery: agentStartup.startupCommandDelivery,

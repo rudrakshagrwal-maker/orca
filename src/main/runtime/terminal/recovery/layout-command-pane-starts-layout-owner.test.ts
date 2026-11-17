@@ -161,6 +161,42 @@ describe('a client’s startPane in the layout-owner build', () => {
   })
 })
 
+// RA: "Start in workspace root" is per pane and beats both the saved start folder and the resume record's folder.
+describe('a client’s startPane in the workspace root', () => {
+  it('starts the pane in the workspace root, ignoring the saved cwd and the resume record cwd', async () => {
+    const session = makeWorkspaceSessionWithHeadlessTerminal({
+      sleepingAgentSessionsByPaneKey: {
+        [PANE_KEY]: {
+          ...RECORD,
+          providerSession: { ...RECORD.providerSession, cwd: '/gone/agent-folder' }
+        }
+      }
+    })
+    session.tabsByWorktree[TEST_WORKTREE_ID]![0]!.startupCwd = '/gone/saved-folder'
+    const plain = await desktopRuntime({ session })
+    await plain.runtime.applyLayoutCommand({ ...startPane, paneKey: PANE_KEY })
+    await vi.waitFor(() => expect(plain.spawn).toHaveBeenCalled())
+    expect(plain.spawn.mock.calls[0]![0].command ?? '').toContain('/gone/agent-folder')
+    expect(JSON.stringify(plain.spawn.mock.calls[0]![0])).toContain('/gone/saved-folder')
+    plain.started.resolve({ id: 'plain-pty' })
+    await vi.waitFor(() => expect(plain.runtime.isRestoredPaneBoundTo(PANE, 'plain-pty')).toBe(true))
+
+    const root = await desktopRuntime({ session })
+    await root.runtime.applyLayoutCommand({
+      ...startPane,
+      paneKey: PANE_KEY,
+      inWorkspaceRoot: true
+    })
+    await vi.waitFor(() => expect(root.spawn).toHaveBeenCalled())
+    const args = JSON.stringify(root.spawn.mock.calls[0]![0])
+    expect(args).not.toContain('/gone/saved-folder')
+    expect(root.spawn.mock.calls[0]![0].command ?? '').not.toContain('/gone/agent-folder')
+    expect(root.spawn.mock.calls[0]![0].command ?? '').toContain('provider-session-1')
+    root.started.resolve({ id: 'root-pty' })
+    await vi.waitFor(() => expect(root.runtime.isRestoredPaneBoundTo(PANE, 'root-pty')).toBe(true))
+  })
+})
+
 describe('a client’s wake of a slept pane in the layout-owner build', () => {
   it('resumes its agent through main and keeps the record pane-owned, so a host crash resumes again', async () => {
     const { runtime, spawn, started, getSession } = await desktopRuntime({ slept: true })

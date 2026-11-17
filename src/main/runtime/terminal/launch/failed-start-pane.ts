@@ -97,7 +97,11 @@ export abstract class OrcaRuntimeWithFailedStartPanes extends OrcaRuntimeWithCre
         }),
       onEffects: (effects) =>
         runLayoutPaneStarts({ type: command.type, workspace }, effects, (pane) =>
-          this.ensureRestoredPaneStarted(pane)
+          // RA: "Start in workspace root" applies to this pane only.
+          this.ensureRestoredPaneStarted(
+            pane,
+            command.type === 'startPane' && command.inWorkspaceRoot ? { inWorkspaceRoot: true } : {}
+          )
         )
     }
   }
