@@ -56,7 +56,6 @@ import {
   getOptionalSetupDecision,
   withSetupDecisionRecovery
 } from './worktree-setup-decision-recovery'
-import { assertGitLabLinkFlagProjectsMatch } from './worktree-gitlab-link-context'
 import {
   assertReferenceWritesSupported,
   getCreateReferenceInputs,
@@ -165,7 +164,6 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
     const repoTarget: CliRepoTarget = cwdContext.repoId
       ? { repo: `id:${cwdContext.repoId}` }
       : await getCreateRepoTarget(flags, undefined, client, explicitParentWorkspace)
-    await assertGitLabLinkFlagProjectsMatch(flags, client, repoTarget)
     const linkedItems = referenceInputs
       ? await resolveReferenceInputs(context, referenceInputs)
       : undefined
@@ -233,7 +231,6 @@ export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
     if (await setIfFolderWorkspace(client, flags, worktree, json)) {
       return
     }
-    await assertGitLabLinkFlagProjectsMatch(flags, client, { worktree })
     const parentFields = await resolveSetParentFields(flags, cwd, client)
     const pending = callNamingParentEnvironment<RuntimeWorktreeSetResult>(client, 'worktree.set', {
       worktree,
