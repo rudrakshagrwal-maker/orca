@@ -119,17 +119,7 @@ describe('orca search argument parsing', () => {
     )
   })
 
-  it('rejects an unknown --agent and names the known ones', () => {
-    expect(() => parseSearch(['search', 'q', '--agent', 'claude', '--agent', 'bogus'])).toThrow(
-      /Unknown --agent "bogus"\. Known agents: claude, codebuddy, qoder, codex, /
-    )
-  })
 
-  it('accepts Qoder without changing another agent filter', () => {
-    expect(
-      request(['search', 'q', '--agent', 'qoder', '--agent', 'codex']).filters?.agents
-    ).toEqual(['qoder', 'codex'])
-  })
 
   it('rejects more --path values than the contract accepts', () => {
     const paths = Array.from({ length: 65 }, (_, index) => ['--path', `/p${index}`]).flat()

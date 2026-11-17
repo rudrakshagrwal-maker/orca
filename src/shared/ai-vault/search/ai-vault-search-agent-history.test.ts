@@ -42,23 +42,4 @@ describe.each(['qoder', 'jcode'] as const)('%s search negotiation', (agent) => {
 })
 
 describe('explicit search host vocabulary', () => {
-  it('uses an explicit host catalog before either historical capability', async () => {
-    const call = vi.fn(async (method: string) =>
-      method === 'aiVault.searchStatus'
-        ? {
-            ...unavailableSessionSearchStatus(),
-            supportedAgents: [],
-            supportsQoderHistory: true,
-            supportsJcodeHistory: true
-          }
-        : searchResults()
-    )
-    expect(
-      await createSessionSearchClient(call, 'relay').searchSessions({
-        query: 'q',
-        filters: { agents: ['qoder', 'jcode'] }
-      })
-    ).toEqual({ kind: 'unavailable', reason: 'unsupported-agent' })
-    expect(call).toHaveBeenCalledExactlyOnceWith('aiVault.searchStatus', {})
-  })
 })

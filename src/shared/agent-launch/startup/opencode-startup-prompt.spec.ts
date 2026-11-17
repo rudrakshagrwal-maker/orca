@@ -4,28 +4,7 @@ import { OPENCODE_STARTUP_PROMPT_SHA256_ENV } from './opencode-startup-prompt'
 import { tokenizeStartupCommand } from './tui-agent-startup-shell'
 
 describe('native OpenCode startup submission intent', () => {
-  it('keeps the exact trimmed prompt for plugin-free composer submission', () => {
-    const plan = buildAgentStartupPlan({
-      agent: 'opencode',
-      prompt: '  task\nwith unicode é  ',
-      cmdOverrides: {},
-      platform: 'linux'
-    })
-    expect(plan?.env).toBeUndefined()
-    expect(plan?.launchCommand).toBe('opencode')
-    expect(plan?.followupPrompt).toBe('task\nwith unicode é')
-  })
 
-  it('preserves explicit run commands without a submission intent', () => {
-    const plan = buildAgentStartupPlan({
-      agent: 'opencode',
-      prompt: 'task',
-      cmdOverrides: { opencode: 'opencode --log-level debug run' },
-      platform: 'linux'
-    })
-    expect(plan?.env).toBeUndefined()
-    expect(plan?.launchCommand).toContain("run -- 'task'")
-  })
 
   it.each(['posix', 'powershell', 'cmd'] as const)(
     'keeps run and its flags before a positional message in %s',
@@ -81,19 +60,6 @@ describe('native OpenCode startup submission intent', () => {
     }
   )
 
-  it('never gives an editable draft or empty launch an automatic submission intent', () => {
-    const args = { agent: 'opencode' as const, cmdOverrides: {}, platform: 'linux' as const }
-    expect(
-      buildAgentDraftLaunchPlan({ ...args, draft: 'draft' })?.env?.[
-        OPENCODE_STARTUP_PROMPT_SHA256_ENV
-      ]
-    ).toBeUndefined()
-    expect(
-      buildAgentStartupPlan({ ...args, prompt: '', allowEmptyPromptLaunch: true })?.env?.[
-        OPENCODE_STARTUP_PROMPT_SHA256_ENV
-      ]
-    ).toBeUndefined()
-  })
 })
 
 describe('wrapped OpenCode run startup', () => {

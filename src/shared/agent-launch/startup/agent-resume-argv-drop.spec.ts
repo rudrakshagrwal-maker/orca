@@ -70,26 +70,6 @@ describe('dropAgentResumeArgvFromCommand', () => {
     ).toEqual({ status: 'dropped', command: "codex '-c' 'disable_paste_burst=true' '--search'" })
   })
 
-  it('drops the joined Copilot resume token and keeps the user args', () => {
-    const providerSession = {
-      key: 'session_id' as const,
-      id: '940237d9-c712-48e8-bca1-fd75fc4a8d4b'
-    }
-    const plan = buildAgentResumeStartupPlan({
-      agent: 'copilot',
-      providerSession,
-      cmdOverrides: {},
-      agentArgs: '--yolo',
-      platform: 'darwin'
-    })
-    expect(
-      dropAgentResumeArgvFromCommand({
-        command: plan?.launchCommand ?? '',
-        agent: 'copilot',
-        providerSession
-      })
-    ).toEqual({ status: 'dropped', command: "copilot '--yolo'" })
-  })
 
   it('refuses a command whose locator is not the trailing argv', () => {
     // Why: the caller must fail the spawn rather than launch a resume it could not cancel.

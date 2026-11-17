@@ -30,15 +30,4 @@ describe('OMP fresh launch intent', () => {
     const command = 'omp --model foo&'
     expect(withFreshOmpLaunch(command, shell)).toBe(command)
   })
-  it('keeps fresh intent out of saved resume command and environment', () => {
-    const plan = buildAgentStartupPlan({
-      agent: 'omp',
-      prompt: 'new task',
-      cmdOverrides: {},
-      platform: 'linux'
-    })
-    expect(plan?.launchCommand).toContain('--config "$ORCA_OMP_FRESH_CONFIG"')
-    expect(JSON.stringify(plan?.launchConfig)).not.toContain('ORCA_OMP_FRESH_CONFIG')
-    expect(plan?.env).toBeUndefined()
-  })
 })

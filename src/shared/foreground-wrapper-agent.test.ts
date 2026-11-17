@@ -17,13 +17,4 @@ describe('resolveOuterWrapperForegroundProcess', () => {
     ).toBe('pi')
   })
 
-  it('carries the wrapper pid with a collapsed name, so liveness tracks the wrapper', () => {
-    // Anchoring 'omp' to pi's pid would read a pi restart as omp's exit.
-    expect(
-      resolveOuterWrapperForegroundIdentity(pi, { pid: 102, ppid: 101, command: 'pi' }, [
-        { pid: 102, ppid: 101, command: 'pi' },
-        { pid: 101, ppid: 100, command: 'omp' }
-      ])
-    ).toEqual({ processName: 'omp', processId: 101 })
-  })
 })

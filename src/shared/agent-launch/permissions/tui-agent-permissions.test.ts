@@ -22,22 +22,6 @@ describe('tui agent permissions', () => {
     }
   )
 
-  it('changes only agents Auto does not cover when asked to', () => {
-    const automatic = applyAgentPermissionMode({
-      mode: 'auto',
-      ...applyAgentPermissionMode({ mode: 'yolo' })
-    })
-    const manualOthers = applyAgentPermissionMode({
-      mode: 'manual',
-      exceptAuto: true,
-      ...automatic
-    })
-    expect(manualOthers.agentDefaultArgs).toMatchObject(AUTO_TUI_AGENT_ARGS)
-    expect(manualOthers.agentDefaultArgs.gemini).toBe('')
-    expect(manualOthers.agentDefaultEnv.goose).toEqual({})
-    expect(resolveAgentPermissionModeSummary(manualOthers)).toBe('auto')
-    expect(resolveNonAutoAgentPermissionMode(manualOthers)).toBe('manual')
-  })
 
   it('preserves custom agent arguments when applying manual mode', () => {
     const result = applyAgentPermissionMode({

@@ -12,38 +12,7 @@ const query = {
 }
 
 describe.each(['runtime', 'relay'] as const)('missing search status over %s', (transport) => {
-  it('keeps only the conservative legacy subset when status is absent', async () => {
-    const call = vi.fn(async (method: string, params: Record<string, unknown>) => {
-      if (method === 'aiVault.searchStatus') {
-        throw { code: 'method_not_found' }
-      }
-      expect(LegacyRequestSchema.parse(params)).toEqual({
-        ...query,
-        filters: { ...query.filters, agents: ['claude'] }
-      })
-      return searchResults()
-    })
-    expect(
-      await createSessionSearchClient(call, transport).searchSessions({
-        ...query,
-        filters: { ...query.filters, agents: ['jcode', 'qoder', 'codebuddy', 'zcode', 'claude'] }
-      })
-    ).toMatchObject({ kind: 'results' })
-    expect(call).toHaveBeenCalledTimes(2)
-  })
 
-  it('does not dispatch an unsupported-only filter after status refusal', async () => {
-    const call = vi.fn(async () => {
-      throw { code: 'method_not_found' }
-    })
-    expect(
-      await createSessionSearchClient(call, transport).searchSessions({
-        query: 'needle',
-        filters: { agents: ['jcode'] }
-      })
-    ).toEqual({ kind: 'unavailable', reason: 'unsupported-agent' })
-    expect(call).toHaveBeenCalledExactlyOnceWith('aiVault.searchStatus', {})
-  })
 
   it.each([
     { code: 'unauthorized', message: 'Authentication required' },

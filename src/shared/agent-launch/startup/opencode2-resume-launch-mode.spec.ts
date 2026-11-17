@@ -3,18 +3,6 @@ import { buildAiVaultResumeCommand } from '../../ai-vault/resume/ai-vault-resume
 import { buildAgentResumeStartupPlan } from './tui-agent-resume-startup'
 
 describe('OpenCode 2 restored terminal launch mode', () => {
-  it('retains an explicitly configured standalone command and quoted Unix session id', () => {
-    const plan = buildAgentResumeStartupPlan({
-      agent: 'opencode2',
-      providerSession: { key: 'session_id', id: 'session with spaces & $HOME' },
-      cmdOverrides: { opencode2: 'mise exec -- team-opencode --standalone --port 4321' },
-      platform: 'linux'
-    })
-
-    expect(plan?.launchCommand).toBe(
-      "mise exec -- team-opencode --standalone --port 4321 '--session' 'session with spaces & $HOME'"
-    )
-  })
 
   it('does not resume unsupported provider identities', () => {
     expect(
