@@ -185,7 +185,7 @@ export function buildDefaultSettings(args: {
     artifactSharingEnabled: true,
     agentSkillSharingEnabled: false,
     nestedWorkerMaxDepth: NESTED_WORKER_MAX_DEPTH_DEFAULT,
-    workerRamLimitPercent: 80,
+    // RA: worker starts have no RAM-admission setting.
     nestedWorkerMaxDepthDefaultedToFour: true,
     orchestrationWorkerAutoReleaseEnabled: true,
     showArtifactsButton: false,

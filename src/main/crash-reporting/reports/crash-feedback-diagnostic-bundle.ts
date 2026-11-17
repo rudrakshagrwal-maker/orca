@@ -4,7 +4,8 @@ import { sanitizeCrashReportString } from '../../../shared/crash-report-redactio
 import type { CrashReportDiagnosticBundle } from '../../../shared/crash-reporting-diagnostic-bundle'
 import { collectDiagnosticBundle, getDiagnosticsStatus } from '../../observability/index'
 import { resolveDiagnosticOrcaChannel } from '../../observability/diagnostic-upload-endpoint'
-import type { FeedbackDiagnosticBundleAttachment } from '../../ipc/feedback-request'
+// RA: local crash evidence shares a type with the account-free feedback compatibility API.
+import type { FeedbackDiagnosticBundleAttachment } from '../../ipc/feedback'
 import type { FeedbackSubmitResult } from '../../../shared/feedback-submit-contract'
 
 const CRASH_REPORT_LOG_LOOKBACK_MINUTES = 3 * 24 * 60

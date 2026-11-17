@@ -4,6 +4,8 @@ import {
   containsDrainableCursorRestore
 } from './pane-terminal-cursor-sequencing'
 import { enqueueChunk } from './pane-terminal-output-queue-chunks'
+// RA: reuse the credited parser pipeline for immediate interactive echo.
+import { writeQueuedChunk } from './pane-terminal-output-pipeline'
 import {
   exposeTerminalOutputSchedulerDebugApi,
   terminalOutputSchedulerDebugEnabled,
@@ -27,6 +29,7 @@ import {
   FOREGROUND_BACKLOG_WARNING,
   LARGE_BACKLOG_CHARS,
   queuedByTerminal,
+  parsingTerminals,
   scheduleDrain,
   type WriteTerminalOutputOptions
 } from './pane-terminal-output-queue-registry'
@@ -51,7 +54,14 @@ export function writeTerminalOutputImpl(
 
   if (options.foreground) {
     const entry = queuedByTerminal.get(terminal)
-    // RA: every visible write joins the pane queue, including interactive echo.
+    // RA: only a small unheld echo with no queued/in-flight predecessor bypasses paint.
+    const immediate =
+      options.latencySensitive === true &&
+      data.length <= 1024 &&
+      entry === undefined &&
+      !parsingTerminals.has(terminal) &&
+      !options.holdForeground &&
+      !options.coalesceForeground
     const queued = entry ?? createQueueEntry(terminal, options)
     if (entry === undefined && options.coalesceForeground) {
       inheritRecentForegroundSafetyFlush(queued)
@@ -60,6 +70,8 @@ export function writeTerminalOutputImpl(
     // Sticky: writers that don't track the stream position (notices, idle resets) leave it in place.
     queued.onBacklogReplaced = options.onBacklogReplaced ?? queued.onBacklogReplaced
     queued.highPriority = true
+    // RA: keep protocol urgency until this FIFO has drained.
+    queued.protocolQuery ||= options.protocolQuery
     queuedByTerminal.set(terminal, queued)
     enqueueChunk(queued, data, {
       foreground: true,
@@ -71,6 +83,11 @@ export function writeTerminalOutputImpl(
       onParsed: options.onParsed,
       ackCredit: options.ackCredit
     })
+    if (immediate) {
+      queuedByTerminal.delete(terminal)
+      writeQueuedChunk(queued, 1024)
+      return
+    }
     if (terminalOutputSchedulerDebugEnabled) {
       terminalOutputSchedulerDebugState.foregroundWriteCount++
       terminalOutputSchedulerDebugState.deferredForegroundEnqueueCount++
@@ -144,6 +161,8 @@ export function writeTerminalOutputImpl(
     onParsed: options.onParsed,
     ackCredit: options.ackCredit
   })
+  // RA: hidden protocol-only writes use the same timer path as foreground queries.
+  entry.protocolQuery ||= options.protocolQuery
   if (queueCapExceeded(entry)) {
     replaceBacklogWithWarning(entry)
   }

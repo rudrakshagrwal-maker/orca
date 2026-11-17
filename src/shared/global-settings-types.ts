@@ -50,9 +50,8 @@ export type { WorktreeVisibilityDefaults } from './repo-types'
 export type MiniMaxEndpoint = 'overseas' | 'cn'
 
 export type GlobalSettings = GlobalSettingsBase & {
-  // RA: worker presentation and host memory admission, older profiles use safe defaults.
+  // RA: worker presentation only; no memory admission setting.
   workerTabsShown?: boolean
-  workerRamLimitPercent?: number
   workspaceDir: string
   /** Host-owned defaults used when a repository has no explicit visibility override. */
   worktreeVisibilityDefaults?: WorktreeVisibilityDefaults

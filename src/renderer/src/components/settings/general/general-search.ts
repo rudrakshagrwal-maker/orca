@@ -7,7 +7,6 @@ import { translate } from '@/i18n/i18n'
 import { searchKeywords, translateSearchKeyword } from '../search/settings-search-keywords'
 import { createLocalizedCatalog } from '@/i18n/localized-catalog'
 import { getGeneralProjectRuntimeSearchEntries } from './project-runtime/general-project-runtime-search'
-import { getGeneralSupportSearchEntries } from './general-support-search'
 import { getUpdateDelayDescription, getUpdateDelayTitle } from '../updates/update-delay-copy'
 
 export const getGeneralWorkspaceSearchDescriptors = createLocalizedCatalog(() => [
@@ -223,9 +222,8 @@ export function getGeneralPaneSearchEntries(
     ...getGeneralDestinationSearchEntries(),
     ...(options.includeProjectRuntime === false ? [] : getGeneralProjectRuntimeSearchEntries()),
     ...getGeneralEditorSearchEntries(),
-    ...getGeneralCliSearchEntries(),
-    ...getGeneralUpdateSearchEntries(),
-    ...getGeneralSupportSearchEntries()
+    // RA: updater, support-service and GitHub-star settings are no longer searchable.
+    ...getGeneralCliSearchEntries()
   ]
 }
 
@@ -233,16 +231,8 @@ export const getGeneralWorkspaceSearchEntries = createLocalizedCatalog(() =>
   getGeneralWorkspaceSearchDescriptors().map(({ entry }) => entry)
 )
 
-export const getGeneralDestinationSearchEntries = createLocalizedCatalog(() => [
-  ...(['folder', 'worktrees', 'open-in', 'editor'] as const).map((page) => ({
+export const getGeneralDestinationSearchEntries = createLocalizedCatalog(() =>
+  (['folder', 'worktrees', 'open-in', 'editor'] as const).map((page) => ({
     title: getGeneralSubPageTitle(page, translate)
-  })),
-  {
-    title: translate('settings.general.about.title', 'About'),
-    keywords: [
-      ...translateSearchKeyword('settings.general.search.keywords.update', 'update'),
-      ...translateSearchKeyword('settings.general.search.keywords.version', 'version'),
-      ...translateSearchKeyword('settings.general.search.keywords.star', 'star')
-    ]
-  }
-])
+  }))
+)

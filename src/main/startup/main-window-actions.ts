@@ -303,13 +303,12 @@ export function sendOpenCrashReport(targetWindow?: BrowserWindow | null): void {
 export async function showRendererRecoveryPrompt(
   recentRecoveryCount: number,
   failure?: RendererRecoveryPromptFailure,
-  retry?: () => void,
-  availableCommitMB?: number
+  retry?: () => void
 ): Promise<void> {
   await presentRendererRecoveryPrompt({
     recentRecoveryCount,
     ...(failure ? { failure } : {}),
-    ...(availableCommitMB === undefined ? {} : { availableCommitMB }),
+    // RA: crash recovery never prompts on a RAM reading.
     isQuitting: () => state.isQuitting,
     diagnose: describeInstallDirAclPoison,
     probeLaunchCapacity: () => probeRendererLaunchCapacity(),

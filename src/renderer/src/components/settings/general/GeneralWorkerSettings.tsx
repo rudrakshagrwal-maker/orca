@@ -1,9 +1,7 @@
 // RA: Keep local startup and worker controls searchable without loading other settings pages.
 import type { GlobalSettings } from '../../../../../shared/global-settings-types'
-import { useEffect, useState } from 'react'
 import { SettingsGroup } from '../section-layout/SettingsGroup'
 import { SettingsSwitchRow } from '../form-controls/SettingsFormControls'
-import { Input } from '@/components/ui/input'
 import { matchesSettingsSearch } from '../search/settings-search'
 import { WindowsLoginSetting } from './WindowsLoginSetting'
 
@@ -16,11 +14,7 @@ export function GeneralWorkerSettings({
   updateSettings: (updates: Partial<GlobalSettings>) => void
   query: string
 }): React.JSX.Element | null {
-  const [limit, setLimit] = useState(String(settings.workerRamLimitPercent ?? 80))
-  useEffect(
-    () => setLimit(String(settings.workerRamLimitPercent ?? 80)),
-    [settings.workerRamLimitPercent]
-  )
+  // RA: worker settings have no memory admission control.
   if (
     !matchesSettingsSearch(query, [
       {
@@ -34,9 +28,6 @@ export function GeneralWorkerSettings({
           'tabs',
           'hidden',
           'shown',
-          'RAM',
-          'memory',
-          'limit',
           'fresh',
           'launch',
           'restore',
@@ -64,29 +55,6 @@ export function GeneralWorkerSettings({
         checked={settings.workerTabsShown === true}
         onChange={() => updateSettings({ workerTabsShown: settings.workerTabsShown !== true })}
       />
-      <label className="flex items-center justify-between py-2 text-sm">
-        Worker RAM limit (%)
-        <Input
-          aria-label="Worker RAM limit percent"
-          type="number"
-          min={70}
-          max={90}
-          className="w-20"
-          value={limit}
-          onChange={(event) => setLimit(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.currentTarget.blur()
-            }
-          }}
-          onBlur={() => {
-            const parsed = limit.trim() ? Number(limit) : (settings.workerRamLimitPercent ?? 80)
-            const value = Number.isFinite(parsed) ? Math.max(70, Math.min(90, parsed)) : 80
-            setLimit(String(value))
-            updateSettings({ workerRamLimitPercent: value })
-          }}
-        />
-      </label>
     </SettingsGroup>
   )
 }

@@ -84,6 +84,10 @@ export async function uploadBundle(opts: UploadBundleOptions): Promise<UploadBun
 }
 
 export async function deleteBundle(opts: DeleteBundleOptions): Promise<void> {
+  // RA: diagnostic deletion is a remote API too; no upload service is used in this fork.
+  if (backgroundJobsDisabled()) {
+    throw new Error('Diagnostic uploads are disabled in this fork')
+  }
   const endpoint = resolveDeleteEndpoint(opts.tokenEndpoint, opts.ticketId)
   await postJsonForJson(endpoint, {}, TOKEN_REQUEST_TIMEOUT_MS)
 }

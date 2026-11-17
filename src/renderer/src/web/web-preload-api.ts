@@ -30,7 +30,6 @@ import {
 } from './preload-api/web-host-capability-api'
 import { createWebKeybindingsApi } from './preload-api/web-keybindings-api'
 import { createMacosTccPromptsApi } from './preload-api/web-macos-tcc-api'
-import { createEmptyMemorySnapshot } from './preload-api/web-memory-api'
 import { createWebMobileApi } from './preload-api/web-mobile-api'
 import { createWebNativeChatApi } from './preload-api/web-native-chat-api'
 import { createNotificationsApi } from './preload-api/web-notifications-api'
@@ -113,12 +112,7 @@ function createWebPreloadApi(): Omit<Partial<PreloadApi>, 'settings' | 'plugins'
           firstEventAt: null
         }))
     },
-    memory: {
-      getSnapshot: () => Promise.resolve(createEmptyMemorySnapshot()),
-      // Browser pages have no native-window veto; document visibility owns admission.
-      resourceWindowVisible: () => Promise.resolve(true),
-      onResourceWindowVisibility: () => () => {}
-    },
+    // RA: web clients expose no memory-monitor API.
     aiVault: createWebAiVaultApi(),
     preflight: createPreflightApi(),
     notifications: createNotificationsApi(),

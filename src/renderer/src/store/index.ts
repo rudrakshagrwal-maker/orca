@@ -1,3 +1,4 @@
+// RA: no renderer memory-monitor state.
 import { registerTerminalNoticeShutdownReader } from '@/components/terminal-pane/pty-transport/delivery/pty-notice-exit'
 import { registerStructuredSelectionCatalogStore } from '@/lib/agent-session/options/structured-agent-session-selection-controller'
 import { canOfferHttpLinkGroupAction } from '@/lib/browser/navigation/http-link-in-group-availability'
@@ -18,7 +19,6 @@ import { createPreflightSlice } from './slices/preflight/preflight'
 import { createJiraSlice } from './slices/jira/jira'
 import { createEditorSlice } from './slices/editor/create-editor-slice'
 import { createStatsSlice } from './slices/process-stats/stats'
-import { createMemorySlice } from './slices/process-stats/memory'
 import { createWorkspaceSpaceSlice } from './slices/workspace-cleanup/workspace-space'
 import {
   createClaudeUsageSlice,
@@ -119,7 +119,6 @@ export const useAppStore = create<AppState>()(
           ...createJiraSlice(...a),
           ...createEditorSlice(...a),
           ...createStatsSlice(...a),
-          ...createMemorySlice(...a),
           ...createWorkspaceSpaceSlice(...a),
           ...createClaudeUsageSlice(...a),
           ...createCodexUsageSlice(...a),

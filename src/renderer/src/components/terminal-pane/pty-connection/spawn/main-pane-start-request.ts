@@ -121,7 +121,12 @@ export function defersToMainPaneStart(
       today()
     }
   }
-  if (session.deps.isVisibleRef.current) {
+  // RA: quit/live agent restores must join main's staggered queue before their tab is revealed.
+  const record = useAppStore.getState().sleepingAgentSessionsByPaneKey[session.cacheKey]
+  const launchRestore =
+    (record?.agent === 'claude' || record?.agent === 'codex') &&
+    (record?.origin === 'quit' || record?.origin === 'live')
+  if (session.deps.isVisibleRef.current || launchRestore) {
     startOnView()
   } else {
     // Why: a hidden pane waits for its first view, as a hidden sleeping agent does (#29459).

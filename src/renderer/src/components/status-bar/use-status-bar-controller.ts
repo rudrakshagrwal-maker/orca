@@ -178,7 +178,7 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
   const visibleOpencodeGo = getVisibleUsageProvider('opencode-go', opencodeGo, usageSettings)
   const showOpencodeGo = visibleOpencodeGo !== null && statusBarItems.includes('opencode-go')
   const showSsh = statusBarItems.includes('ssh')
-  const showResourceUsage = statusBarItems.includes('resource-usage')
+  // RA: retired memory-panel visibility is ignored.
   const showPorts = statusBarItems.includes('ports')
   const showFloatingTerminalToggle =
     floatingTerminalEnabled && floatingTerminalTriggerLocation === 'status-bar'
@@ -195,7 +195,7 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     showCursor ||
     showZcode ||
     showMuse
-  const anyVisible = hasVisibleUsageMeters || showResourceUsage
+  const anyVisible = hasVisibleUsageMeters
   // Why: include Settings so durable managed accounts count — a configured user isn't shown the empty state while snapshots hydrate.
   const isEmptyUsageState = isUsageEmptyState(
     { claude, codex, gemini, opencodeGo, kimi, antigravity, minimax, grok, cursor, zcode, muse },
@@ -312,7 +312,6 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     showFloatingTerminalToggle,
     showFloatingWorkspaceAttentionDot,
     showPorts,
-    showResourceUsage,
     showSsh,
     statusBarItems,
     statusBarUsageMode,

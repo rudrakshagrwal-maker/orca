@@ -91,7 +91,8 @@ export function resolveObservabilityConsent(): ObservabilityConsent {
 
   return {
     localFileEnabled: true,
-    bundleEnabled: true
+    // RA: diagnostics stay on this laptop regardless of consent or packaged build identity.
+    bundleEnabled: false
   }
 }
 

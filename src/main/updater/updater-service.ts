@@ -45,10 +45,18 @@ export function checkForRemoteServerUpdate(
 }
 
 export function downloadRemoteServerUpdate(runtimeId: string): RemoteServerUpdaterSnapshot {
+  // RA: RPC must not bypass disabled release downloads.
+  if (backgroundJobsDisabled()) {
+    return updater.getRemoteServerUpdaterSnapshot(runtimeId)
+  }
   return updater.downloadRemoteServerUpdate(runtimeId)
 }
 
 export function installRemoteServerUpdate(runtimeId: string): RemoteServerUpdateInstallResult {
+  // RA: independently installed builds are never replaced through a remote update request.
+  if (backgroundJobsDisabled()) {
+    throw new Error('Updates are disabled in this fork')
+  }
   return updater.installRemoteServerUpdate(runtimeId)
 }
 

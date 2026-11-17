@@ -1,8 +1,4 @@
 import type { FederatedWorkerStartRequest } from './federated-worker-start-request'
-import { queueWorkerAboveRam, takeRamQueuedWorkerRetention } from '../../../memory/worker-ram-admission' // RA: owner admission precedes remote worker placement too.
-import { retainFederatedWorker } from './federated-worker-release'
-import { escalateWorkerFailure } from '../workers/reports/worker-failure-escalation'
-import { dispatchReportMailbox } from '../workers/reports/dispatch-report-mailbox'
 import { isTuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent-config'
 import type { RuntimeStatus } from '../../../../shared/runtime-session-contracts'
 import {
@@ -169,7 +165,8 @@ export async function startFederatedWorker(args: FederatedWorkerStartRequest): P
   releaseRetriedWorkerTerminal(runtime, db, { retryOf: params.retryOf })
   const createdTask = started.task
   const taskForRemote = task ?? createdTask
-  const launchRemote = async (): Promise<unknown> => { // RA: retain this dispatch and retry request while queued.
+  const launchRemote = async (): Promise<unknown> => {
+    // RA: retain this dispatch and retry request while queued.
     db.recordWorkerStage({ dispatchId: started.dispatch.id, stage: 'remote_attach_requested' })
     let readyResult: unknown
     let launch = requestedLaunch
@@ -180,7 +177,9 @@ export async function startFederatedWorker(args: FederatedWorkerStartRequest): P
           'orchestration.federationAttachStart',
           {
             // RA: preserve the original shell's identity across the worker-server RPC.
-            ...(params.parentTerminalHandle ? { parentTerminalHandle: params.parentTerminalHandle } : {}),
+            ...(params.parentTerminalHandle
+              ? { parentTerminalHandle: params.parentTerminalHandle }
+              : {}),
             runId,
             dispatchId: started.dispatch.id,
             taskId: taskForRemote.id,
@@ -235,11 +234,7 @@ export async function startFederatedWorker(args: FederatedWorkerStartRequest): P
       if (isReadyRemoteFederatedWorkerStartReceipt(remote)) {
         recordReadyFederatedDispatch(db, started.dispatch.id, remote)
         const readyWorker = db.markWorkerDispatchReady(started.dispatch.id)
-        if (takeRamQueuedWorkerRetention(started.dispatch.id)) { // RA: forward the queued keep-open only after the remote terminal exists.
-          db.endFederatedHomeAutoRelease(started.dispatch.id)
-          const federated = db.getFederatedDispatch(started.dispatch.id)
-          if (federated) await retainFederatedWorker({ runtime, server, federated, dispatchId: started.dispatch.id, requestId: `ram-retain-${started.dispatch.id}` })
-        }
+        // RA: remote custody follows normal worker retention.
         runtime.ensureOrchestrationFederationRelay(runId)
         const reportsTurnStops = status.capabilities?.includes(
           ORCHESTRATION_WORKER_TURN_STOP_REPORTS_RUNTIME_CAPABILITY
@@ -308,25 +303,6 @@ export async function startFederatedWorker(args: FederatedWorkerStartRequest): P
     }
     return readyResult
   }
-  if (await queueWorkerAboveRam({
-    row: { id: started.dispatch.id, worktreeId: runtime.getTerminalWorktreeIdForHandle(params.parentTerminalHandle ?? params.from) ?? '', parentHandle: params.from, label: createdTask.task_title || params.name || 'Remote worker' },
-    limit: () => runtime.getWorkerRamLimitPercent(),
-    current: () => db.getWorkerDispatch(started.dispatch.id)?.state === 'starting' && db.getDispatchContextById(started.dispatch.id)?.status === 'pending' && !db.isWorkerStopRequested(started.dispatch.id) && (!started.dispatch.creator_dispatch_id || !db.isWorkerStopRequested(started.dispatch.creator_dispatch_id)),
-    run: async () => {
-      const receipt = await launchRemote()
-      if (receipt && typeof receipt === 'object' && 'state' in receipt && receipt.state !== 'ready') {
-        escalateWorkerFailure(db, started.dispatch, {
-          id: `ram-start-${started.dispatch.id}`, from: `dispatch:${started.dispatch.id}`,
-          mailbox: () => dispatchReportMailbox(db, started.dispatch),
-          describe: (name) => ({ subject: 'Deferred remote worker needs attention', body: `RAM admission released ${name}, but remote startup did not become ready; inspect worker-show before retrying.` }),
-          payload: { taskId: taskForRemote.id, dispatchId: started.dispatch.id, state: receipt.state }
-        }, (to, type) => runtime.notifyMessageArrived(to, type))
-      }
-      return receipt
-    }
-  })) {
-    db.recordWorkerStage({ dispatchId: started.dispatch.id, stage: 'ram_queued' })
-    return { runId, taskId: taskForRemote.id, dispatchId: started.dispatch.id, state: 'queued', stage: 'ram_queued', effects: [], residualResources: [], launch: requestedLaunch, next: 'Queued for RAM; do not resend. Orca starts the remote worker after 30 seconds below the memory limit.' }
-  }
+  // RA: no local RAM gate for remote worker starts.
   return launchRemote()
 }

@@ -1,6 +1,5 @@
-import type { ResourceViewAdmission } from '../../shared/resource-view-admission'
 import type { TelemetryConsentState } from '../../shared/telemetry-consent-types'
-import type { MemorySnapshot, StatsSummary } from '../../shared/process-stats-types'
+import type { StatsSummary } from '../../shared/process-stats-types'
 
 export type StatsApi = {
   getSummary: () => Promise<StatsSummary>
@@ -31,12 +30,7 @@ export type DiagnosticsUploadPayload =
       readonly canceled: true
     }
 
-export type MemoryApi = {
-  getSnapshot: (admission?: ResourceViewAdmission) => Promise<MemorySnapshot>
-  resourceWindowVisible: () => Promise<boolean>
-  onResourceWindowVisibility: (callback: (visible: boolean) => void) => () => void
-}
-
+// RA: no renderer memory API; CLI diagnostics retain their own RPC.
 export type DiagnosticsApi = {
   getStatus: () => Promise<DiagnosticsStatusPayload>
   collectBundle: (lookbackMinutes?: number) => Promise<DiagnosticsBundlePayload>
@@ -57,5 +51,4 @@ export type TelemetryApi = {
   /** Banner dismissal opts in without emitting telemetry_opted_in; shares the consent rate limit. */
   telemetryAcknowledgeBanner: () => Promise<void>
   stats: StatsApi
-  memory: MemoryApi
 }

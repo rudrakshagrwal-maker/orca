@@ -1,3 +1,4 @@
+// RA: renderer crash diagnostics do not expose periodic memory reads.
 import type {
   CrashReportBreadcrumbData,
   CrashReportCopyDiagnosticsArgs,
@@ -12,7 +13,6 @@ import type {
   FeedbackSubmitResult
 } from '../../shared/feedback-submit-contract'
 import type { RendererHeapStatistics } from '../../shared/renderer-heap-statistics'
-import type { RendererProcessMemory } from '../../shared/renderer-process-memory'
 
 export type CrashReportsApi = {
   getLatestPending: () => Promise<CrashReportRecord | null>
@@ -27,7 +27,6 @@ export type CrashReportsApi = {
     args?: CrashReportCopyDiagnosticsArgs
   ) => Promise<{ ok: true } | { ok: false; error: string }>
   readHeapStatistics: () => RendererHeapStatistics | null
-  readProcessMemory?: () => Promise<RendererProcessMemory | null>
 }
 
 export type FeedbackApi = {

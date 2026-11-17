@@ -106,6 +106,9 @@ export function bindWritePtyOutputToXterm(session: ConnectPanePtySession): void 
       : startupWrite?.onParsed
     writeTerminalOutput(session.pane.terminal, data, {
       foreground: foregroundOutput,
+      // RA: parser-generated replies must not wait for a paint, including hidden startup probes.
+      protocolQuery:
+        opts?.hiddenStartupRendererQuery === true || containsHiddenStartupRendererQuery(data),
       beforeWrite: startupWrite
         ? (chunk) => {
             session.beforeTerminalOutputWrite?.(chunk)

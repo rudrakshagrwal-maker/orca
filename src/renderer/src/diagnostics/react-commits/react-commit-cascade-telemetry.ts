@@ -7,7 +7,8 @@ import {
   resetReactCommitCascadeWriteSamples
 } from '@/diagnostics/react-commits/react-commit-cascade-store-write-samples'
 import { readStoreListenerCount } from '@/store/diagnostics/store-listener-census'
-import type { RendererSurface } from '@/diagnostics/memory/renderer-memory-sampling'
+// RA: surface identity no longer loads memory sampling.
+import type { RendererSurface } from '@/diagnostics/crash-reporting/crash-diagnostics'
 import { REACT_NESTED_UPDATE_LIMIT } from '../../../../shared/react-update-depth-attribution'
 
 export const REACT_COMMIT_CASCADE_BREADCRUMB = 'react_commit_cascade'

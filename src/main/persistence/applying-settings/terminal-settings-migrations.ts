@@ -91,6 +91,8 @@ export function readLegacyTerminalScrollbackSettings(
 }
 
 type RetiredGlobalSettings = {
+  // RA: discard retired host-memory admission on load, update and serialization.
+  workerRamLimitPercent?: unknown
   agentNativeChatPermissionModes?: unknown
   setupScriptLaunchMode?: unknown
   terminalScrollbackBytes?: unknown
@@ -116,6 +118,7 @@ export function stripRetiredGlobalSettings(
   settings: Partial<GlobalSettings> | undefined
 ): Partial<GlobalSettings> {
   const {
+    workerRamLimitPercent: _retiredWorkerRamLimit,
     agentNativeChatPermissionModes: _retiredChatPermissionCopies,
     setupScriptLaunchMode: _legacySetupScriptLaunchMode,
     terminalScrollbackBytes: _legacyScrollbackBytes,
@@ -132,6 +135,7 @@ export function stripRetiredGlobalSettings(
     experimentalBrowserExtensions: _retiredBrowserExtensionsExperiment,
     ...rest
   } = (settings ?? {}) as Partial<GlobalSettings> & RetiredGlobalSettings
+  void _retiredWorkerRamLimit
   void _retiredChatPermissionCopies
   void _legacySetupScriptLaunchMode
   void _legacyScrollbackBytes

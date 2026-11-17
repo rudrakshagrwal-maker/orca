@@ -20,6 +20,8 @@ import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../../../shared/layout-owner
 import { holdInPlaceResumeUntilSettled } from '../startup/in-place-resume-hold'
 import { mainStartsPane, startMainPaneOnFirstView } from '../spawn/main-starts-pane'
 import { attachResumeCheck } from '../spawn/main-pane-resume-banner'
+// RA: startup reconnect can cold-spawn its recorded agent; share admission with fallback spawns.
+import { admitRestoredAgentStart } from '../startup/restored-agent-start-admission'
 
 import {
   awaitAgentStatusStartupSnapshot,
@@ -134,27 +136,31 @@ function connectDeferredSessionReattach(
   )
   session.beginReattachLiveDataDeferral(outputCallbacks.generation)
   session.transportConnectInFlightSince = Date.now()
-  const reattachPromise = session.transport.connect({
-    url: '',
-    cols: session.cols,
-    rows: session.rows,
-    sessionId: deferredReattachSessionId,
-    ...(coldRestoreStartup?.command ? { command: coldRestoreStartup.command } : {}),
-    ...(coldRestoreStartup?.env
-      ? { env: session.mergeStartupEnvWithPaneIdentity(coldRestoreStartup.env) }
-      : {}),
-    ...(coldRestoreStartup?.launchConfig ? { launchConfig: coldRestoreStartup.launchConfig } : {}),
-    ...(coldRestoreStartup?.resumeProviderSession
-      ? { resumeProviderSession: coldRestoreStartup.resumeProviderSession }
-      : {}),
-    ...(coldRestoreStartup ? { resumeOrigin: coldRestoreStartup.resumeOrigin } : {}),
-    ...(coldRestoreStartup?.launchToken ? { launchToken: coldRestoreStartup.launchToken } : {}),
-    ...(coldRestoreStartup?.agent ? { launchAgent: coldRestoreStartup.agent } : {}),
-    ...(session.shouldDeclareHiddenAtSpawn() ? { initiallyHidden: true } : {}),
-    ...(attachOnlyView ? { attachOnlyView: true as const } : {}),
-    ...wslRestoreStartArgs(session, options.userAct === true),
-    callbacks: outputCallbacks.callbacks
-  })
+  const reattachPromise = admitRestoredAgentStart(session, coldRestoreStartup?.agent, () =>
+    session.transport.connect({
+      url: '',
+      cols: session.cols,
+      rows: session.rows,
+      sessionId: deferredReattachSessionId,
+      ...(coldRestoreStartup?.command ? { command: coldRestoreStartup.command } : {}),
+      ...(coldRestoreStartup?.env
+        ? { env: session.mergeStartupEnvWithPaneIdentity(coldRestoreStartup.env) }
+        : {}),
+      ...(coldRestoreStartup?.launchConfig
+        ? { launchConfig: coldRestoreStartup.launchConfig }
+        : {}),
+      ...(coldRestoreStartup?.resumeProviderSession
+        ? { resumeProviderSession: coldRestoreStartup.resumeProviderSession }
+        : {}),
+      ...(coldRestoreStartup ? { resumeOrigin: coldRestoreStartup.resumeOrigin } : {}),
+      ...(coldRestoreStartup?.launchToken ? { launchToken: coldRestoreStartup.launchToken } : {}),
+      ...(coldRestoreStartup?.agent ? { launchAgent: coldRestoreStartup.agent } : {}),
+      ...(session.shouldDeclareHiddenAtSpawn() ? { initiallyHidden: true } : {}),
+      ...(attachOnlyView ? { attachOnlyView: true as const } : {}),
+      ...wslRestoreStartArgs(session, options.userAct === true),
+      callbacks: outputCallbacks.callbacks
+    })
+  )
   const isCurrentReattach = (): boolean =>
     !session.disposed &&
     session.deps.paneTransportsRef.current.get(session.pane.id) === session.transport &&

@@ -13,6 +13,6 @@ export const DEFAULT_STATUS_BAR_ITEMS: StatusBarItem[] = [
   'zcode',
   'muse',
   'ssh',
-  'resource-usage',
+  // RA: no memory/resource monitor in the default status bar.
   'ports'
 ]

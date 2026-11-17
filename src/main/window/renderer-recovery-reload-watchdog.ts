@@ -1,7 +1,7 @@
 import { app, type BrowserWindow } from 'electron'
 
 import { isSystemSessionEnding } from '../crash-reporting/process-exits/expected-teardown-state'
-import type { LowCommitOomVerdict } from '../crash-reporting/recovery/low-commit-oom-recovery-gate'
+// RA: the reload watchdog handles crashes and stalled loads without RAM thresholds.
 import type { CreateMainWindowOptions, MainWindowLoadObserver } from './main-window-contracts'
 import { mainWindowLoadErrorCode } from './main-window-load-error-code'
 
@@ -25,11 +25,7 @@ const MILESTONE_RANK: Record<RecoveryReloadMilestone, number> = {
   'dom-ready': 2
 }
 
-export type RecoveryExhaustionCause =
-  | 'crash-loop'
-  | 'reload-stalled'
-  | 'launch-failed'
-  | 'low-commit'
+export type RecoveryExhaustionCause = 'crash-loop' | 'reload-stalled' | 'launch-failed'
 
 export type RendererRecoveryReloadWatchdog = {
   /** Issues a recovery reload and arms the stall watchdog. */
@@ -39,11 +35,7 @@ export type RendererRecoveryReloadWatchdog = {
     trigger?: RecoveryReloadTrigger
   ) => void
   /** Raises the recovery prompt at most once: a native message box cannot be dismissed, so a second one stacks. */
-  escalate: (
-    subject: RecoveryPromptSubject,
-    cause: RecoveryExhaustionCause,
-    lowCommit?: LowCommitOomVerdict
-  ) => void
+  escalate: (subject: RecoveryPromptSubject, cause: RecoveryExhaustionCause) => void
   /** Only superseded loads use global finish events; normal attempts settle through their own promises so stale events/error pages cannot fake success. */
   notifyDocumentLoaded: () => void
   /** Restarts the stall budget after a suspend froze the timer mid-load. */
@@ -203,11 +195,7 @@ export function createRendererRecoveryReloadWatchdog(args: {
     )
   }
 
-  const escalate = (
-    subject: RecoveryPromptSubject,
-    cause: RecoveryExhaustionCause,
-    lowCommit?: LowCommitOomVerdict
-  ): void => {
+  const escalate = (subject: RecoveryPromptSubject, cause: RecoveryExhaustionCause): void => {
     // A new crash invalidates any document that landed while the prompt was open.
     documentLanded = false
     if (prompt) {
@@ -219,7 +207,6 @@ export function createRendererRecoveryReloadWatchdog(args: {
       webContentsId: rendererWebContentsId,
       recentRecoveryCount: subject.recentRecoveryCount,
       cause,
-      ...(lowCommit ? { lowCommit } : {}),
       // Watch manual retries too, so another stall can offer recovery again.
       retry: () => retryFrom(subject)
     })

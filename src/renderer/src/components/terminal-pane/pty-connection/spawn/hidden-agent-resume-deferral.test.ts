@@ -33,6 +33,21 @@ const startup = {
 } as unknown as ColdRestoreAgentResumeStartup
 
 describe('deferHiddenAgentResume', () => {
+  // RA: restored launch agents enter the staggered queue; only deliberate sleeps wait for reveal.
+  it.each(['claude', 'codex'] as const)('does not park a hidden %s launch restore', (agent) => {
+    const session = hiddenPaneSession()
+    const restored = {
+      ...startup,
+      agent,
+      sleepingRecordEntry: {
+        ...startup.sleepingRecordEntry!,
+        record: { ...startup.sleepingRecordEntry!.record, origin: 'quit' as const }
+      }
+    }
+    expect(deferHiddenAgentResume(session, restored)).toBe(false)
+    expect(session.hibernatedWakeTarget).toBeNull()
+  })
+
   it('holds again once a pane a background wake released has gone back to sleep', () => {
     const session = hiddenPaneSession()
     wakeRequests.take.mockReturnValueOnce(true)

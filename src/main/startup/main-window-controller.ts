@@ -40,7 +40,6 @@ import { requireMainWindowServices } from './main-window-service-readiness'
 import { recordRendererLaunchFailureProbe } from '../window/renderer-launch-failure-probe'
 import { trackBrowserExtensionMainWindow } from '../browser/extensions/tabs-and-windows/browser-extension-window-model'
 
-import { isResourceWindowVisible } from '../window/resource-view-admission'
 import {
   applyBackgroundActivationPolicy,
   applyServeDesktopWindowActivationPolicy
@@ -119,29 +118,22 @@ export function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}
         reason: details.reason,
         expectedTeardown: getExpectedTeardownScope(webContentsId, false)
       }),
-    onRendererRecoveryExhausted: ({ details, recentRecoveryCount, cause, lowCommit, retry }) => {
+    onRendererRecoveryExhausted: ({ details, recentRecoveryCount, cause, retry }) => {
       // Name non-breaker failures separately so diagnostics do not misreport an opened breaker.
       recordDurableCrashBreadcrumb(
         cause === 'reload-stalled'
           ? 'renderer_recovery_reload_exhausted'
           : cause === 'launch-failed'
             ? 'renderer_recovery_launch_backoff_exhausted'
-            : cause === 'low-commit'
-              ? 'renderer_recovery_low_commit_prompt'
-              : 'renderer_recovery_circuit_breaker_open',
+            : 'renderer_recovery_circuit_breaker_open',
         {
           reason: details.reason,
           exitCode: details.exitCode ?? null,
-          recentRecoveryCount,
-          ...lowCommit
+          recentRecoveryCount
         }
       )
-      void showRendererRecoveryPrompt(
-        recentRecoveryCount,
-        cause,
-        retry,
-        lowCommit?.availableCommitMB
-      )
+      // RA: no system-memory verdict or RAM prompt in renderer recovery.
+      void showRendererRecoveryPrompt(recentRecoveryCount, cause, retry)
     },
     deferLoad: true,
     ...(options.revealOnDidFinishLoad === true ? { revealOnDidFinishLoad: true } : {}),
@@ -198,15 +190,7 @@ export function openMainWindow(options: { revealOnDidFinishLoad?: boolean } = {}
   })
   state.mainWindow = window
   state.hasOpenedMainWindow = true
-  const publishResourceVisibility = (): void => {
-    if (!window.isDestroyed()) {
-      window.webContents.send('memory:resourceWindowVisibility', isResourceWindowVisible(window))
-    }
-  }
-  window.on('show', publishResourceVisibility)
-  window.on('restore', publishResourceVisibility)
-  window.on('hide', publishResourceVisibility)
-  window.on('minimize', publishResourceVisibility)
+  // RA: no memory-panel visibility broadcasts or listeners.
   trackBrowserExtensionMainWindow(window)
   window.on('show', resumeSyntheticTitleSpinnerTimer)
   window.on('restore', resumeSyntheticTitleSpinnerTimer)

@@ -1,3 +1,4 @@
+// RA: no renderer memory-monitor state.
 import type { RepoSlice } from './repos/repo-state'
 import type { SparsePresetsSlice } from './slices/worktrees/create/sparse-presets'
 import type { WorktreeSlice } from './slices/worktrees/worktree-slice-contract'
@@ -13,7 +14,6 @@ import type { PreflightSlice } from './slices/preflight/preflight'
 import type { JiraSlice } from './slices/jira/jira-slice-contract'
 import type { EditorSlice } from './slices/editor/types/editor-slice'
 import type { StatsSlice } from './slices/process-stats/stats'
-import type { MemorySlice } from './slices/process-stats/memory'
 import type { WorkspaceSpaceSlice } from './slices/workspace-cleanup/workspace-space'
 import type {
   ClaudeUsageSlice,
@@ -68,7 +68,6 @@ export type AppState = RepoSlice &
   JiraSlice &
   EditorSlice &
   StatsSlice &
-  MemorySlice &
   WorkspaceSpaceSlice &
   ClaudeUsageSlice &
   CodexUsageSlice &

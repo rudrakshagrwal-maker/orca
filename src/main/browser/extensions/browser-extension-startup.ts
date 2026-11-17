@@ -23,8 +23,8 @@ import { observeBrowserExtensionCommands } from './api/commands'
 import { observeBrowserExtensionDnrContents } from './declarative-net-request/session/browser-extension-dnr-contents'
 import { installBrowserExtensionSessionServices } from './profile-sessions/browser-extension-session-services'
 import { installBrowserExtensionToolbarNotifications } from './actions/browser-extension-toolbar'
-import { installChromeWebStoreBridgeHost } from './web-store/browser-extension-webstore-bridge-host'
-import { startBrowserExtensionUpdateChecks } from './web-store/browser-extension-webstore-updater'
+// RA: no marketplace install bridge; local browser pages/extensions keep their own runtime.
+// RA: installed browser extensions stay local; no web-store update polling.
 import {
   notifyBrowserExtensionListChanged,
   setBrowserExtensionListChangedListener
@@ -102,14 +102,12 @@ function installBrowserExtensionSupport(): void {
   installBrowserExtensionApiHost()
   installBrowserExtensionSessionServices()
   installBrowserExtensionToolbarNotifications()
-  installChromeWebStoreBridgeHost()
   setBrowserExtensionListChangedListener(() => {
     const window = getBrowserExtensionMainWindow()
     if (window && !window.isDestroyed()) {
       window.webContents.send(BROWSER_EXTENSIONS_CHANGED_CHANNEL)
     }
   })
-  startBrowserExtensionUpdateChecks()
   // Why synchronous: loadURL right after construction emits did-start-loading before a microtask runs.
   app.on('web-contents-created', (_event, contents) => observeExtensionContents(contents))
 }

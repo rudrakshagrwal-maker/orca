@@ -12,7 +12,6 @@ import { getCanonicalUserDataPath } from '../persistence/loading-store/user-data
 import { getAppEnvironment } from '../../shared/app-environment'
 import { loadWslMoveFence } from '../persistence/moving-wsl-projects/quiescence/wsl-move-scope-guard'
 import { startWslMoveStartup } from '../persistence/moving-wsl-projects/startup/wsl-move-startup'
-import { startWslHostsPolicyLiveUpdates } from '../wsl/host-lifecycle/wsl-hosts-policy-live-update'
 import { runPendingWslDriveUncConversions } from '../wsl/filesystem/wsl-drive-unc-conversion-startup'
 import { createProfileStateStoreForStartup } from '../persistence/profile-state/startup/profile-state-startup-authority'
 import { getProfileUserDataPath } from '../orca-profiles/profile-storage-paths'
@@ -167,7 +166,7 @@ export async function initializeReadyFoundation(): Promise<void> {
   )
   installElectronProxyRequestGuard(session.defaultSession)
   if (!state.isServeMode) {
-    void state.initialProxyApplicationReady.then(startWslHostsPolicyLiveUpdates)
+    // RA: WSL policy is local; never poll GitHub for a remote kill switch.
   }
   // Wait for profile-sidecar location, then defer potentially blocking OS-keyring probes past first paint (STA-5765).
   scheduleSecretProtectionGapReport({

@@ -6,7 +6,7 @@ import { normalizeComputerAwakeMode } from '../../shared/computer-awake-mode'
 import { registerSystemResumeBroadcast } from '../power/system-resume-broadcast'
 import { agentHookServer } from '../agent-hooks/server/agent-hook-server'
 import { installHookStatusSessionTabsRepublish } from '../agent-hooks/runtime/hook-status-session-tabs-republish'
-import { initTelemetry, track } from '../telemetry/client'
+import { track } from '../telemetry/client'
 import { setCodexTrustGrantTelemetry } from '../codex/trust/grants/codex-trust-grant-telemetry'
 import { initObservability } from '../observability/index'
 import { recordDurableCrashBreadcrumb } from '../crash-reporting/breadcrumbs/durable-crash-breadcrumb'
@@ -21,9 +21,6 @@ import { OpenCodeUsageStore } from '../opencode-usage/store'
 import { MuseUsageStore } from '../muse-usage/store'
 import { installRepoMaintenanceIdleGate } from '../workspaces/catalog/repo-maintenance-idle-gate'
 import { mainProcessState as state } from './main-process-state'
-import { runAfterFirstWindowShown } from './first-window-deferral'
-
-const TELEMETRY_CLIENT_START_FALLBACK_MS = 15_000
 
 export function initializeMainProcessObservers(): void {
   const store = state.store
@@ -60,11 +57,7 @@ export function initializeMainProcessObservers(): void {
     unsubscribeStatusFreshness()
     uninstallHookStatusRepublish()
   }
-  // Initialize before IPC/renderers can track; the telemetry client gates dev/disabled cases itself.
-  // Load the SDK after first paint (#35752); headless serve and GPU failures never show a window.
-  initTelemetry(store, (start) =>
-    runAfterFirstWindowShown(start, TELEMETRY_CLIENT_START_FALLBACK_MS)
-  )
+  // RA: no telemetry SDK initialization or delayed uploader.
   const profileStateStartup = state.profileStateStartup
   if (profileStateStartup) {
     track('profile_state_authority_selected', {
