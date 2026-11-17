@@ -5,13 +5,12 @@ import {
   isWslDistroRunning,
   listConfirmedRunningWslDistros
 } from '../../wsl/discovery/wsl-background-distro-gate'
-import { CliInstaller } from '../cli-installer'
 import {
   getWslCliRegistrationCandidates,
+  hasManagedWslCliRegistrations,
   recordWslCliRegistrationObservations,
   type WslCliRegistrationObservation
 } from './wsl-cli-registration-registry'
-import { WslCliInstaller } from './wsl-cli-installer'
 import { runSerializedWslCliRegistrationOperation } from './wsl-cli-registration-operation'
 import { readWslHostDeployments } from '../../../shared/remote-runtime/host-store/wsl-host-deployment-store'
 
@@ -47,6 +46,8 @@ type WslCliRegistrationReconciliationOptions = {
   userDataPath: string
   appVersion?: string
   listDistros?: () => Promise<string[]>
+  // RA: disk ownership check avoids probing WSL on host-only installations.
+  hasManagedRegistrations?: () => Promise<boolean>
   createInstaller?: (distro: string) => ManagedWslCliInstaller
   getHostLauncherTarget?: () => Promise<string | null>
   registry?: WslCliRegistrationRegistry
@@ -83,6 +84,25 @@ export async function reconcileManagedWslCliRegistrations(
     return []
   }
 
+  // RA: no owned launchers or deployed hosts means there is nothing to reconcile.
+  const inspectableDistros = (
+    options.listOrcaHostDistros ?? (() => orcaHostDistros(options.userDataPath))
+  )()
+  if (
+    inspectableDistros.length === 0 &&
+    !(await (
+      options.hasManagedRegistrations ?? (() => hasManagedWslCliRegistrations(options.userDataPath))
+    )())
+  ) {
+    return []
+  }
+
+  const availableDistros = await (options.listDistros ?? listWslDistrosAsync)()
+  // RA: failed/empty WSL discovery must not load installers or probe the host CLI.
+  if (availableDistros.length === 0) {
+    return []
+  }
+
   const registry =
     options.registry ??
     ({
@@ -95,6 +115,11 @@ export async function reconcileManagedWslCliRegistrations(
   let createInstaller = options.createInstaller
   let getHostLauncherTarget = options.getHostLauncherTarget
   if (!createInstaller) {
+    // RA: launcher installers are needed only when Orca owns WSL state on this machine.
+    const [{ CliInstaller }, { WslCliInstaller }] = await Promise.all([
+      import('../cli-installer'),
+      import('./wsl-cli-installer')
+    ])
     const hostInstaller = new CliInstaller()
     let hostStatus: Promise<CliInstallStatus> | null = null
     // Share this install's host probe across distros; evict failures so later repairs can retry.
@@ -111,14 +136,10 @@ export async function reconcileManagedWslCliRegistrations(
     getHostLauncherTarget ??= () => getHostStatus().then((status) => status.launcherPath)
   }
 
-  const availableDistros = await (options.listDistros ?? listWslDistrosAsync)()
   const currentTarget = getHostLauncherTarget
     ? await getHostLauncherTarget().catch(() => null)
     : null
   const appVersion = options.appVersion ?? ''
-  const inspectableDistros = (
-    options.listOrcaHostDistros ?? (() => orcaHostDistros(options.userDataPath))
-  )()
   const candidates = await registry.getCandidates(availableDistros, {
     currentTarget,
     appVersion,

@@ -8,7 +8,6 @@ import {
   recordWslCliRegistrationInstalled,
   recordWslCliRegistrationRemoved
 } from '../cli/wsl/wsl-cli-registration-registry'
-import { WslCliInstaller } from '../cli/wsl/wsl-cli-installer'
 import {
   deletedDistroWslCliStatus,
   notRunningWslCliStatus,
@@ -160,6 +159,8 @@ export function registerCliHandlers(): void {
           return notRunningWslCliStatus(blocked.distro, blocked.state)
         }
         try {
+          // RA: status IPC loads the WSL installer only after its running-distro gate.
+          const { WslCliInstaller } = await import('../cli/wsl/wsl-cli-installer')
           return await new WslCliInstaller({ distro }).getStatus()
         } catch (error) {
           // Cold/busy distros are retryable Settings states, not raw IPC failures (#29497).
@@ -178,6 +179,8 @@ export function registerCliHandlers(): void {
     async (_event, args?: { distro?: string | null }): Promise<CliInstallStatus> => {
       const distro = resolveWslCliDistro(args)
       return runWslCliRegistrationOperation(distro, async () => {
+        // RA: load WSL installation code on this explicit action.
+        const { WslCliInstaller } = await import('../cli/wsl/wsl-cli-installer')
         const status = await new WslCliInstaller({ distro }).install()
         if (distro && status.state === 'installed') {
           await persistWslCliRegistration(
@@ -197,6 +200,8 @@ export function registerCliHandlers(): void {
       return runWslCliRegistrationOperation(distro, async () => {
         let status: CliInstallStatus
         try {
+          // RA: host-only startup never needs the WSL removal implementation.
+          const { WslCliInstaller } = await import('../cli/wsl/wsl-cli-installer')
           status = await new WslCliInstaller({ distro }).remove()
         } catch (error) {
           if (!distro || !isWslDistroNotFoundFailure(error)) {

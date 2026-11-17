@@ -86,7 +86,9 @@ export function disableUnsupportedChromiumFeatures(): void {
 // Hidden-page timers otherwise clamp to once/minute after five minutes, delaying agent notifications on every platform.
 export function optOutOfHiddenPageWakeUpThrottling(): void {
   // RA: background terminal output is daemon-owned; let hidden renderer timers throttle.
-  if (backgroundJobsDisabled()) return
+  if (backgroundJobsDisabled()) {
+    return
+  }
   appendDisabledChromiumFeatures(['IntensiveWakeUpThrottling'])
 }
 

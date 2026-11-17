@@ -138,6 +138,11 @@ async function readState(userDataPath: string): Promise<WslCliRegistrationRegist
   }
 }
 
+// RA: consult Orca's ownership ledger before spawning any WSL discovery process.
+export async function hasManagedWslCliRegistrations(userDataPath: string): Promise<boolean> {
+  return (await readState(userDataPath)).registeredDistros.length > 0
+}
+
 function upsertDistro(distros: string[], distro: string): string[] {
   const key = normalizeWslDistroKey(distro)
   const existingIndex = distros.findIndex((entry) => normalizeWslDistroKey(entry) === key)
