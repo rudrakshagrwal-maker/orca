@@ -100,7 +100,15 @@ try {
   console.log('[boot-gate] terminal round-trip ok')
 
   const tab = await orca(['tab', 'create', '--url', 'about:blank', '--worktree', worktree])
-  await orca(['tab', 'switch', '--page', tab.browserPageId, '--worktree', worktree, '--focus'])
+  // Why retry: the guest registers asynchronously after its <webview> attaches.
+  await waitFor(
+    'browser tab switch',
+    async () => {
+      await orca(['tab', 'switch', '--page', tab.browserPageId, '--worktree', worktree, '--focus'], 20_000)
+      return true
+    },
+    30_000
+  )
   await waitFor(
     'browser tab registered',
     async () => {

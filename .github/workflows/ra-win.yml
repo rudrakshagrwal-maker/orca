@@ -61,6 +61,14 @@ jobs:
       - name: Package Windows installer
         run: pnpm exec electron-builder --config config/electron-builder.config.cjs --win --publish never
 
+      # RA: keep the installer even when the boot gate fails, so it can be debugged locally.
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orca-ra-installer
+          path: dist/Orca-RA-Setup-*.exe
+          retention-days: 3
+
       # RA: boot gate. A build that crashes on start never reaches the release.
       - name: Boot packaged app
         timeout-minutes: 8
