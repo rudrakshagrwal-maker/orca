@@ -2,6 +2,7 @@ import type * as WorktreeScanCacheModule from '../../../git/worktrees/catalog/wo
 import type * as WorktreeListingModule from '../../../git/worktrees/catalog/worktree-listing'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAgentPromptSubmissionRuntime } from './agent-prompt-submission-runtime-test-fixture'
+import { acquirePtyInputTransaction, writeAfterPtyInputTransaction } from './pty-input-transaction'
 
 vi.mock('../../../git/worktrees/catalog/worktree-scan-cache', async (importOriginal) => {
   const facade = getWorktreeListingMocks()
@@ -109,5 +110,98 @@ describe('a Windows Codex prompt held in its paste burst', () => {
     await expect(submission).resolves.toMatchObject({ accepted: true })
     expect((await runtime['readCurrentTerminalWaitScreen']('pty-prompt'))?.draft).toBeUndefined()
     expect(writes.filter((write) => write === '\r')).toHaveLength(1)
+  })
+})
+
+// RA: deterministic paste boundary and prompt-wide input transaction for the owned prompt path.
+describe('an owned prompt on Windows Codex', () => {
+  afterEach(() => vi.useRealTimers())
+
+  async function sendPrompt(platform: NodeJS.Platform, type?: (writes: string[]) => void) {
+    vi.useFakeTimers()
+    const { runtime, handle, writes } = await createAgentPromptSubmissionRuntime(
+      () => undefined,
+      'codex'
+    )
+    Object.defineProperty(runtime, 'getPtyWriteHostPlatform', { value: () => platform })
+    const submission = runtime.sendTerminalAgentPrompt(handle, 'x'.repeat(9_250), {
+      inputKind: 'driving',
+      acceptQueued: true,
+      requestId: `boundary-${platform}`,
+      observationTimeoutMs: 0
+    })
+    if (type) {
+      await vi.advanceTimersByTimeAsync(50)
+      type(writes)
+    }
+    await vi.runAllTimersAsync()
+    await expect(submission).resolves.toMatchObject({ accepted: true })
+    return writes
+  }
+
+  it('sends Right between the paste and its first Enter', async () => {
+    const writes = await sendPrompt('win32')
+    const paste = writes.findIndex((write) => write.includes('\x1b[200~'))
+    const right = writes.indexOf('\x1b[C')
+    const enter = writes.indexOf('\r')
+    expect(paste).toBe(0)
+    expect(right).toBeGreaterThan(paste)
+    expect(enter).toBeGreaterThan(right)
+  })
+
+  it('sends no boundary key off Windows', async () => {
+    expect(await sendPrompt('darwin')).not.toContain('\x1b[C')
+  })
+
+  it('holds desktop typing until the first Enter has gone out, then lets it through', async () => {
+    const order: string[] = []
+    const writes = await sendPrompt('win32', (written) => {
+      void writeAfterPtyInputTransaction('pty-prompt', () => {
+        order.push(`typed after ${written.filter((write) => write === '\r').length} Enters`)
+        written.push('typed')
+      })
+      void writeAfterPtyInputTransaction('pty-prompt', () => {
+        // Query replies and Ctrl+C never enter this path; ordinary writes keep their order.
+        written.push('typed-2')
+      })
+    })
+    expect(order).toEqual(['typed after 1 Enters'])
+    expect(writes.indexOf('typed')).toBeGreaterThan(writes.indexOf('\r'))
+    expect(writes.indexOf('typed-2')).toBe(writes.indexOf('typed') + 1)
+  })
+})
+
+// RA: the held-prompt retry Enter goes through the input transaction too.
+describe('a held Windows Codex prompt retry', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('does not press its retry Enter while someone else holds the PTY', async () => {
+    vi.useFakeTimers()
+    let release: (() => void) | undefined
+    const { runtime, handle, writes } = await createAgentPromptSubmissionRuntime(
+      (_runtime, data) => {
+        if (data === '\r' && !release) {
+          // Another sender takes the PTY right after the first Enter.
+          void acquirePtyInputTransaction('pty-prompt').then((r) => (release = r))
+        }
+      },
+      'codex'
+    )
+    Object.defineProperty(runtime, 'getPtyWriteHostPlatform', { value: () => 'win32' })
+    Object.defineProperty(runtime, 'readCurrentTerminalWaitScreen', {
+      value: async () => ({ lines: [], draft: '[Pasted Content 9250 chars]' })
+    })
+    const submission = runtime.sendTerminalAgentPrompt(handle, 'x'.repeat(9_250), {
+      inputKind: 'driving',
+      acceptQueued: true,
+      requestId: 'retry-transaction',
+      observationTimeoutMs: 0
+    })
+    await vi.advanceTimersByTimeAsync(20_000)
+    expect(writes.filter((write) => write === '\r')).toHaveLength(1)
+
+    release?.()
+    await vi.runAllTimersAsync()
+    await expect(submission).resolves.toMatchObject({ accepted: true })
   })
 })
