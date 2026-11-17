@@ -1,6 +1,7 @@
 import type React from 'react'
+import { useAnyBrowserGuestNeedsPaint } from './browser-pane/host-guest/browser-guest-paint-retention'
 
-// RA: hidden workbenches never retain browser paint work.
+// Keep hidden browser guests compositing while an agent drives them; display:none stops guest attach and screencasts.
 export function TerminalWorkbenchContainer({
   isVisible,
   children
@@ -8,9 +9,16 @@ export function TerminalWorkbenchContainer({
   isVisible: boolean
   children: React.ReactNode
 }): React.JSX.Element {
+  const retainBrowserGuestPaint = useAnyBrowserGuestNeedsPaint(!isVisible)
   return (
     <div
-      className={isVisible ? 'flex flex-1 min-w-0 min-h-0' : 'hidden flex-1 min-w-0 min-h-0'}
+      className={
+        isVisible
+          ? 'flex flex-1 min-w-0 min-h-0'
+          : retainBrowserGuestPaint
+            ? 'absolute inset-0 flex opacity-0 pointer-events-none'
+            : 'hidden flex-1 min-w-0 min-h-0'
+      }
       // Keep hidden paintable panes outside keyboard/accessibility navigation.
       inert={!isVisible}
       aria-hidden={!isVisible}
