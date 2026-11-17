@@ -27,6 +27,7 @@ import { useWindowBackdropActive } from '@/app-shell/appearance/window-backdrop'
 import { EditorRevealFlash } from './EditorRevealFlash'
 import { SplitPaneLanding } from './SplitPaneLanding'
 import { isSplitLandingGroup } from '@/store/slices/tabs/split-landing-groups'
+import { hasCustomTitleBar, shortcutPlatform } from '@/app-shell/app-window-chrome'
 
 const EditorPanel = lazy(() => import('../editor/EditorPanel'))
 const EMPTY_GROUPS: readonly TabGroup[] = []
@@ -75,6 +76,7 @@ export default function TabGroupPanel({
 }): React.JSX.Element {
   const t = useTranslate()
   const rightSidebarOpen = useAppStore((state) => state.rightSidebarOpen)
+  const hasWindowsControls = hasCustomTitleBar && shortcutPlatform === 'win32'
   const sidebarOpen = useAppStore((state) => state.sidebarOpen)
   const model = useTabGroupWorkspaceModel({ groupId, worktreeId })
   const {
@@ -320,13 +322,15 @@ export default function TabGroupPanel({
                 <TabGroupPaneActionsMenu isFocused={isFocused} onCloseGroup={commands.closeGroup} />
               ) : null}
             </div>
-            {/* Why: Electron drag hit-test respects no-drag only on DOM descendants, not z-index siblings, so this no-drag spacer keeps the floating right-sidebar toggle + window controls clickable. */}
-            {reserveClosedExplorerToggleSpace && !rightSidebarOpen ? (
+            {/* Windows controls remain overlaid even when a legacy profile says the removed right sidebar is open. */}
+            {reserveClosedExplorerToggleSpace && (hasWindowsControls || !rightSidebarOpen) ? (
               <div
                 className="shrink-0"
                 style={
                   {
-                    width: 'calc(40px + var(--window-controls-width, 0px))',
+                    width: hasWindowsControls
+                      ? 'var(--window-controls-width, 0px)'
+                      : 'calc(40px + var(--window-controls-width, 0px))',
                     WebkitAppRegion: 'no-drag'
                   } as React.CSSProperties
                 }

@@ -155,6 +155,22 @@ export const KEYBINDING_DEFINITION_CORE_1: readonly KeybindingDefinition[] = [
   },
 
   {
+    id: 'sidebar.explorer.toggle',
+    title: 'Show Files',
+    group: 'Global',
+    scope: 'global',
+    searchKeywords: ['shortcut', 'sidebar', 'explorer', 'files'],
+    defaultBindings: platformBindings(['Mod+Shift+E'])
+  },
+  {
+    id: 'sidebar.search.toggle',
+    title: 'Show Search',
+    group: 'Global',
+    scope: 'global',
+    searchKeywords: ['shortcut', 'sidebar', 'search'],
+    defaultBindings: platformBindings(['Mod+Shift+F'])
+  },
+  {
     id: 'sidebar.sleepingWorkspaces.toggle',
     title: 'Toggle Sleeping Workspaces',
     group: 'Global',

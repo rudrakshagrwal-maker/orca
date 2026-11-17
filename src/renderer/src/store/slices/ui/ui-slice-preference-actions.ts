@@ -1,4 +1,7 @@
-import { normalizeSidebarCollapsedGroups } from '../../../../../shared/sidebar-agent-disclosure'
+import {
+  normalizeSidebarCollapsedGroups,
+  SIDEBAR_FILES_COLLAPSED_KEY
+} from '../../../../../shared/sidebar-agent-disclosure'
 import {
   DEFAULT_STATUS_BAR_USAGE_FORMAT,
   normalizeStatusBarUsageFormat
@@ -55,7 +58,7 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
     setGroupBy: (g) => {
       // RA: the global Agents disclosure is independent of workspace grouping.
       const collapsedGroups = [...get().collapsedGroups].filter((key) =>
-        key.startsWith('ra:sidebar-agent')
+        key.startsWith('ra:sidebar-agent') || key === SIDEBAR_FILES_COLLAPSED_KEY
       )
       window.api.ui.set({ groupBy: g, collapsedGroups }).catch(console.error)
       set({ groupBy: g, collapsedGroups: new Set(collapsedGroups) })

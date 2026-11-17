@@ -116,6 +116,20 @@ export function createAppCommandHandlers(
     ],
     ['sidebar.left.toggle', () => claim('sidebar.left.toggle', () => actions.toggleSidebar())],
     [
+      'sidebar.explorer.toggle',
+      () =>
+        !creationLayoutActive && activeView !== 'settings'
+          ? claim('sidebar.explorer.toggle', () => actions.showRightSidebarFiles())
+          : false
+    ],
+    [
+      'sidebar.search.toggle',
+      () =>
+        !creationLayoutActive && activeView !== 'settings'
+          ? claim('sidebar.search.toggle', () => actions.showRightSidebarSearch())
+          : false
+    ],
+    [
       'sidebar.sleepingWorkspaces.toggle',
       () =>
         claim('sidebar.sleepingWorkspaces.toggle', () => {

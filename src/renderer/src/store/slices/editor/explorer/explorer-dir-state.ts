@@ -16,7 +16,7 @@ export type ExplorerDirState = {
   clearPendingExplorerReveal: () => void
 }
 
-export function createExplorerDirState(set: EditorSet, _get: EditorGet): ExplorerDirState {
+export function createExplorerDirState(set: EditorSet, get: EditorGet): ExplorerDirState {
   return {
     expandedDirs: {},
     collapseAllDirs: (worktreeId) =>
@@ -58,9 +58,9 @@ export function createExplorerDirState(set: EditorSet, _get: EditorGet): Explore
         return { expandedDirs: { ...s.expandedDirs, [worktreeId]: next } }
       }),
     pendingExplorerReveal: null,
-    revealInExplorer: (worktreeId, filePath) =>
+    revealInExplorer: (worktreeId, filePath) => {
+      get().showRightSidebarFiles()
       set((s) => ({
-        rightSidebarOpen: true,
         rightSidebarTab: 'explorer',
         rightSidebarExplorerView: 'files',
         rightSidebarRouteRequestId: s.rightSidebarRouteRequestId + 1,
@@ -69,7 +69,8 @@ export function createExplorerDirState(set: EditorSet, _get: EditorGet): Explore
           [worktreeId]: 'files'
         },
         pendingExplorerReveal: { worktreeId, filePath, requestId: Date.now() }
-      })),
+      }))
+    },
     clearPendingExplorerReveal: () => set({ pendingExplorerReveal: null })
   }
 }
