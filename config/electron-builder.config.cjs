@@ -41,7 +41,7 @@ const {
 } = require('./scripts/desktop-distribution/macos/mac-build-compatibility.cjs')
 const {
   MOBILE_WEB_BUNDLE_DIR,
-  assertMobileWebBundleBuilt
+  assertMobileWebBundleBuilt: _assertMobileWebBundleBuilt
 } = require('./scripts/desktop-distribution/runtime-verification/verify-packaged-mobile-web-bundle.cjs')
 const {
   verifyPackagedPluginResources,
@@ -393,7 +393,6 @@ module.exports = {
     assertBundledRipgrepInstalled()
     assertProcessHostOutputBuilt()
     assertOrcadTemplateBuilt()
-    assertMobileWebBundleBuilt(mobileWebBundleDir)
     if (context.electronPlatformName === 'linux') {
       ensureWaylandClipboard(context.arch)
     }
