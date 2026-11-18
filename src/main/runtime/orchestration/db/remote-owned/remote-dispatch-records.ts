@@ -66,27 +66,45 @@ export function getRemoteDispatch(
     | undefined
 }
 
+export function getRemoteDispatchReport(db: OrchestrationDb, dispatchId: string, runId: string) {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: SELECT returns only the message body and its validated outcome field.
+  return db.db
+    .prepare(`SELECT body, json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END, '$.outcome') AS outcome FROM messages
+    WHERE run_id = ? AND type = 'worker_done'
+      AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END, '$.dispatchId') = ?
+      AND json_extract(CASE WHEN json_valid(payload) THEN payload ELSE '{}' END, '$.outcome') IN ('succeeded', 'failed')
+    ORDER BY sequence ASC LIMIT 1`)
+    .get(runId, dispatchId) as { body: string; outcome: 'succeeded' | 'failed' } | undefined
+}
+
 /** Newest first, in one Run or every Run, with the state of the link each came home under. */
 export function listRemoteDispatches(
   db: OrchestrationDb,
-  scope: { runId?: string; limit: number }
+  scope: { runId?: string; limit: number; liveOnly?: boolean }
 ): (RemoteDispatchRow & { link_state: RemoteRunLinkRow['state'] | null })[] {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the record's columns plus the joined link state.
   return db.db
     .prepare(
       `SELECT record.*, link.state AS link_state FROM remote_dispatches record
        LEFT JOIN remote_run_links link ON link.conversation_id = record.conversation_id
-       WHERE (? IS NULL OR record.run_id = ?) ORDER BY record.rowid DESC LIMIT ?`
+       WHERE (? IS NULL OR record.run_id = ?)
+       ${scope.liveOnly ? "AND record.status IN ('pending', 'dispatched')" : ''}
+       ORDER BY record.rowid DESC LIMIT ?`
     )
     .all(scope.runId ?? null, scope.runId ?? null, scope.limit) as (RemoteDispatchRow & {
     link_state: RemoteRunLinkRow['state'] | null
   })[]
 }
 
-export function countRemoteDispatches(db: OrchestrationDb, runId: string | undefined): number {
+export function countRemoteDispatches(
+  db: OrchestrationDb,
+  runId: string | undefined,
+  liveOnly = false
+): number {
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: COUNT(*) returns one number.
   const row = db.db
-    .prepare('SELECT COUNT(*) AS count FROM remote_dispatches WHERE (? IS NULL OR run_id = ?)')
+    .prepare(`SELECT COUNT(*) AS count FROM remote_dispatches WHERE (? IS NULL OR run_id = ?)
+      ${liveOnly ? "AND status IN ('pending', 'dispatched')" : ''}`)
     .get(runId ?? null, runId ?? null) as { count: number }
   return row.count
 }

@@ -22,6 +22,7 @@ export type WorkerListPageParams = {
   terminalState?: WorkerTerminalListState
   includeRemote?: boolean
   paginate?: boolean
+  liveOnly?: boolean
 }
 
 export function projectWorkerFleet(args: {

@@ -249,36 +249,6 @@ export const ORCHESTRATION_COMMAND_SPECS: CommandSpec[] = [
       'From a worker, a new question goes to its coordinator and ask returns at once: end your turn, and Orca wakes you with the answer as mail. A worker that already finished waits for the answer instead. --wait and --resume block until the answer instead; --timeout-ms accepts 1 to 1800000 ms per wait (default 600000 = 10 minutes, max 30 minutes), and a timeout leaves the question pending.'
     ]
   },
-  {
-    path: ['orchestration', 'coordinator-start'],
-    aliases: [['orchestration', 'run']],
-    summary: 'Retired: load the current orchestration skill',
-    usage:
-      'orca orchestration coordinator-start --spec <text> [--from <handle>] [--poll-interval-ms <n>] [--max-concurrent <n>] [--worktree <selector>] [--json]',
-    allowedFlags: [
-      ...GLOBAL_FLAGS,
-      'spec',
-      'from',
-      'poll-interval-ms',
-      'max-concurrent',
-      'worktree'
-    ],
-    identityFlagRoles: { from: 'caller' },
-    notes: [
-      'This command performs no effects and returns the exact `skills get orchestration --full` recovery action.',
-      'Use the lightweight Run, Task, and worker-start primitives described by the current skill.'
-    ]
-  },
-  {
-    path: ['orchestration', 'coordinator-stop'],
-    aliases: [['orchestration', 'run-stop']],
-    summary: 'Retired: load the current orchestration skill',
-    usage: 'orca orchestration coordinator-stop [--json]',
-    allowedFlags: [...GLOBAL_FLAGS],
-    notes: [
-      'This command performs no effects and returns the exact `skills get orchestration --full` recovery action.'
-    ]
-  },
   ...ORCHESTRATION_GATE_COMMAND_SPECS,
   {
     path: ['orchestration', 'reset'],

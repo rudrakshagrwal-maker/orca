@@ -33,7 +33,10 @@ export function composerHoldsWorkerBrief(draft: string | undefined, taskId: stri
     return false
   }
   const flat = draft.replace(/\s+/g, ' ')
-  return flat.includes(ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX) || flat.includes(taskId)
+  return (
+    flat.includes(ORCA_DISPATCH_STATUS_PREAMBLE_PREFIX) &&
+    flat.split('Your task ID is: ')[1]?.split(' ')[0] === taskId
+  )
 }
 
 /** RA: press Enter once more, only when the screen proves the brief sits unsent, so a task is never sent twice. */
@@ -46,7 +49,10 @@ async function resubmitHeldWorkerBrief(args: {
   graceLeft: () => number
 }): Promise<WorkerTurnStartObservation> {
   const { runtime, terminalHandle, turnStart } = args
-  if (args.graceLeft() < RESUBMIT_MIN_GRACE_MS) {
+  if (
+    args.graceLeft() < RESUBMIT_MIN_GRACE_MS ||
+    turnStart.prompt?.observation === 'incarnation_replaced'
+  ) {
     return turnStart
   }
   const guard = createWorkerBriefWriteGuard(runtime, args.agent, true)

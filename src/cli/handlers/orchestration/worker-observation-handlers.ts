@@ -13,9 +13,15 @@ import type {
   OrchestrationWorkerReadSource
 } from '../../../shared/orchestration/workers/orchestration-worker-output'
 import { formatWorkerRead, type LegacyWorkerReadResult } from './worker-output'
+import { printWorkerResult, workerResultTimeout } from './worker-result-wait'
 
 export const ORCHESTRATION_WORKER_OBSERVATION_HANDLERS: Record<string, CommandHandler> = {
   'orchestration worker-show': async ({ flags, client, json }) => {
+    const timeoutMs = workerResultTimeout(flags)
+    if (flags.has('wait')) {
+      await printWorkerResult(client, getRequiredStringFlag(flags, 'dispatch'), timeoutMs, json)
+      return
+    }
     const result = await client.call<WorkerShowResult>('orchestration.workerShow', {
       dispatch: getRequiredStringFlag(flags, 'dispatch')
     })

@@ -25,6 +25,48 @@ describe('orchestration worker-list pagination', () => {
 
   afterEach(() => db?.close())
 
+  it('pages unfinished workers before limiting, including retained workers and excluding settled history', async () => {
+    db = new OrchestrationDb(':memory:')
+    const runtime = new OrcaRuntimeService()
+    runtime.setOrchestrationDb(db)
+    const run = db.createRun({
+      objective: 'Live inventory',
+      coordinatorHandle: 'term-coordinator',
+      coordinatorPaneKey: 'tab_coord:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    })
+    for (const [id, state] of [
+      ['live-a', 'ready'],
+      ['live-b', 'start_unknown'],
+      ['old-finished', 'succeeded'],
+      ['old-stopped', 'stopped']
+    ]) {
+      insertDispatch(db, run.id, id)
+      db.db
+        .prepare(
+          'INSERT INTO worker_dispatches (dispatch_id, state, agent_terminal_handle) VALUES (?, ?, ?)'
+        )
+        .run(id, state, `term-${id}`)
+    }
+    const first = await callWorkerList(runtime, { run: run.id, liveOnly: true, limit: 1 })
+    expect(first.workers.map((row) => row.dispatchId)).toEqual(['live-b'])
+    expect(first.page.total).toBe(2)
+    const second = await callWorkerList(runtime, {
+      run: run.id,
+      liveOnly: true,
+      limit: 1,
+      cursor: first.page.nextCursor
+    })
+    expect(second.workers.map((row) => row.dispatchId)).toEqual(['live-a'])
+    expect(second.page.hasMore).toBe(false)
+    const all = await callWorkerList(runtime, { run: run.id, paginate: true })
+    expect(all.workers.map((row) => row.dispatchId)).toEqual([
+      'old-stopped',
+      'old-finished',
+      'live-b',
+      'live-a'
+    ])
+  })
+
   it('returns a complete filtered legacy result while current clients page above 100 rows', async () => {
     db = new OrchestrationDb(':memory:')
     const runtime = new OrcaRuntimeService()

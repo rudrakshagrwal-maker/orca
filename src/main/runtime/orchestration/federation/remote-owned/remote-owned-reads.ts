@@ -161,7 +161,7 @@ type WorkerListPage = {
  */
 export function withRemoteWorkerRows<Page extends WorkerListPage>(
   runtime: ReadsRuntime,
-  params: { run?: string; cursor?: string; terminalState?: string },
+  params: { run?: string; cursor?: string; terminalState?: string; liveOnly?: boolean },
   page: Page,
   maxRows: number
 ): Page {
@@ -169,7 +169,7 @@ export function withRemoteWorkerRows<Page extends WorkerListPage>(
     return page
   }
   const db = runtime.getOrchestrationDb()
-  const total = countRemoteDispatches(db, params.run)
+  const total = countRemoteDispatches(db, params.run, params.liveOnly)
   if (total === 0) {
     return page
   }
@@ -182,9 +182,11 @@ export function withRemoteWorkerRows<Page extends WorkerListPage>(
     names.set(id, known)
     return known
   }
-  const rows = listRemoteDispatches(db, { runId: params.run, limit: Math.max(0, maxRows) }).map(
-    (record) => remoteWorkerListRow(record, name)
-  )
+  const rows = listRemoteDispatches(db, {
+    runId: params.run,
+    limit: Math.max(0, maxRows),
+    liveOnly: params.liveOnly
+  }).map((record) => remoteWorkerListRow(record, name))
   const warnings =
     rows.length < total
       ? [

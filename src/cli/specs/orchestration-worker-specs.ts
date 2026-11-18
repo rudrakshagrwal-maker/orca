@@ -5,12 +5,15 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
     path: ['orchestration', 'worker-start'],
     summary: 'Start one supervised worker on the Run home or a connected Orca server',
     usage:
-      'orca orchestration worker-start (--task <task_id> | --spec <text> | --spec-file <path|->) [--keep-open] [--on <saved-environment>] [--worktree <current|selector|new-child|new-top-level>] (--agent <agent> | --terminal <handle>) [--task-title <text>] [--deps <json_array>] [--parent <task_id>] [--model <id>] [--effort <level>] [--name <name>] [--repo <selector>] [--base-branch <ref>] [--display-name <text>] [--comment <text>] [--setup <run|skip|inherit>] [--retry-of <dispatch_id>] [--timeout-ms <n>] [--run <run_id>] [--from <handle>] [--retry-request <id>] [--json]',
+      'orca orchestration worker-start (--task <task_id> | --spec <text> | --spec-file <path|-> | --brief-file <path>) [--wait] [--timeout <s>] [--keep-open] [--on <saved-environment>] [--worktree <current|selector|new-child|new-top-level>] (--agent <agent> | --terminal <handle>) [--task-title <text>] [--deps <json_array>] [--parent <task_id>] [--model <id>] [--effort <level>] [--name <name>] [--repo <selector>] [--base-branch <ref>] [--display-name <text>] [--comment <text>] [--setup <run|skip|inherit>] [--retry-of <dispatch_id>] [--timeout-ms <n>] [--run <run_id>] [--from <handle>] [--retry-request <id>] [--json]',
     allowedFlags: [
       ...GLOBAL_FLAGS,
       'task',
       'spec',
       'spec-file',
+      'brief-file',
+      'wait',
+      'timeout',
       'keep-open',
       'task-title',
       'deps',
@@ -40,7 +43,8 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
       'When reusing --terminal, pass --worktree for that terminal; current means the coordinator worktree.',
       "Reusing a settled worker's terminal with --terminal before its autoReleaseAt cancels that automatic release; after it, the start is refused while the release runs.",
       'A terminal the user kept open takes --terminal work and stays kept open.',
-      '--agent takes claude or codex.',
+      '--agent takes codex, claude, hermes, or dsh.',
+      '--brief-file is an alias for --spec-file. With --wait, block for this Dispatch result (default 1800 seconds; --timeout sets the result wait in seconds). Timeout leaves the worker running and exits 1 with its IDs. --timeout-ms still controls startup readiness.',
       '--model supports Claude and Codex provider model ids; --effort requires --model. Neither can combine with --terminal.',
       'Finished workers close on their own unless started with --keep-open; a worker started in a new worktree (new-child or new-top-level) is kept open, so release it when no one will use its chat.',
       'New worktrees use agent-first creation; without --setup, setup runs unless the project turns it off. Repository start-immediately runs setup beside the agent; wait-for-setup gates agent readiness and task input.',
@@ -60,8 +64,9 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
   {
     path: ['orchestration', 'worker-show'],
     summary: 'Inspect one supervised worker Dispatch',
-    usage: 'orca orchestration worker-show --dispatch <dispatch_id> [--json]',
-    allowedFlags: [...GLOBAL_FLAGS, 'dispatch'],
+    usage:
+      'orca orchestration worker-show --dispatch <dispatch_id> [--wait] [--timeout <s>] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'dispatch', 'wait', 'timeout'],
     notes: [
       'A Dispatch created by orchestration dispatch is shown as unsupervised and reports the exact adopted terminal when its identity is still provable.',
       'observation.agentWait names a worker parked on a prompt only a human can answer, with the evidence that proved it (hook, prompt-text, or title). Null means Orca looked and found no wait. An absent field means it never looked — an older host, an unverifiable worker identity, an unreadable pane, or an agent probe that did not answer in time — and never means the worker is not waiting. A waiting worker is healthy, not failed.'
@@ -146,29 +151,22 @@ export const ORCHESTRATION_WORKER_COMMAND_SPECS: CommandSpec[] = [
     ]
   },
   {
-    // Old name of worker-keep-open; hidden so it runs for existing scripts but is never suggested.
-    path: ['orchestration', 'worker-retain'],
-    hidden: true,
-    summary: 'Keep a worker open after it finishes (old name of worker-keep-open)',
-    usage:
-      'orca orchestration worker-retain --dispatch <dispatch_id> [--retry-request <id>] [--json]',
-    allowedFlags: [...GLOBAL_FLAGS, 'dispatch', 'retry-request']
-  },
-  {
     path: ['orchestration', 'worker-list'],
     summary: 'List supervised worker terminal resource accounting',
     usage:
-      'orca orchestration worker-list [--run <run_id>] [--terminal-state <active|reclaimable|retained|release_pending|release_unknown|released>] [--include-remote] [--on <server>] [--cursor <cursor>] [--limit <1-100>] [--json]',
+      'orca orchestration worker-list [--all] [--run <run_id>] [--terminal-state <active|reclaimable|retained|release_pending|release_unknown|released>] [--include-remote] [--on <server>] [--cursor <cursor>] [--limit <1-100>] [--json]',
     allowedFlags: [
       ...GLOBAL_FLAGS,
       'run',
       'terminal-state',
+      'all',
       'include-remote',
       'on',
       'cursor',
       'limit'
     ],
     notes: [
+      'Shows unfinished supervised workers by default, including retained workers and uncertain starts needing attention. --all includes settled history; --terminal-state explicitly selects resource accounting instead.',
       'Terminal state is process accounting and is reported separately from Task status; a completed Task can still own a live terminal.',
       'A reclaimable worker with resource.autoReleaseAt is released automatically at that time unless it is reused with worker-start --terminal or kept open (worker-keep-open, worker-start --keep-open, or the user).',
       'Context-only Dispatches created by orchestration dispatch are included as unsupervised with terminal state retained.',

@@ -21,10 +21,27 @@ import { explainOlderRuntimeRunRequired } from './older-runtime-run-binding'
 import { withResolvedNextCommands } from '../../orchestration-mutation-recovery'
 import { readTextOrFileFlag } from '../../command-body-input'
 import { refuseAgentServerRoute } from './agent-server-route'
+import { printWorkerResult, workerResultTimeout } from './worker-result-wait'
 
 export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler> = {
   'orchestration worker-start': async (ctx) => {
     const { flags, client, cwd, json } = ctx
+    const wait = flags.has('wait')
+    const timeoutMs = workerResultTimeout(flags)
+    if (
+      flags.has('brief-file') &&
+      (flags.has('spec') || flags.has('spec-file') || flags.has('task'))
+    ) {
+      throw new RuntimeClientError(
+        'invalid_argument',
+        'Use --brief-file alone, or --task / --spec / --spec-file.'
+      )
+    }
+    const inputFlags = new Map(flags)
+    if (flags.has('brief-file')) {
+      inputFlags.set('spec-file', flags.get('brief-file')!)
+    }
+    const spec = await readTextOrFileFlag(inputFlags, cwd, 'spec', false)
     const requestedAgent = getOptionalStringFlag(flags, 'agent')
     const agent = requestedAgent === undefined ? undefined : parseCliAgent(requestedAgent)
     await refuseAgentServerRoute('worker-start', ctx)
@@ -45,7 +62,6 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
       }
     }
     const task = getOptionalStringFlag(flags, 'task')
-    const spec = await readTextOrFileFlag(flags, cwd, 'spec', false)
     const taskTitle = getOptionalStringFlag(flags, 'task-title')
     const deps = getOptionalStringFlag(flags, 'deps')
     const parent = getOptionalStringFlag(flags, 'parent')
@@ -92,7 +108,11 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
     }).catch(async (error: unknown) => {
       throw await explainOlderRuntimeRunRequired(client, error)
     })
-    if (result.result.state !== 'ready' && result.result.state !== 'queued') {
+    if (
+      result.result.state !== 'ready' &&
+      result.result.state !== 'queued' &&
+      !(wait && isUnobservedTurnStart(result.result))
+    ) {
       // RA: admission is accepted, not failed.
       process.exitCode = 1
     }
@@ -103,23 +123,6 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
         isUnobservedTurnStart(result.result)) // RA: queued work keeps its requested custody.
         ? await keepWorkerOpen(client, result.result.dispatchId)
         : undefined
-    const renderedResult = {
-      ...result,
-      result: {
-        ...withResolvedNextCommands(result.result),
-        ...(keepOpenState === 'retained' ? { keptOpen: true as const } : {})
-      }
-    }
-    if (flags.has('full')) {
-      printResult(renderedResult, json, (value) =>
-        withReceiptNext(
-          `${formatWorkerStart(value)}${value.keptOpen ? '\nKept open after it finishes' : ''}`,
-          value
-        )
-      )
-    } else {
-      printOrchestrationResult(renderedResult, json, WORKER_START_VIEW)
-    }
     // Only an explicit --keep-open fails the start; a new workspace's default is best effort.
     if (flags.has('keep-open') && keepOpenState && keepOpenState !== 'retained') {
       const dispatchId = result.result.dispatchId
@@ -134,6 +137,44 @@ export const ORCHESTRATION_WORKER_LAUNCH_HANDLER: Record<string, CommandHandler>
         code: 'not_kept_open',
         message: `${dispatchId} started but was not kept open (${keepOpenState}). Run ${renderOrchestrationArgv(['orchestration', verb, '--dispatch', dispatchId])}.`
       })
+    }
+    const renderedResult = {
+      ...result,
+      result: {
+        ...withResolvedNextCommands(result.result),
+        ...(keepOpenState === 'retained' ? { keptOpen: true as const } : {})
+      }
+    }
+    if (
+      wait &&
+      (result.result.state === 'ready' ||
+        result.result.state === 'queued' ||
+        isUnobservedTurnStart(result.result))
+    ) {
+      try {
+        await printWorkerResult(client, result.result.dispatchId, timeoutMs, json)
+      } catch (error) {
+        throw new RuntimeClientError(
+          'worker_wait_failed',
+          `Worker ${result.result.dispatchId} started; waiting failed: ${error instanceof Error ? error.message : String(error)}. Resume with worker-show --dispatch ${result.result.dispatchId} --wait.`,
+          {
+            runId: result.result.runId,
+            taskId: result.result.taskId,
+            dispatchId: result.result.dispatchId
+          }
+        )
+      }
+      return
+    }
+    if (flags.has('full')) {
+      printResult(renderedResult, json, (value) =>
+        withReceiptNext(
+          `${formatWorkerStart(value)}${value.keptOpen ? '\nKept open after it finishes' : ''}`,
+          value
+        )
+      )
+    } else {
+      printOrchestrationResult(renderedResult, json, WORKER_START_VIEW)
     }
   }
 }

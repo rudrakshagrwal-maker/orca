@@ -28,12 +28,16 @@ const HELD_DRAFT = [
 ].join('\n')
 
 describe('a terminal worker whose Enter was swallowed', () => {
-  function settleSwallowed(draft: string | undefined) {
+  function settleSwallowed(
+    draft: string | undefined,
+    retryStartsTurn = true,
+    observation = 'supported'
+  ) {
     const prompt = {
       requestId: 'r1',
       stages: ['input_accepted'],
       provider: 'codex',
-      observation: 'supported',
+      observation,
       processIncarnation: 'p1',
       generation: 1,
       baselineWorkingSequence: 0
@@ -55,7 +59,9 @@ describe('a terminal worker whose Enter was swallowed', () => {
       getTerminalPromptRequestBinding: () => ({ processIncarnation: 'p1', generation: 1 }),
       // The turn starts only once the second Enter lands.
       observeTerminalAgentPrompt: vi.fn(async () =>
-        entered ? { ...prompt, stages: ['input_accepted', 'turn_started'] } : prompt
+        entered && retryStartsTurn
+          ? { ...prompt, stages: ['input_accepted', 'turn_started'] }
+          : prompt
       ),
       readTerminal: vi.fn(async () => ({ handle: 'term_w', tail: [], draft })),
       sendTerminal,
@@ -115,5 +121,32 @@ describe('a terminal worker whose Enter was swallowed', () => {
     await expect(receipt).resolves.toMatchObject({ turnStart: 'unobserved' })
     expect(sendTerminal).not.toHaveBeenCalled()
     expect(db.markWorkerStartUnknown).toHaveBeenCalled()
+  })
+
+  it('does not submit an older Task brief with the same preamble', async () => {
+    const { receipt, sendTerminal } = settleSwallowed(HELD_DRAFT.replace('t1', 't10'))
+    await expect(receipt).resolves.toMatchObject({ turnStart: 'unobserved' })
+    expect(sendTerminal).not.toHaveBeenCalled()
+  })
+
+  it('does not submit unrelated prose mentioning the Task id', async () => {
+    const { receipt, sendTerminal } = settleSwallowed('Please inspect t1')
+    await expect(receipt).resolves.toMatchObject({ turnStart: 'unobserved' })
+    expect(sendTerminal).not.toHaveBeenCalled()
+  })
+
+  it('leaves the start unknown after one unsuccessful Enter retry', async () => {
+    const { receipt, sendTerminal } = settleSwallowed(HELD_DRAFT, false)
+    await expect(receipt).resolves.toMatchObject({
+      turnStart: 'unobserved',
+      state: 'outcome_unknown'
+    })
+    expect(sendTerminal).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not submit a draft after the terminal process was replaced', async () => {
+    const { receipt, sendTerminal } = settleSwallowed(HELD_DRAFT, true, 'incarnation_replaced')
+    await expect(receipt).resolves.toMatchObject({ turnStart: 'unobserved' })
+    expect(sendTerminal).not.toHaveBeenCalled()
   })
 })

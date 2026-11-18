@@ -22,6 +22,7 @@ export const WorkerListParams = z.object({
   limit: z.number().int().min(1).max(ORCHESTRATION_FLEET_PAGE_MAX).optional(),
   includeRemote: z.boolean().optional(),
   paginate: z.boolean().optional(),
+  liveOnly: z.boolean().optional(),
   // A paired server's own list, paged by its cursor.
   on: z.string().min(1).optional()
 })

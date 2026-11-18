@@ -21,16 +21,21 @@ import { readFederatedWorkerOutput } from '../../../../orchestration/legacy-remo
 import { showFederatedWorker } from '../../../../orchestration/legacy-remote-home/federated-worker-show'
 import {
   WorkerDispatchParams,
+  WorkerShowParams,
   WorkerReadParams
 } from '../../../../../../shared/rpc-contract/orchestration-worker-control-params'
+import { waitForWorkerResult } from './worker-result-wait'
 
 export const ORCHESTRATION_WORKER_CONTROL_METHODS = [
   defineOrchestrationMethod({
     name: 'orchestration.workerShow',
     access: { kind: 'reads', targets: { dispatch: 'dispatch' } },
     permission: 'workspace',
-    params: WorkerDispatchParams,
-    handler: async (params, { runtime }) => {
+    params: WorkerShowParams,
+    handler: async (params, { runtime, signal }) => {
+      if (params.wait) {
+        return waitForWorkerResult(runtime, params.dispatch, params.timeoutMs ?? 1_800_000, signal)
+      }
       const db = runtime.getOrchestrationDb()
       const dispatch = db.getDispatchContextById(params.dispatch)
       let worker = db.getWorkerDispatch(params.dispatch)

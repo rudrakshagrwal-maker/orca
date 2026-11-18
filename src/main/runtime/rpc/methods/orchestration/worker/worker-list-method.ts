@@ -59,6 +59,7 @@ async function listLocalWorkerPage(
     const rows = db.listWorkerTerminalResources({
       runId: params.run,
       terminalState: params.terminalState,
+      liveOnly: params.liveOnly,
       limit: ORCHESTRATION_WORKER_LIST_SNAPSHOT_MAX_ROWS + 1
     })
     if (rows.length > ORCHESTRATION_WORKER_LIST_SNAPSHOT_MAX_ROWS) {
@@ -108,6 +109,7 @@ async function listLocalWorkerPage(
   const rows = db.listWorkerTerminalResources({
     runId: params.run,
     terminalState: params.terminalState,
+    liveOnly: params.liveOnly,
     snapshot,
     after: cursor?.after,
     limit:
@@ -133,6 +135,7 @@ async function listLocalWorkerPage(
     const snapshotId = createWorkerListSnapshot(runtime, {
       runId: params.run,
       terminalState: params.terminalState,
+      liveOnly: params.liveOnly,
       databaseId: snapshot.databaseId,
       dispatchIds: rows.map((row) => row.dispatchId)
     })
@@ -156,7 +159,8 @@ function readSnapshotRows(
 ) {
   const stored = readWorkerListSnapshot(runtime, cursor.snapshot.id, {
     runId: params.run,
-    terminalState: params.terminalState
+    terminalState: params.terminalState,
+    liveOnly: params.liveOnly
   })
   const dispatchIds = stored.dispatchIds.slice(cursor.offset, cursor.offset + limit + 1)
   const rows = db.listWorkerTerminalResources({ dispatchIds })
@@ -184,7 +188,8 @@ async function projectWorkerListPage(args: WorkerListPageArgs) {
     args.snapshotCursor?.version === 3
       ? pinWorkerListSnapshot(args.runtime, args.snapshotCursor.snapshot.id, {
           runId: args.params.run,
-          terminalState: args.params.terminalState
+          terminalState: args.params.terminalState,
+          liveOnly: args.params.liveOnly
         })
       : null
   try {
@@ -215,6 +220,7 @@ async function projectWorkerListPageWithFilteredSnapshot(
       : db.countWorkerTerminalInventory({
           runId: params.run,
           terminalState: params.terminalState,
+          liveOnly: params.liveOnly,
           snapshot: args.snapshot
         })
   const nextRow = pageRows.at(-1)

@@ -6,6 +6,7 @@ import {
   type OrchestrationMethodAccessDeclaration
 } from '../../../rpc/methods/orchestration/access/orchestration-method-access'
 import { emptyWorkerListPage } from '../../../rpc/methods/orchestration/worker/worker-list-method'
+import { waitForWorkerResult } from '../../../rpc/methods/orchestration/worker/worker-result-wait'
 import { ORCHESTRATION_FLEET_PAGE_MAX } from '../../../../../shared/orchestration/fleet/orchestration-fleet-projection'
 import { ORCA_SESSION_ADDRESS_PREFIX } from '../../../../../shared/orca-session-address-prefix'
 import { WorkerStartParams } from '../../../../../shared/rpc-contract/orchestration-worker-start-params'
@@ -77,6 +78,17 @@ export async function routeRemoteOwnedCall(
   checkDeclaredOrchestrationAccess(access, params, ctx)
   const record = subject.dispatchId ? getRemoteDispatch(db, subject.dispatchId) : undefined
   if (request.method === 'orchestration.workerShow' && record) {
+    if (values.wait) {
+      return {
+        handled: true,
+        result: await waitForWorkerResult(
+          runtime,
+          record.dispatch_id,
+          typeof values.timeoutMs === 'number' ? values.timeoutMs : 1_800_000,
+          ctx.signal
+        )
+      }
+    }
     // A status read is this Orca's record, never a call there: instant whatever the server is doing.
     return { handled: true, result: remoteWorkerShow(runtime, record) }
   }

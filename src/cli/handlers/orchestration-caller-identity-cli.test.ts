@@ -75,14 +75,6 @@ describe('orchestration dispatch coordinator handle', () => {
       json
     } as never)
 
-  const invokeRun = (flags: Map<string, string | boolean>) =>
-    ORCHESTRATION_HANDLERS['orchestration coordinator-start']({
-      flags,
-      client: { call: callMock },
-      cwd: '/tmp/repo',
-      json: true
-    } as never)
-
   it('allows a dry run without a recipient and returns only its preamble', async () => {
     callMock.mockResolvedValue({
       result: { dispatch: null, dryRun: true, preamble: 'preview preamble' }
@@ -245,20 +237,6 @@ describe('orchestration dispatch coordinator handle', () => {
       from: 'term_live_coord',
       devMode: false
     })
-  })
-
-  it('retires the legacy coordinator command without runtime effects', async () => {
-    await expect(
-      invokeRun(new Map<string, string | boolean>([['spec', 'run the plan']]))
-    ).rejects.toMatchObject({
-      code: 'orchestration_migration_required',
-      data: {
-        reason: 'command_retired',
-        effectsApplied: false,
-        nextCommandArgs: ['skills', 'get', 'orchestration', '--full']
-      }
-    })
-    expect(callMock).not.toHaveBeenCalled()
   })
 })
 

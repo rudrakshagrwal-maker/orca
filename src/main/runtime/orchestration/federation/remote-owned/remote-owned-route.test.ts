@@ -174,6 +174,34 @@ describe('commands about a worker a paired server owns', () => {
     }
   }
 
+  it('waits through workerShow on this Orca and returns the full paired worker report', async () => {
+    const started = await startOnB()
+    db.insertMessage({
+      runId: started.runId,
+      from: 'remote:worker',
+      to: `run:${started.runId}`,
+      type: 'worker_done',
+      subject: 'Done',
+      body: 'Exact paired worker result',
+      payload: JSON.stringify({ dispatchId: started.dispatchId, outcome: 'succeeded' })
+    })
+    const shown = await call('orchestration.workerShow', {
+      dispatch: started.dispatchId,
+      wait: true,
+      timeoutMs: 1_000
+    })
+    expect(shown).toMatchObject({
+      ok: true,
+      result: {
+        dispatchId: started.dispatchId,
+        state: 'succeeded',
+        outcome: 'succeeded',
+        result: 'Exact paired worker result',
+        timedOut: false
+      }
+    })
+  })
+
   it('fails the Task when the server refuses the start, and keeps it fenced when the answer is lost', async () => {
     answers['orchestration.workerStart'] = [
       { error: 'invalid_argument', data: { effectsApplied: false } }

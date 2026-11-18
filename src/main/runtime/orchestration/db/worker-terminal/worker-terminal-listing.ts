@@ -16,7 +16,8 @@ import {
 import {
   countWorkerTerminalInventory,
   scanWorkerTerminalStates,
-  WORKER_TERMINAL_HANDED_ON_SQL
+  WORKER_TERMINAL_HANDED_ON_SQL,
+  LIVE_WORKER_DISPATCH_SQL
 } from './worker-terminal-inventory-counts'
 import {
   allowWorkerTerminalAutoClose,
@@ -86,6 +87,7 @@ export function listWorkerTerminalResources(
     snapshot?: WorkerTerminalListingSnapshot
     terminalState?: WorkerTerminalListState
     dispatchIds?: string[]
+    liveOnly?: boolean
   } = {}
 ): {
   dispatchId: string
@@ -111,6 +113,9 @@ export function listWorkerTerminalResources(
   const orderExpression = 'COALESCE(w.created_at, d.created_at)'
   const where: string[] = []
   const values: (string | number)[] = []
+  if (params.liveOnly) {
+    where.push(LIVE_WORKER_DISPATCH_SQL)
+  }
   if (params.runId) {
     where.push('d.run_id = ?')
     values.push(params.runId)

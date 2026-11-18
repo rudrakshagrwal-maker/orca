@@ -39,6 +39,9 @@ export async function observeWorkerTurnStart(args: {
   if (!args.prompt) {
     return { verdict: 'unsupported' }
   }
+  if (args.prompt.observation === 'incarnation_replaced') {
+    return { verdict: 'unobserved', prompt: args.prompt }
+  }
   const verdict = classifyPromptDelivery(args.prompt)
   if (verdict !== 'unobserved') {
     return { verdict, prompt: args.prompt }

@@ -141,7 +141,6 @@ export const ORCHESTRATION_WORKER_TERMINAL_HANDLERS: Record<string, CommandHandl
   },
 
   'orchestration worker-keep-open': keepWorkerOpen,
-  'orchestration worker-retain': keepWorkerOpen,
 
   'orchestration worker-list': async ({ flags, client, cwd, json }) => {
     const terminalState = getOptionalStringFlag(flags, 'terminal-state')
@@ -163,6 +162,7 @@ export const ORCHESTRATION_WORKER_TERMINAL_HANDLERS: Record<string, CommandHandl
       paginate: true,
       run: scope.run,
       terminalState,
+      liveOnly: !flags.has('all') && !terminalState,
       ...(flags.has('include-remote') ? { includeRemote: true } : {}),
       on: getOptionalStringFlag(flags, 'on'),
       cursor: getOptionalStringFlag(flags, 'cursor'),

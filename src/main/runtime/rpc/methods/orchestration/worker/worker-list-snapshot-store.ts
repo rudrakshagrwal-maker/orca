@@ -12,6 +12,7 @@ const ORCHESTRATION_WORKER_LIST_SNAPSHOT_MAX_ENTRY_BYTES = 512 * 1024
 type WorkerListSnapshot = {
   runId: string | null
   terminalState: WorkerTerminalListState
+  liveOnly: boolean
   /** Reuse the selection watermark for counts so later pages never report rows the cursor cannot reach. */
   databaseId: number
   dispatchIds: string[]
@@ -29,6 +30,7 @@ export function createWorkerListSnapshot(
   params: {
     runId?: string
     terminalState: WorkerTerminalListState
+    liveOnly?: boolean
     databaseId: number
     dispatchIds: string[]
   }
@@ -37,6 +39,7 @@ export function createWorkerListSnapshot(
   const snapshot = {
     runId: params.runId ?? null,
     terminalState: params.terminalState,
+    liveOnly: params.liveOnly === true,
     databaseId: params.databaseId,
     dispatchIds: params.dispatchIds
   }
@@ -56,7 +59,7 @@ export function createWorkerListSnapshot(
 export function readWorkerListSnapshot(
   runtime: OrcaRuntimeService,
   id: string,
-  params: { runId?: string; terminalState?: WorkerTerminalListState }
+  params: { runId?: string; terminalState?: WorkerTerminalListState; liveOnly?: boolean }
 ): WorkerListSnapshot {
   const snapshot = storeFor(runtime).snapshots.get(id)
   if (!snapshot) {
@@ -67,7 +70,8 @@ export function readWorkerListSnapshot(
   }
   if (
     snapshot.runId !== (params.runId ?? null) ||
-    snapshot.terminalState !== params.terminalState
+    snapshot.terminalState !== params.terminalState ||
+    snapshot.liveOnly !== (params.liveOnly === true)
   ) {
     throw new OrchestrationError(
       'invalid_argument',
@@ -80,7 +84,7 @@ export function readWorkerListSnapshot(
 export function pinWorkerListSnapshot(
   runtime: OrcaRuntimeService,
   id: string,
-  params: { runId?: string; terminalState?: WorkerTerminalListState }
+  params: { runId?: string; terminalState?: WorkerTerminalListState; liveOnly?: boolean }
 ): { snapshot: WorkerListSnapshot; release: () => void } {
   const snapshot = readWorkerListSnapshot(runtime, id, params)
   const store = storeFor(runtime)

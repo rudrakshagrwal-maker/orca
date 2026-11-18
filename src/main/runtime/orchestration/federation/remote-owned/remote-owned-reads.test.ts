@@ -23,6 +23,7 @@ import {
 import { ORCHESTRATION_WORKER_LIST_METHOD } from '../../../rpc/methods/orchestration/worker/worker-list-method'
 import { remoteWorkerShow } from './remote-owned-reads'
 import { explainRemoteServerFailure } from './remote-server-unreachable'
+import { waitForWorkerResult } from '../../../rpc/methods/orchestration/worker/worker-result-wait'
 
 const SERVER: OrchestrationWorkerServer = {
   environmentId: 'env_b',
@@ -100,6 +101,49 @@ describe('reads of workers a paired server runs, from this Orca’s records', ()
       runtime
     } as never)) as ListedWorkers
   }
+
+  it('filters completed paired workers before the row limit and counts only active ones', async () => {
+    remoteWorker('task_live', 'ctx_live')
+    remoteWorker('task_done', 'ctx_done')
+    recordRemoteDispatchState(db, 'ctx_done', {
+      status: 'completed',
+      worker_state: 'succeeded',
+      last_failure: null,
+      agent: 'claude'
+    })
+    const listed = await listWorkers({ run: run.id, liveOnly: true, limit: 1 })
+    expect(listed.workers.map((row) => row.dispatchId)).toEqual(['ctx_live'])
+    expect(listed.page.total).toBe(1)
+  })
+
+  it('returns the full remote report body even after the task result is replaced', async () => {
+    remoteWorker('task_report', 'ctx_report')
+    db.insertMessage({
+      runId: run.id,
+      from: 'remote:worker',
+      to: `run:${run.id}`,
+      type: 'worker_done',
+      subject: 'Done',
+      body: 'Full remote result',
+      payload: JSON.stringify({ dispatchId: 'ctx_report', outcome: 'succeeded' })
+    })
+    recordRemoteDispatchState(db, 'ctx_report', {
+      status: 'completed',
+      worker_state: 'succeeded',
+      last_failure: null,
+      agent: 'claude'
+    })
+    db.db
+      .prepare('UPDATE tasks SET result = ? WHERE id = ?')
+      .run('A later attempt result', 'task_report')
+    const result = await waitForWorkerResult(runtime, 'ctx_report', 1_000)
+    expect(result).toMatchObject({
+      dispatchId: 'ctx_report',
+      outcome: 'succeeded',
+      result: 'Full remote result',
+      timedOut: false
+    })
+  })
 
   it('shows a remote worker in the ordinary shape, labelled with its server, record time and last report', () => {
     const shown = remoteWorkerShow(runtime, remoteWorker('task_1', 'ctx_w1'))

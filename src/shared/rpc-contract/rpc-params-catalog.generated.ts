@@ -252,7 +252,11 @@ import {
   RunShowParams,
   RunUseParams
 } from './orchestration-runs-params'
-import { WorkerDispatchParams, WorkerReadParams } from './orchestration-worker-control-params'
+import {
+  WorkerDispatchParams,
+  WorkerReadParams,
+  WorkerShowParams
+} from './orchestration-worker-control-params'
 import {
   OrchestrationWorkerKeepOpenParams,
   OrchestrationWorkerSubjectParams
@@ -567,7 +571,6 @@ export const RPC_PARAMS_BY_METHOD = {
 
   'desktopBrowserBridge.attach': DesktopBrowserBridgeAttachParams,
   'desktopBrowserBridge.result': DesktopBrowserBridgeResultParams,
-  
 
   'files.browseServerDir': ServerDirectoryBrowse,
   'files.commitUpload': FileCommitUpload,
@@ -733,7 +736,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'orchestration.workerRead': WorkerReadParams,
   'orchestration.workerRelease': WorkerDispatchParamsOfOrchestrationWorkerReleaseSchemasParams,
   'orchestration.workerRetain': WorkerRetainParams,
-  'orchestration.workerShow': WorkerDispatchParams,
+  'orchestration.workerShow': WorkerShowParams,
   'orchestration.workerStart': WorkerStartParams,
   'orchestration.workerStop': WorkerDispatchParamsOfOrchestrationWorkerStopParams,
   'orchestration.workerTerminalUserInput': OrchestrationWorkerSubjectParams,

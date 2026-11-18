@@ -1,8 +1,6 @@
 import type { CommandHandler } from '../../dispatch'
 import { printOrchestrationReceipt } from './agent-view'
 import { getOptionalStringFlag, getRequiredStringFlag } from '../../flags'
-import { RuntimeClientError } from '../../runtime-client'
-import { orchestrationMigrationData } from '../../../shared/orchestration/orchestration-rpc-contract'
 import { callOrchestrationMutation } from './mutation-request'
 import { isDevCliInvocation } from './runtime-compatibility'
 import { resolveCoordinatorTerminalHandle } from './terminal-identity'
@@ -66,21 +64,5 @@ export const ORCHESTRATION_DISPATCH_INSPECTION_HANDLERS: Record<string, CommandH
       }
       return `${value.dispatch.id} task=${value.dispatch.task_id} [${value.dispatch.status}]`
     })
-  },
-
-  'orchestration coordinator-start': async () => {
-    throw new RuntimeClientError(
-      'orchestration_migration_required',
-      'The legacy automatic coordinator command is retired. No effects were applied.',
-      orchestrationMigrationData('command_retired')
-    )
-  },
-
-  'orchestration coordinator-stop': async () => {
-    throw new RuntimeClientError(
-      'orchestration_migration_required',
-      'The legacy automatic coordinator command is retired. No effects were applied.',
-      orchestrationMigrationData('command_retired')
-    )
   }
 }
