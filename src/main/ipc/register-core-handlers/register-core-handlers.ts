@@ -1,4 +1,5 @@
 import { registerBrowserHandlers, setAgentBrowserBridgeRef } from '../browser/browser'
+import { setTrustedBrowserRendererWebContentsId } from '../browser/browser-renderer-trust'
 import { app } from 'electron'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
 import { registerAppHandlers } from '../app'
@@ -96,6 +97,7 @@ export function registerCoreHandlers(
   lifecycleOptions: CoreHandlerLifecycleOptions = {}
 ): void {
   // macOS activation can replace the window without ending the app; refresh trusted IDs but register IPC once.
+  setTrustedBrowserRendererWebContentsId(mainWindowWebContentsId)
   setTrustedClipboardRendererWebContentsId(mainWindowWebContentsId)
   setTrustedUIRendererWebContentsId(mainWindowWebContentsId)
   // RA: disabled IPC implementations are not imported or registered at startup.
