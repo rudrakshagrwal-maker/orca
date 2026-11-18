@@ -15,12 +15,10 @@ import { useUnreadDockBadge } from './hooks/useUnreadDockBadge'
 import { AppBackgroundServices } from './app-shell/AppBackgroundServices'
 import { AppRootSurfaces } from './app-shell/AppRootSurfaces'
 import { AppWorkspaceShell } from './app-shell/AppWorkspaceShell'
-import { WindowControls } from './app-shell/WindowControls'
 import {
   MAC_TRAFFIC_LIGHTS_WIDTH,
   WINDOW_CONTROLS_HEIGHT,
-  WINDOW_CONTROLS_WIDTH,
-  hasCustomTitleBar
+  WINDOW_CONTROLS_WIDTH
 } from './app-shell/app-window-chrome'
 import { useAppChromeLayout } from './app-shell/use-app-chrome-layout'
 import { useAppSessionPersistence } from './app-shell/use-app-session-persistence'
@@ -118,7 +116,7 @@ function App(): React.JSX.Element {
       <PinnedTabCloseDialog />
       <RunningTerminalCloseDialog />
       {/* Electron drag hit-testing follows DOM order, ignoring z-index; render controls last to keep them clickable. */}
-      {hasCustomTitleBar && <WindowControls />}
+      {/* RA: no min/max/close buttons; Alt+F4, Win+arrows and the taskbar handle the window. */}
     </div>
   )
 }

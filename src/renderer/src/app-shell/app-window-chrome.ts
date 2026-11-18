@@ -13,7 +13,8 @@ export const hasCustomTitleBar = shouldRenderDesktopWindowChrome({
 })
 
 // Offset surfaces by three 46px controls and their 36px titlebar.
-export const WINDOW_CONTROLS_WIDTH = hasCustomTitleBar ? '138px' : '0px'
+// RA: caption buttons removed, so nothing reserves the top-right corner.
+export const WINDOW_CONTROLS_WIDTH = '0px'
 export const WINDOW_CONTROLS_HEIGHT = hasCustomTitleBar ? '36px' : '0px'
 
 // Only macOS desktop windows need left-side traffic-light clearance.
