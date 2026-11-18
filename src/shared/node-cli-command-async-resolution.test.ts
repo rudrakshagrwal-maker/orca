@@ -78,6 +78,12 @@ describe('resolveCliCommandAsync agrees with resolveCliCommand on Windows', () =
       expected: 'home/AppData/Roaming/npm/codex.cmd'
     },
     {
+      name: 'a PATH miss finds the native Hermes install',
+      command: 'hermes',
+      files: ['home/AppData/Local/hermes/bin/hermes.exe'],
+      expected: 'home/AppData/Local/hermes/bin/hermes.exe'
+    },
+    {
       name: 'a PATH copy beats an install-dir copy',
       files: ['home/AppData/Roaming/npm/codex.cmd', 'b/codex.exe'],
       expected: 'b/codex.exe'
@@ -93,13 +99,13 @@ describe('resolveCliCommandAsync agrees with resolveCliCommand on Windows', () =
       expected: 'home/.nvm/versions/node/v20.1.0/bin/codex.cmd'
     },
     { name: 'a miss everywhere returns the bare name', files: [], expected: null }
-  ])('$name', async ({ files, alias, expected }) => {
+  ])('$name', async ({ files, alias, expected, command = 'codex' }) => {
     stage(...files)
     if (alias) {
       writeFileSync(join(root, 'home/.nvm/alias/default'), alias)
     }
-    const sync = resolveCliCommand('codex', options('a', 'b'))
-    expect(sync).toBe(expected === null ? 'codex' : join(root, expected))
-    expect(await resolveCliCommandAsync('codex', options('a', 'b'))).toBe(sync)
+    const sync = resolveCliCommand(command, options('a', 'b'))
+    expect(sync).toBe(expected === null ? command : join(root, expected))
+    expect(await resolveCliCommandAsync(command, options('a', 'b'))).toBe(sync)
   })
 })

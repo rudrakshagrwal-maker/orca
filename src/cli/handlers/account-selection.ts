@@ -1,4 +1,3 @@
-import { FORK_TUI_AGENTS } from '../../shared/agent-launch/catalog/tui-agent'
 import type { HandlerContext } from '../dispatch'
 import { printResult } from '../format'
 import { RuntimeClientError } from '../runtime-client'
@@ -11,8 +10,8 @@ import type {
 import { getWslAccountTarget } from './account-wsl-location'
 import { formatAccountsBlock } from './account-list-format'
 
-// RA: account commands use the same source roster as terminal launch.
-const ACCOUNT_AGENTS = FORK_TUI_AGENTS
+// Only providers with saved-account integrations support account commands.
+const ACCOUNT_AGENTS = ['claude', 'codex'] as const
 type AccountAgent = (typeof ACCOUNT_AGENTS)[number]
 
 const AGENT_FLAG_HINT = 'Use --agent claude|codex.'

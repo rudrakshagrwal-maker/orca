@@ -1,11 +1,9 @@
 import type { AiVaultScanIssueText } from '../scanning/ai-vault-scan-issue-copy'
-import { FORK_TUI_AGENTS } from '../../agent-launch/catalog/tui-agent'
 import type { AgentSessionAccountHome } from '../../agent-session/lifecycle/agent-session-account-home'
 import type { ExecutionHostId, ExecutionHostScope } from '../../execution-host'
 
-// RA: history helpers may read legacy records but never enumerate removed agents.
-// Runtime roster is the fork pair; the type stays the wide record union so legacy rows still type-check.
-export const AI_VAULT_AGENTS: readonly [AiVaultAgent, ...AiVaultAgent[]] = FORK_TUI_AGENTS
+// Terminal launch support does not imply an installed session-history scanner.
+export const AI_VAULT_AGENTS: readonly [AiVaultAgent, ...AiVaultAgent[]] = ['claude', 'codex']
 
 // RPC clamps scopePaths to this bound because paths only widen discovery; matching producer-side caps are optional.
 export const AI_VAULT_SCOPE_PATHS_MAX_COUNT = 64

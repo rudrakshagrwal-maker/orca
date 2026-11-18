@@ -1,5 +1,4 @@
-// RA: only Claude Code and Codex have launch/detection configuration.
-import type { TuiAgent } from './tui-agent'
+import type { FORK_TUI_AGENTS, TuiAgent } from './tui-agent'
 import { skipsLinuxOrcaCliRename } from '../../orca-cli-command-name'
 import type { TuiAgentConfig, TuiAgentConfigSource } from './tui-agent-config-types'
 
@@ -30,8 +29,24 @@ const TUI_AGENT_CONFIG_SOURCE = {
     draftPasteReadySignal: 'codex-composer-prompt',
     draftPasteReadyTimeoutMs: 20_000,
     submitRetryDelayMs: 1200
+  },
+  hermes: {
+    detectCmd: 'hermes',
+    launchCmd: 'hermes --tui',
+    promptInjectionMode: 'hermes-query'
+  },
+  dsh: {
+    detectCmd: 'dsh',
+    detectCmdAliases: ['dsh-tui', 'dst'],
+    detectRequiredCommands: ['dsh'],
+    // Use the installed harness directly; dsh-tui/dst are separate community wrappers.
+    launchCmd: 'dsh --profile dsh-tui',
+    promptInjectionMode: 'stdin-after-start',
+    draftPasteReadySignal: 'dsh-composer-prompt',
+    submitRetryDelayMs: 1000,
+    submitRetryBudgetMs: 30_000
   }
-} satisfies Record<'claude' | 'codex', TuiAgentConfigSource>
+} satisfies Record<(typeof FORK_TUI_AGENTS)[number], TuiAgentConfigSource>
 
 export const TUI_AGENT_CONFIG: Record<TuiAgent, TuiAgentConfig> = Object.fromEntries(
   Object.entries(TUI_AGENT_CONFIG_SOURCE).map(([agent, source]) => [

@@ -1,4 +1,3 @@
-// RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import { TUI_AGENT_FAVICON_DOMAINS } from '../../../../shared/agent-launch/catalog/tui-agent-favicon-domains'
 import { primaryAgentCatalogEntries } from './agent-catalog-entries-primary'
 import type { AgentCatalogEntry } from './agent-catalog'

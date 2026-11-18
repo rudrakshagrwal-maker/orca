@@ -1,9 +1,8 @@
 // Shared renderer IPC/install contract; keep one protocol version for server and per-agent services.
 
-// RA: installation and detection share the fork roster; legacy record types remain readable.
-import { FORK_TUI_AGENTS } from '../../agent-launch/catalog/tui-agent'
-export const AGENT_HOOK_TARGETS = FORK_TUI_AGENTS
-export type AgentHookTarget = (typeof FORK_TUI_AGENTS)[number]
+// Only agents with registered installers are managed; Hermes and dsh use terminal signals.
+export const AGENT_HOOK_TARGETS = ['claude', 'codex'] as const
+export type AgentHookTarget = (typeof AGENT_HOOK_TARGETS)[number]
 
 export type AgentHookInstallState = 'installed' | 'not_installed' | 'partial' | 'error' | 'skipped'
 

@@ -3,7 +3,7 @@ import type { GlobalSettings } from '../../global-settings-types'
 import { isTuiAgent } from './tui-agent-config'
 
 // Match desktop catalog order: this determines fallback priority without a selected default.
-// RA: fallback launch follows the same two-agent roster as every picker.
+// RA: fallback launch follows the same roster as every picker.
 export const TUI_AGENT_AUTO_PICK_ORDER: readonly TuiAgent[] = FORK_TUI_AGENTS
 
 // Fresh installs show Agent Teams; the migration separately preserves legacy hidden defaults.

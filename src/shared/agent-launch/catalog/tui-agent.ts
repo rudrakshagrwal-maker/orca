@@ -1,5 +1,5 @@
-// RA: one roster gates selection, registration, hooks and discovery across hosts.
-export const FORK_TUI_AGENTS = ['claude', 'codex'] as const
+// RA: one roster gates selection, registration and discovery across hosts.
+export const FORK_TUI_AGENTS = ['claude', 'codex', 'hermes', 'dsh'] as const
 export function isForkTuiAgent(agent: unknown): agent is (typeof FORK_TUI_AGENTS)[number] {
   return FORK_TUI_AGENTS.some((allowed) => allowed === agent)
 }

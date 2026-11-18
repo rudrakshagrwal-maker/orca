@@ -112,6 +112,7 @@ function getBaseVersionManagerDirectories(platform: NodeJS.Platform, homePath: s
     // Native Windows Claude installs here; GUI launches may lack the user PATH entry.
     directories.push(join(homePath, '.local', 'bin'))
     directories.push(join(homePath, 'AppData', 'Roaming', 'npm'))
+    directories.push(join(homePath, 'AppData', 'Local', 'hermes', 'bin'))
     directories.push(join(homePath, 'AppData', 'Local', 'pnpm'))
     directories.push(join(homePath, 'AppData', 'Local', 'Yarn', 'bin'))
   } else {

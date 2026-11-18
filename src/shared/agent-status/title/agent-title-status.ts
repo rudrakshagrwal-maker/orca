@@ -243,6 +243,10 @@ function computeAgentStatusFromTitle(title: string): AgentStatus | null {
   if (!title || isClaudeManagementTitle(title)) {
     return null
   }
+  // DSH's whale identifies its own titles; its idle star is Gemini's working glyph.
+  if (isDshTerminalTitle(title)) {
+    return containsAgentSpinnerGlyph(title) ? 'working' : 'idle'
+  }
   if (title.trim().toLowerCase() === CURSOR_NATIVE_TITLE_LOWER) {
     return null
   }
@@ -257,17 +261,14 @@ function computeAgentStatusFromTitle(title: string): AgentStatus | null {
     return piStateStatus
   }
 
-  // DSH uses Gemini's ✦ working glyph at rest; ignore it here. DSH braille covers active spinners and hooks remain authoritative.
-  if (!isDshTerminalTitle(title)) {
-    if (title.includes(GEMINI_PERMISSION)) {
-      return 'permission'
-    }
-    if (title.includes(GEMINI_WORKING) || title.includes(GEMINI_SILENT_WORKING)) {
-      return 'working'
-    }
-    if (title.includes(GEMINI_IDLE)) {
-      return 'idle'
-    }
+  if (title.includes(GEMINI_PERMISSION)) {
+    return 'permission'
+  }
+  if (title.includes(GEMINI_WORKING) || title.includes(GEMINI_SILENT_WORKING)) {
+    return 'working'
+  }
+  if (title.includes(GEMINI_IDLE)) {
+    return 'idle'
   }
 
   // Resolve synthetic Pi/OMP idle/permission labels before generic Pi/braille checks.

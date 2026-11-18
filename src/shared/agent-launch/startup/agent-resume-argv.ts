@@ -76,11 +76,8 @@ export function getAgentResumeArgv(
     case 'zcode':
       return providerSession.key === 'session_id' ? ['zcode', '--resume', id] : null
     // DSH resumes by workspace path; callers must preserve cwd.
-    // Pin the backend (dsh-tui 0.14+ boots its remembered one); joined so <0.14 can't read `dsh` as a prompt.
     case 'dsh':
-      return providerSession.key === 'session_id'
-        ? ['dsh-tui', '--backend=dsh', '--resume', id]
-        : null
+      return providerSession.key === 'session_id' ? ['dsh', '--resume', id] : null
     case 'jcode':
       return providerSession.key === 'session_id' ? ['jcode', '--resume', id] : null
     case 'kiro':

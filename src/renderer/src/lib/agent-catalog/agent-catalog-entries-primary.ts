@@ -15,6 +15,19 @@ export function primaryAgentCatalogEntries(): AgentCatalogEntry[] {
       label: translate('auto.lib.agent.catalog.760bc6883d', 'Codex'),
       cmd: 'codex',
       homepageUrl: 'https://github.com/openai/codex'
+    },
+    {
+      id: 'hermes',
+      label: translate('auto.lib.agent.catalog.8a9ba743cc', 'Hermes'),
+      cmd: 'hermes',
+      homepageUrl: 'https://hermes-agent.nousresearch.com/docs/'
+    },
+    {
+      id: 'dsh',
+      label: translate('auto.lib.agent.catalog.dsh_label', 'DeepSeek Harness'),
+      cmd: 'dsh',
+      searchAliases: ['deepseek', 'dsh', 'deepseek harness'],
+      homepageUrl: 'https://github.com/deepseek-ai/deepseek-harness'
     }
   ]
 }

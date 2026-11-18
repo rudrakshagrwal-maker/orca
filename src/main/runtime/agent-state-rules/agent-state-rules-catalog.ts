@@ -1,6 +1,7 @@
 import { AgentStateRulesFileSchema, type AgentStateRulesFile } from './agent-state-rules-schema'
 import claude from './claude.json'
 import codex from './codex.json'
+import hermes from './hermes.json'
 import unknownPane from './unknown-pane.json'
 
 export function parseAgentStateRuleFiles(files: readonly unknown[]): AgentStateRulesFile[] {
@@ -22,8 +23,12 @@ export function parseAgentStateRuleFiles(files: readonly unknown[]): AgentStateR
 }
 
 /** The checked-in rule files exactly as bundled; the catalog test validates them against the schema. */
-// RA: only Claude Code and Codex rules ship; other agents have no config to match.
-export const RAW_BUNDLED_AGENT_STATE_RULE_FILES: readonly unknown[] = [claude, codex, unknownPane]
+export const RAW_BUNDLED_AGENT_STATE_RULE_FILES: readonly unknown[] = [
+  claude,
+  codex,
+  hermes,
+  unknownPane
+]
 
 // Inline imports keep packaged/headless builds independent of resource paths.
 // Not parsed at load: zod-validating them cost ~25 ms of orcad startup on every launch.
