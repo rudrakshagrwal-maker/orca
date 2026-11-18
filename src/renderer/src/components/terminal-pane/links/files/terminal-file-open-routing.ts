@@ -39,6 +39,7 @@ import type { HttpLinkDestination } from '@/lib/browser/navigation/http-link-des
 import { isHtmlFilePath, localHtmlFileDestinations } from './local-html-file-destinations'
 import type { FileOpenFailure } from './terminal-file-open-failure'
 import { openDetectedFolder } from './terminal-folder-open'
+import { openLinkWithRaDefaults } from './terminal-file-system-default'
 
 type TerminalFileOpenDeps = {
   worktreeId: string
@@ -182,13 +183,13 @@ export function openDetectedFilePath(
           deps.onOpenFailure?.({ verdict: 'unverifiable' })
           return
         }
-        const result = await window.api.shell.openInExternalEditor({
+        await openLinkWithRaDefaults({
           path: mappedFilePath,
-          builtInEditorId: 'vscode',
           ownerHostId,
-          connectionId: fileContext.connectionId
+          clientLocal,
+          connectionId: fileContext.connectionId,
+          onOpenFailure: deps.onOpenFailure
         })
-        if (!result.ok) deps.onOpenFailure?.({ verdict: 'unavailable', error: result.reason })
       } catch (error) {
         deps.onOpenFailure?.({ verdict: 'unavailable', error })
       }
