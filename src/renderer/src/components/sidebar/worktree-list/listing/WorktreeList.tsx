@@ -276,7 +276,8 @@ const WorktreeList = React.memo(function WorktreeList({
 
   return (
     <>
-      {projectsCollapseTarget && projectCollapseKeys.length > 0
+      {/* RA: one project already has its own chevron; collapse-all only earns its place with 2+. */}
+      {projectsCollapseTarget && projectCollapseKeys.length > 0 && projectSectionCount > 1
         ? createPortal(
             <ProjectsCollapseAllButton
               allCollapsed={allProjectsCollapsed}
