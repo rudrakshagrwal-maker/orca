@@ -14,7 +14,6 @@ import {
 import { isImeCompositionKeyDown } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import type { PtyTransport } from '../pty-transport/pty-transport-types'
 import { TerminalPaneHeaderDropSurface } from '../input/file-drop/TerminalPaneHeaderDropSurface'
-import { TerminalPaneResumeInChatButton } from '../chat/TerminalPaneResumeInChatButton'
 import { makePaneKey } from '../../../../../shared/workspace-layout/stable-pane-id'
 import { NativeChatSettingsButton } from '../../native-chat/appearance/NativeChatSettingsButton'
 
@@ -45,6 +44,7 @@ type TerminalPaneHeaderOverlayProps = {
   /** Flip the active pane from the native chat view back to the terminal. */
   onShowTerminal?: () => void
   /** Offers the tab menu's "Switch to Chat" for the active pane's own conversation. */
+  /** RA: unused; the resume-in-chat button was removed. Kept so callers still type-check. */
   canResumeInNewNativeChat?: boolean
   canContinueAgentSessionInNewSession?: boolean
   onContinueAgentSessionInNewSession?: (pane: ManagedPane) => void
@@ -84,7 +84,6 @@ export default function TerminalPaneHeaderOverlay({
   paneTransportsRef,
   canShowTerminal,
   onShowTerminal,
-  canResumeInNewNativeChat,
   canContinueAgentSessionInNewSession,
   onContinueAgentSessionInNewSession,
   onSplitPane,
@@ -259,12 +258,6 @@ export default function TerminalPaneHeaderOverlay({
                         {t('components.native-chat.toggle.showTerminal', 'Show terminal')}
                       </TooltipContent>
                     </Tooltip>
-                  ) : canResumeInNewNativeChat && isActivePane ? (
-                    <TerminalPaneResumeInChatButton
-                      tabId={tabId}
-                      worktreeId={worktreeId}
-                      paneKey={makePaneKey(tabId, pane.leafId)}
-                    />
                   ) : null}
                   {showAlwaysOnHeaders && showSplitButton ? (
                     <Tooltip>
