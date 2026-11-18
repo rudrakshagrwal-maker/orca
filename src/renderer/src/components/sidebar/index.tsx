@@ -122,14 +122,16 @@ function Sidebar({
               <LocalGitToolchainScanBanner />
               <StartupWorktreeRefreshStatus />
               <div className="flex min-h-0 flex-1 flex-col">
-                <WorktreeList
-                  scrollOffsetRef={worktreeScrollOffsetRef}
-                  scrollAnchorRef={worktreeScrollAnchorRef}
-                  projectsCollapseTarget={projectsCollapseTarget}
-                />
-                <WslMovedProjectsSection />
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <WorktreeList
+                    scrollOffsetRef={worktreeScrollOffsetRef}
+                    scrollAnchorRef={worktreeScrollAnchorRef}
+                    projectsCollapseTarget={projectsCollapseTarget}
+                  />
+                  <WslMovedProjectsSection />
+                </div>
+                <SidebarFilesSection />
               </div>
-              <SidebarFilesSection />
 
               <div className="relative shrink-0">
                 {/* RA: no automatic setup prompt. */}

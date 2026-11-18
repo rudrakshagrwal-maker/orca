@@ -80,6 +80,7 @@ export const UI_STATE_GLOBAL_FIELDS = [
   'activeView',
   'sidebarWidth',
   'sidebarAgentsHeight', // RA: window-local layout preference.
+  'sidebarFilesHeight',
   'sidebarOpen',
   'rightSidebarOpen',
   'rightSidebarTab',

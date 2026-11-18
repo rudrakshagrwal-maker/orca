@@ -49,6 +49,8 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
   return {
     sidebarAgentsHeight: null,
     setSidebarAgentsHeight: (height) => set({ sidebarAgentsHeight: height }),
+    sidebarFilesHeight: null,
+    setSidebarFilesHeight: (height) => set({ sidebarFilesHeight: height }),
     gitGraphFiltersByWorktree: {},
     sidebarBody: 'workspaces',
     setSidebarBody: (body) => set({ sidebarBody: body }),
@@ -57,8 +59,8 @@ export function createUiPreferenceActions(set: UISliceSet, get: UISliceGet): Par
     // Why: group keys are mode-specific, so clear collapsed state on mode switch — stale keys are meaningless and accumulate.
     setGroupBy: (g) => {
       // RA: the global Agents disclosure is independent of workspace grouping.
-      const collapsedGroups = [...get().collapsedGroups].filter((key) =>
-        key.startsWith('ra:sidebar-agent') || key === SIDEBAR_FILES_COLLAPSED_KEY
+      const collapsedGroups = [...get().collapsedGroups].filter(
+        (key) => key.startsWith('ra:sidebar-agent') || key === SIDEBAR_FILES_COLLAPSED_KEY
       )
       window.api.ui.set({ groupBy: g, collapsedGroups }).catch(console.error)
       set({ groupBy: g, collapsedGroups: new Set(collapsedGroups) })

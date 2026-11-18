@@ -6,6 +6,7 @@ export type PersistedUIWriteBaseline = {
   gitGraphFiltersByWorktree?: PersistedUIState['gitGraphFiltersByWorktree']
   sidebarWidth: number
   sidebarAgentsHeight?: number | null // RA: optional for older snapshots.
+  sidebarFilesHeight?: number | null
   sidebarOpen: boolean
   rightSidebarOpen: boolean
   rightSidebarTab: PersistedUIState['rightSidebarTab']
@@ -39,6 +40,7 @@ const PERSISTED_UI_WRITE_BASELINE_FIELD_SET = {
   gitGraphFiltersByWorktree: true,
   sidebarWidth: true,
   sidebarAgentsHeight: true, // RA: persist only locally changed splitter positions.
+  sidebarFilesHeight: true,
   sidebarOpen: true,
   rightSidebarOpen: true,
   rightSidebarTab: true,

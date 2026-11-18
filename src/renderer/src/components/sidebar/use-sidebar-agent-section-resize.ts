@@ -3,61 +3,106 @@ import { useAppStore } from '@/store'
 
 export const SIDEBAR_AGENTS_MIN_HEIGHT = 90 // RA: six-pixel handle, header and two rows.
 
-// RA: share the sidebar's available height, reserving the Projects header and one row.
 export function useSidebarAgentSectionResize() {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const drag = useRef<{ y: number; height: number } | null>(null)
-  const [maxHeight, setMaxHeight] = useState(360)
   const height = useAppStore((s) => s.sidebarAgentsHeight)
   const setHeight = useAppStore((s) => s.setSidebarAgentsHeight)
-  const clamp = (value: number): number =>
-    Math.min(maxHeight, Math.max(SIDEBAR_AGENTS_MIN_HEIGHT, value))
+  return useSidebarSectionResize({
+    height,
+    setHeight,
+    minHeight: SIDEBAR_AGENTS_MIN_HEIGHT,
+    reservedHeight: 56
+  })
+}
+
+export function useSidebarSectionResize({
+  height,
+  setHeight,
+  minHeight,
+  reservedHeight,
+  defaultFraction,
+  enabled = true
+}: {
+  height: number | null
+  setHeight: (height: number | null) => void
+  minHeight: number
+  reservedHeight: number
+  defaultFraction?: number
+  enabled?: boolean
+}) {
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ pointerId: number; y: number; height: number } | null>(null)
+  const [availableHeight, setAvailableHeight] = useState<number | null>(null)
+  const [isResizing, setIsResizing] = useState(false)
+  const minimumHeight = Math.min(minHeight, (availableHeight ?? Infinity) / 2)
+  const maxHeight =
+    availableHeight === null ? 360 : Math.max(minimumHeight, availableHeight - reservedHeight)
+  const clamp = (value: number): number => Math.min(maxHeight, Math.max(minimumHeight, value))
   useLayoutEffect(() => {
+    drag.current = null
+    setIsResizing(false)
     const section = sectionRef.current
     const parent = section?.parentElement
-    if (!section || !parent) {
+    if (!enabled || !section || !parent) {
       return
     }
     const measure = (): void => {
       const fixed = [...parent.children]
         .filter((node) => node !== section && getComputedStyle(node).flexShrink === '0')
         .reduce((sum, node) => sum + node.getBoundingClientRect().height, 0)
-      setMaxHeight(Math.max(SIDEBAR_AGENTS_MIN_HEIGHT, parent.clientHeight - fixed - 56))
+      setAvailableHeight(Math.max(0, parent.clientHeight - fixed))
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(parent)
     return () => observer.disconnect()
-  }, [])
+  }, [enabled])
   return {
     sectionRef,
+    isResizing,
+    minHeight: minimumHeight,
     maxHeight,
-    height: height === null ? undefined : clamp(height),
+    height:
+      height !== null
+        ? clamp(height)
+        : defaultFraction !== undefined && availableHeight !== null
+          ? clamp(availableHeight * defaultFraction)
+          : undefined,
     handleProps: {
       onPointerDown(event: React.PointerEvent<HTMLDivElement>): void {
-        if (event.button !== 0) {
+        if (!enabled || event.button !== 0 || drag.current) {
           return
         }
         event.preventDefault()
-        drag.current = { y: event.clientY, height: sectionRef.current?.offsetHeight ?? 180 }
+        drag.current = {
+          pointerId: event.pointerId,
+          y: event.clientY,
+          height: sectionRef.current?.offsetHeight ?? 180
+        }
+        setIsResizing(true)
         event.currentTarget.setPointerCapture(event.pointerId)
       },
       onPointerMove(event: React.PointerEvent<HTMLDivElement>): void {
-        if (drag.current) {
+        if (drag.current?.pointerId === event.pointerId) {
           setHeight(clamp(drag.current.height + drag.current.y - event.clientY))
         }
       },
       onPointerUp(event: React.PointerEvent<HTMLDivElement>): void {
+        if (drag.current?.pointerId !== event.pointerId) {
+          return
+        }
         drag.current = null
+        setIsResizing(false)
         if (event.currentTarget.hasPointerCapture(event.pointerId)) {
           event.currentTarget.releasePointerCapture(event.pointerId)
         }
       },
       onLostPointerCapture(): void {
         drag.current = null
+        setIsResizing(false)
       },
       onPointerCancel(): void {
         drag.current = null
+        setIsResizing(false)
       },
       onDoubleClick(): void {
         setHeight(null)

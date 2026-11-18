@@ -130,6 +130,10 @@ export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Par
             typeof ui.sidebarAgentsHeight === 'number' && Number.isFinite(ui.sidebarAgentsHeight)
               ? Math.max(90, ui.sidebarAgentsHeight)
               : null,
+          sidebarFilesHeight:
+            typeof ui.sidebarFilesHeight === 'number' && Number.isFinite(ui.sidebarFilesHeight)
+              ? Math.max(120, ui.sidebarFilesHeight)
+              : null,
           rightSidebarOpen: typeof ui.rightSidebarOpen === 'boolean' ? ui.rightSidebarOpen : true,
           ...normalizeRightSidebarRoute(ui.rightSidebarTab, ui.rightSidebarExplorerView),
           activityBarPosition: sanitizeActivityBarPosition(ui.activityBarPosition),

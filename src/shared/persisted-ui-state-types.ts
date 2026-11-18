@@ -45,6 +45,7 @@ export type PersistedUIState = {
   activeView: TopLevelView
   sidebarWidth: number
   sidebarAgentsHeight?: number | null // RA: null restores the content-sized section.
+  sidebarFilesHeight?: number | null
   sidebarOpen?: boolean
   rightSidebarOpen: boolean
   rightSidebarTab: RightSidebarTab
