@@ -16,7 +16,6 @@ import { withoutMethodsThisHostDoesNotServe } from './methods/terminal/session-t
 
 import type { OrcaRuntimeService } from '../orca-runtime'
 import { isDurableMutation } from '../../../shared/orchestration/orchestration-rpc-contract'
-import type { OrchestrationEntryCaller } from '../orchestration/addressing/orchestration-caller-identity'
 import {
   getOrchestrationMutationExecutor,
   type DurableMutationInvocation,
@@ -33,31 +32,28 @@ import { recordRuntimeFeatureInteraction } from './runtime-feature-interaction'
 import type { RpcCallerScope } from './rpc-caller-scope'
 import { runWithActiveRpcCaller } from './rpc-active-caller'
 import { admitRpcRequest } from './rpc-request-admission-prologue'
+import { type AdmittedUnaryCall, loadRpcMethodRegistry } from './dispatcher-method-loading'
 import { resolveOrcadFeatureRequirement, rpcMethodFeatureWait } from './orcad-feature-readiness'
 import { routeRemoteOwnedCall } from '../orchestration/federation/remote-owned/remote-owned-route'
 
 export type DispatcherOptions = {
   runtime: OrcaRuntimeService
   methods: readonly RpcAnyMethodDeclaration[]
+  loadMethods?: (name: string) => Promise<readonly RpcAnyMethodDeclaration[]>
   /** Pins every call to this scope, for in-process bridges that relay a non-owner caller. */
   callerScope?: RpcCallerScope
 }
 
-type AdmittedUnaryCall = {
-  request: RpcRequest
-  method: RpcMethod
-  params: unknown
-  caller: OrchestrationEntryCaller | undefined
-}
-
 export class RpcDispatcher {
   private readonly runtime: OrcaRuntimeService
-  private readonly registry: RpcRegistry
+  private readonly loadMethods: DispatcherOptions['loadMethods']
+  private registry: RpcRegistry
   private readonly orchestrationMutations: OrchestrationMutationExecutor
   private readonly legacyOrchestration: OrchestrationLegacyCompatibility
   private readonly pinnedCallerScope: RpcCallerScope | undefined
 
-  constructor({ runtime, methods, callerScope }: DispatcherOptions) {
+  constructor({ runtime, methods, callerScope, loadMethods }: DispatcherOptions) {
+    this.loadMethods = loadMethods
     this.runtime = runtime
     this.pinnedCallerScope = callerScope
     this.registry = buildRegistry(withoutMethodsThisHostDoesNotServe(methods))
@@ -181,17 +177,29 @@ export class RpcDispatcher {
     meta: RpcEnvelopeMeta,
     isTransportSupported: (method: RpcMethod | RpcStreamingMethod) => method is M
   ) {
-    return admitRpcRequest(
-      {
-        runtime: this.runtime,
-        registry: this.registry,
-        meta,
-        pinnedCallerScope: this.pinnedCallerScope
-      },
-      request,
-      options,
-      isTransportSupported
-    )
+    const admit = () =>
+      admitRpcRequest(
+        {
+          runtime: this.runtime,
+          registry: this.registry,
+          meta,
+          pinnedCallerScope: this.pinnedCallerScope
+        },
+        request,
+        options,
+        isTransportSupported
+      )
+    if (!this.registry.has(request.method) && this.loadMethods) {
+      return loadRpcMethodRegistry(this.loadMethods, request.method, () => this.registry).then(
+        (registry) => {
+          this.registry = registry
+          return admit()
+        },
+        (error) => ({ rejected: mapDispatcherError(request, meta, error) })
+      )
+    }
+
+    return admit()
   }
 
   private async invokeUnary(

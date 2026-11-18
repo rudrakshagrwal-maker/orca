@@ -30,6 +30,7 @@ import type {
 } from '../../shared/ai-vault/scanning/ai-vault-scan-progress'
 
 export type AiVaultApi = {
+  activateSearch: () => Promise<void>
   /** Omitted host means this host; `all` is merged by this desktop across every enumerated host. */
   searchSessions: (
     request: AiVaultSearchRequest,

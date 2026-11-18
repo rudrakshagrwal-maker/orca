@@ -6,43 +6,19 @@ export const SIDEBAR_AGENTS_MIN_HEIGHT = 90 // RA: six-pixel handle, header and 
 export function useSidebarAgentSectionResize() {
   const height = useAppStore((s) => s.sidebarAgentsHeight)
   const setHeight = useAppStore((s) => s.setSidebarAgentsHeight)
-  return useSidebarSectionResize({
-    height,
-    setHeight,
-    minHeight: SIDEBAR_AGENTS_MIN_HEIGHT,
-    reservedHeight: 56
-  })
-}
-
-export function useSidebarSectionResize({
-  height,
-  setHeight,
-  minHeight,
-  reservedHeight,
-  defaultFraction,
-  enabled = true
-}: {
-  height: number | null
-  setHeight: (height: number | null) => void
-  minHeight: number
-  reservedHeight: number
-  defaultFraction?: number
-  enabled?: boolean
-}) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ pointerId: number; y: number; height: number } | null>(null)
   const [availableHeight, setAvailableHeight] = useState<number | null>(null)
   const [isResizing, setIsResizing] = useState(false)
-  const minimumHeight = Math.min(minHeight, (availableHeight ?? Infinity) / 2)
-  const maxHeight =
-    availableHeight === null ? 360 : Math.max(minimumHeight, availableHeight - reservedHeight)
+  const minimumHeight = Math.min(SIDEBAR_AGENTS_MIN_HEIGHT, (availableHeight ?? Infinity) / 2)
+  const maxHeight = availableHeight === null ? 360 : Math.max(minimumHeight, availableHeight - 56)
   const clamp = (value: number): number => Math.min(maxHeight, Math.max(minimumHeight, value))
   useLayoutEffect(() => {
     drag.current = null
     setIsResizing(false)
     const section = sectionRef.current
     const parent = section?.parentElement
-    if (!enabled || !section || !parent) {
+    if (!section || !parent) {
       return
     }
     const measure = (): void => {
@@ -55,21 +31,16 @@ export function useSidebarSectionResize({
     const observer = new ResizeObserver(measure)
     observer.observe(parent)
     return () => observer.disconnect()
-  }, [enabled])
+  }, [])
   return {
     sectionRef,
     isResizing,
     minHeight: minimumHeight,
     maxHeight,
-    height:
-      height !== null
-        ? clamp(height)
-        : defaultFraction !== undefined && availableHeight !== null
-          ? clamp(availableHeight * defaultFraction)
-          : undefined,
+    height: height === null ? undefined : clamp(height),
     handleProps: {
       onPointerDown(event: React.PointerEvent<HTMLDivElement>): void {
-        if (!enabled || event.button !== 0 || drag.current) {
+        if (event.button !== 0 || drag.current) {
           return
         }
         event.preventDefault()

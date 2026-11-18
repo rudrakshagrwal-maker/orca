@@ -8,7 +8,7 @@ import { setSidebarLiveWidth } from './sidebar-live-width'
 import WorktreeList from './worktree-list/listing/WorktreeList'
 import WslMovedProjectsSection from './WslMovedProjectsSection'
 import SidebarToolbar from './SidebarToolbar'
-import { SidebarFilesSection } from './SidebarFilesSection'
+import { SidebarViews } from './SidebarViews'
 import type { VirtualizedScrollAnchor } from '@/hooks/useVirtualizedScrollAnchor'
 import { cn } from '@/lib/class-names'
 import { FolderPlus, Loader2 } from 'lucide-react'
@@ -115,13 +115,13 @@ function Sidebar({
         >
           {sidebarOpen && (
             <>
-              <SidebarHeader projectsCollapseTarget={setProjectsCollapseTarget} />
-              <SeveredTerminalDaemonBanner />
-              <StalledTerminalDaemonBanner />
-              {/* RA: Projects owns the agent trees and sidebar height. */}
-              <LocalGitToolchainScanBanner />
-              <StartupWorktreeRefreshStatus />
-              <div className="flex min-h-0 flex-1 flex-col">
+              <SidebarViews>
+                <SidebarHeader projectsCollapseTarget={setProjectsCollapseTarget} />
+                <SeveredTerminalDaemonBanner />
+                <StalledTerminalDaemonBanner />
+                {/* RA: Projects owns the agent trees and sidebar height. */}
+                <LocalGitToolchainScanBanner />
+                <StartupWorktreeRefreshStatus />
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   <WorktreeList
                     scrollOffsetRef={worktreeScrollOffsetRef}
@@ -130,8 +130,7 @@ function Sidebar({
                   />
                   <WslMovedProjectsSection />
                 </div>
-                <SidebarFilesSection />
-              </div>
+              </SidebarViews>
 
               <div className="relative shrink-0">
                 {/* RA: no automatic setup prompt. */}

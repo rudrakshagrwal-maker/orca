@@ -31,8 +31,8 @@ export type UISlicePreferences = {
   // RA: retained for persisted sidebar preferences.
   sidebarAgentsHeight: number | null
   setSidebarAgentsHeight: (height: number | null) => void
-  sidebarFilesHeight: number | null
-  setSidebarFilesHeight: (height: number | null) => void
+  sidebarView: 'projects' | 'files' | 'search'
+  setSidebarView: (view: UISlicePreferences['sidebarView']) => void
   gitGraphFiltersByWorktree?: PersistedUIState['gitGraphFiltersByWorktree']
   /** Which list the sidebar body shows. Navigator-only; does not change the active view. */
   sidebarBody: 'workspaces' | 'agents'

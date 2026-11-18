@@ -5,7 +5,6 @@ import type {
   RightSidebarExplorerView
 } from '../../../../../shared/ui-chrome-types'
 import { defaultFileSearchState } from '../editor/search/file-search-state'
-import { SIDEBAR_FILES_COLLAPSED_KEY } from '../../../../../shared/sidebar-agent-disclosure'
 
 export type RightSidebarState = {
   rightSidebarOpen: boolean
@@ -36,15 +35,9 @@ export type RightSidebarState = {
   setActivityBarPosition: (position: ActivityBarPosition) => void
 }
 
-export function createRightSidebarState(set: EditorSet, get: EditorGet): RightSidebarState {
+export function createRightSidebarState(set: EditorSet, _get: EditorGet): RightSidebarState {
   const revealFilesSection = (): void => {
-    const state = get()
-    if (state.collapsedGroups.has(SIDEBAR_FILES_COLLAPSED_KEY)) {
-      state.setCollapsedGroups(
-        new Set([...state.collapsedGroups].filter((key) => key !== SIDEBAR_FILES_COLLAPSED_KEY))
-      )
-    }
-    set({ sidebarOpen: true })
+    set({ sidebarOpen: true, sidebarView: 'files' })
   }
 
   return {
@@ -149,7 +142,8 @@ export function createRightSidebarState(set: EditorSet, get: EditorGet): RightSi
     // Settings sends the user here; the panel owns scope, so this asks rather than writes.
     showAiVaultSearch: () =>
       set((s) => ({
-        rightSidebarOpen: true,
+        sidebarOpen: true,
+        sidebarView: 'search',
         rightSidebarTab: 'vault' as const,
         rightSidebarRouteRequestId: s.rightSidebarRouteRequestId + 1,
         aiVaultSearchFocusRequested: true

@@ -37,6 +37,7 @@ function searchClient(
 }
 
 export const aiVaultApi = {
+  activateSearch: () => ipcRenderer.invoke('aiVault:activateSearch'),
   searchSessions: (request: AiVaultSearchRequest, executionHostScope?: ExecutionHostScope) =>
     searchClient(executionHostScope).searchSessions(request),
   searchStatus: (executionHostScope?: ExecutionHostId) =>

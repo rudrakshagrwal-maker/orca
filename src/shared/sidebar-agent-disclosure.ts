@@ -1,6 +1,6 @@
-export const SIDEBAR_FILES_COLLAPSED_KEY = 'ra:sidebar-files'
-
 // RA: agent rows are always visible; discard retired per-card disclosure preferences.
 export function normalizeSidebarCollapsedGroups(keys: readonly string[] = []): string[] {
-  return keys.filter((key) => !key.startsWith('ra:project-agent-open:'))
+  return keys.filter(
+    (key) => !key.startsWith('ra:project-agent-open:') && key !== 'ra:sidebar-files'
+  )
 }

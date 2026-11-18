@@ -129,7 +129,7 @@ export const UiUpdateFields = z
     activeView: TopLevelViewSchema.optional(),
     sidebarWidth: z.number().finite().optional(),
     sidebarAgentsHeight: z.number().finite().nullable().optional(), // RA: persisted splitter.
-    sidebarFilesHeight: z.number().finite().nullable().optional(),
+    sidebarView: z.enum(['projects', 'files', 'search']).optional(),
     sidebarOpen: z.boolean().optional(),
     rightSidebarOpen: z.boolean().optional(),
     rightSidebarTab: RightSidebarTabParam.optional(),

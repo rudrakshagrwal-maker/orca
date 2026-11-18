@@ -124,7 +124,7 @@ export function usePersistedUIWriter(): void {
       gitGraphFiltersByWorktree: s.gitGraphFiltersByWorktree,
       sidebarWidth: s.sidebarWidth,
       sidebarAgentsHeight: s.sidebarAgentsHeight, // RA: include the vertical sidebar splitter.
-      sidebarFilesHeight: s.sidebarFilesHeight,
+      sidebarView: s.sidebarView,
       sidebarOpen: s.sidebarOpen,
       rightSidebarOpen: s.rightSidebarOpen,
       rightSidebarTab: s.rightSidebarTab,

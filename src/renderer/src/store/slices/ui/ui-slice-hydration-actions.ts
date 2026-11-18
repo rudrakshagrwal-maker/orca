@@ -2,7 +2,6 @@ import { normalizeSidebarCollapsedGroups } from '../../../../../shared/sidebar-a
 import { normalizeStatusBarUsageFormat } from '../../../../../shared/status-bar-usage-format'
 import type { UISlice, UISliceGet, UISliceSet } from './ui-slice-contract'
 import type { AppState } from '../../types'
-import { normalizeRightSidebarRoute } from '../right-sidebar/right-sidebar-route'
 import {
   applyManualRepoOrder,
   normalizeManualRepoOrder
@@ -31,9 +30,7 @@ import {
   normalizeWorkspaceStatuses
 } from '../../../../../shared/workspace-statuses'
 import { PET_SIZE_DEFAULT, PET_SIZE_MAX, PET_SIZE_MIN } from '../../../../../shared/pet-types'
-import { clampMarkdownTocPanelWidth } from '../../../../../shared/markdown-toc-panel-width'
 import { normalizeBrowserDevToolsDockLayout } from '../../../../../shared/browser/devtools/browser-devtools-dock'
-import { clampCombinedDiffFileTreeWidth } from '../../../../../shared/combined-diff-file-tree-width'
 import { parsePersistedAutomationHostFilter } from '../../../../../shared/automations/ownership/automation-host-filter'
 import { normalizeUsagePercentageDisplay } from '../../../../../shared/usage-percentage-display'
 import { normalizeStatusBarUsageMode } from '../../../../../shared/status-bar-usage-mode'
@@ -65,16 +62,13 @@ import {
   sanitizePersistedRepoIds,
   sanitizeExplorerPreferences,
   sanitizeWorkspaceCleanupDismissals,
-  sanitizePersistedSidebarWidth,
-  sanitizeActivityBarPosition,
   hydratedUIPartialMatchesState,
   clampPetSize
 } from './ui-slice-hydration-sanitizers'
 import { hydrateAgentReadState, sanitizeTaskResumeState } from './ui-slice-hydration-values'
 import { hydrateStatusBarItems } from './ui-slice-hydration-status-bar-items'
 
-const MAX_LEFT_SIDEBAR_WIDTH = 500
-const MAX_RIGHT_SIDEBAR_WIDTH = 4000
+import { hydrateUiLayout } from './ui-slice-layout-hydration'
 /** Builds hydration actions that reconcile authoritative UI state without discarding pending local edits. */
 export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Partial<UISlice> {
   return {
@@ -103,40 +97,7 @@ export function createUiHydrationActions(set: UISliceSet, _get: UISliceGet): Par
         const sortBy = ui.sortBy
         const statusBarItemsWithGrok = hydrateStatusBarItems(ui)
         const hydrated = {
-          // Why: persisted widths may be stale/corrupt/hand-edited; clamp during hydration so invalid values can't break layout.
-          sidebarWidth: sanitizePersistedSidebarWidth(
-            ui.sidebarWidth,
-            s.sidebarWidth,
-            MAX_LEFT_SIDEBAR_WIDTH
-          ),
-          rightSidebarWidth: sanitizePersistedSidebarWidth(
-            ui.rightSidebarWidth,
-            s.rightSidebarWidth,
-            MAX_RIGHT_SIDEBAR_WIDTH
-          ),
-          markdownTocPanelWidth: clampMarkdownTocPanelWidth(
-            ui.markdownTocPanelWidth,
-            undefined,
-            s.markdownTocPanelWidth
-          ),
-          combinedDiffFileTreeWidth: clampCombinedDiffFileTreeWidth(
-            ui.combinedDiffFileTreeWidth,
-            undefined,
-            s.combinedDiffFileTreeWidth
-          ),
-          sidebarOpen: typeof ui.sidebarOpen === 'boolean' ? ui.sidebarOpen : true,
-          // RA: viewport bounds are applied by the splitter, including after window resize.
-          sidebarAgentsHeight:
-            typeof ui.sidebarAgentsHeight === 'number' && Number.isFinite(ui.sidebarAgentsHeight)
-              ? Math.max(90, ui.sidebarAgentsHeight)
-              : null,
-          sidebarFilesHeight:
-            typeof ui.sidebarFilesHeight === 'number' && Number.isFinite(ui.sidebarFilesHeight)
-              ? Math.max(120, ui.sidebarFilesHeight)
-              : null,
-          rightSidebarOpen: typeof ui.rightSidebarOpen === 'boolean' ? ui.rightSidebarOpen : true,
-          ...normalizeRightSidebarRoute(ui.rightSidebarTab, ui.rightSidebarExplorerView),
-          activityBarPosition: sanitizeActivityBarPosition(ui.activityBarPosition),
+          ...hydrateUiLayout(ui, s),
           groupBy: (ui.groupBy as UISlice['groupBy'] | 'parent') === 'parent' ? 'repo' : ui.groupBy,
           sortBy,
           // Why: main-process getUI() already normalized this (defaulting to 'manual'); read it through without migrating.
