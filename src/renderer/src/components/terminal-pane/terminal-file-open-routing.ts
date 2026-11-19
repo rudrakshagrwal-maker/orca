@@ -33,6 +33,8 @@ import { openTerminalHtmlFileInBrowser } from './terminal-file-link-browser-open
 export { isHtmlFilePath } from './local-html-file-destinations'
 import { refuseOpenInGroupRequest } from './terminal-file-open-in-group-toast'
 import { isExplicitEditorScopeKept, openLinkedFileInEditor } from './terminal-file-link-editor-open'
+import { hasBinaryFileExtension } from '../../../../shared/binary-file-extensions'
+import { filePreviewForPath } from '../../../../shared/file-preview-kind'
 
 export {
   getTerminalFileContext,
@@ -218,7 +220,8 @@ export function openDetectedFilePath(
       }
     }
 
-    if (statResult.isDirectory) {
+    const binary = hasBinaryFileExtension(mappedFilePath) && !filePreviewForPath(mappedFilePath)
+    if (statResult.isDirectory || (canOpenWithSystemDefault && binary)) {
       if (refuseExplicitNonEditorRoute()) {
         return
       }

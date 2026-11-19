@@ -34,22 +34,25 @@ afterEach(async () => {
   await i18n.changeLanguage('en')
 })
 
-it('refreshes mounted status bar labels after switching language without changing props', async () => {
-  render(
+it('keeps quota controls in the sidebar when the language changes', async () => {
+  const view = render(
     <TooltipProvider>
       <StatusBar floatingTerminalOpen={false} />
     </TooltipProvider>
   )
-  const refreshButton = screen.getByRole('button', { name: 'Refresh rate limits' })
+  const statusBar = view.container.querySelector('[data-orca-status-bar]')
+  expect(statusBar).not.toBeNull()
+  expect(screen.queryByRole('button', { name: 'Refresh rate limits' })).toBeNull()
 
   await act(async () => {
     await i18n.changeLanguage('ja')
   })
 
-  expect(screen.getByRole('button', { name: 'レート制限をリセット' })).toBe(refreshButton)
+  expect(view.container.querySelector('[data-orca-status-bar]')).toBe(statusBar)
+  expect(view.container.querySelector('.status-bar-usage-cluster')).toBeNull()
 
   await act(async () => {
     await i18n.changeLanguage('en')
   })
-  expect(screen.getByRole('button', { name: 'Refresh rate limits' })).toBe(refreshButton)
+  expect(screen.queryByRole('button', { name: 'Refresh rate limits' })).toBeNull()
 })

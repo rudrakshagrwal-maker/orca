@@ -50,6 +50,9 @@ vi.mock('./SidebarAgentsList', () => ({
 vi.mock('./SidebarNav', () => ({
   default: () => <div data-testid="sidebar-nav" />
 }))
+vi.mock('./SidebarAgentUsage', () => ({
+  SidebarAgentUsage: () => <div data-testid="sidebar-agent-usage" />
+}))
 
 vi.mock('./SetupScriptPromptCard', () => ({
   default: () => <div data-testid="setup-script-prompt-card" />
@@ -145,6 +148,10 @@ describe('Sidebar', () => {
     setSidebarState(getDefaultSettings(tmpdir()))
     const view = render(sidebarElement())
     expect(view.getByTestId('worktree-list')).toBeDefined()
+    const usage = view.getByTestId('sidebar-agent-usage')
+    const footer = view.getByTestId('sidebar-toolbar')
+    expect(usage.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(view.getAllByTestId('sidebar-agent-usage')).toHaveLength(1)
     expect(view.queryByText('Agents')).toBeNull()
     expect(view.queryByRole('separator', { name: 'Resize Agents section' })).toBeNull()
   })

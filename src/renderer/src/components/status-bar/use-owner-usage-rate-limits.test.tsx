@@ -68,6 +68,29 @@ function snapshot(rateLimits: ProviderAccountsSnapshot['rateLimits']): ProviderA
 const local = createEmptyRateLimitState({ claude: provider('claude', 11) })
 
 describe('useOwnerUsageRateLimits', () => {
+  it('does not open a second usage stream for the status bar', () => {
+    mocks.owner = { kind: 'environment', environmentId: 'mini' }
+    renderHook(() => useOwnerUsageRateLimits(local, false))
+    expect(mocks.watchers).toHaveLength(0)
+  })
+
+  it('closes the remote stream while hidden and resumes when visible', async () => {
+    mocks.owner = { kind: 'environment', environmentId: 'mini' }
+    renderHook(() => useOwnerUsageRateLimits(local))
+    const first = mocks.watchers[0]
+    try {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+      await waitFor(() => expect(first.closed).toBe(true))
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+      act(() => document.dispatchEvent(new Event('visibilitychange')))
+      expect(mocks.watchers).toHaveLength(2)
+    } finally {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    }
+  })
   beforeEach(() => {
     mocks.owner = { kind: 'local' }
     mocks.watchers.length = 0

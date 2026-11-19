@@ -162,10 +162,9 @@ export function attachMainWindowCoreServices(
       onWorktreeLifecycle: emitPluginWorktreeLifecycle
     }
   )
-  // RA: no permission-log helper or quota probes on startup, focus, show or restore.
-  rateLimits.attach(window, { refreshOnResume: !backgroundJobsDisabled() })
+  rateLimits.attach(window)
+  rateLimits.start({ fetchImmediately: false })
   if (!backgroundJobsDisabled()) {
     initTccPromptNotice(window, { deferWatchUntilReadyToShow: true })
-    rateLimits.start({ fetchImmediately: false })
   }
 }

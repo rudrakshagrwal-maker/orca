@@ -103,8 +103,10 @@ describe('main window launch reconnect opt-outs', () => {
     )
     // RA: opening the terminal shell must not start unopened feature services.
     expect(state.automations.start).not.toHaveBeenCalled()
-    expect(state.rateLimits.attach).not.toHaveBeenCalled()
-    expect(state.rateLimits.start).not.toHaveBeenCalled()
+    expect(state.rateLimits.attach).toHaveBeenCalledWith(
+      expect.objectContaining({ webContents: { id: 17 } })
+    )
+    expect(state.rateLimits.start).toHaveBeenCalledWith({ fetchImmediately: false })
     expect(initTccPromptNoticeMock).not.toHaveBeenCalled()
   })
 })

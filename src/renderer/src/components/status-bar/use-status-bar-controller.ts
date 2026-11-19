@@ -18,11 +18,14 @@ import { getUsageOwnerHostScope, useOwnerUsageRateLimits } from './use-owner-usa
 import { isOwnerNotSetUpPlaceholder } from './owner-usage-rate-limits'
 import { translate } from '@/i18n/i18n'
 
-export function useStatusBarController(floatingTerminalOpen: boolean) {
+export function useStatusBarController(floatingTerminalOpen: boolean, usageInSidebar = false) {
   const floatingTerminalShortcut = useShortcutLabel('floatingTerminal.toggle')
   const localRateLimits = useAppStore((s) => s.rateLimits)
   // Why: with a remote account owner the agents run there, so its usage is the one to show.
-  const { rateLimits, remoteOwner, refreshRemote } = useOwnerUsageRateLimits(localRateLimits)
+  const { rateLimits, remoteOwner, refreshRemote } = useOwnerUsageRateLimits(
+    localRateLimits,
+    usageInSidebar
+  )
   const remoteOwned = remoteOwner !== null
   const settings = useAppStore((s) => s.settings)
   const refreshRateLimits = useAppStore((s) => s.refreshRateLimits)
@@ -102,7 +105,7 @@ export function useStatusBarController(floatingTerminalOpen: boolean) {
     }
   }, [isRefreshing, refreshRemote, refreshRateLimits, refreshDetectedAgents])
 
-  if (!statusBarVisible) {
+  if (!statusBarVisible && !usageInSidebar) {
     return null
   }
 

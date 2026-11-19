@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useWindowStreamVisible } from '@/hooks/use-window-stream-visibility'
 import { translate } from '@/i18n/i18n'
 import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
@@ -53,7 +54,11 @@ export type OwnerUsageRateLimits = {
 }
 
 /** Read provider usage from the focused workspace’s account owner, including that host’s own remote snapshot. */
-export function useOwnerUsageRateLimits(local: RateLimitState): OwnerUsageRateLimits {
+export function useOwnerUsageRateLimits(
+  local: RateLimitState,
+  enabled = true
+): OwnerUsageRateLimits {
+  const windowVisible = useWindowStreamVisible(0)
   const languageRevision = useUiLanguageRevision()
   // Why: route by the focused workspace's owner, never by the Active Server setting.
   const { target } = useActiveAccountOwner(LOCAL_TARGET)
@@ -102,7 +107,7 @@ export function useOwnerUsageRateLimits(local: RateLimitState): OwnerUsageRateLi
   const [streamGeneration, setStreamGeneration] = useState(0)
 
   useEffect(() => {
-    if (!ownerId) {
+    if (!ownerId || !enabled || !windowVisible) {
       return
     }
     let active = true
@@ -136,7 +141,7 @@ export function useOwnerUsageRateLimits(local: RateLimitState): OwnerUsageRateLi
       clearTimeout(reconnectTimer)
       watcher.close()
     }
-  }, [ownerId, streamGeneration, applySnapshot, fail])
+  }, [ownerId, streamGeneration, applySnapshot, fail, enabled, windowVisible])
 
   const refreshRemote = useCallback(async () => {
     if (!ownerId) {

@@ -49,6 +49,33 @@ vi.mock('@/lib/runtime-workspace-file-route', () => ({
 installTerminalLinkTestEnvironment(doubles)
 
 describe('handleOscLink', () => {
+  it.each([
+    ['SAFURE_garden_12s.mp4', true],
+    ['photo.png', true],
+    ['notes.pdf', true],
+    ['song.mp3', true],
+    ['archive.zip', false]
+  ])(
+    'opens outside-workspace %s in Orca when previewable, otherwise the OS default',
+    async (name, previewable) => {
+      setPlatform('Windows NT')
+      const filePath = `C:\\Users\\Rudraksh\\Downloads\\SAFURE-intro\\${name}`
+      openDetectedFilePath(filePath, null, null, {
+        ...deps,
+        worktreePath: 'C:\\Users\\Rudraksh\\Documents\\Workspace\\Projects\\Orca'
+      })
+      await flushAsyncWork()
+      if (previewable) {
+        expect(openFileMock).toHaveBeenCalledWith(expect.objectContaining({ filePath }), {
+          forceContentReload: true
+        })
+        expect(openFilePathMock).not.toHaveBeenCalled()
+      } else {
+        expect(openFileMock).not.toHaveBeenCalled()
+        expect(openFilePathMock).toHaveBeenCalledWith(filePath, 'local')
+      }
+    }
+  )
   it('opens local .html file paths in Orca browser tabs when links route to Orca', async () => {
     setPlatform('Macintosh')
     storeState.settings = { openLinksInApp: true }

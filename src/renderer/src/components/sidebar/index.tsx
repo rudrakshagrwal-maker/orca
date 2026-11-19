@@ -23,6 +23,7 @@ import { LocalGitToolchainScanBanner } from './LocalGitToolchainScanBanner'
 import { SeveredTerminalDaemonBanner } from './SeveredTerminalDaemonBanner'
 import { StalledTerminalDaemonBanner } from './StalledTerminalDaemonBanner'
 import { StartupWorktreeRefreshStatus } from './StartupWorktreeRefreshStatus'
+import { SidebarAgentUsage } from './SidebarAgentUsage'
 
 // Keep the Agents activity pipeline out of the workspace view’s initial bundle.
 const SidebarAgentsList = lazyWithRetry(() => import('./SidebarAgentsList'))
@@ -201,6 +202,7 @@ function Sidebar({
               </>
             )}
 
+            <SidebarAgentUsage />
             <div className="relative shrink-0">
               <SetupScriptPromptCard />
 
