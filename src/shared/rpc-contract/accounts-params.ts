@@ -86,6 +86,12 @@ export const AddCodexFromHomeParams = z.object({
 
 // Account list opts out: forced usage refresh bypasses throttle/Retry-After and costs a serial round trip per account.
 export const ListAccountsParams = z.object({
+  usageTarget: z
+    .object({
+      runtime: z.enum(['host', 'wsl']),
+      wslDistro: z.string().nullable()
+    })
+    .optional(),
   refreshUsage: z.boolean().default(true),
   // Older hosts strip this and skip the refresh, which matches their prior behavior.
   refreshStaleUsage: z.boolean().optional()

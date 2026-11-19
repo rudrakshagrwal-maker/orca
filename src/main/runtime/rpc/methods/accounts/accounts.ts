@@ -100,10 +100,8 @@ const ACCOUNT_METHOD_DEFINITIONS = [
     name: 'accounts.list',
     permission: 'workspace',
     params: ListAccountsParams,
-    handler: async (_params, { runtime }) => {
-      // Refresh before replying: unfocused desktop polling and unopened account caches can leave mobile usage stale.
-
-      return runtime.getAccountsSnapshot()
+    handler: async (params, { runtime }) => {
+      return runtime.getAccountsSnapshot(params.refreshUsage, params.usageTarget)
     }
   }),
   defineMethod({

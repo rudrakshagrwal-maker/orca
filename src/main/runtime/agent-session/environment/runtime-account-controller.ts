@@ -1,5 +1,8 @@
 // RA: Retain Claude and Codex while removing unused integrations and usage tracking.
 import type { ClaudeAccountService } from '../../../claude-accounts/service'
+import type { RateLimitService } from '../../../rate-limits/service'
+import type { RateLimitState } from '../../../../shared/rate-limit-types'
+import type { LocalAccountRuntimeTarget } from '../../../../shared/local-account-runtime'
 
 import type {
   ClaudeAccountSignIn,
@@ -32,11 +35,13 @@ import { HostAccountLaunchEnvState } from './host-account-launch-env-state'
 import type { RuntimeNotifier } from '../../client/events/runtime-notifier-contract'
 
 export type RuntimeAccountServices = {
+  rateLimits?: RateLimitService
   claudeAccounts: ClaudeAccountService
   codexAccounts: CodexAccountService
 }
 
 export type AccountsSnapshot = {
+  rateLimits?: RateLimitState
   claude: ClaudeRateLimitAccountsState
   codex: CodexRateLimitAccountsState
 }
@@ -94,11 +99,18 @@ export class RuntimeAccountController {
     return this.services?.claudeAccounts.getRuntimeConfigDir(target) ?? null
   }
 
-  getSnapshot(): AccountsSnapshot {
-    const { claudeAccounts, codexAccounts } = this.requireServices()
+  async getSnapshot(
+    refreshUsage = false,
+    target?: LocalAccountRuntimeTarget
+  ): Promise<AccountsSnapshot> {
+    const { claudeAccounts, codexAccounts, rateLimits } = this.requireServices()
+    if (refreshUsage) {
+      await rateLimits?.refresh(target)
+    }
     return {
       claude: claudeAccounts.listAccounts(),
-      codex: codexAccounts.listAccounts()
+      codex: codexAccounts.listAccounts(),
+      rateLimits: rateLimits?.getState(target)
     }
   }
 

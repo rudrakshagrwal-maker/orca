@@ -8,6 +8,7 @@ import { setSidebarLiveWidth } from './sidebar-live-width'
 import WorktreeList from './worktree-list/listing/WorktreeList'
 import WslMovedProjectsSection from './WslMovedProjectsSection'
 import SidebarToolbar from './SidebarToolbar'
+import { SidebarAgentUsage } from './SidebarAgentUsage'
 import { SidebarViews } from './SidebarViews'
 import type { VirtualizedScrollAnchor } from '@/hooks/useVirtualizedScrollAnchor'
 import { cn } from '@/lib/class-names'
@@ -132,6 +133,7 @@ function Sidebar({
                 </div>
               </SidebarViews>
 
+              <SidebarAgentUsage />
               <div className="relative shrink-0">
                 {/* RA: no automatic setup prompt. */}
 

@@ -1,4 +1,5 @@
-import { backgroundJobsDisabled } from '../../../../../../shared/fork-background-policy'
+import { hasBinaryFileExtension } from '../../../../../../shared/file-preview/binary-file-extensions'
+import { filePreviewForPath } from '../../../../../../shared/file-preview/file-preview-kind'
 import { downloadAndOpenRemoteTerminalFile } from './terminal-remote-file-download-open'
 import { isMissingRuntimePathError } from '@/runtime/files/metadata/runtime-file-metadata-client'
 import { useAppStore } from '@/store/index'
@@ -39,7 +40,6 @@ import type { HttpLinkDestination } from '@/lib/browser/navigation/http-link-des
 import { isHtmlFilePath, localHtmlFileDestinations } from './local-html-file-destinations'
 import type { FileOpenFailure } from './terminal-file-open-failure'
 import { openDetectedFolder } from './terminal-folder-open'
-import { openLinkWithRaDefaults } from './terminal-file-system-default'
 
 type TerminalFileOpenDeps = {
   worktreeId: string
@@ -175,28 +175,11 @@ export function openDetectedFilePath(
       return
     }
 
-    // RA: open verified file links in VS Code before any embedded editor/browser routing.
-    if (backgroundJobsDisabled() && !statResult.isDirectory) {
-      try {
-        const ownerHostId = clientLocal ? LOCAL_EXECUTION_HOST_ID : hostWorkspaceFile?.executionHostId ?? sourceFileHostId
-        if (!ownerHostId) {
-          deps.onOpenFailure?.({ verdict: 'unverifiable' })
-          return
-        }
-        await openLinkWithRaDefaults({
-          path: mappedFilePath,
-          ownerHostId,
-          clientLocal,
-          connectionId: fileContext.connectionId,
-          onOpenFailure: deps.onOpenFailure
-        })
-      } catch (error) {
-        deps.onOpenFailure?.({ verdict: 'unavailable', error })
-      }
-      return
-    }
     const canOpenWithSystemDefault = shouldOpenTerminalFileWithSystemDefault(fileContext)
-    if (explicitGroupRequest && openWithSystemDefault) {
+    const unsupportedBinary =
+      hasBinaryFileExtension(mappedFilePath) && filePreviewForPath(mappedFilePath) === null
+    const needsSystemDefault = openWithSystemDefault || unsupportedBinary
+    if (explicitGroupRequest && needsSystemDefault) {
       refuseExplicitNonEditorRoute()
       return
     }
@@ -212,11 +195,15 @@ export function openDetectedFilePath(
         : null
     const opensWithSystemDefault = pageDestination
       ? pageDestination === 'system'
-      : openWithSystemDefault
+      : needsSystemDefault
     // Why folders skip this: the folder branch opens them with the OS too, and reports a failed open.
     if (opensWithSystemDefault && canOpenWithSystemDefault && !statResult.isDirectory) {
       // Shift+Cmd/Ctrl follows URL-link behavior and OS file associations without new editor settings.
       if (await window.api.shell.openFilePath(mappedFilePath, LOCAL_EXECUTION_HOST_ID)) {
+        return
+      }
+      if (unsupportedBinary) {
+        deps.onOpenFailure?.({ verdict: 'unavailable' })
         return
       }
     }
@@ -243,9 +230,13 @@ export function openDetectedFilePath(
     }
 
     // Shift+Cmd/Ctrl must match popover’s Download & open with default app; OS cannot directly launch remote paths.
-    if (openWithSystemDefault && !canOpenWithSystemDefault) {
+    if (needsSystemDefault && !canOpenWithSystemDefault) {
       const download = { grant: hostGrant, isCurrent: isCurrentRequest }
       if (await downloadAndOpenRemoteTerminalFile(fileContext, mappedFilePath, download)) {
+        return
+      }
+      if (unsupportedBinary) {
+        deps.onOpenFailure?.({ verdict: 'unavailable' })
         return
       }
     }

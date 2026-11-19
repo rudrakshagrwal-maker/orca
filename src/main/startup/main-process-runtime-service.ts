@@ -145,7 +145,11 @@ export function configureRuntimeServices(runtime: OrcaRuntimeService): void {
     throw new Error('Account services must be initialized before runtime wiring')
   }
   // RA: only terminal account and launch services are constructed.
-  runtime.setAccountServices({ claudeAccounts, codexAccounts })
+  runtime.setAccountServices({
+    claudeAccounts,
+    codexAccounts,
+    rateLimits: state.rateLimits ?? undefined
+  })
   installWslOrcadAccountShim(store)
   runtime.setCommitMessageAgentEnvironmentResolvers({
     // Resolve every Codex launch through runtime-home, including default-account hooks/auth.

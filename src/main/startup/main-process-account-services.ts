@@ -18,6 +18,7 @@ export function initializeMainProcessAccountServices(): void {
   state.codexAccounts = services.codexAccounts
   state.claudeRuntimeAuth = services.claudeRuntimeAuth
   state.claudeAccounts = services.claudeAccounts
+  state.rateLimits = services.rateLimits
   state.keybindings = new KeybindingService({
     homePath: app.getPath('home'),
     getLegacyOverrides: () => store.getSettings().keybindings,

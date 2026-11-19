@@ -6,6 +6,7 @@ import type { CodexAccountService } from '../codex-accounts/service'
 import type { CodexRuntimeHomeService } from '../codex-accounts/runtime-home-service'
 import type { ClaudeAccountService } from '../claude-accounts/service'
 import type { ClaudeRuntimeAuthService } from '../claude-accounts/runtime-auth-service'
+import type { RateLimitService } from '../rate-limits/service'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 
 import type { OrcaRuntimeRpcServer } from '../runtime/rpc/server/runtime-rpc'
@@ -69,6 +70,7 @@ export const mainProcessState = {
   codexRuntimeHome: null as CodexRuntimeHomeService | null,
   codexSessionMigration: null as ReturnType<typeof createCodexSessionMigrationScheduler> | null,
   claudeAccounts: null as ClaudeAccountService | null,
+  rateLimits: null as RateLimitService | null,
   claudeRuntimeAuth: null as ClaudeRuntimeAuthService | null,
   runtime: null as OrcaRuntimeService | null,
   runtimeRpc: null as OrcaRuntimeRpcServer | null,

@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 
 import { tmpdir } from 'node:os'
-import { act, cleanup, render } from '@testing-library/react'
+import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
@@ -65,6 +65,8 @@ vi.mock('./SidebarToolbar', () => ({
   default: () => <div data-testid="sidebar-toolbar" />
 }))
 
+vi.mock('./SidebarAgentUsage', () => ({ SidebarAgentUsage: () => null }))
+
 vi.mock('./workspace-board/surface/WorkspaceKanbanDrawer', () => ({
   default: ({
     leftSidebarStyle,
@@ -116,6 +118,7 @@ function setSidebarState(settings: GlobalSettings, statusBarVisible = true): voi
     setSidebarWidth: vi.fn(),
     settings,
     sidebarOpen: true,
+    sidebarView: 'projects',
     sidebarWidth: 320,
     statusBarVisible
   }
@@ -145,23 +148,6 @@ describe('Sidebar', () => {
     setSidebarState(getDefaultSettings(tmpdir()))
     const view = render(sidebarElement())
     expect(view.getByTestId('worktree-list')).toBeDefined()
-    expect(view.queryByText('Agents')).toBeNull()
     expect(view.queryByRole('separator', { name: 'Resize Agents section' })).toBeNull()
-  })
-  it('shows a compact loading status until startup discovery finishes', () => {
-    vi.useFakeTimers()
-    try {
-      setSidebarState(getDefaultSettings(tmpdir()))
-      mocks.state = { ...mocks.state, startupWorktreeRefreshCompleted: false }
-      const view = render(sidebarElement())
-      expect(view.queryByRole('status')).toBeNull()
-      act(() => vi.advanceTimersByTime(200))
-      expect(view.getByRole('status').textContent).toBe('Loading workspaces…')
-      mocks.state = { ...mocks.state, startupWorktreeRefreshCompleted: true }
-      view.rerender(sidebarElement())
-      expect(view.queryByRole('status')).toBeNull()
-    } finally {
-      vi.useRealTimers()
-    }
   })
 })

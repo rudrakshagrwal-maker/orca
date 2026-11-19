@@ -6,10 +6,14 @@ import { CodexRuntimeHomeService } from '../../codex-accounts/runtime-home-servi
 import { CodexAccountService } from '../../codex-accounts/service'
 import { ClaudeRuntimeAuthService } from '../../claude-accounts/runtime-auth-service'
 import { ClaudeAccountService } from '../../claude-accounts/service'
+import { RateLimitService } from '../../rate-limits/service'
+import { fetchAgentUsage } from '../../rate-limits/agent-usage-fetch'
+import { resolveLocalAccountUsageTarget } from '../../../shared/local-account-runtime'
 
 import type { ClaudeStatusLineRateLimits } from '../../../shared/claude-statusline-rate-limits'
 
 export type ProviderAccountServices = {
+  rateLimits: RateLimitService
   codexRuntimeHome: CodexRuntimeHomeService
   codexAccounts: CodexAccountService
   claudeRuntimeAuth: ClaudeRuntimeAuthService
@@ -32,6 +36,22 @@ export function createProviderAccountServices(
   )
   const claudeRuntimeAuth = new ClaudeRuntimeAuthService(store)
   const claudeAccounts = new ClaudeAccountService(store, undefined, claudeRuntimeAuth)
-  // RA: authentication has no quota polling, credential probes or unused provider setup.
-  return { codexRuntimeHome, codexAccounts, claudeRuntimeAuth, claudeAccounts }
+  const rateLimits = new RateLimitService(
+    (requestedTarget) => {
+      const settings = store.getSettings()
+      const target = requestedTarget ?? resolveLocalAccountUsageTarget(settings)
+      return {
+        target,
+        key: JSON.stringify([
+          target,
+          settings.activeClaudeManagedAccountId,
+          settings.activeClaudeManagedAccountIdsByRuntime,
+          settings.activeCodexManagedAccountId,
+          settings.activeCodexManagedAccountIdsByRuntime
+        ])
+      }
+    },
+    (provider, target) => fetchAgentUsage(provider, target, { claudeRuntimeAuth, codexRuntimeHome })
+  )
+  return { codexRuntimeHome, codexAccounts, claudeRuntimeAuth, claudeAccounts, rateLimits }
 }
