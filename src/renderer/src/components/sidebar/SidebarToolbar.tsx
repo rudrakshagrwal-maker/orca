@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollToCurrentWorkspaceToolbarButton } from './worktree-list/navigation/ScrollToCurrentWorkspaceToolbarButton'
 import { SidebarSettingsHelpMenu } from './SidebarSettingsHelpMenu'
+import { SidebarComputerAwakeMenu } from './SidebarComputerAwakeMenu'
 
 // RA: no Workspace board button; the fork keeps the sidebar to projects and terminals.
 const SidebarToolbar = React.memo(function SidebarToolbar() {
@@ -12,6 +13,7 @@ const SidebarToolbar = React.memo(function SidebarToolbar() {
       <div className="flex items-center justify-between border-t border-worktree-sidebar-border px-2 py-1.5">
         <div className="flex min-w-0 items-center gap-1">
           <SidebarSettingsHelpMenu />
+          <SidebarComputerAwakeMenu />
         </div>
         <div className="flex items-center gap-1">
           <ScrollToCurrentWorkspaceToolbarButton />
