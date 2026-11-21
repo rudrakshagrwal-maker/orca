@@ -33,12 +33,20 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-it('defers quota reads for fifteen minutes and pauses them while hidden', async () => {
+it('loads both usage windows shortly after startup and pauses polling while hidden', async () => {
+  mocks.call.mockResolvedValue({
+    rateLimits: {
+      claude: { session: { usedPercent: 12 }, weekly: { usedPercent: 34 } },
+      codex: { session: { usedPercent: 56 }, weekly: { usedPercent: 78 } }
+    }
+  })
   const { result, rerender } = renderHook(useSidebarAgentUsage)
-  await act(() => vi.advanceTimersByTimeAsync(899_999))
   expect(mocks.call).not.toHaveBeenCalled()
-  await act(() => vi.advanceTimersByTimeAsync(1))
-  expect(result.current?.claude?.status).toBe('ok')
+  await act(() => vi.advanceTimersByTimeAsync(1000))
+  expect(result.current).toEqual({
+    claude: { session: { usedPercent: 12 }, weekly: { usedPercent: 34 } },
+    codex: { session: { usedPercent: 56 }, weekly: { usedPercent: 78 } }
+  })
   mocks.call.mockClear()
   mocks.visible = false
   rerender()
@@ -46,8 +54,9 @@ it('defers quota reads for fifteen minutes and pauses them while hidden', async 
   expect(mocks.call).not.toHaveBeenCalled()
   mocks.visible = true
   rerender()
+  await act(() => vi.advanceTimersByTimeAsync(1000))
   expect(mocks.call).not.toHaveBeenCalled()
-  await act(() => vi.advanceTimersByTimeAsync(900_000))
+  await act(() => vi.advanceTimersByTimeAsync(899_000))
   expect(mocks.call).toHaveBeenCalledWith(
     { kind: 'local' },
     'accounts.list',

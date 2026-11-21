@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { RateLimitState } from '../../../../shared/rate-limit-types'
 import type { RuntimeClientTarget } from '../../../../shared/runtime-client-target'
 import { useWindowStreamVisible } from '@/hooks/use-window-stream-visibility'
@@ -7,6 +7,7 @@ import { callRuntimeRpc } from '@/runtime/rpc/calls/runtime-rpc-call'
 import { useAppStore } from '@/store/index'
 
 const LOCAL_TARGET: RuntimeClientTarget = { kind: 'local' }
+const STARTUP_REFRESH_DELAY_MS = 1000
 const POLL_INTERVAL_MS = 15 * 60_000
 
 export function useSidebarAgentUsage(): RateLimitState | null {
@@ -24,6 +25,7 @@ export function useSidebarAgentUsage(): RateLimitState | null {
     ])
   )
   const ownerKey = JSON.stringify([target, wslHostDistro, selectionKey])
+  const hasCompletedInitialRead = useRef(false)
   const [snapshot, setSnapshot] = useState<{
     ownerKey: string
     usage: RateLimitState | null
@@ -35,8 +37,7 @@ export function useSidebarAgentUsage(): RateLimitState | null {
     }
     const abort = new AbortController()
     let pending = false
-    // Quota reads begin at the first interval, never on mount, focus or restore.
-    const timer = window.setInterval(() => {
+    const refresh = (): void => {
       if (pending) {
         return
       }
@@ -64,10 +65,18 @@ export function useSidebarAgentUsage(): RateLimitState | null {
         )
         .finally(() => {
           pending = false
+          if (!abort.signal.aborted) {
+            hasCompletedInitialRead.current = true
+          }
         })
-    }, POLL_INTERVAL_MS)
+    }
+    const startupTimer = hasCompletedInitialRead.current
+      ? undefined
+      : window.setTimeout(refresh, STARTUP_REFRESH_DELAY_MS)
+    const timer = window.setInterval(refresh, POLL_INTERVAL_MS)
     return () => {
       abort.abort()
+      window.clearTimeout(startupTimer)
       window.clearInterval(timer)
     }
   }, [visible, target, wslHostDistro, ownerKey])

@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { revealWorkerTab } from '@/components/terminal/worker-tab-visibility' // RA: include launch-only rows.
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/store'
-import { AgentStateDot } from '@/components/AgentStateDot'
+import { AgentStateDot, type AgentDotState } from '@/components/AgentStateDot'
 import { AgentTypeIcon } from '@/components/agent/icons/agent-type-icon'
+import { agentRowDisplayDotState } from '@/lib/agent-status/presentation/agent-row-dot-state'
 import { useNow } from '@/hooks/use-now'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { DashboardAgentRow } from '@/components/dashboard/useDashboardData'
@@ -26,7 +27,44 @@ import { selectTabAgentParents } from '@/components/tab-bar/tab-agent-lineage'
 import { selectWorktreeAgentOrchestration } from './worktree-agent-orchestration-index'
 import { useTranslate } from '@/i18n/use-translate'
 
-// RA: flat, dense showcase stays one row per live agent tab, including launch-only agents.
+function LiveAgentRow({
+  tabId,
+  title,
+  agentType,
+  state,
+  elapsed,
+  onActivate
+}: {
+  tabId?: string
+  title: string
+  agentType: string
+  state: AgentDotState
+  elapsed: number
+  onActivate: () => void
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      data-agent-tab-id={tabId}
+      className="flex h-6 min-w-0 flex-1 items-center gap-1 rounded-sm px-1 text-left text-2xs hover:bg-worktree-sidebar-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"
+      onClick={onActivate}
+    >
+      <AgentTypeIcon agentType={agentType} size={12} />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="min-w-0 flex-1 truncate">{title}</span>
+        </TooltipTrigger>
+        <TooltipContent side="right">{title}</TooltipContent>
+      </Tooltip>
+      <AgentStateDot state={state} />
+      <span className="shrink-0 tabular-nums text-muted-foreground">
+        {formatCompactDuration(elapsed)}
+      </span>
+    </button>
+  )
+}
+
+// Count agent tabs, including launch-only agents; subagents share their parent's tab.
 export function WorktreeLiveAgentRows({
   worktreeId,
   agents,
@@ -38,6 +76,15 @@ export function WorktreeLiveAgentRows({
 }): React.JSX.Element | null {
   const t = useTranslate()
   const [expanded, setExpanded] = useState(false)
+  const [expandedSubagentTabs, setExpandedSubagentTabs] = useState<Set<string>>(() => new Set())
+  const subagentsByTab = useMemo(
+    () =>
+      Map.groupBy(
+        agents.filter((row) => row.rowSource === 'subagent'),
+        (row) => row.tab.id
+      ),
+    [agents]
+  )
   const tabs = useAppStore((s) => s.tabsByWorktree[worktreeId] ?? EMPTY_TABS)
   const structuredIds = useAppStore(
     useShallow((s) =>
@@ -93,6 +140,27 @@ export function WorktreeLiveAgentRows({
   )
   const now = useNow(30_000)
   const activate = useWorktreeAgentActivation(worktreeId)
+  const activateRow = (tabId: string, paneKey?: string) => {
+    revealWorkerTab(tabId)
+    if (structuredIds.includes(tabId)) {
+      activateAndRevealWorktree(worktreeId)
+      activateStructuredAgentSessionTab({ worktreeId, tabId })
+    } else if (paneKey && parsePaneKey(paneKey)) {
+      activate(tabId, paneKey)
+    } else {
+      activateAndRevealWorktree(worktreeId)
+      useAppStore.getState().setActiveTab(tabId)
+    }
+  }
+  const toggleSubagents = (tabId: string) => {
+    setExpandedSubagentTabs((current) => {
+      const next = new Set(current)
+      if (!next.delete(tabId)) {
+        next.add(tabId)
+      }
+      return next
+    })
+  }
   if (!rows.length) {
     return null
   }
@@ -111,69 +179,79 @@ export function WorktreeLiveAgentRows({
         })}
       </div>
       {(expanded ? rows : rows.slice(0, 6)).map((row) => {
+        const tabId = row.tab.id
         const title =
           row.taskTitle ??
           resolveAgentSessionTitle(
             row.tab,
-            liveTitles.get(row.tab.id),
+            liveTitles.get(tabId),
             formatAgentTypeLabel(row.agentType),
             row.providerSessionId
           )
-        const waiting = row.state === 'waiting' || row.state === 'blocked'
-        const stateLabel = waiting
-          ? 'Waiting for you'
-          : row.state === 'working'
-            ? 'Working'
-            : row.state === 'done'
-              ? 'Done'
-              : row.state === 'unverifiable'
-                ? 'No recent update'
-                : 'Idle'
+        const subagents = subagentsByTab.get(tabId)
+        const subagentsExpanded = expandedSubagentTabs.has(tabId)
         return (
-          <Tooltip key={row.tab.id}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                data-agent-tab-id={row.tab.id}
-                style={{ marginLeft: `${row.depth * 1.25}rem` }}
-                className="flex h-6 min-w-0 items-center gap-1 rounded-sm px-1 text-left text-2xs hover:bg-worktree-sidebar-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"
-                onClick={() => {
-                  revealWorkerTab(row.tab.id) // RA: a row is the explicit visibility request.
-                  if (structuredIds.includes(row.tab.id)) {
-                    activateAndRevealWorktree(worktreeId)
-                    activateStructuredAgentSessionTab({ worktreeId, tabId: row.tab.id })
-                  } else if (row.paneKey && parsePaneKey(row.paneKey)) {
-                    activate(row.tab.id, row.paneKey)
-                  } else {
-                    activateAndRevealWorktree(worktreeId)
-                    useAppStore.getState().setActiveTab(row.tab.id)
+          <div key={tabId} style={{ marginLeft: `${row.depth * 1.25}rem` }}>
+            <div className="flex min-w-0">
+              <LiveAgentRow
+                tabId={tabId}
+                title={title}
+                agentType={row.agentType}
+                state={row.state}
+                elapsed={now - row.stateStartedAt}
+                onActivate={() => activateRow(tabId, row.paneKey)}
+              />
+              {subagents && (
+                <button
+                  type="button"
+                  data-agent-child-disclosure-button=""
+                  className="min-w-6 shrink-0 rounded-sm px-1 text-2xs tabular-nums text-muted-foreground hover:bg-worktree-sidebar-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"
+                  aria-label={
+                    subagentsExpanded
+                      ? t(
+                          'auto.components.dashboard.DashboardAgentChildDisclosure.hideChildAgents',
+                          'Hide {{count}} child agents',
+                          {
+                            count: subagents.length,
+                            defaultValue_one: 'Hide {{count}} child agent'
+                          }
+                        )
+                      : t(
+                          'auto.components.dashboard.DashboardAgentChildDisclosure.showChildAgents',
+                          'Show {{count}} child agents',
+                          {
+                            count: subagents.length,
+                            defaultValue_one: 'Show {{count}} child agent'
+                          }
+                        )
                   }
-                }}
-              >
-                <AgentTypeIcon agentType={row.agentType} size={12} />
-                <span className="min-w-0 flex-1 truncate">{title}</span>
-                <AgentStateDot state={row.state} title={null} />
-                <span
-                  className={cn(
-                    'shrink-0',
-                    waiting
-                      ? 'text-amber-500'
-                      : row.state === 'working'
-                        ? 'text-agent-working'
-                        : row.state === 'done'
-                          ? 'text-emerald-500'
-                          : 'text-muted-foreground'
-                  )}
+                  aria-expanded={subagentsExpanded}
+                  onClick={() => toggleSubagents(tabId)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.stopPropagation()
+                    }
+                  }}
                 >
-                  {stateLabel}
-                </span>
-                <span className="shrink-0 tabular-nums text-muted-foreground">
-                  {formatCompactDuration(now - row.stateStartedAt)}
-                </span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">{title}</TooltipContent>
-          </Tooltip>
+                  +{subagents.length}
+                </button>
+              )}
+            </div>
+            {subagentsExpanded && subagents && (
+              <div className="ml-5 flex flex-col gap-0.5">
+                {subagents.map((child) => (
+                  <LiveAgentRow
+                    key={child.paneKey}
+                    title={child.entry.prompt || formatAgentTypeLabel(child.agentType)}
+                    agentType={child.agentType}
+                    state={agentRowDisplayDotState(child)}
+                    elapsed={now - child.entry.stateStartedAt}
+                    onActivate={() => activateRow(tabId, child.activationPaneKey)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )
       })}
       {rows.length > 6 && (
