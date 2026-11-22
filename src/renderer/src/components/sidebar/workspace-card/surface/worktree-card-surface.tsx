@@ -72,7 +72,10 @@ export function WorktreeCardSurface({ card }: { card: WorktreeCardController }):
           ? 'border border-worktree-sidebar-foreground/40 bg-worktree-sidebar-accent text-worktree-sidebar-accent-foreground ring-1 ring-inset ring-worktree-sidebar-ring/60'
           : isActiveSurface
             ? 'border border-transparent'
-            : 'border border-transparent worktree-sidebar-card-hover',
+            : // RA 2026-11-21: each project's main worktree always carries an outline.
+              worktree.isMainWorktree
+              ? 'border border-worktree-sidebar-foreground/12 worktree-sidebar-card-hover'
+              : 'border border-transparent worktree-sidebar-card-hover',
         isActiveSurface && isMultiSelected && 'ring-1 ring-worktree-sidebar-ring/35',
         revealHighlight && [
           'scroll-to-current-workspace-reveal-highlight',
