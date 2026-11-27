@@ -14,11 +14,16 @@ Use it when you need ownership, completion tracking, or a DAG. For one-off promp
   the running Orca runtime, so `orca status --json` should succeed first.
 </Callout>
 
-<Callout title="Legacy commands retired">
-  `orca orchestration run` and `run-stop` (and `coordinator-start` / `coordinator-stop`) perform
-  **no effects**. They return recovery text pointing at `orca skills get orchestration --full`. Use
-  the Run + worker-start flow below.
-</Callout>
+Run one worker and receive its final report with:
+
+```bash
+orca orchestration worker-start --agent codex --brief-file brief.md --wait --timeout 1800 --json
+```
+
+The wait observes only that Dispatch and leaves inbox mail unread. A timeout exits non-zero and
+leaves the worker running; resume with `worker-show --dispatch <id> --wait --json`, or stop it with
+`worker-stop --dispatch <id> --json`. `worker-list` shows unfinished workers by default;
+`worker-list --all` includes settled history. `--timeout-ms` still controls startup readiness.
 
 ## Output
 

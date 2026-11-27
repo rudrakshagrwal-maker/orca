@@ -16,18 +16,7 @@ export function keepPinnedWorkspaceTabOpen(worktreeId: string, tabId?: string): 
   return true
 }
 
-// RA: Unified tabs include editors and browsers; retain the terminal mirror during hydration.
+// RA 23 Nov: Ctrl+W closes the last tab too; only pinned tabs are protected (was: last tab kept, 3 Nov).
 export function keepLastWorkspaceTabOpen(worktreeId: string, tabId?: string): boolean {
-  if (keepPinnedWorkspaceTabOpen(worktreeId, tabId)) {
-    return true
-  }
-  const state = useAppStore.getState()
-  if (
-    (state.tabsByWorktree[worktreeId]?.length ?? 0) > 1 ||
-    (state.unifiedTabsByWorktree[worktreeId]?.length ?? 0) > 1
-  ) {
-    return false
-  }
-  toast.info('Last tab: Ctrl+W keeps the workspace open', { duration: 2000 })
-  return true
+  return keepPinnedWorkspaceTabOpen(worktreeId, tabId)
 }

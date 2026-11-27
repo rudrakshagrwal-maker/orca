@@ -103,7 +103,7 @@ export function useWorktreeListKeyboardNavigation(args: {
       void activateWorktreeFromSidebar(
         preview.row.worktree.id,
         getWorktreeExecutionHostId(preview.row.worktree, preview.row.repo),
-        { revealInSidebar: false }
+        { revealInSidebar: false, providesInitialSurface: true }
       )
     }
   }, [dropPreview])
@@ -159,7 +159,8 @@ export function useWorktreeListKeyboardNavigation(args: {
       } else {
         dropPreview()
         void activateWorktreeFromSidebar(nextWorktree.id, executionHostId, {
-          revealInSidebar: false
+          revealInSidebar: false,
+          providesInitialSurface: true
         })
       }
 

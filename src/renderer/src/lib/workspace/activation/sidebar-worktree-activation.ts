@@ -24,7 +24,8 @@ async function settleLifecycleCall(
 export async function activateWorktreeFromSidebar(
   worktreeId: string,
   executionHostId?: ExecutionHostId,
-  options?: { revealInSidebar?: boolean }
+  // RA 23 Nov: providesInitialSurface = switch only, never seed a terminal in an empty workspace (keyboard cycling).
+  options?: { revealInSidebar?: boolean; providesInitialSurface?: boolean }
 ): Promise<void> {
   const workspaceScope = parseWorkspaceKey(worktreeId)
   if (workspaceScope?.type === 'folder') {
@@ -39,6 +40,7 @@ export async function activateWorktreeFromSidebar(
   activateAndRevealWorktree(worktreeId, {
     navigationIntent: 'user-open',
     revealInSidebar: false,
+    ...(options?.providesInitialSurface ? { providesInitialSurface: true } : {}),
     ...(executionHostId ? { executionHostId } : {})
   })
 
