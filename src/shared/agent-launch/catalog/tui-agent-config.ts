@@ -30,6 +30,17 @@ const TUI_AGENT_CONFIG_SOURCE = {
     draftPasteReadyTimeoutMs: 20_000,
     submitRetryDelayMs: 1200
   },
+  antigravity: {
+    detectCmd: 'agy',
+    promptInjectionMode: 'flag-prompt-interactive',
+    // Antigravity trust is exact-path, so every child workspace can show a menu that consumes paste; pre-write trust (agent-trust-presets.ts).
+    preflightTrust: 'antigravity',
+    // The shell's own 2004h armed the quiet window, so a slow agy start got the paste in cooked mode (#18088).
+    draftPasteReadySignal: 'antigravity-composer-prompt',
+    draftPasteReadyTimeoutMs: 20_000,
+    // agy 1.2.x expands collapsed multiline pastes over seconds; byte ingest finishing does not prove submit readiness.
+    submitLineSettleMsPerLine: 45
+  },
   hermes: {
     detectCmd: 'hermes',
     launchCmd: 'hermes --tui',
